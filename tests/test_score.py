@@ -34,4 +34,6 @@ def test_parse_versions(mscx, version):
     s = ms3.Score()
     s.parse_mscx(mscx, parser='bs4')
     assert s.xml.version == version
-    s.xml.events.to_csv('test.tsv', sep='\t', index=False)
+    s.xml.measures.to_csv('measures.tsv', sep='\t', index=False)
+    s.xml.events.to_csv('events.tsv', sep='\t', index=False)
+    s.xml.notes.to_csv('notes.tsv', sep='\t', index=False)
