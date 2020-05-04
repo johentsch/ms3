@@ -110,6 +110,9 @@ def run():
     """
     main(sys.argv[1:])
 
+class score():
+    pass
+
 
 if __name__ == "__main__":
     run()
