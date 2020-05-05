@@ -15,13 +15,30 @@ class Score:
     """
     mscx_src: str
 
-    def __init__(self):
-        self.xml = None
-        self.mscx_src = ''
+    def __init__(self, mscx_src=None, parser='bs4'):
+        self._xml = None
+        self.mscx_src = mscx_src
+        self.parser = parser
         self.staff_nodes: {}
+        if self.mscx_src is not None:
+            self.parse_mscx()
 
-    def parse_mscx(self, mscx, parser='bs4'):
-        self.xml = MSCX(mscx, parser)
+
+    def parse_mscx(self, mscx_src=None, parser=None):
+        if mscx_src is not None:
+            self.mscx_src = mscx_src
+        if parser is not None:
+            self.parser = parser
+        self._xml = MSCX(self.mscx_src, self.parser)
+
+    def output_mscx(self, filepath):
+        self.xml.output_mscx(filepath)
+
+    @property
+    def xml(self):
+        if self._xml is None:
+            raise LookupError("No XML has been parsed so far. Use the method parse_mscx().")
+        return self._xml
 
 
 class MSCX:
@@ -43,6 +60,7 @@ class MSCX:
         self.mscx_src = mscx_src
         if parser is not None:
             self.parser = parser
+        self.parsed = None
 
         assert os.path.isfile(self.mscx_src), f"{self.mscx_src} does not exist."
 
@@ -51,6 +69,8 @@ class MSCX:
             self.parsed = _MSCX_bs4(self.mscx_src)
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
+
+        self.output_mscx = self.parsed.output_mscx
 
     @property
     def measures(self):
@@ -113,8 +133,7 @@ class _MSCX_bs4:
                 for sn_name, sn in sub_nodes.items():
                     info.update({child_prepend+k: v for k, v in  recurse_node(sn, prepend=sn_name).items()})
             else:
-                value = node.string
-                info[name] = '∅' if value in ['', '\n'] else str(value)
+                info[name] = '∅' if node.string in [None, '\n'] else str(node.string)
             return info
 
         grace_tags = ['grace4', 'grace4after', 'grace8', 'grace8after', 'grace16', 'grace16after', 'grace32',
@@ -201,10 +220,16 @@ class _MSCX_bs4:
                         current_position += event['duration']
 
                 measure_list.append(measure_info)
-        col_order = ['mc', 'onset', 'event', 'duration', 'scalar', 'staff', 'voice', 'gracenote']
+        col_order = ['chord_id', 'mc', 'onset', 'event', 'duration', 'scalar', 'staff', 'voice', 'gracenote']
         self.measures = sort_cols(pd.DataFrame(measure_list), col_order)
         self.events = sort_cols(pd.DataFrame(event_list), col_order)
         self.notes = sort_cols(pd.DataFrame(note_list), col_order)
+
+
+    def output_mscx(self, filepath):
+
+        with open(filepath, 'w') as file:
+            file.write(bs4_to_mscx(self.soup))
 
 
 def sort_cols(df, first_cols=None):
@@ -242,3 +267,39 @@ def bs4_chord_duration(node, duration_multiplier=1):
 
 def bs4_rest_duration(node, duration_multiplier=1):
     return bs4_chord_duration(node, duration_multiplier)
+
+
+def bs4_to_mscx(soup):
+
+    def get_attribute_string(node):
+        attributes = node.attrs.items()
+        if len(attributes) > 0:
+            return ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes)
+        return ''
+
+    def format_node(node, indent):
+        nxt_indent = indent+2
+        node_name = node.name
+        children = node.find_all(recursive=False)
+        if node_name == 'text':
+            return ' ' * indent + str(node)
+        result = f"{' ' * indent}<{node_name}{get_attribute_string(node)}"
+        if len(children) > 0:
+            if node_name == 'text':
+                result += f""">{format_text_node()}{' '*(nxt_indent)}</{node_name}>\n"""
+            else:
+                result += f""">\n{''.join(format_node(child, indent+2) for child in children)}{' '*(nxt_indent)}</{node_name}>\n"""
+        elif node.string == '\n':
+            result += f""">\n{' '*(nxt_indent)}</{node_name}>\n"""
+        else:
+            value = '' if node.string is None else node.string
+            if value != '' or node_name in ['LayerTag', 'metaTag']: # these tags are never abbreviated
+                result += f""">{value}</{node_name}>\n"""
+            else:
+                result += "/>\n"
+
+        return result
+
+    initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
+    first_tag = soup.find()
+    return initial_tag + format_node(first_tag, indent=0)
