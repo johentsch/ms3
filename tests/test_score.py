@@ -5,42 +5,188 @@
 import pytest
 import os
 import tempfile
+from fractions import Fraction as frac
+
+import pandas as pd
 
 import ms3
 
+@pytest.fixture(
+    params=['D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx'],
+    ids=["schubert", "berlioz", 'bach', 'mozart'])
+def score_object(request):
+    mscx_path = os.path.realpath(os.path.join('mscx', request.param))
+    s = ms3.Score(mscx_path, parser='bs4')
+    return s
 
-# @pytest.fixture
-# def response():
-#     """Sample pytest fixture.
-#
-#     See more at: http://doc.pytest.org/en/latest/fixture.html
-#     """
-#     import requests
-#     return requests.get('https://github.com/audreyr/cookiecutter-pypackage')
+class TestBasic:
 
-
-# def test_content(response):
-#     """Sample pytest test function with the pytest fixture as an argument."""
-#     from bs4 import BeautifulSoup
-#     assert 'GitHub' in BeautifulSoup(response.content).title.string
-
-def create_score_object():
-    s = ms3.Score()
-    assert isinstance(s, ms3.Score)
+    def test_init(self):
+        s = ms3.Score()
+        assert isinstance(s, ms3.score.Score)
+        with pytest.raises(LookupError):
+            s.mscx
 
 
-@pytest.mark.parametrize('mscx, version', [('D973deutscher01.mscx', '3.3.4'), ('05Symphonie_Fantastique_op14_V.mscx', '3.3.4')])
-def test_parse_versions(mscx, version):
-    mscx_path = os.path.realpath(os.path.join('mscx', mscx))
-    s = ms3.Score()
-    s.parse_mscx(mscx_path, parser='bs4')
-    assert s.xml.version == version
-    s.xml.measures.to_csv('measures.tsv', sep='\t', index=False)
-    s.xml.events.to_csv('events.tsv', sep='\t', index=False)
-    s.xml.notes.to_csv('notes.tsv', sep='\t', index=False)
-    tmp_file = tempfile.NamedTemporaryFile(mode='r')
-    s.output_mscx(tmp_file.name)
-    original = open(mscx_path).read()
-    after_parsing = tmp_file.read()
-    diff = [(orig, after) for orig, after in zip(original.splitlines(), after_parsing.splitlines()) if orig != after]
-    assert len(diff) == 0, '\n'.join(f"{a}    {b}" for a, b in [(mscx_path, tmp_file.name)] + diff)
+class TestParser:
+
+    def test_parse_to_measurelist(self, score_object):
+        fname = score_object.fnames['mscx']
+        fpath = score_object.paths['mscx']
+        old_path = os.path.join(fpath, 'measures', fname + '.tsv')
+        old_measurelist = load_tsv(old_path, index_col=None)
+        new_measurelist = score_object.mscx.measures
+        assert_dfs_equal(old_measurelist, new_measurelist, exclude=['repeats'])
+        new_measurelist.next = new_measurelist.next.map(lambda l: ', '.join(str(s) for s in l))
+        new_measurelist.to_csv(fname + '_measures.tsv', sep='\t', index=False)
+
+    def test_parse_and_write_back(self, score_object):
+        original_mscx = score_object.full_paths['mscx']
+        tmp_file = tempfile.NamedTemporaryFile(mode='r')
+        score_object.output_mscx(tmp_file.name)
+        original = open(original_mscx).read()
+        after_parsing = tmp_file.read()
+        assert_all_lines_equal(original, after_parsing)
+
+    def test_parse_to_notelist(self, score_object):
+        fname = score_object.fnames['mscx']
+        score_object.mscx.parsed._notes.to_csv(fname + '_notes.tsv', sep='\t', index=False)
+
+    def test_parse_to_eventlist(self, score_object):
+        fname = score_object.fnames['mscx']
+        score_object.mscx.parsed._events.to_csv(fname + '_events.tsv', sep='\t', index=False)
+
+
+
+def assert_all_lines_equal(before, after):
+    diff = [(bef, aft) for bef, aft in zip(before.splitlines(), after.splitlines()) if bef != aft]
+    assert len(diff) == 0, '\n' + '\n'.join(
+        f"{a} <--before   after-->{b}" for a, b in [(original_mscx, tmp_file.name)] + diff)
+
+
+def assert_dfs_equal(old, new, exclude=[]):
+    old_l, new_l = len(old), len(new)
+    l = min(old_l, new_l)
+    if old_l != new_l:
+        print(f"Old length: {old_l}, new length: {new_l}")
+    old.index.rename('old_ix', inplace=True)
+    new.index.rename('new_ix', inplace=True)
+    cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
+    nan_eq = lambda a, b: (a == b) | ((a != a) & (b != b))
+    diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
+    old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
+    new_bool = pd.DataFrame.from_dict({ix: bool_series for _, ix, bool_series in diff}, orient='index')
+    diffs_per_col = old_bool.sum(axis=0)
+
+    def show_diff():
+        comp_str = []
+        for col, n_diffs in diffs_per_col.items():
+            if n_diffs > 0:
+                comparison = pd.concat([old.loc[old_bool[col], ['mc', col]].reset_index(drop=True).iloc[:20],
+                                        new.loc[new_bool[col], ['mc', col]].iloc[:20].reset_index(drop=True)], axis=1)
+                comp_str.append(
+                    f"{n_diffs}/{l} ({n_diffs / l * 100:.2f} %) rows are different for {col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n")
+        return '\n'.join(comp_str)
+    assert diffs_per_col.sum() == 0, show_diff()
+
+
+
+def load_tsv(path, index_col=[0, 1], converters={}, dtypes={}, stringtype=False, **kwargs):
+    """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
+
+    Parameters
+    ----------
+    path : :obj:`str`
+        Path to a TSV file as output by format_data().
+    index_col : :obj:`list`, optional
+        By default, the first two columns are loaded as MultiIndex.
+        The first level distinguishes pieces and the second level the elements within.
+    converters, dtypes : :obj:`dict`, optional
+        Enhances or overwrites the mapping from column names to types included the constants.
+    stringtype : :obj:`bool`, optional
+        If you're using pandas >= 1.0.0 you might want to set this to True in order
+        to be using the new `string` datatype that includes the new null type `pd.NA`.
+    """
+
+    def str2inttuple(l):
+        return tuple() if l == '' else tuple(int(s) for s in l.split(', '))
+
+    def int2bool(s):
+        try:
+            return bool(int(s))
+        except:
+            return s
+
+    CONVERTERS = {
+        'added_tones': str2inttuple,
+        'act_dur': frac,
+        'chord_tones': str2inttuple,
+        'globalkey_is_minor': int2bool,
+        'localkey_is_minor': int2bool,
+        'next': str2inttuple,
+        'nominal_duration': frac,
+        'offset': frac,
+        'onset': frac,
+        'duration': frac,
+        'scalar': frac, }
+
+    DTYPES = {
+        'alt_label': str,
+        'barline': str,
+        'bass_note': 'Int64',
+        'cadence': str,
+        'cadences_id': 'Int64',
+        'changes': str,
+        'chord': str,
+        'chord_type': str,
+        'dont_count': str,
+        'figbass': str,
+        'form': str,
+        'globalkey': str,
+        'gracenote': str,
+        'harmonies_id': 'Int64',
+        'keysig': int,
+        'label': str,
+        'localkey': str,
+        'mc': int,
+        'midi': int,
+        'mn': int,
+        'notes_id': 'Int64',
+        'numbering_offset': str,
+        'numeral': str,
+        'pedal': str,
+        'playthrough': int,
+        'phraseend': str,
+        'relativeroot': str,
+        'repeats': str,
+        'root': 'Int64',
+        'special': str,
+        'staff': int,
+        'tied': 'Int64',
+        'timesig': str,
+        'tpc': int,
+        'voice': int,
+        'voices': int,
+        'volta': 'Int64'
+    }
+
+
+    if converters is None:
+        conv = None
+    else:
+        conv = dict(CONVERTERS)
+        conv.update(converters)
+
+    if dtypes is None:
+        types = None
+    else:
+        types = dict(DTYPES)
+        types.update(dtypes)
+
+    if stringtype:
+        types = {col: 'string' if typ == str else typ for col, typ in types.items()}
+    return pd.read_csv(path, sep='\t', index_col=index_col,
+                       dtype=types,
+                       converters=conv, **kwargs)
+
+

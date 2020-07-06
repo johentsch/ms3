@@ -177,7 +177,7 @@
             </Dynamic>
           <Chord>
             <durationType>16th</durationType>
-            <Note test="Hallo">
+            <Note>
               <pitch>71</pitch>
               <tpc>19</tpc>
               </Note>

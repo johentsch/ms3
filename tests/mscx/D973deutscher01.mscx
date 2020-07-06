@@ -214,6 +214,9 @@
               <pitch>68</pitch>
               <tpc>22</tpc>
               </Note>
+            <Tremolo>
+              <subtype>r64</subtype>
+              </Tremolo>
             </Chord>
           </voice>
         </Measure>

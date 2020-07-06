@@ -1,0 +1,334 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ms3 package &#8212; ms3 unknown documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="ms3" href="modules.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="ms3-package">
+<h1>ms3 package<a class="headerlink" href="#ms3-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ms3.score">
+<span id="ms3-score-module"></span><h2>ms3.score module<a class="headerlink" href="#module-ms3.score" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.score.MSCX">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Object for interacting with the XML structure of a MuseScore 3 file.</p>
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore 3 file to parse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parsed">
+<code class="sig-name descname">parsed</code><a class="headerlink" href="#ms3.score.MSCX.parsed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds the MSCX score parsed by the selected parser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.MSCX.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which XML parser to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.version">
+<code class="sig-name descname">version</code><a class="headerlink" href="#ms3.score.MSCX.version" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.events">
+<em class="property">property </em><code class="sig-name descname">events</code><a class="headerlink" href="#ms3.score.MSCX.events" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.measures">
+<em class="property">property </em><code class="sig-name descname">measures</code><a class="headerlink" href="#ms3.score.MSCX.measures" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.notes">
+<em class="property">property </em><code class="sig-name descname">notes</code><a class="headerlink" href="#ms3.score.MSCX.notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id0">
+<em class="property">property </em><code class="sig-name descname">version</code><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.score.Score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Object representing a score.</p>
+<dl class="py attribute">
+<dt id="ms3.score.Score.mscx_src">
+<code class="sig-name descname">mscx_src</code><em class="property">: str</em><em class="property"> = None</em><a class="headerlink" href="#ms3.score.Score.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.output_mscx">
+<code class="sig-name descname">output_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.output_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.output_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.parse_mscx">
+<code class="sig-name descname">parse_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.parse_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.parse_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.xml">
+<em class="property">property </em><code class="sig-name descname">xml</code><a class="headerlink" href="#ms3.score.Score.xml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.bs4_chord_duration">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">bs4_chord_duration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">duration_multiplier</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#bs4_chord_duration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.bs4_chord_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.bs4_rest_duration">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">bs4_rest_duration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">duration_multiplier</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#bs4_rest_duration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.bs4_rest_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.bs4_to_mscx">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">bs4_to_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">soup</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#bs4_to_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.bs4_to_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.get_closing">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">get_closing</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#get_closing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.get_closing" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.get_oneliner">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">get_oneliner</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#get_oneliner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.get_oneliner" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.get_opening">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">get_opening</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">closed</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#get_opening"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.get_opening" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.score.sort_cols">
+<code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">sort_cols</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">first_cols</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#sort_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.sort_cols" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-ms3.skeleton">
+<span id="ms3-skeleton-module"></span><h2>ms3.skeleton module<a class="headerlink" href="#module-ms3.skeleton" title="Permalink to this headline">¶</a></h2>
+<p>This is a skeleton file that can serve as a starting point for a Python
+console script. To run this script uncomment the following lines in the
+[options.entry_points] section in setup.cfg:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>console_scripts =</dt><dd><p>fibonacci = ms3.skeleton:run</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Then run <cite>python setup.py install</cite> which will install the command <cite>fibonacci</cite>
+inside your current environment.
+Besides console scripts, the header (i.e. until _logger…) of this file can
+also be used as template for Python modules.</p>
+<p>Note: This skeleton file can be safely removed if not needed!</p>
+<dl class="py function">
+<dt id="ms3.skeleton.fib">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">fib</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#fib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.fib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fibonacci example function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – integer</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>n-th Fibonacci number</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.main">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main entry point allowing external calls</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>]</em>) – command line parameter list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.parse_args">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">parse_args</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#parse_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse command line parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><em>str</em></a><em>]</em>) – command line parameters as list of strings</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command line parameters namespace</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/argparse.html#argparse.Namespace" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.run">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Entry point for console_scripts</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.skeleton.score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">score</code><a class="reference internal" href="../_modules/ms3/skeleton.html#score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.setup_logging">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">setup_logging</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loglevel</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#setup_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup basic logging</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loglevel</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><em>int</em></a>) – minimum loglevel for emitting messages</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ms3" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">ms3</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">Module Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ms3 package</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="modules.html">ms3</a><ul>
+      <li>Previous: <a href="modules.html" title="previous chapter">ms3</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, laserjeyes.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="../_sources/api/ms3.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
