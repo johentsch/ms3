@@ -4,6 +4,30 @@ ms3 package
 Submodules
 ----------
 
+ms3.bs4\_measures module
+------------------------
+
+.. automodule:: ms3.bs4_measures
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.bs4\_parser module
+----------------------
+
+.. automodule:: ms3.bs4_parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.logger module
+-----------------
+
+.. automodule:: ms3.logger
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ms3.score module
 ----------------
 

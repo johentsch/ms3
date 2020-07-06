@@ -32,11 +32,13 @@
             
   <h1>Source code for ms3.score</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
 
-<span class="kn">import</span> <span class="nn">bs4</span> <span class="c1"># python -m pip install beautifulsoup4 lxml</span>
-<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">.bs4_parser</span> <span class="kn">import</span> <span class="n">_MSCX_bs4</span>
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
+
+
+
+
 
 
 <div class="viewcode-block" id="Score"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score">[docs]</a><span class="k">class</span> <span class="nc">Score</span><span class="p">:</span>
@@ -44,34 +46,72 @@
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
+<span class="sd">    mscx_src : :obj:`str`, optional</span>
+<span class="sd">        Path to the MuseScore file to be parsed.</span>
+<span class="sd">    parser : {&#39;bs4&#39;}, optional</span>
+<span class="sd">        Which parser to use.</span>
+<span class="sd">    logger_name : :obj:`str`, optional</span>
+<span class="sd">        If you have defined a logger, pass its name.</span>
+<span class="sd">    level : {&#39;W&#39;, &#39;D&#39;, &#39;I&#39;, &#39;E&#39;, &#39;C&#39;, &#39;WARNING&#39;, &#39;DEBUG&#39;, &#39;INFO&#39;, &#39;ERROR&#39;, &#39;CRITICAL&#39;}, optional</span>
+<span class="sd">        Pass a level name for which (and above which) you want to see log records.</span>
 
+<span class="sd">    paths, files, fnames, fexts, logger_names : :obj:`dict`</span>
+<span class="sd">        Dictionaries for keeping track of file information</span>
+<span class="sd">    _mscx : :obj:`MSCX`</span>
+<span class="sd">        After parsing, holds the `MSCX` object with the parsed score.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    handle_path(path, key)</span>
+<span class="sd">        Puts the path into `paths, files, fnames, fexts` dicts with the given key.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">mscx_src</span><span class="p">:</span> <span class="nb">str</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_xml</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="s1">&#39;Score&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">staff_nodes</span><span class="p">:</span> <span class="p">{}</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;mscx&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;At the moment, only .mscx files are accepted.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Score.handle_path"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.handle_path">[docs]</a>    <span class="k">def</span> <span class="nf">handle_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">file_path</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+            <span class="n">file_name</span><span class="p">,</span> <span class="n">file_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">file_ext</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_path</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_ext</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Score.parse_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
+
+<div class="viewcode-block" id="Score.parse_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">parser</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_xml</span> <span class="o">=</span> <span class="n">MSCX</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="s1">&#39;mscx&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">:</span>
+            <span class="n">ln</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">logger_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">logger_name</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="n">MSCX</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="n">ln</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;At the moment, only .mscx files are accepted.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Score.output_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.output_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">output_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">xml</span><span class="o">.</span><span class="n">output_mscx</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">output_mscx</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">xml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Returns the `MSCX` object with the parsed score.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s2">&quot;No XML has been parsed so far. Use the method parse_mscx().&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_xml</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span></div>
 
 
 <div class="viewcode-block" id="MSCX"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.MSCX">[docs]</a><span class="k">class</span> <span class="nc">MSCX</span><span class="p">:</span>
@@ -85,11 +125,19 @@
 <span class="sd">        Holds the MSCX score parsed by the selected parser.</span>
 <span class="sd">    parser : :obj:`str`, optional</span>
 <span class="sd">        Which XML parser to use.</span>
-<span class="sd">    version :</span>
+<span class="sd">    logger_name : :obj:`str`, optional</span>
+<span class="sd">        If you have defined a logger, pass its name.</span>
+<span class="sd">    level : {&#39;W&#39;, &#39;D&#39;, &#39;I&#39;, &#39;E&#39;, &#39;C&#39;, &#39;WARNING&#39;, &#39;DEBUG&#39;, &#39;INFO&#39;, &#39;ERROR&#39;, &#39;CRITICAL&#39;}, optional</span>
+<span class="sd">        Pass a level name for which (and above which) you want to see log records.</span>
+
+<span class="sd">    Methods</span>
+<span class="sd">    -------</span>
+<span class="sd">    output_mscx(filepath)</span>
+<span class="sd">        Write the internal score representation to a file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">):</span>
-
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="s1">&#39;MSCX&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
         <span class="k">if</span> <span class="n">parser</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
@@ -99,7 +147,7 @@
 
         <span class="n">implemented_parsers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bs4&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">==</span> <span class="s1">&#39;bs4&#39;</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span> <span class="o">=</span> <span class="n">_MSCX_bs4</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span> <span class="o">=</span> <span class="n">_MSCX_bs4</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only the following parsers are available: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">implemented_parsers</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -111,256 +159,19 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">events</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">events</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">_events</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">notes</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">_notes</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;MuseScore version with which the file was created (read-only).&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">version</span></div>
 
 
-<span class="k">class</span> <span class="nc">_MSCX_bs4</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot; This sister class implements MSCX&#39;s methods for a score parsed with beautifulsoup4.</span>
 
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="p">,</span> <span class="n">first_mc</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">first_mc</span> <span class="o">=</span> <span class="n">first_mc</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span> <span class="o">=</span> <span class="p">{}</span>
-
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">soup</span> <span class="o">=</span> <span class="n">bs4</span><span class="o">.</span><span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="s1">&#39;xml&#39;</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;programVersion&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">string</span>
-
-        <span class="c1"># Populate measure_nodes with one {mc: &lt;Measure&gt;} dictionary per staff.</span>
-        <span class="c1"># The &lt;Staff&gt; nodes containing the music are siblings of &lt;Part&gt;</span>
-        <span class="c1"># &lt;Part&gt; contains &lt;Staff&gt; nodes with staff information which is being ignored for now</span>
-        <span class="k">for</span> <span class="n">staff</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;Part&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">find_next_siblings</span><span class="p">(</span><span class="s1">&#39;Staff&#39;</span><span class="p">):</span>
-            <span class="n">staff_id</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">staff</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">])</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span><span class="p">[</span><span class="n">staff_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">measure</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">staff</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;Measure&#39;</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="n">first_mc</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span><span class="p">[</span><span class="n">staff_id</span><span class="p">][</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="n">measure</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">parse_measures</span><span class="p">()</span>
-
-
-    <span class="k">def</span> <span class="nf">parse_measures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="k">def</span> <span class="nf">recurse_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">exclude_children</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-            <span class="n">info</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="k">if</span> <span class="n">exclude_children</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">exclude_children</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="n">prepend</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prepend</span>
-            <span class="n">attr_prepend</span> <span class="o">=</span> <span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;:&#39;</span>
-            <span class="n">child_prepend</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">prepend</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prepend</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
-            <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="n">info</span><span class="p">[</span><span class="n">attr_prepend</span><span class="o">+</span><span class="n">attr</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-            <span class="n">children</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">)</span>
-            <span class="n">multiple_c</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">bs4</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">Tag</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">exclude_children</span><span class="p">:</span>
-                        <span class="n">info</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">child_prepend</span><span class="o">+</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span>  <span class="n">recurse_node</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
-                <span class="k">elif</span> <span class="n">multiple_c</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-                        <span class="n">info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
-                        <span class="n">info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;∅&#39;</span>
-                    <span class="k">elif</span> <span class="n">c</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">info</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">c</span>
-            <span class="k">return</span> <span class="n">info</span>
-
-        <span class="n">grace_tags</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;grace4&#39;</span><span class="p">,</span> <span class="s1">&#39;grace4after&#39;</span><span class="p">,</span> <span class="s1">&#39;grace8&#39;</span><span class="p">,</span> <span class="s1">&#39;grace8after&#39;</span><span class="p">,</span> <span class="s1">&#39;grace16&#39;</span><span class="p">,</span> <span class="s1">&#39;grace16after&#39;</span><span class="p">,</span> <span class="s1">&#39;grace32&#39;</span><span class="p">,</span>
-                                 <span class="s1">&#39;grace32after&#39;</span><span class="p">,</span> <span class="s1">&#39;grace64&#39;</span><span class="p">,</span> <span class="s1">&#39;grace64after&#39;</span><span class="p">,</span> <span class="s1">&#39;appoggiatura&#39;</span><span class="p">,</span> <span class="s1">&#39;acciaccatura&#39;</span><span class="p">]</span>
-
-        <span class="n">measure_list</span><span class="p">,</span> <span class="n">event_list</span><span class="p">,</span> <span class="n">note_list</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
-        <span class="n">staff_ids</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="n">chord_id</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="c1"># For every measure: bundle the &lt;Measure&gt; nodes from every staff</span>
-        <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">measure_stack</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
-                <span class="nb">zip</span><span class="p">(</span>
-                    <span class="o">*</span><span class="p">[[</span><span class="n">measure_node</span> <span class="k">for</span> <span class="n">measure_node</span> <span class="ow">in</span> <span class="n">measure_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span> <span class="k">for</span> <span class="n">measure_dict</span> <span class="ow">in</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
-                <span class="p">),</span>
-                <span class="n">start</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">first_mc</span><span class="p">):</span>
-        <span class="c1"># iterate through staves and collect information about each &lt;Measure&gt; node</span>
-            <span class="k">for</span> <span class="n">staff_id</span><span class="p">,</span> <span class="n">measure</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">staff_ids</span><span class="p">,</span> <span class="n">measure_stack</span><span class="p">):</span>
-                <span class="n">measure_info</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="n">mc</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">:</span> <span class="n">staff_id</span><span class="p">}</span>
-                <span class="n">measure_info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">measure</span><span class="p">,</span> <span class="n">exclude_children</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;voice&#39;</span><span class="p">]))</span>
-        <span class="c1"># iterate through &lt;voice&gt; tags and run a position counter</span>
-                <span class="k">for</span> <span class="n">voice_id</span><span class="p">,</span> <span class="n">voice_node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">measure</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-                    <span class="n">current_position</span> <span class="o">=</span> <span class="n">frac</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                    <span class="n">duration_multiplier</span> <span class="o">=</span> <span class="mi">1</span>
-                    <span class="n">multiplier_stack</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="c1"># iterate through children of &lt;voice&gt; which constitute the note level of one notational layer</span>
-                    <span class="k">for</span> <span class="n">event_node</span> <span class="ow">in</span> <span class="n">voice_node</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-                        <span class="n">event_name</span> <span class="o">=</span> <span class="n">event_node</span><span class="o">.</span><span class="n">name</span>
-
-                        <span class="n">event</span> <span class="o">=</span> <span class="p">{</span>
-                            <span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="n">mc</span><span class="p">,</span>
-                            <span class="s1">&#39;staff&#39;</span><span class="p">:</span> <span class="n">staff_id</span><span class="p">,</span>
-                            <span class="s1">&#39;voice&#39;</span><span class="p">:</span> <span class="n">voice_id</span><span class="p">,</span>
-                            <span class="s1">&#39;onset&#39;</span><span class="p">:</span> <span class="n">current_position</span><span class="p">,</span>
-                            <span class="s1">&#39;duration&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">0</span><span class="p">)}</span>
-
-                        <span class="k">if</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;Chord&#39;</span><span class="p">:</span>
-                            <span class="n">event</span><span class="p">[</span><span class="s1">&#39;chord_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chord_id</span>
-                            <span class="n">grace</span> <span class="o">=</span> <span class="n">event_node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">grace_tags</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="n">grace</span><span class="p">:</span>
-                                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;gracenote&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grace</span><span class="o">.</span><span class="n">name</span>
-                            <span class="k">else</span><span class="p">:</span>
-                                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bs4_chord_duration</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="p">)</span>
-                            <span class="n">chord_info</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-                            <span class="n">note_event</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">chord_info</span><span class="p">)</span>
-                            <span class="k">for</span> <span class="n">chord_child</span> <span class="ow">in</span> <span class="n">event_node</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-                                <span class="n">child_name</span> <span class="o">=</span> <span class="n">chord_child</span><span class="o">.</span><span class="n">name</span>
-                                <span class="c1"># These nodes describe the entire chord and go into event_list</span>
-                                <span class="c1"># All others go into note_list</span>
-                                <span class="k">if</span> <span class="n">child_name</span> <span class="ow">in</span> <span class="n">grace_tags</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;dots&#39;</span><span class="p">,</span> <span class="s1">&#39;BeamMode&#39;</span><span class="p">,</span> <span class="s1">&#39;durationType&#39;</span><span class="p">,</span> <span class="s1">&#39;Tremolo&#39;</span><span class="p">]:</span>
-                                    <span class="n">event</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">chord_child</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="s1">&#39;Chord/&#39;</span><span class="o">+</span><span class="n">child_name</span><span class="p">))</span>
-                                <span class="k">else</span><span class="p">:</span>
-                                    <span class="k">if</span> <span class="n">child_name</span> <span class="o">!=</span> <span class="s1">&#39;Note&#39;</span><span class="p">:</span>
-                                        <span class="n">note_event</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">chord_child</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="n">child_name</span><span class="p">))</span>
-                                        <span class="k">continue</span>
-                                    <span class="n">note_event</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">chord_child</span><span class="p">))</span>
-                                    <span class="n">note_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">note_event</span><span class="p">)</span>
-                                    <span class="n">note_event</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">chord_info</span><span class="p">)</span>
-                            <span class="n">chord_id</span> <span class="o">+=</span> <span class="mi">1</span>
-                        <span class="k">elif</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;Rest&#39;</span><span class="p">:</span>
-                            <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">bs4_rest_duration</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="p">)</span>
-                        <span class="k">elif</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;location&#39;</span><span class="p">:</span> <span class="c1"># &lt;location&gt; tags move the position counter</span>
-                            <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">frac</span><span class="p">(</span><span class="n">event_node</span><span class="o">.</span><span class="n">fractions</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
-                        <span class="k">elif</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;Tuplet&#39;</span><span class="p">:</span>
-                            <span class="n">multiplier_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">duration_multiplier</span><span class="p">)</span>
-                            <span class="n">duration_multiplier</span> <span class="o">=</span> <span class="n">duration_multiplier</span> <span class="o">*</span> <span class="n">frac</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">event_node</span><span class="o">.</span><span class="n">normalNotes</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
-                                                                             <span class="nb">int</span><span class="p">(</span><span class="n">event_node</span><span class="o">.</span><span class="n">actualNotes</span><span class="o">.</span><span class="n">string</span><span class="p">))</span>
-                        <span class="k">elif</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;endTuplet&#39;</span><span class="p">:</span>
-                                <span class="n">duration_multiplier</span> <span class="o">=</span> <span class="n">multiplier_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-
-                        <span class="c1"># These nodes describe the entire measure and go into measure_list</span>
-                        <span class="c1"># All others go into event_list</span>
-                        <span class="k">if</span> <span class="n">event_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">,</span> <span class="s1">&#39;KeySig&#39;</span><span class="p">,</span> <span class="s1">&#39;BarLine&#39;</span><span class="p">]:</span>
-                            <span class="n">measure_info</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;voice/</span><span class="si">{</span><span class="n">event_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="n">event</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;event&#39;</span><span class="p">:</span> <span class="n">event_name</span><span class="p">})</span>
-                            <span class="k">if</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;Chord&#39;</span><span class="p">:</span> <span class="c1"># &lt;Chord&gt; children are stored as note_events</span>
-                                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;scalar&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_multiplier</span>
-                                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">event_node</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                                    <span class="n">event</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Chord:</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-                            <span class="k">else</span><span class="p">:</span>
-                                <span class="n">event</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recurse_node</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">prepend</span><span class="o">=</span><span class="n">event_name</span><span class="p">))</span>
-                            <span class="n">event_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
-
-                        <span class="n">current_position</span> <span class="o">+=</span> <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span>
-
-                <span class="n">measure_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">measure_info</span><span class="p">)</span>
-        <span class="n">col_order</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">,</span> <span class="s1">&#39;gracenote&#39;</span><span class="p">,</span> <span class="s1">&#39;scalar&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;pitch&#39;</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">measures</span> <span class="o">=</span> <span class="n">sort_cols</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">measure_list</span><span class="p">),</span> <span class="n">col_order</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">events</span> <span class="o">=</span> <span class="n">sort_cols</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">event_list</span><span class="p">),</span> <span class="n">col_order</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">notes</span> <span class="o">=</span> <span class="n">sort_cols</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">note_list</span><span class="p">),</span> <span class="n">col_order</span><span class="p">)</span>
-
-
-    <span class="k">def</span> <span class="nf">output_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
-
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bs4_to_mscx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="p">))</span>
-
-
-<div class="viewcode-block" id="sort_cols"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.sort_cols">[docs]</a><span class="k">def</span> <span class="nf">sort_cols</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">first_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">first_cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">first_cols</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">cols</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
-    <span class="n">column_order</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">first_cols</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">]</span> <span class="o">+</span> <span class="nb">sorted</span><span class="p">([</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">first_cols</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">column_order</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="bs4_chord_duration"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.bs4_chord_duration">[docs]</a><span class="k">def</span> <span class="nf">bs4_chord_duration</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">durations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;measure&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                 <span class="s2">&quot;breve&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>  <span class="c1"># in theory, of course, they could have length 1.5</span>
-                 <span class="s2">&quot;long&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>  <span class="c1"># and 3 as well and other values yet</span>
-                 <span class="s2">&quot;whole&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
-                 <span class="s2">&quot;half&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
-                 <span class="s2">&quot;quarter&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span><span class="p">),</span>
-                 <span class="s2">&quot;eighth&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">8</span><span class="p">),</span>
-                 <span class="s2">&quot;16th&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">16</span><span class="p">),</span>
-                 <span class="s2">&quot;32nd&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">32</span><span class="p">),</span>
-                 <span class="s2">&quot;64th&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">64</span><span class="p">),</span>
-                 <span class="s2">&quot;128th&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">128</span><span class="p">),</span>
-                 <span class="s2">&quot;256th&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">256</span><span class="p">),</span>
-                 <span class="s2">&quot;512th&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">512</span><span class="p">),</span> <span class="p">}</span>
-    <span class="n">durationtype</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;durationType&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">string</span>
-    <span class="k">if</span> <span class="n">durationtype</span> <span class="o">==</span> <span class="s1">&#39;measure&#39;</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;duration&#39;</span><span class="p">):</span>
-        <span class="n">nominal_duration</span> <span class="o">=</span> <span class="n">frac</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;duration&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">nominal_duration</span> <span class="o">=</span> <span class="n">durations</span><span class="p">[</span><span class="n">durationtype</span><span class="p">]</span>
-    <span class="n">dots</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;dots&#39;</span><span class="p">)</span>
-    <span class="n">dotmultiplier</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">**</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">dots</span><span class="o">.</span><span class="n">string</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span> <span class="o">*</span> <span class="n">duration_multiplier</span> <span class="k">if</span> <span class="n">dots</span> <span class="k">else</span> <span class="n">duration_multiplier</span>
-    <span class="k">return</span> <span class="n">nominal_duration</span> <span class="o">*</span> <span class="n">dotmultiplier</span></div>
-
-
-<div class="viewcode-block" id="bs4_rest_duration"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.bs4_rest_duration">[docs]</a><span class="k">def</span> <span class="nf">bs4_rest_duration</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">bs4_chord_duration</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="get_opening"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.get_opening">[docs]</a><span class="k">def</span> <span class="nf">get_opening</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="n">closing</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="k">if</span> <span class="n">closed</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="n">attributes</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">attrs</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">attr</span><span class="si">}</span><span class="s1">=&quot;</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">&quot;&#39;</span> <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">)</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">result</span><span class="si">}{</span><span class="n">closing</span><span class="si">}</span><span class="s2">&gt;&quot;</span></div>
-
-<div class="viewcode-block" id="get_closing"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.get_closing">[docs]</a><span class="k">def</span> <span class="nf">get_closing</span><span class="p">(</span><span class="n">node_name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;/</span><span class="si">{</span><span class="n">node_name</span><span class="si">}</span><span class="s2">&gt;&quot;</span></div>
-
-<div class="viewcode-block" id="get_oneliner"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.get_oneliner">[docs]</a><span class="k">def</span> <span class="nf">get_oneliner</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">get_opening</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">bs4</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">Tag</span><span class="p">):</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="n">get_oneliner</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">+=</span> <span class="n">get_closing</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">result</span></div>
-
-<div class="viewcode-block" id="bs4_to_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.bs4_to_mscx">[docs]</a><span class="k">def</span> <span class="nf">bs4_to_mscx</span><span class="p">(</span><span class="n">soup</span><span class="p">):</span>
-
-    <span class="k">def</span> <span class="nf">format_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">indent</span><span class="p">):</span>
-        <span class="n">nxt_indent</span> <span class="o">=</span> <span class="n">indent</span><span class="o">+</span><span class="mi">2</span>
-        <span class="n">space</span> <span class="o">=</span> <span class="n">indent</span> <span class="o">*</span> <span class="s1">&#39; &#39;</span>
-        <span class="n">node_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
-        <span class="k">if</span> <span class="n">node_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;LayerTag&#39;</span><span class="p">,</span> <span class="s1">&#39;metaTag&#39;</span><span class="p">]:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">get_oneliner</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="n">children</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">get_opening</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">format_node</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">indent</span><span class="o">+</span><span class="mi">2</span><span class="p">)</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">)</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">nxt_indent</span> <span class="o">*</span> <span class="s1">&#39; &#39;</span><span class="si">}{</span><span class="n">get_closing</span><span class="p">(</span><span class="n">node_name</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-            <span class="k">return</span> <span class="n">result</span>
-        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">string</span> <span class="o">==</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">get_opening</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="si">{</span><span class="n">nxt_indent</span> <span class="o">*</span> <span class="s1">&#39; &#39;</span><span class="si">}{</span><span class="n">get_closing</span><span class="p">(</span><span class="n">node_name</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">string</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">get_opening</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">get_oneliner</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-
-    <span class="n">initial_tag</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><span class="se">\n</span><span class="s2">&quot;&quot;&quot;</span>
-    <span class="n">first_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">initial_tag</span> <span class="o">+</span> <span class="n">format_node</span><span class="p">(</span><span class="n">first_tag</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-
-
-    <span class="n">initial_tag</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><span class="se">\n</span><span class="s2">&quot;&quot;&quot;</span>
-    <span class="n">first_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">initial_tag</span> <span class="o">+</span> <span class="n">format_node</span><span class="p">(</span><span class="n">first_tag</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 </pre></div>
 
           </div>
