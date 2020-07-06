@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* laserjeyes <johannes.hentschel@epfl.ch>
+* Johannes Hentschel <johannes.hentschel@epfl.ch>
