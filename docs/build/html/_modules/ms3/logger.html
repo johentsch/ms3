@@ -110,6 +110,8 @@
 
 <span class="sd">    Example</span>
 <span class="sd">    -------</span>
+<span class="sd">    This is how the decorator can be used::</span>
+
 <span class="sd">        from ms3.logger import function_logger</span>
 
 <span class="sd">        @function_logger</span>
@@ -125,7 +127,9 @@
 <span class="sd">	&gt;     First test</span>
 <span class="sd">    &gt; WARNING root -- function_logger.py (line 5) log_this():</span>
 <span class="sd">    &gt;     Second Test</span>
+<span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="nd">@wraps</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">logger</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">l</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;logger&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>

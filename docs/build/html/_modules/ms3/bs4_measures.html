@@ -370,6 +370,7 @@
 <div class="viewcode-block" id="make_next_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_next_col">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">make_next_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="s1">&#39;repeats&#39;</span><span class="p">,</span> <span class="n">volta_structure</span><span class="o">=</span><span class="p">{},</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    volta_structure : :obj:`dict`, optional</span>
@@ -411,9 +412,9 @@
 <div class="viewcode-block" id="make_mn_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_mn_col">[docs]</a><span class="k">def</span> <span class="nf">make_mn_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Compute measure numbers where one or two columns can influence the counting.</span>
 
-<span class="sd">     Parameters</span>
-<span class="sd">     ----------</span>
-<span class="sd">     df : :obj:`pd.DataFrame`</span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pd.DataFrame`</span>
 <span class="sd">        If no other parameters are given, every row is counted, starting from 1.</span>
 <span class="sd">    dont_count_col : :obj:`str`, optional</span>
 <span class="sd">        This column has notna() for measures where the option &quot;Exclude from bar count&quot; is activated, NaN otherwise.</span>

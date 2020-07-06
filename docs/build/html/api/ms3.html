@@ -233,17 +233,14 @@ Pass False to prevent that.</p></li>
 <dt id="ms3.bs4_measures.make_mn_col">
 <code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_mn_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">dont_count</span></em>, <em class="sig-param"><span class="n">numbering_offset</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'mn'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_mn_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_mn_col" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute measure numbers where one or two columns can influence the counting.</p>
-<blockquote>
-<div><dl>
-<dt>df<span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pd.DataFrame</span></code></span></dt><dd><p>If no other parameters are given, every row is counted, starting from 1.</p>
-</dd>
-</dl>
-</div></blockquote>
-<dl>
-<dt>dont_count_col<span class="classifier"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</span></dt><dd><p>This column has notna() for measures where the option “Exclude from bar count” is activated, NaN otherwise.</p>
-</dd>
-<dt>numbering_offset_col<span class="classifier"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</span></dt><dd><p>This column has values of the MuseScore option “Add to bar number”, which adds
-notna() values to this and all subsequent measures.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">pd.DataFrame</span></code>) – If no other parameters are given, every row is counted, starting from 1.</p></li>
+<li><p><strong>dont_count_col</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – This column has notna() for measures where the option “Exclude from bar count” is activated, NaN otherwise.</p></li>
+<li><p><strong>numbering_offset_col</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – This column has values of the MuseScore option “Add to bar number”, which adds
+notna() values to this and all subsequent measures.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -251,16 +248,16 @@ notna() values to this and all subsequent measures.</p>
 <dl class="py function">
 <dt id="ms3.bs4_measures.make_next_col">
 <code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_next_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">repeats</span><span class="o">=</span><span class="default_value">'repeats'</span></em>, <em class="sig-param"><span class="n">volta_structure</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">section_breaks</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'next'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_next_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_next_col" title="Permalink to this definition">¶</a></dt>
-<dd><p>Uses a <cite>NextColumnMaker</cite> object to create a column with all MCs that can follow each MC (e.g. due to repetitions).
-:param volta_structure: This parameter can be computed by get_volta_structure(). It is empty if</p>
-<blockquote>
-<div><p>there are no voltas in the piece.</p>
-</div></blockquote>
+<dd><p>Uses a <cite>NextColumnMaker</cite> object to create a column with all MCs that can follow each MC (e.g. due to repetitions).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>section_breaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you pass the name of a column, the string ‘section’ is taken into account
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>volta_structure</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – This parameter can be computed by get_volta_structure(). It is empty if
+there are no voltas in the piece.</p></li>
+<li><p><strong>section_breaks</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you pass the name of a column, the string ‘section’ is taken into account
 as ending a section and therefore potentially ending a repeated part even when
-the repeat sign is missing.</p>
+the repeat sign is missing.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -391,17 +388,18 @@ the name of one. If the keyword argument is not passed, the root logger is used.
 </dd>
 </dl>
 <p class="rubric">Example</p>
-<p>from ms3.logger import function_logger</p>
-<p>&#64;function_logger
-def log_this(msg):</p>
-<blockquote>
-<div><p>logger.warning(msg)</p>
-<dl class="simple">
-<dt>if __name__ == ‘__main__’:</dt><dd><p>log_this(‘First test’, logger=’my_logger’)
-log_this(‘Second Test’)</p>
-</dd>
-</dl>
-</div></blockquote>
+<p>This is how the decorator can be used:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ms3.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
+
+<span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">log_this</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">log_this</span><span class="p">(</span><span class="s1">&#39;First test&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="s1">&#39;my_logger&#39;</span><span class="p">)</span>
+    <span class="n">log_this</span><span class="p">(</span><span class="s1">&#39;Second Test&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
 <dl class="simple">
 <dt>&gt; WARNING my_logger – function_logger.py (line 5) log_this():</dt><dd><p>&gt;     First test</p>
 </dd>

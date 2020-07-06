@@ -337,6 +337,7 @@ def make_keysig_col(df, keysig_col, name='keysig'):
 @function_logger
 def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, section_breaks=None, name='next'):
     """ Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).
+
     Parameters
     ----------
     volta_structure : :obj:`dict`, optional
@@ -378,9 +379,9 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
 def make_mn_col(df, dont_count, numbering_offset, name='mn'):
     """ Compute measure numbers where one or two columns can influence the counting.
 
-     Parameters
-     ----------
-     df : :obj:`pd.DataFrame`
+    Parameters
+    ----------
+    df : :obj:`pd.DataFrame`
         If no other parameters are given, every row is counted, starting from 1.
     dont_count_col : :obj:`str`, optional
         This column has notna() for measures where the option "Exclude from bar count" is activated, NaN otherwise.

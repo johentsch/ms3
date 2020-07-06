@@ -77,6 +77,8 @@ def function_logger(f):
 
     Example
     -------
+    This is how the decorator can be used::
+
         from ms3.logger import function_logger
 
         @function_logger
@@ -92,7 +94,9 @@ def function_logger(f):
 	>     First test
     > WARNING root -- function_logger.py (line 5) log_this():
     >     Second Test
+    
     """
+
     @wraps(f)
     def logger(*args, **kwargs):
         l = kwargs.pop('logger', None)
