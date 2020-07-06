@@ -90,11 +90,11 @@ def function_logger(f):
             log_this('First test', logger='my_logger')
             log_this('Second Test')
 
-    > WARNING my_logger -- function_logger.py (line 5) log_this():
-	>     First test
-    > WARNING root -- function_logger.py (line 5) log_this():
-    >     Second Test
-    
+    ``WARNING my_logger -- function_logger.py (line 5) log_this():
+	    First test
+    WARNING root -- function_logger.py (line 5) log_this():
+        Second Test``
+
     """
 
     @wraps(f)
