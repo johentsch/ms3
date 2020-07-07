@@ -4,7 +4,7 @@ from fractions import Fraction as frac
 
 from .logger import get_logger, function_logger
 
-class MeasureList():
+class MeasureList:
     """ Turns a _MSCX_bs4.raw_measures DataFrame into a measure list and performs a couple of consistency checks on the score.
 
     Attributes
@@ -29,6 +29,8 @@ class MeasureList():
         Dictionary of the relevant columns in `df` as present after the parse.
     ml : :obj:`pandas.DataFrame`
         The measure list in the making; the final result.
+    volta_structure : :obj:`dict`
+        Keys are first MCs of volta groups, values are dictionaries of {volta_no: [mc1, mc2 ...]}
 
     """
 
@@ -39,6 +41,7 @@ class MeasureList():
         self.section_breaks = section_breaks
         self.secure = secure
         self.reset_index = reset_index
+        self.volta_structure = {}
         self.cols = {'barline': 'voice/BarLine/subtype',
                      'breaks': 'LayoutBreak/subtype',
                      'dont_count': 'irregular',
@@ -75,28 +78,28 @@ class MeasureList():
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
         if self.cols['volta_frac'] in self.ml.columns:
             volta_cols['frac_col'] = self.cols['volta_frac']
-        volta_structure = get_volta_structure(self.ml, **volta_cols)
+        self.volta_structure = get_volta_structure(self.ml, **volta_cols)
         func_params = {
             make_mn_col: get_cols(['dont_count', 'numbering_offset']),
             make_keysig_col: get_cols(['keysig_col']),
             make_timesig_col: get_cols(['sigN_col', 'sigD_col']),
             make_actdur_col: get_cols(['len_col']),
             make_repeat_col: get_cols(['startRepeat', 'endRepeat']),
-            make_volta_col: {'volta_structure': volta_structure},
-            make_next_col: {'mc_col': self.cols['mc'], 'volta_structure': volta_structure, 'section_breaks': sections},
+            make_volta_col: {'volta_structure': self.volta_structure},
+            make_next_col: {'mc_col': self.cols['mc'], 'volta_structure': self.volta_structure, 'section_breaks': sections},
             make_offset_col: {'mc_col': self.cols['mc'], 'section_breaks': sections},
         }
         for func, params in func_params.items():
             self.add_col(func, **params)
-
         if reset_index:
             self.ml.reset_index(drop=True, inplace=True)
         rn = {self.cols[col]: col for col in ['barline', 'dont_count', 'numbering_offset']}
         self.ml.rename(columns=rn, inplace=True)
-
         self.ml = self.ml[['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'offset', 'breaks',
                            'repeats', 'volta', 'barline', 'numbering_offset', 'dont_count',
                            'next']]
+        self.ml[['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
+        self.check_measure_numbers()
 
 
 
@@ -123,6 +126,41 @@ class MeasureList():
         if not self.secure:
             return self.df.drop_duplicates(subset=self.cols['mc']).drop(columns=self.cols['staff'])
         return keep_one_row_each(self.df, compress_col=self.cols['mc'], differentiating_col=self.cols['staff'], logger=self.logger)
+
+
+    def check_measure_numbers(self, mc_col='mc', mn_col='mn', act_dur='act_dur', offset='offset',
+                              dont_count='dont_count', numbering_offset='numbering_offset'):
+        def ordinal(i):
+            if i == 1:
+                return '1st'
+            elif i == 2:
+                return '2nd'
+            elif i == 3:
+                return '3rd'
+            return f'{i}th'
+        mc2mn = dict(self.ml[[mc_col, mn_col]].itertuples(index=False))
+        # Check measure numbers in voltas
+        for volta_group in self.volta_structure.values():
+            for i, t in enumerate(zip(*volta_group.values()), start=1):
+                m = t[0]
+                mn = mc2mn[m]
+                for j, mc in enumerate(t[1:], start=2):
+                    current_mn = mc2mn[mc]
+                    if current_mn != mn:
+                        self.logger.warning(
+                            f"MC {m:3}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn:3}, not MN {current_mn:3}.")
+
+        # Check measure numbers for split measures
+        error_mask = (self.ml[offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
+        n_errors = error_mask.sum()
+        if n_errors > 0:
+            mcs = ', '.join(self.ml.loc[error_mask, mc_col].astype(str))
+            context_mask = error_mask | error_mask.shift(-1).fillna(False) | error_mask.shift().fillna(False)
+            context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, offset, dont_count, numbering_offset]]
+            plural = n_errors > 1
+            self.logger.warning(
+                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}")
+
 
 
 class NextColumnMaker(object):
@@ -334,12 +372,42 @@ def make_keysig_col(df, keysig_col, name='keysig'):
     return df[keysig_col].fillna(method='ffill').fillna(0).astype(int).rename(name)
 
 
+def make_mn_col(df, dont_count, numbering_offset, name='mn'):
+    """ Compute measure numbers where one or two columns can influence the counting.
+
+    Parameters
+    ----------
+    df : :obj:`pd.DataFrame`
+        If no other parameters are given, every row is counted, starting from 1.
+    dont_count : :obj:`str`, optional
+        This column has notna() for measures where the option "Exclude from bar count" is activated, NaN otherwise.
+    numbering_offset : :obj:`str`, optional
+        This column has values of the MuseScore option "Add to bar number", which adds
+        notna() values to this and all subsequent measures.
+    """
+    if dont_count is None:
+        mn = pd.Series(range(1, len(df) + 1), index=df.index)
+    else:
+        excluded = df[dont_count].fillna(0).astype(bool)
+        mn = (~excluded).cumsum()
+    if numbering_offset is not None:
+        offset = df[numbering_offset]
+        if offset.notna().any():
+            offset = offset.fillna(0).astype(int).cumsum()
+            mn += offset
+    return mn.rename(name)
+
+
 @function_logger
 def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, section_breaks=None, name='next'):
     """ Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).
 
     Parameters
     ----------
+    df : :obj:`pandas.DataFrame`
+        Raw measure list.
+    mc_col, repeats : :obj:`str`, optional
+        Column names.
     volta_structure : :obj:`dict`, optional
         This parameter can be computed by get_volta_structure(). It is empty if
         there are no voltas in the piece.
@@ -348,7 +416,7 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
         as ending a section and therefore potentially ending a repeated part even when
         the repeat sign is missing.
     """
-    if section_breaks is not None and len(df[df[section_breaks] == 'section']) == 0:
+    if section_breaks is not None and len(df[df[section_breaks].fillna('') == 'section']) == 0:
         section_breaks = None
     if section_breaks is None:
         cols = [mc_col, repeats]
@@ -358,7 +426,7 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
         sel = df[repeats].notna() | df[section_breaks].notna()
 
     ncm = NextColumnMaker(df[mc_col], volta_structure, logger=logger)
-    for t in df.loc[sel, cols].values:
+    for t in df.loc[sel, cols].itertuples(index=False):
         if section_breaks is None:
             mc, repeat = t
             ncm.treat_input(mc, repeat)
@@ -376,43 +444,14 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
 
 
 
-def make_mn_col(df, dont_count, numbering_offset, name='mn'):
-    """ Compute measure numbers where one or two columns can influence the counting.
-
-    Parameters
-    ----------
-    df : :obj:`pd.DataFrame`
-        If no other parameters are given, every row is counted, starting from 1.
-    dont_count_col : :obj:`str`, optional
-        This column has notna() for measures where the option "Exclude from bar count" is activated, NaN otherwise.
-    numbering_offset_col : :obj:`str`, optional
-        This column has values of the MuseScore option "Add to bar number", which adds
-        notna() values to this and all subsequent measures.
-    """
-    renaming = {}
-    if dont_count is None:
-        mn = pd.Series(range(1, len(df) + 1), index=df.index)
-    else:
-        excluded = df[dont_count].fillna(0).astype(bool)
-        mn = (~excluded).cumsum()
-    if numbering_offset is not None:
-        offset = df[numbering_offset]
-        if offset.notna().any():
-            offset = offset.fillna(0).astype(int).cumsum()
-            mn += offset
-    return mn.rename(name)
-
 
 @function_logger
-def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next='next', section_breaks=None, name='offset'):
+def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_col='next', section_breaks=None, name='offset'):
     """
     Parameters
     ----------
-    mc, act_dur, next : :obj:`str`, optional
+    mc_col, act_dur, next_col : :obj:`str`, optional
         Names of the required columns.
-    volta_structure : :obj:`dict`, optional
-        This parameter can be computed by get_volta_structure(). It is empty if
-        there are no voltas in the piece.
     section_breaks : :obj:`str`, optional
         If you pass the name of a column, the string 'section' is taken into account
         as ending a section and therefore potentially ending a repeated part even when
@@ -423,16 +462,18 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next=
     if sel.sum() == 0:
         return pd.Series(0, index=df.index, name=name)
 
-    if section_breaks is not None and len(df[df[section_breaks] == 'section']) == 0:
+    if section_breaks is not None and len(df[df[section_breaks].fillna('') == 'section']) == 0:
         section_breaks = None
-    cols = [mc_col, next]
+    cols = [mc_col, next_col]
     if section_breaks is not None:
         cols.append(section_breaks)
-        offsets = {mc: 0 for mc in df[df['breaks'] == 'section'].mc + 1}
+        offsets = {mc: 0 for mc in df[df[section_breaks].fillna('') == 'section'].mc + 1}
+        # offset == 0 is a neutral value but the presence of mc in offsets indicates that it could potentially be an
+        # (incomplete) pickup measure which can be offset even if the previous measure is complete
     else:
         offsets = {}
-    nom_durs = dict(df[[mc_col]].join(nom_dur).values)
-    act_durs = dict(df[[mc_col, act_dur]].values)
+    nom_durs = dict(df[[mc_col]].join(nom_dur).itertuples(index=False))
+    act_durs = dict(df[[mc_col, act_dur]].itertuples(index=False))
 
     def missing(mc):
         return nom_durs[mc] - act_durs[mc]
@@ -446,7 +487,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next=
     irregular = df.loc[sel, cols]
     if irregular[mc_col].iloc[0] == 1:  # anacrusis
         add_offset(1)
-    for t in irregular.values:
+    for t in irregular.itertuples(index=False):
         if section_breaks:
             m, n, s = t
             if s == 'section':
@@ -492,8 +533,8 @@ def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
 
 
 def make_timesig_col(df, sigN_col, sigD_col, name='timesig'):
-    n = df[sigN_col].fillna(method='ffill').astype(int).astype(str)
-    d = df[sigD_col].fillna(method='ffill').astype(int).astype(str)
+    n = pd.to_numeric(df[sigN_col].fillna(method='ffill')).astype(str)
+    d = pd.to_numeric(df[sigD_col].fillna(method='ffill')).astype(str)
     return (n + '/' + d).rename(name)
 
 

@@ -17,6 +17,8 @@ class _MSCX_bs4:
         self.mscx_src = mscx_src
         self.first_mc = 1
         self.measure_nodes = {}
+        self._ml = None
+        self._nl = pd.DataFrame()
 
 
         with open(mscx_src, 'r') as file:
@@ -142,8 +144,30 @@ class _MSCX_bs4:
     def measures(self):
         """ Retrieve a standard measure list from the parsed score.
         """
-        self.ml = self._make_measure_list()
-        return self.ml.ml
+        self._ml = self._make_measure_list()
+        return self._ml.ml
+
+    @property
+    def ml(self):
+        if self._ml is None:
+            return self.measures
+        return self._ml.ml
+
+    @property
+    def notes(self):
+        self.make_standard_notelist()
+        return self._nl
+
+    def make_standard_notelist(self):
+        cols = {'midi': 'Note/pitch',
+                'tpc': 'Note/tpc',}
+        self._nl = self._notes.merge(self.ml[['mc', 'timesig', 'offset']], on='mc')
+        self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
+        self._nl.tpc -= 14
+        self._nl.onset += self._nl.offset
+
+
+
 
 
 def safe_update(old, new):
@@ -170,7 +194,7 @@ def recurse_node(node, prepend=None, exclude_children=None):
             elif c is None:
                 info[name] = '/'
             else:
-                info[name] = c
+                info[name] = str(c)
 
     info = {}
     if exclude_children is None:

@@ -15,7 +15,7 @@ import ms3
     params=['D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx'],
     ids=["schubert", "berlioz", 'bach', 'mozart'])
 def score_object(request):
-    mscx_path = os.path.realpath(os.path.join('mscx', request.param))
+    mscx_path = os.path.realpath(os.path.join('MS3', request.param))
     s = ms3.Score(mscx_path, parser='bs4')
     return s
 
@@ -32,11 +32,14 @@ class TestParser:
 
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']
-        fpath = score_object.paths['mscx']
+        fpath = os.path.join(score_object.paths['mscx'], '..')
         old_path = os.path.join(fpath, 'measures', fname + '.tsv')
         old_measurelist = load_tsv(old_path, index_col=None)
         new_measurelist = score_object.mscx.measures
-        assert_dfs_equal(old_measurelist, new_measurelist, exclude=['repeats'])
+        # Exclude 'repeat' column because the old parser used startRepeat, endRepeat and newSection
+        # Exclude 'offset' and 'next' because the new parser does them more correctly
+        excl = ['repeats', 'offset', 'next']
+        assert_dfs_equal(old_measurelist, new_measurelist, exclude=excl)
         new_measurelist.next = new_measurelist.next.map(lambda l: ', '.join(str(s) for s in l))
         new_measurelist.to_csv(fname + '_measures.tsv', sep='\t', index=False)
 
@@ -139,7 +142,7 @@ def load_tsv(path, index_col=[0, 1], converters={}, dtypes={}, stringtype=False,
         'changes': str,
         'chord': str,
         'chord_type': str,
-        'dont_count': str,
+        'dont_count': 'Int64',
         'figbass': str,
         'form': str,
         'globalkey': str,
@@ -152,7 +155,7 @@ def load_tsv(path, index_col=[0, 1], converters={}, dtypes={}, stringtype=False,
         'midi': int,
         'mn': int,
         'notes_id': 'Int64',
-        'numbering_offset': str,
+        'numbering_offset': 'Int64',
         'numeral': str,
         'pedal': str,
         'playthrough': int,
