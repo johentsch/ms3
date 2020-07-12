@@ -12,8 +12,8 @@ import pandas as pd
 import ms3
 
 @pytest.fixture(
-    params=['D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx'],
-    ids=["schubert", "berlioz", 'bach', 'mozart'])
+    params=['Did03M-Son_regina-1762-Sarti.mscx', 'D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx'],
+    ids=['sarti', "schubert", "berlioz", 'bach', 'mozart'])
 def score_object(request):
     mscx_path = os.path.realpath(os.path.join('MS3', request.param))
     s = ms3.Score(mscx_path, parser='bs4')
@@ -30,6 +30,15 @@ class TestBasic:
 
 class TestParser:
 
+
+    def test_parse_and_write_back(self, score_object):
+        original_mscx = score_object.full_paths['mscx']
+        tmp_file = tempfile.NamedTemporaryFile(mode='r')
+        score_object.output_mscx(tmp_file.name)
+        original = open(original_mscx).read()
+        after_parsing = tmp_file.read()
+        assert_all_lines_equal(original, after_parsing, original_mscx=original_mscx, tmp_file=tmp_file)
+
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']
         fpath = os.path.join(score_object.paths['mscx'], '..')
@@ -39,21 +48,20 @@ class TestParser:
         # Exclude 'repeat' column because the old parser used startRepeat, endRepeat and newSection
         # Exclude 'offset' and 'next' because the new parser does them more correctly
         excl = ['repeats', 'offset', 'next']
-        assert_dfs_equal(old_measurelist, new_measurelist, exclude=excl)
         new_measurelist.next = new_measurelist.next.map(lambda l: ', '.join(str(s) for s in l))
         new_measurelist.to_csv(fname + '_measures.tsv', sep='\t', index=False)
-
-    def test_parse_and_write_back(self, score_object):
-        original_mscx = score_object.full_paths['mscx']
-        tmp_file = tempfile.NamedTemporaryFile(mode='r')
-        score_object.output_mscx(tmp_file.name)
-        original = open(original_mscx).read()
-        after_parsing = tmp_file.read()
-        assert_all_lines_equal(original, after_parsing)
+        assert_dfs_equal(old_measurelist, new_measurelist, exclude=excl)
 
     def test_parse_to_notelist(self, score_object):
         fname = score_object.fnames['mscx']
-        score_object.mscx.parsed._notes.to_csv(fname + '_notes.tsv', sep='\t', index=False)
+        fpath = os.path.join(score_object.paths['mscx'], '..')
+        old_path = os.path.join(fpath, 'notes', fname + '.tsv')
+        old_notelist = load_tsv(old_path, index_col=None)
+        new_notelist = score_object.mscx.notes
+        # Exclude 'onset' because the new parser computes 'offset' (measure list) more correctly
+        excl = ['onset']
+        new_notelist.to_csv(fname + '_notes.tsv', sep='\t', index=False)
+        assert_dfs_equal(old_notelist, new_notelist, exclude=excl)
 
     def test_parse_to_eventlist(self, score_object):
         fname = score_object.fnames['mscx']
@@ -61,7 +69,7 @@ class TestParser:
 
 
 
-def assert_all_lines_equal(before, after):
+def assert_all_lines_equal(before, after, original_mscx, tmp_file):
     diff = [(bef, aft) for bef, aft in zip(before.splitlines(), after.splitlines()) if bef != aft]
     assert len(diff) == 0, '\n' + '\n'.join(
         f"{a} <--before   after-->{b}" for a, b in [(original_mscx, tmp_file.name)] + diff)
@@ -75,7 +83,7 @@ def assert_dfs_equal(old, new, exclude=[]):
     old.index.rename('old_ix', inplace=True)
     new.index.rename('new_ix', inplace=True)
     cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
-    nan_eq = lambda a, b: (a == b) | ((a != a) & (b != b))
+    nan_eq = lambda a, b: (a == b) | pd.isna(a) & pd.isna(b)
     diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
     old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
     new_bool = pd.DataFrame.from_dict({ix: bool_series for _, ix, bool_series in diff}, orient='index')
@@ -86,7 +94,9 @@ def assert_dfs_equal(old, new, exclude=[]):
         for col, n_diffs in diffs_per_col.items():
             if n_diffs > 0:
                 comparison = pd.concat([old.loc[old_bool[col], ['mc', col]].reset_index(drop=True).iloc[:20],
-                                        new.loc[new_bool[col], ['mc', col]].iloc[:20].reset_index(drop=True)], axis=1)
+                                        new.loc[new_bool[col], ['mc', col]].iloc[:20].reset_index(drop=True)],
+                                       axis=1,
+                                       keys=['old', 'new'])
                 comp_str.append(
                     f"{n_diffs}/{l} ({n_diffs / l * 100:.2f} %) rows are different for {col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n")
         return '\n'.join(comp_str)

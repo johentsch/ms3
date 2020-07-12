@@ -2,6 +2,7 @@ from fractions import Fraction as frac
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
+import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import get_logger
@@ -11,6 +12,20 @@ class _MSCX_bs4:
 
     """
 
+    durations = {"measure": frac(1),
+                 "breve": frac(2),  # in theory, of course, they could have length 1.5
+                 "long": frac(4),  # and 3 as well and other values yet
+                 "whole": frac(1),
+                 "half": frac(1 / 2),
+                 "quarter": frac(1 / 4),
+                 "eighth": frac(1 / 8),
+                 "16th": frac(1 / 16),
+                 "32nd": frac(1 / 32),
+                 "64th": frac(1 / 64),
+                 "128th": frac(1 / 128),
+                 "256th": frac(1 / 256),
+                 "512th": frac(1 / 512), }
+
     def __init__(self, mscx_src, logger_name='_MSCX_bs4', level=None):
         self.logger = get_logger(logger_name, level=level)
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
@@ -18,7 +33,8 @@ class _MSCX_bs4:
         self.first_mc = 1
         self.measure_nodes = {}
         self._ml = None
-        self._nl = pd.DataFrame()
+        cols = ['mc', 'onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
+        self._nl, self._cl, self._rl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
 
 
         with open(mscx_src, 'r') as file:
@@ -38,7 +54,7 @@ class _MSCX_bs4:
         self.parse_measures()
 
     def parse_measures(self):
-        """ Converts the score into the three DataFrame self.measures, self.events, and self.notes
+        """ Converts the score into the three DataFrame self._measures, self._events, and self._notes
         """
         grace_tags = ['grace4', 'grace4after', 'grace8', 'grace8after', 'grace16', 'grace16after', 'grace32',
                       'grace32after', 'grace64', 'grace64after', 'appoggiatura', 'acciaccatura']
@@ -81,7 +97,7 @@ class _MSCX_bs4:
                             if grace:
                                 event['gracenote'] = grace.name
                             else:
-                                event['duration'] = bs4_chord_duration(event_node, duration_multiplier)
+                                event['duration'], dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
                             chord_info = dict(event)
                             note_event = dict(chord_info)
                             for chord_child in event_node.find_all(recursive=False):
@@ -93,7 +109,7 @@ class _MSCX_bs4:
                                     event.update(recurse_node(chord_child, prepend='Chord/' + chord_child.name))
                             chord_id += 1
                         elif event_name == 'Rest':
-                            event['duration'] = bs4_rest_duration(event_node, duration_multiplier)
+                            event['duration'], dot_multiplier = bs4_rest_duration(event_node, duration_multiplier)
                         elif event_name == 'location':  # <location> tags move the position counter
                             event['duration'] = frac(event_node.fractions.string)
                         elif event_name == 'Tuplet':
@@ -111,10 +127,13 @@ class _MSCX_bs4:
                             measure_info.update(recurse_node(event_node, prepend=f"voice/{event_name}"))
                         else:
                             event.update({'event': event_name})
-                            if event_name == 'Chord':  # <Chord> children are stored as note_events
-                                event['scalar'] = duration_multiplier
+                            if event_name == 'Chord':
+                                event['scalar'] = duration_multiplier * dot_multiplier
                                 for attr, value in event_node.attrs.items():
                                     event[f"Chord:{attr}"] = value
+                            elif event_name == 'Rest':
+                                event['scalar'] = duration_multiplier * dot_multiplier
+                                event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             event_list.append(event)
@@ -147,27 +166,137 @@ class _MSCX_bs4:
         self._ml = self._make_measure_list()
         return self._ml.ml
 
+
     @property
     def ml(self):
+        """Like property `measures` but without recomputing."""
         if self._ml is None:
             return self.measures
         return self._ml.ml
 
     @property
+    def chords(self):
+        """A list of <chord> tags (all <note> tags come within one)."""
+        self.make_standard_chordlist()
+        return self._cl
+
+    @property
+    def cl(self):
+        """Like property `chords` but without recomputing."""
+        if len(self._cl) == 0:
+            return self.chords
+        return self._cl
+
+    @property
     def notes(self):
+        """A list of all notes with their features."""
         self.make_standard_notelist()
         return self._nl
 
+    @property
+    def nl(self):
+        """Like property `notes` but without recomputing."""
+        if len(self._nl) == 0:
+            return self.notes
+        return self._nl
+
+    @property
+    def rests(self):
+        """A list of all rests with their features."""
+        self.make_standard_restlist()
+        return self._rl
+
+    @property
+    def rl(self):
+        """Like property `rests` but without recomputing."""
+        if len(self._rl) == 0:
+            return self.rests
+        return self._rl
+
+    @property
+    def notes_and_rests(self):
+        """Get a combination of properties `notes` and `rests`"""
+        nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
+        return sort_note_list(nr.reset_index(drop=True))
+
+
+    def make_standard_chordlist(self):
+        self._cl = self.add_standard_cols(self._events[self._events.event == 'Chord'])
+        self._cl = self._cl.astype({'chord_id': int})
+        self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
+        self._cl.loc[:, 'nominal_duration'] = self._cl.nominal_duration.map(self.durations)
+        cols = ['mc', 'mn', 'onset', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'staff', 'voice', 'volta', 'chord_id', 'timesig']
+        for col in cols:
+            if not col in self._cl.columns:
+                self._cl[col] = np.nan
+        self._cl = self._cl[cols]
+
+
+    def make_standard_restlist(self):
+        self._rl = self.add_standard_cols(self._events[self._events.event == 'Rest'])
+        if len(self._rl) == 0:
+             return
+        self._rl = self._rl.rename(columns={'Rest/durationType': 'nominal_duration'})
+        self._rl.loc[:, 'nominal_duration'] = self._rl.nominal_duration.map(self.durations)
+        cols = ['mc', 'mn', 'onset', 'duration', 'nominal_duration', 'scalar', 'staff', 'voice', 'volta', 'timesig']
+        self._rl = self._rl[cols].reset_index(drop=True)
+
+
     def make_standard_notelist(self):
         cols = {'midi': 'Note/pitch',
-                'tpc': 'Note/tpc',}
-        self._nl = self._notes.merge(self.ml[['mc', 'timesig', 'offset']], on='mc')
+                'tpc': 'Note/tpc',
+                }
+        self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
+        self._nl = self._nl.astype({'midi': int, 'tpc': int})
         self._nl.tpc -= 14
-        self._nl.onset += self._nl.offset
+        self._nl = self._nl.merge(self.cl[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
+        tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
+        self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
+
+        final_cols = [col for col in ['mc', 'mn', 'onset', 'duration', 'gracenote', 'nominal_duration',
+                                'scalar', 'tied', 'tpc', 'midi', 'staff', 'voice', 'volta', 'chord_id', 'timesig'] if col in self._nl.columns]
+        self._nl = sort_note_list(self._nl[final_cols])
 
 
+    def add_standard_cols(self, df):
+        df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'offset', 'volta']], on='mc', how='left')
+        df.onset += df.offset
+        return df[[col for col in df.columns if not col == 'offset']]
 
+
+def sort_note_list(df, mc_col='mc', onset_col='onset', midi_col='midi', duration_col='duration'):
+    """Sort every measure (MC) by ['onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact"""
+    is_grace = df[duration_col] == 0
+    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, onset_col]).groups.items()}
+    has_nan = df[midi_col].isna().any()
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].fillna(1000)
+    normal_ix = df.loc[~is_grace, [mc_col, onset_col, midi_col, duration_col]].groupby([mc_col, onset_col]).apply(
+        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
+    sorted_ixs = [np.concatenate((grace_ix[mc_onset], ix)) if mc_onset in grace_ix else ix for mc_onset, ix in
+                  normal_ix.iteritems()]
+    df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
+    return df
+
+def make_tied_col(df, tie_col, next_col, prev_col):
+    has_tie = df[tie_col].fillna('').str.contains('Tie')
+    new_col = pd.Series(np.nan, index=df.index, name='tied')
+    if has_tie.sum() == 0:
+        return new_col
+    # merge all columns whose names start with `next_col` and `prev_col` respectively
+    next_cols = [col for col in df.columns if col[:len(next_col)] == next_col]
+    nxt = df[next_cols].notna().any(axis=1)
+    prev_cols = [col for col in df.columns if col[:len(prev_col)] == prev_col]
+    prv = df[prev_cols].notna().any(axis=1)
+    new_col = new_col.where(~has_tie, 0).astype('Int64')
+    tie_starts = has_tie & nxt
+    tie_ends = has_tie & prv
+    new_col.loc[tie_ends] -= 1
+    new_col.loc[tie_starts] += 1
+    return new_col
 
 
 def safe_update(old, new):
@@ -224,28 +353,15 @@ def sort_cols(df, first_cols=None):
 
 
 def bs4_chord_duration(node, duration_multiplier=1):
-    durations = {"measure": frac(1),
-                 "breve": frac(2),  # in theory, of course, they could have length 1.5
-                 "long": frac(4),  # and 3 as well and other values yet
-                 "whole": frac(1),
-                 "half": frac(1 / 2),
-                 "quarter": frac(1 / 4),
-                 "eighth": frac(1 / 8),
-                 "16th": frac(1 / 16),
-                 "32nd": frac(1 / 32),
-                 "64th": frac(1 / 64),
-                 "128th": frac(1 / 128),
-                 "256th": frac(1 / 256),
-                 "512th": frac(1 / 512), }
+
     durationtype = node.find('durationType').string
     if durationtype == 'measure' and node.find('duration'):
         nominal_duration = frac(node.find('duration').string)
     else:
-        nominal_duration = durations[durationtype]
+        nominal_duration = _MSCX_bs4.durations[durationtype]
     dots = node.find('dots')
-    dotmultiplier = sum(
-        [frac(1 / 2) ** i for i in range(int(dots.string) + 1)]) * duration_multiplier if dots else duration_multiplier
-    return nominal_duration * dotmultiplier
+    dotmultiplier = sum([frac(1 / 2) ** i for i in range(int(dots.string) + 1)]) if dots else 1
+    return nominal_duration * duration_multiplier * dotmultiplier, dotmultiplier
 
 
 def bs4_rest_duration(node, duration_multiplier=1):
@@ -283,7 +399,7 @@ def bs4_to_mscx(soup):
         node_name = node.name
         # The following tags are exceptionally not abbreviated when empty,
         # so for instance you get <metaTag></metaTag> and not <metaTag/>
-        if node_name in ['text', 'LayerTag', 'metaTag', 'trackName']:
+        if node_name in ['continueAt', 'text', 'LayerTag', 'metaTag', 'trackName']:
             return f"{space}{make_oneliner(node)}\n"
         children = node.find_all(recursive=False)
         if len(children) > 0:

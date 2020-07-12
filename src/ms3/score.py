@@ -130,7 +130,15 @@ class MSCX:
 
     @property
     def notes(self):
-        return self.parsed._notes
+        return self.parsed.notes
+
+    @property
+    def rests(self):
+        return self.parsed.rests
+
+    @property
+    def notes_and_rests(self):
+        return self.parsed.notes_and_rests
 
     @property
     def version(self):
