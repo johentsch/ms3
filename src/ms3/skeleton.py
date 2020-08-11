@@ -21,8 +21,8 @@ import logging
 
 from ms3 import __version__
 
-__author__ = "laserjeyes"
-__copyright__ = "laserjeyes"
+__author__ = "johentsch"
+__copyright__ = "johentsch"
 __license__ = "gpl3"
 
 _logger = logging.getLogger(__name__)

@@ -3,8 +3,8 @@
 import pytest
 from ms3.skeleton import fib
 
-__author__ = "laserjeyes"
-__copyright__ = "laserjeyes"
+__author__ = "johentsch"
+__copyright__ = "johentsch"
 __license__ = "gpl3"
 
 

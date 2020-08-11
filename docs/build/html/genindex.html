@@ -89,12 +89,16 @@
 <h2 id="C">C</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/ms3.html#ms3.bs4_parser.closing_tag">closing_tag() (in module ms3.bs4_parser)</a>
+      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.check_measure_numbers">check_measure_numbers() (ms3.bs4_measures.MeasureList method)</a>
 </li>
-      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.cols">cols (ms3.bs4_measures.MeasureList attribute)</a>
+      <li><a href="api/ms3.html#ms3.score.MSCX.chords">chords() (ms3.score.MSCX property)</a>
+</li>
+      <li><a href="api/ms3.html#ms3.bs4_parser.closing_tag">closing_tag() (in module ms3.bs4_parser)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.cols">cols (ms3.bs4_measures.MeasureList attribute)</a>
+</li>
       <li><a href="api/ms3.html#ms3.logger.config_logger">config_logger() (in module ms3.logger)</a>
 </li>
       <li><a href="api/ms3.html#ms3.logger.ContextAdapter">ContextAdapter (class in ms3.logger)</a>
@@ -209,6 +213,8 @@
 </li>
       <li><a href="api/ms3.html#ms3.bs4_measures.make_repeat_col">make_repeat_col() (in module ms3.bs4_measures)</a>
 </li>
+      <li><a href="api/ms3.html#ms3.bs4_parser.make_tied_col">make_tied_col() (in module ms3.bs4_parser)</a>
+</li>
       <li><a href="api/ms3.html#ms3.bs4_measures.make_timesig_col">make_timesig_col() (in module ms3.bs4_measures)</a>
 </li>
       <li><a href="api/ms3.html#ms3.bs4_measures.make_volta_col">make_volta_col() (in module ms3.bs4_measures)</a>
@@ -302,6 +308,8 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ms3.html#ms3.score.MSCX.notes">notes() (ms3.score.MSCX property)</a>
 </li>
+      <li><a href="api/ms3.html#ms3.score.MSCX.notes_and_rests">notes_and_rests() (ms3.score.MSCX property)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -348,9 +356,11 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ms3.html#ms3.bs4_parser.recurse_node">recurse_node() (in module ms3.bs4_parser)</a>
 </li>
+      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.reset_index">reset_index (ms3.bs4_measures.MeasureList attribute)</a>
+</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.reset_index">reset_index (ms3.bs4_measures.MeasureList attribute)</a>
+      <li><a href="api/ms3.html#ms3.score.MSCX.rests">rests() (ms3.score.MSCX property)</a>
 </li>
       <li><a href="api/ms3.html#ms3.skeleton.run">run() (in module ms3.skeleton)</a>
 </li>
@@ -376,6 +386,8 @@
 </li>
       <li><a href="api/ms3.html#ms3.bs4_parser.sort_cols">sort_cols() (in module ms3.bs4_parser)</a>
 </li>
+      <li><a href="api/ms3.html#ms3.bs4_parser.sort_note_list">sort_note_list() (in module ms3.bs4_parser)</a>
+</li>
       <li><a href="api/ms3.html#ms3.bs4_measures.NextColumnMaker.start_section">start_section() (ms3.bs4_measures.NextColumnMaker method)</a>
 </li>
   </ul></td>
@@ -397,6 +409,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/ms3.html#ms3.score.MSCX.version">version() (ms3.score.MSCX property)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="api/ms3.html#ms3.bs4_measures.MeasureList.volta_structure">volta_structure (ms3.bs4_measures.MeasureList attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -456,7 +472,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2020, laserjeyes.
+      &copy;2020, johentsch.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>

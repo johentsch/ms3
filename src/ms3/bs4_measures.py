@@ -78,7 +78,7 @@ class MeasureList:
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
         if self.cols['volta_frac'] in self.ml.columns:
             volta_cols['frac_col'] = self.cols['volta_frac']
-        self.volta_structure = get_volta_structure(self.ml, **volta_cols)
+        self.volta_structure = get_volta_structure(self.ml, **volta_cols, logger=self.logger)
         func_params = {
             make_mn_col: get_cols(['dont_count', 'numbering_offset']),
             make_keysig_col: get_cols(['keysig_col']),
@@ -86,8 +86,9 @@ class MeasureList:
             make_actdur_col: get_cols(['len_col']),
             make_repeat_col: get_cols(['startRepeat', 'endRepeat']),
             make_volta_col: {'volta_structure': self.volta_structure},
-            make_next_col: {'mc_col': self.cols['mc'], 'volta_structure': self.volta_structure, 'section_breaks': sections},
-            make_offset_col: {'mc_col': self.cols['mc'], 'section_breaks': sections},
+            make_next_col: {'mc_col': self.cols['mc'], 'volta_structure': self.volta_structure, 'section_breaks': sections,
+                            'logger': self.logger},
+            make_offset_col: {'mc_col': self.cols['mc'], 'section_breaks': sections, 'logger': self.logger},
         }
         for func, params in func_params.items():
             self.add_col(func, **params)
@@ -148,7 +149,7 @@ class MeasureList:
                     current_mn = mc2mn[mc]
                     if current_mn != mn:
                         self.logger.warning(
-                            f"MC {m:3}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn:3}, not MN {current_mn:3}.")
+                            f"MC {mc:3}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn:3}, not MN {current_mn:3}.")
 
         # Check measure numbers for split measures
         error_mask = (self.ml[offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
@@ -259,7 +260,7 @@ class NextColumnMaker(object):
                 self.start = None
 
 
-
+@function_logger
 def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
     """
         Uses: treat_group()
@@ -274,7 +275,7 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
     voltas.loc[voltas[volta_start] == 1, 'group'] = 1
     voltas.group = voltas.group.fillna(0).astype(int).cumsum()
     groups = {v[mc].iloc[0]: v[cols].to_numpy() for _, v in voltas.groupby('group')}
-    return {mc: treat_group(mc, group) for mc, group in groups.items()}
+    return {mc: treat_group(mc, group, logger=logger) for mc, group in groups.items()}
 
 
 

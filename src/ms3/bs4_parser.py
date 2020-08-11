@@ -225,11 +225,12 @@ class _MSCX_bs4:
         self._cl = self._cl.astype({'chord_id': int})
         self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
         self._cl.loc[:, 'nominal_duration'] = self._cl.nominal_duration.map(self.durations)
-        cols = ['mc', 'mn', 'onset', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'staff', 'voice', 'volta', 'chord_id', 'timesig']
+        cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'volta', 'chord_id']
         for col in cols:
             if not col in self._cl.columns:
                 self._cl[col] = np.nan
         self._cl = self._cl[cols]
+
 
 
     def make_standard_restlist(self):
@@ -238,7 +239,7 @@ class _MSCX_bs4:
              return
         self._rl = self._rl.rename(columns={'Rest/durationType': 'nominal_duration'})
         self._rl.loc[:, 'nominal_duration'] = self._rl.nominal_duration.map(self.durations)
-        cols = ['mc', 'mn', 'onset', 'duration', 'nominal_duration', 'scalar', 'staff', 'voice', 'volta', 'timesig']
+        cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar', 'volta']
         self._rl = self._rl[cols].reset_index(drop=True)
 
 
@@ -254,9 +255,105 @@ class _MSCX_bs4:
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
         self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
 
-        final_cols = [col for col in ['mc', 'mn', 'onset', 'duration', 'gracenote', 'nominal_duration',
-                                'scalar', 'tied', 'tpc', 'midi', 'staff', 'voice', 'volta', 'chord_id', 'timesig'] if col in self._nl.columns]
+        final_cols = [col for col in ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
+                                'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id'] if col in self._nl.columns]
         self._nl = sort_note_list(self._nl[final_cols])
+
+
+
+    def get_chords(self, staff=None, voice=None, lyrics=False, articulation=False, spanners=False, **kwargs):
+        cols = {'nominal_duration': 'Chord/durationType',
+                'lyrics': 'Chord/Lyrics/text',
+                'syllabic': 'Chord/Lyrics/syllabic',
+                'articulation': 'Chord/Articulation/subtype'}
+        sel = self._events.event == 'Chord'
+        if spanners:
+            sel = sel | (self._events.event == 'Spanner')
+        if staff:
+            sel = sel & (self._events.staff == staff)
+        if voice:
+            sel = sel & self._events.voice == voice
+        df = self.add_standard_cols(self._events[sel])
+        df = df.astype({'chord_id': 'Int64' if spanners else int})
+        df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
+        df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations)
+        main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar',
+                'volta', 'chord_id']
+        if lyrics:
+            main_cols.append('lyrics')
+            if 'syllabic' in df:
+                # turn the 'syllabic' column into the typical dashs
+                sy = df.syllabic
+                empty = pd.Series(np.nan, index=df.index)
+                syl_start, syl_mid, syl_end = [empty.where(sy != which, '-').fillna('') for which in
+                                               ['begin', 'middle', 'end']]
+                lyrics_col = syl_end + syl_mid + df.lyrics + syl_mid + syl_start
+            else:
+                lyrics_col = df.lyrics
+            df.loc[:, 'lyrics'] = lyrics_col
+        if articulation:
+            main_cols.append('articulation')
+        for col in main_cols:
+            if not col in df.columns:
+                df[col] = np.nan
+        additional_cols = []
+        if spanners:
+            additional_cols.extend([c for c in df.columns if 'Spanner' in c])
+        for feature in kwargs.keys():
+            additional_cols.extend([c for c in df.columns if feature in c])
+        return df[main_cols + additional_cols]
+
+
+
+    def get_harmonies(self, staff=None, harmony_type=None, positioning=False):
+        """
+
+        Parameters
+        ----------
+        staff : :obj:`int`, optional
+            Select harmonies from a given staff only. Pass `staff=1` for the upper staff.
+        harmony_type : {0, 1, 2}, optional
+            If MuseScore's harmony has been used, you can filter them by passing
+                0 for 'normal' chord labels only
+                1 for Roman Numeral Analysis
+                2 for Nashville Numbers
+        positioning : :obj:`bool`, optional
+            Set to True if you want to include information about how labels have been manually positioned.
+
+        Returns
+        -------
+
+        """
+        cols = {'harmony_type': 'Harmony/harmonyType',
+                'label': 'Harmony/name',
+                'nashville': 'Harmony/function'}
+        main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'label', 'harmony_type']
+        sel = self._events.event == 'Harmony'
+        if staff:
+            sel = sel & self._events.staff == staff
+        if harmony_type:
+            if harmony_type == 0:
+                sel = sel & self._events[cols['harmony_type']].isna()
+            else:
+                sel = sel & (pd.to_numeric(self._events[cols['harmony_type']]).astype('Int64') == harmony_type).fillna(False)
+        df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
+        if len(df.index) == 0:
+            return pd.DataFrame(columns=main_cols)
+        df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
+        if 'nashville' in df.columns:
+            sel = df.nashville.notna()
+            df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
+            df.drop(columns='nashville', inplace=True)
+        columns = [c for c in main_cols if c in df.columns]
+        if positioning:
+            additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/'}
+            df.rename(columns=additional_cols, inplace=True)
+            columns += list(additional_cols.values())
+        return df[columns]
+
+
+
+
 
 
     def add_standard_cols(self, df):
@@ -312,18 +409,20 @@ def safe_update(old, new):
 
 
 def recurse_node(node, prepend=None, exclude_children=None):
+
     def tag_or_string(c, ignore_empty=False):
         nonlocal info, name
         if isinstance(c, bs4.element.Tag):
             if c.name not in exclude_children:
                 safe_update(info, {child_prepend + k: v for k, v in recurse_node(c, prepend=c.name).items()})
+        elif c not in ['\n', None]:
+            info[name] = str(c)
         elif not ignore_empty:
             if c == '\n':
                 info[name] = '∅'
             elif c is None:
                 info[name] = '/'
-            else:
-                info[name] = str(c)
+
 
     info = {}
     if exclude_children is None:
@@ -399,7 +498,7 @@ def bs4_to_mscx(soup):
         node_name = node.name
         # The following tags are exceptionally not abbreviated when empty,
         # so for instance you get <metaTag></metaTag> and not <metaTag/>
-        if node_name in ['continueAt', 'text', 'LayerTag', 'metaTag', 'trackName']:
+        if node_name in ['continueAt', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
             return f"{space}{make_oneliner(node)}\n"
         children = node.find_all(recursive=False)
         if len(children) > 0:

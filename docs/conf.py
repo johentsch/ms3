@@ -82,7 +82,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'ms3'
-copyright = u'2020, laserjeyes'
+copyright = u'2020, johentsch'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -236,7 +236,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'user_guide.tex', u'ms3 Documentation',
-   u'laserjeyes', 'manual'),
+   u'johentsch', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

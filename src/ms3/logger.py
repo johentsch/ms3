@@ -32,7 +32,7 @@ class ContextAdapter(logging.LoggerAdapter):
 
 
 def get_logger(name=None, level=None, adapter=ContextAdapter):
-    """The function gets or creates the logger `name` and returns it, by default through the givven LoggerAdapter class."""
+    """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     global CURRENT_LEVEL
     if name not in logging.root.manager.loggerDict:
         config_logger(name)

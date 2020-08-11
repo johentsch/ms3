@@ -152,6 +152,7 @@
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only the following parsers are available: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">implemented_parsers</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_mscx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">output_mscx</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_harmonies</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">measures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -162,8 +163,20 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">_events</span>
 
     <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">chords</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">chords</span>
+
+    <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">_notes</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">notes</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">rests</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">notes_and_rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">notes_and_rests</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -229,7 +242,7 @@
       <div class="clearer"></div>
     </div>
     <div class="footer">
-      &copy;2020, laserjeyes.
+      &copy;2020, johentsch.
       
       |
       Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>

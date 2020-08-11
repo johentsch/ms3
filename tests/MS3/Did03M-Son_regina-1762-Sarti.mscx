@@ -785,6 +785,20 @@ Text: Pietro Metastasio (1689-1782)</text>
             </Harmony>
           <Chord>
             <durationType>half</durationType>
+            <Spanner type="Slur">
+              <Slur>
+                <SlurSegment no="0">
+                  <o2 x="0.734302" y="-3.96523"/>
+                  <o3 x="0.734302" y="-3.96523"/>
+                  </SlurSegment>
+                </Slur>
+              <next>
+                <location>
+                  <measures>1</measures>
+                  <fractions>1/4</fractions>
+                  </location>
+                </next>
+              </Spanner>
             <StemDirection>down</StemDirection>
             <Note>
               <pitch>74</pitch>
@@ -902,6 +916,14 @@ Text: Pietro Metastasio (1689-1782)</text>
             </Chord>
           <Chord>
             <durationType>quarter</durationType>
+            <Spanner type="Slur">
+              <prev>
+                <location>
+                  <measures>-1</measures>
+                  <fractions>-1/4</fractions>
+                  </location>
+                </prev>
+              </Spanner>
             <StemDirection>down</StemDirection>
             <Note>
               <pitch>74</pitch>
@@ -6685,7 +6707,7 @@ Text: Pietro Metastasio (1689-1782)</text>
       <Measure>
         <voice>
           <Harmony>
-            <name>I</name>
+            <name>I]</name>
             </Harmony>
           <Tuplet>
             <normalNotes>2</normalNotes>
@@ -26971,6 +26993,16 @@ Text: Pietro Metastasio (1689-1782)</text>
         </Measure>
       <Measure>
         <voice>
+          <Spanner type="HairPin">
+            <HairPin>
+              <subtype>1</subtype>
+              </HairPin>
+            <next>
+              <location>
+                <measures>1</measures>
+                </location>
+              </next>
+            </Spanner>
           <Chord>
             <durationType>quarter</durationType>
             <grace4/>
@@ -27010,6 +27042,13 @@ Text: Pietro Metastasio (1689-1782)</text>
         </Measure>
       <Measure>
         <voice>
+          <Spanner type="HairPin">
+            <prev>
+              <location>
+                <measures>-1</measures>
+                </location>
+              </prev>
+            </Spanner>
           <Chord>
             <durationType>quarter</durationType>
             <Lyrics>
@@ -60675,6 +60714,18 @@ Text: Pietro Metastasio (1689-1782)</text>
             <velocity>88</velocity>
             <offset x="0.658281" y="2.68272"/>
             </Dynamic>
+          <Spanner type="HairPin">
+            <HairPin>
+              <subtype>3</subtype>
+              <endText></endText>
+              </HairPin>
+            <next>
+              <location>
+                <measures>1</measures>
+                <fractions>1/4</fractions>
+                </location>
+              </next>
+            </Spanner>
           <Tuplet>
             <normalNotes>2</normalNotes>
             <actualNotes>3</actualNotes>
@@ -60843,6 +60894,14 @@ Text: Pietro Metastasio (1689-1782)</text>
               <tpc>15</tpc>
               </Note>
             </Chord>
+          <Spanner type="HairPin">
+            <prev>
+              <location>
+                <measures>-1</measures>
+                <fractions>-1/4</fractions>
+                </location>
+              </prev>
+            </Spanner>
           <Rest>
             <durationType>quarter</durationType>
             </Rest>
@@ -74596,6 +74655,16 @@ Text: Pietro Metastasio (1689-1782)</text>
             <velocity>49</velocity>
             <offset x="0.329141" y="2.68272"/>
             </Dynamic>
+          <Spanner type="Ottava">
+            <Ottava>
+              <subtype>8va</subtype>
+              </Ottava>
+            <next>
+              <location>
+                <fractions>5/8</fractions>
+                </location>
+              </next>
+            </Spanner>
           <Chord>
             <durationType>eighth</durationType>
             <StemDirection>down</StemDirection>
@@ -74641,6 +74710,13 @@ Text: Pietro Metastasio (1689-1782)</text>
           <BarLine>
             <subtype>double</subtype>
             </BarLine>
+          <Spanner type="Ottava">
+            <prev>
+              <location>
+                <fractions>-5/8</fractions>
+                </location>
+              </prev>
+            </Spanner>
           </voice>
         </Measure>
       </Staff>
@@ -87077,6 +87153,17 @@ Text: Pietro Metastasio (1689-1782)</text>
             <velocity>88</velocity>
             <offset x="0.329141" y="2.78272"/>
             </Dynamic>
+          <Spanner type="Pedal">
+            <Pedal>
+              <endHookType>1</endHookType>
+              <beginHookType>1</beginHookType>
+              </Pedal>
+            <next>
+              <location>
+                <measures>1</measures>
+                </location>
+              </next>
+            </Spanner>
           <Tuplet>
             <normalNotes>2</normalNotes>
             <actualNotes>3</actualNotes>
@@ -87232,6 +87319,13 @@ Text: Pietro Metastasio (1689-1782)</text>
         </Measure>
       <Measure>
         <voice>
+          <Spanner type="Pedal">
+            <prev>
+              <location>
+                <measures>-1</measures>
+                </location>
+              </prev>
+            </Spanner>
           <Chord>
             <dots>1</dots>
             <durationType>quarter</durationType>
@@ -87246,6 +87340,16 @@ Text: Pietro Metastasio (1689-1782)</text>
             <velocity>49</velocity>
             <offset x="0.329141" y="2.78272"/>
             </Dynamic>
+          <Spanner type="Ottava">
+            <Ottava>
+              <subtype>15mb</subtype>
+              </Ottava>
+            <next>
+              <location>
+                <fractions>5/8</fractions>
+                </location>
+              </next>
+            </Spanner>
           <Chord>
             <durationType>eighth</durationType>
             <StemDirection>down</StemDirection>
@@ -87291,6 +87395,13 @@ Text: Pietro Metastasio (1689-1782)</text>
           <BarLine>
             <subtype>double</subtype>
             </BarLine>
+          <Spanner type="Ottava">
+            <prev>
+              <location>
+                <fractions>-5/8</fractions>
+                </location>
+              </prev>
+            </Spanner>
           </voice>
         </Measure>
       </Staff>

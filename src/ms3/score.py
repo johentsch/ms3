@@ -119,6 +119,7 @@ class MSCX:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
         self.output_mscx = self.parsed.output_mscx
+        self.get_harmonies = self.parsed.get_harmonies
 
     @property
     def measures(self):
@@ -127,6 +128,10 @@ class MSCX:
     @property
     def events(self):
         return self.parsed._events
+
+    @property
+    def chords(self):
+        return self.parsed.chords
 
     @property
     def notes(self):
