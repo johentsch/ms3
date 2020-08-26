@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ms3.bs4_parser &#8212; ms3 unknown documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ms3.bs4_parser &#8212; ms3 0.1.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -32,6 +33,7 @@
             
   <h1>Source code for ms3.bs4_parser</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">ChainMap</span> <span class="c1"># for merging dictionaries</span>
 
 <span class="kn">import</span> <span class="nn">bs4</span>  <span class="c1"># python -m pip install beautifulsoup4 lxml</span>
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
@@ -47,7 +49,7 @@
 
     <span class="n">durations</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;measure&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
                  <span class="s2">&quot;breve&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>  <span class="c1"># in theory, of course, they could have length 1.5</span>
-                 <span class="s2">&quot;long&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>  <span class="c1"># and 3 as well and other values yet</span>
+                 <span class="s2">&quot;long&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>   <span class="c1"># and 3 as well and other values yet</span>
                  <span class="s2">&quot;whole&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span>
                  <span class="s2">&quot;half&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">2</span><span class="p">),</span>
                  <span class="s2">&quot;quarter&quot;</span><span class="p">:</span> <span class="n">frac</span><span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="mi">4</span><span class="p">),</span>
@@ -127,10 +129,11 @@
                         <span class="k">if</span> <span class="n">event_name</span> <span class="o">==</span> <span class="s1">&#39;Chord&#39;</span><span class="p">:</span>
                             <span class="n">event</span><span class="p">[</span><span class="s1">&#39;chord_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">chord_id</span>
                             <span class="n">grace</span> <span class="o">=</span> <span class="n">event_node</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">grace_tags</span><span class="p">)</span>
+                            <span class="n">dur</span><span class="p">,</span> <span class="n">dot_multiplier</span> <span class="o">=</span> <span class="n">bs4_chord_duration</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="p">)</span>
                             <span class="k">if</span> <span class="n">grace</span><span class="p">:</span>
                                 <span class="n">event</span><span class="p">[</span><span class="s1">&#39;gracenote&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grace</span><span class="o">.</span><span class="n">name</span>
                             <span class="k">else</span><span class="p">:</span>
-                                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">],</span> <span class="n">dot_multiplier</span> <span class="o">=</span> <span class="n">bs4_chord_duration</span><span class="p">(</span><span class="n">event_node</span><span class="p">,</span> <span class="n">duration_multiplier</span><span class="p">)</span>
+                                <span class="n">event</span><span class="p">[</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dur</span>
                             <span class="n">chord_info</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
                             <span class="n">note_event</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">chord_info</span><span class="p">)</span>
                             <span class="k">for</span> <span class="n">chord_child</span> <span class="ow">in</span> <span class="n">event_node</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -331,7 +334,10 @@
                 <span class="n">df</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
         <span class="n">additional_cols</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">if</span> <span class="n">spanners</span><span class="p">:</span>
-            <span class="n">additional_cols</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="s1">&#39;Spanner&#39;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">])</span>
+            <span class="n">spanner_ids</span> <span class="o">=</span> <span class="n">make_spanner_cols</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">spanner_ids</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">additional_cols</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">spanner_ids</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">to_list</span><span class="p">())</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df</span><span class="p">,</span> <span class="n">spanner_ids</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
             <span class="n">additional_cols</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">c</span><span class="p">])</span>
         <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">main_cols</span> <span class="o">+</span> <span class="n">additional_cols</span><span class="p">]</span>
@@ -339,14 +345,14 @@
 
 
     <span class="k">def</span> <span class="nf">get_harmonies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; Returns a list of harmony tags from the parsed score.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        staff : :obj:`int`, optional</span>
 <span class="sd">            Select harmonies from a given staff only. Pass `staff=1` for the upper staff.</span>
 <span class="sd">        harmony_type : {0, 1, 2}, optional</span>
-<span class="sd">            If MuseScore&#39;s harmony has been used, you can filter them by passing</span>
+<span class="sd">            If MuseScore&#39;s harmony feature has been used, you can filter harmony types by passing</span>
 <span class="sd">                0 for &#39;normal&#39; chord labels only</span>
 <span class="sd">                1 for Roman Numeral Analysis</span>
 <span class="sd">                2 for Nashville Numbers</span>
@@ -359,8 +365,12 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">cols</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;harmony_type&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/harmonyType&#39;</span><span class="p">,</span>
                 <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/name&#39;</span><span class="p">,</span>
-                <span class="s1">&#39;nashville&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/function&#39;</span><span class="p">}</span>
-        <span class="n">main_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;harmony_type&#39;</span><span class="p">]</span>
+                <span class="s1">&#39;nashville&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/function&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/root&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;base&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/base&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;leftParen&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/leftParen&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;rightParen&#39;</span><span class="p">:</span> <span class="s1">&#39;Harmony/rightParen&#39;</span><span class="p">}</span>
+        <span class="n">main_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span> <span class="s1">&#39;leftParen&#39;</span><span class="p">,</span> <span class="s1">&#39;rightParen&#39;</span><span class="p">,</span> <span class="s1">&#39;harmony_type&#39;</span><span class="p">]</span>
         <span class="n">sel</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s1">&#39;Harmony&#39;</span>
         <span class="k">if</span> <span class="n">staff</span><span class="p">:</span>
             <span class="n">sel</span> <span class="o">=</span> <span class="n">sel</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">staff</span> <span class="o">==</span> <span class="n">staff</span>
@@ -379,10 +389,26 @@
             <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="s1">&#39;nashville&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">main_cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">positioning</span><span class="p">:</span>
-            <span class="n">additional_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Harmony/&#39;</span><span class="p">}</span>
+            <span class="n">additional_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Harmony/&#39;</span> <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="mi">8</span><span class="p">:]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">main_cols</span><span class="p">}</span>
             <span class="n">df</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">additional_cols</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="n">columns</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">additional_cols</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">columns</span><span class="p">]</span>
+
+
+    <span class="k">def</span> <span class="nf">get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;metaTag&#39;</span><span class="p">):</span>
+            <span class="n">tag_type</span> <span class="o">=</span> <span class="n">tag</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+            <span class="n">tag_str</span> <span class="o">=</span> <span class="n">tag</span><span class="o">.</span><span class="n">string</span>
+            <span class="n">data</span><span class="p">[</span><span class="n">tag_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">tag_str</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label_count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span><span class="p">())</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span><span class="o">.</span><span class="n">shift</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeySig&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span><span class="o">.</span><span class="n">shift</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;parts&#39;</span><span class="p">]</span>   <span class="o">=</span> <span class="p">{</span><span class="n">part</span><span class="o">.</span><span class="n">trackName</span><span class="o">.</span><span class="n">string</span><span class="p">:</span> <span class="p">[</span><span class="n">staff</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">staff</span> <span class="ow">in</span> <span class="n">part</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;Staff&#39;</span><span class="p">)]</span> <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;Part&#39;</span><span class="p">)}</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;musescore&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;programVersion&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">string</span>
+        <span class="k">return</span> <span class="n">data</span>
 
 
 
@@ -393,6 +419,98 @@
         <span class="n">df</span> <span class="o">=</span>  <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;offset&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">]],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
         <span class="n">df</span><span class="o">.</span><span class="n">onset</span> <span class="o">+=</span> <span class="n">df</span><span class="o">.</span><span class="n">offset</span>
         <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="o">==</span> <span class="s1">&#39;offset&#39;</span><span class="p">]]</span>
+
+
+<div class="viewcode-block" id="make_spanner_cols"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_parser.make_spanner_cols">[docs]</a><span class="k">def</span> <span class="nf">make_spanner_cols</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">spanner_types</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; From a raw chord list as returned by ``get_chords(spanners=True)``</span>
+<span class="sd">        create a DataFrame with Spanner IDs for all chords for all spanner</span>
+<span class="sd">        types they are associated with.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    spanner_types : :obj:`collection`</span>
+<span class="sd">        If this parameter is passed, only the enlisted</span>
+<span class="sd">        spanner types (e.g. ``Slur`` or ``Pedal``) are included.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;nxt_m&#39;</span><span class="p">:</span> <span class="s1">&#39;Spanner/next/location/measures&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;nxt_f&#39;</span><span class="p">:</span> <span class="s1">&#39;Spanner/next/location/fractions&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;prv_m&#39;</span><span class="p">:</span> <span class="s1">&#39;Spanner/prev/location/measures&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;prv_f&#39;</span><span class="p">:</span> <span class="s1">&#39;Spanner/prev/location/fractions&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;type&#39;</span><span class="p">:</span>  <span class="s1">&#39;Spanner:type&#39;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span> <span class="nf">get_spanner_ids</span><span class="p">(</span><span class="n">spanner_type</span><span class="p">,</span> <span class="n">subtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">spanner_type</span> <span class="o">==</span> <span class="s1">&#39;Slur&#39;</span><span class="p">:</span>
+            <span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Chord/&#39;</span> <span class="o">+</span> <span class="n">cols</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nxt_m&#39;</span><span class="p">,</span> <span class="s1">&#39;nxt_f&#39;</span><span class="p">,</span> <span class="s1">&#39;prv_m&#39;</span><span class="p">,</span> <span class="s1">&#39;prv_f&#39;</span><span class="p">]]</span>
+            <span class="n">type_col</span> <span class="o">=</span> <span class="s1">&#39;Chord/&#39;</span> <span class="o">+</span> <span class="n">cols</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">cols</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;nxt_m&#39;</span><span class="p">,</span> <span class="s1">&#39;nxt_f&#39;</span><span class="p">,</span> <span class="s1">&#39;prv_m&#39;</span><span class="p">,</span> <span class="s1">&#39;prv_f&#39;</span><span class="p">]]</span>
+            <span class="n">type_col</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">type_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">spanner_type</span>
+        <span class="n">subtype_col</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Spanner/</span><span class="si">{</span><span class="n">spanner_type</span><span class="si">}</span><span class="s2">/subtype&quot;</span>
+        <span class="k">if</span> <span class="n">subtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">subtype_col</span> <span class="ow">in</span> <span class="n">df</span><span class="p">:</span>
+            <span class="n">subtypes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">subtype_col</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="n">subtype_col</span><span class="p">])</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_spanner_ids</span><span class="p">(</span><span class="n">spanner_type</span><span class="p">,</span> <span class="n">st</span><span class="p">)</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">subtypes</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ChainMap</span><span class="p">(</span><span class="o">*</span><span class="n">results</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">subtype</span><span class="p">:</span>
+            <span class="n">sel</span> <span class="o">=</span> <span class="n">sel</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">subtype_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">subtype</span><span class="p">)</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">f_cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">f_cols</span><span class="p">)</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">existing</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">existing</span><span class="p">]</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">col</span><span class="p">:</span> <span class="n">col</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">staff</span><span class="p">)</span>
+
+        <span class="n">current_id</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">column_name</span> <span class="o">=</span> <span class="n">spanner_type</span>
+        <span class="k">if</span> <span class="n">subtype</span><span class="p">:</span>
+            <span class="n">column_name</span> <span class="o">+=</span> <span class="s1">&#39;:&#39;</span> <span class="o">+</span> <span class="n">subtype</span>
+        <span class="k">if</span> <span class="n">spanner_type</span> <span class="o">!=</span> <span class="s1">&#39;Slur&#39;</span><span class="p">:</span>
+            <span class="n">staff_stacks</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">staff</span><span class="o">.</span><span class="n">unique</span><span class="p">()}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">features</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">voice</span><span class="p">)</span>
+            <span class="n">staff_stacks</span> <span class="o">=</span> <span class="p">{(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span> <span class="p">{}</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">staff</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">)}</span>
+
+        <span class="k">def</span> <span class="nf">spanner_ids</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">distinguish_voices</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="k">nonlocal</span> <span class="n">staff_stacks</span><span class="p">,</span> <span class="n">current_id</span>
+            <span class="k">if</span> <span class="n">distinguish_voices</span><span class="p">:</span>
+                <span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">nxt_m</span><span class="p">,</span> <span class="n">nxt_f</span><span class="p">,</span> <span class="n">prv_m</span><span class="p">,</span> <span class="n">prv_f</span> <span class="o">=</span> <span class="n">row</span>
+                <span class="n">layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">staff</span><span class="p">,</span> <span class="n">nxt_m</span><span class="p">,</span> <span class="n">nxt_f</span><span class="p">,</span> <span class="n">prv_m</span><span class="p">,</span> <span class="n">prv_f</span> <span class="o">=</span> <span class="n">row</span>
+                <span class="n">layer</span> <span class="o">=</span> <span class="n">staff</span>
+            <span class="k">if</span> <span class="n">nxt_m</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">nxt_f</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="n">current_id</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">][(</span><span class="n">nxt_m</span><span class="p">,</span> <span class="n">nxt_f</span><span class="p">)]</span> <span class="o">=</span> <span class="n">current_id</span>
+                <span class="k">return</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+            <span class="n">val</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">prv_m</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">or</span> <span class="n">prv_f</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="p">(</span><span class="n">prv_m</span><span class="p">,</span> <span class="n">prv_f</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">]:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spanner ending (type </span><span class="si">{</span><span class="n">spanner_type</span><span class="si">}{</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">subtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39;, subtype: &#39;</span> <span class="o">+</span> <span class="n">subtype</span> <span class="si">}</span><span class="s2">) could not be matched with a beginning.&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="s1">&#39;err&#39;</span>
+                <span class="k">del</span><span class="p">(</span><span class="n">staff_stacks</span><span class="p">[</span><span class="n">layer</span><span class="p">][(</span><span class="n">prv_m</span><span class="p">,</span> <span class="n">prv_f</span><span class="p">)])</span>
+            <span class="k">return</span> <span class="n">val</span> <span class="k">if</span> <span class="n">val</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">column_name</span><span class="p">:</span> <span class="p">[</span><span class="n">spanner_ids</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">distinguish_voices</span><span class="o">=</span><span class="p">(</span><span class="n">spanner_type</span> <span class="o">==</span> <span class="s1">&#39;Slur&#39;</span><span class="p">))</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">features</span><span class="o">.</span><span class="n">values</span><span class="p">]}</span>
+
+    <span class="n">type_col</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+    <span class="n">types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">type_col</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="n">type_col</span><span class="p">]))</span> <span class="k">if</span> <span class="n">type_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">else</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="s1">&#39;Chord/&#39;</span> <span class="o">+</span> <span class="n">type_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;Slur&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">spanner_types</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">spanner_types</span><span class="p">]</span>
+    <span class="n">list_of_dicts</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_spanner_ids</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span><span class="p">]</span>
+    <span class="n">merged_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">ChainMap</span><span class="p">(</span><span class="o">*</span><span class="n">list_of_dicts</span><span class="p">))</span>
+    <span class="n">renaming</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;HairPin:1&#39;</span><span class="p">:</span> <span class="s1">&#39;decrescendo&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;HairPin:3&#39;</span><span class="p">:</span> <span class="s1">&#39;diminuendo&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">merged_dict</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">renaming</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="sort_note_list"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_parser.sort_note_list">[docs]</a><span class="k">def</span> <span class="nf">sort_note_list</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">onset_col</span><span class="o">=</span><span class="s1">&#39;onset&#39;</span><span class="p">,</span> <span class="n">midi_col</span><span class="o">=</span><span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="n">duration_col</span><span class="o">=</span><span class="s1">&#39;duration&#39;</span><span class="p">):</span>
@@ -519,7 +637,9 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">bs4</span><span class="o">.</span><span class="n">element</span><span class="o">.</span><span class="n">Tag</span><span class="p">):</span>
             <span class="n">result</span> <span class="o">+=</span> <span class="n">make_oneliner</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">result</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">+=</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;quot;&#39;</span><span class="p">)</span>\
+                            <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;lt;&#39;</span><span class="p">)</span>\
+                            <span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&amp;gt;&#39;</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">+=</span> <span class="n">closing_tag</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result</span></div>
 
@@ -569,6 +689,7 @@
 <h3>Navigation</h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../api/ms3.html">ms3 Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
@@ -609,7 +730,7 @@
       &copy;2020, johentsch.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

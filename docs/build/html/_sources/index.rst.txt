@@ -16,6 +16,7 @@ Contents
    :maxdepth: 2
 
    ms3 Reference <api/ms3>
+   modules <api/modules>
    License <license>
    Authors <authors>
    Changelog <changelog>

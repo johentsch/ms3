@@ -4,7 +4,8 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ms3.logger &#8212; ms3 unknown documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ms3.logger &#8212; ms3 0.1.2 documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -110,7 +111,9 @@
 
 <span class="sd">    Example</span>
 <span class="sd">    -------</span>
-<span class="sd">    This is how the decorator can be used::</span>
+<span class="sd">    This is how the decorator can be used:</span>
+
+<span class="sd">    .. code-block:: python</span>
 
 <span class="sd">        from ms3.logger import function_logger</span>
 
@@ -123,10 +126,14 @@
 <span class="sd">            log_this(&#39;First test&#39;, logger=&#39;my_logger&#39;)</span>
 <span class="sd">            log_this(&#39;Second Test&#39;)</span>
 
-<span class="sd">    ``WARNING my_logger -- function_logger.py (line 5) log_this():</span>
-<span class="sd">	    First test</span>
-<span class="sd">    WARNING root -- function_logger.py (line 5) log_this():</span>
-<span class="sd">        Second Test``</span>
+<span class="sd">    Output:</span>
+
+<span class="sd">    .. code-block:: python</span>
+
+<span class="sd">        WARNING my_logger -- function_logger.py (line 5) log_this():</span>
+<span class="sd">            First test</span>
+<span class="sd">        WARNING root -- function_logger.py (line 5) log_this():</span>
+<span class="sd">            Second Test</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -168,6 +175,7 @@
 <h3>Navigation</h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../api/ms3.html">ms3 Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
@@ -208,7 +216,7 @@
       &copy;2020, johentsch.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

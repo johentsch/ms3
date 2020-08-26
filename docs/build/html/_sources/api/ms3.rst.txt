@@ -44,6 +44,14 @@ ms3.skeleton module
    :undoc-members:
    :show-inheritance:
 
+ms3.transformations module
+--------------------------
+
+.. automodule:: ms3.transformations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 
 Module contents
 ---------------

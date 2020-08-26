@@ -77,7 +77,9 @@ def function_logger(f):
 
     Example
     -------
-    This is how the decorator can be used::
+    This is how the decorator can be used:
+
+    .. code-block:: python
 
         from ms3.logger import function_logger
 
@@ -90,10 +92,14 @@ def function_logger(f):
             log_this('First test', logger='my_logger')
             log_this('Second Test')
 
-    ``WARNING my_logger -- function_logger.py (line 5) log_this():
-	    First test
-    WARNING root -- function_logger.py (line 5) log_this():
-        Second Test``
+    Output:
+
+    .. code-block:: python
+
+        WARNING my_logger -- function_logger.py (line 5) log_this():
+            First test
+        WARNING root -- function_logger.py (line 5) log_this():
+            Second Test
 
     """
 
