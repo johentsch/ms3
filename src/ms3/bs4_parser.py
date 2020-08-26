@@ -1,4 +1,5 @@
 from fractions import Fraction as frac
+from collections import ChainMap # for merging dictionaries
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
@@ -14,7 +15,7 @@ class _MSCX_bs4:
 
     durations = {"measure": frac(1),
                  "breve": frac(2),  # in theory, of course, they could have length 1.5
-                 "long": frac(4),  # and 3 as well and other values yet
+                 "long": frac(4),   # and 3 as well and other values yet
                  "whole": frac(1),
                  "half": frac(1 / 2),
                  "quarter": frac(1 / 4),
@@ -94,10 +95,11 @@ class _MSCX_bs4:
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
                             grace = event_node.find(grace_tags)
+                            dur, dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
                             if grace:
                                 event['gracenote'] = grace.name
                             else:
-                                event['duration'], dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
+                                event['duration'] = dur
                             chord_info = dict(event)
                             note_event = dict(chord_info)
                             for chord_child in event_node.find_all(recursive=False):
@@ -298,7 +300,10 @@ class _MSCX_bs4:
                 df[col] = np.nan
         additional_cols = []
         if spanners:
-            additional_cols.extend([c for c in df.columns if 'Spanner' in c])
+            spanner_ids = make_spanner_cols(df)
+            if len(spanner_ids.columns) > 0:
+                additional_cols.extend(spanner_ids.columns.to_list())
+                df = pd.concat([df, spanner_ids], axis=1)
         for feature in kwargs.keys():
             additional_cols.extend([c for c in df.columns if feature in c])
         return df[main_cols + additional_cols]
@@ -306,14 +311,14 @@ class _MSCX_bs4:
 
 
     def get_harmonies(self, staff=None, harmony_type=None, positioning=False):
-        """
+        """ Returns a list of harmony tags from the parsed score.
 
         Parameters
         ----------
         staff : :obj:`int`, optional
             Select harmonies from a given staff only. Pass `staff=1` for the upper staff.
         harmony_type : {0, 1, 2}, optional
-            If MuseScore's harmony has been used, you can filter them by passing
+            If MuseScore's harmony feature has been used, you can filter harmony types by passing
                 0 for 'normal' chord labels only
                 1 for Roman Numeral Analysis
                 2 for Nashville Numbers
@@ -326,8 +331,12 @@ class _MSCX_bs4:
         """
         cols = {'harmony_type': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
-                'nashville': 'Harmony/function'}
-        main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'label', 'harmony_type']
+                'nashville': 'Harmony/function',
+                'root': 'Harmony/root',
+                'base': 'Harmony/base',
+                'leftParen': 'Harmony/leftParen',
+                'rightParen': 'Harmony/rightParen'}
+        main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'root', 'label', 'base', 'leftParen', 'rightParen', 'harmony_type']
         sel = self._events.event == 'Harmony'
         if staff:
             sel = sel & self._events.staff == staff
@@ -346,10 +355,26 @@ class _MSCX_bs4:
             df.drop(columns='nashville', inplace=True)
         columns = [c for c in main_cols if c in df.columns]
         if positioning:
-            additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/'}
+            additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
             df.rename(columns=additional_cols, inplace=True)
             columns += list(additional_cols.values())
         return df[columns]
+
+
+    def get_metadata(self):
+
+        data = {}
+
+        for tag in self.soup.find_all('metaTag'):
+            tag_type = tag['name']
+            tag_str = tag.string
+            data[tag_type] = tag_str
+        data['label_count'] = len(self.get_harmonies())
+        data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
+        data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
+        data['parts']   = {part.trackName.string: [staff['id'] for staff in part.find_all('Staff')] for part in self.soup.find_all('Part')}
+        data['musescore'] = self.soup.find('programVersion').string
+        return data
 
 
 
@@ -360,6 +385,98 @@ class _MSCX_bs4:
         df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'offset', 'volta']], on='mc', how='left')
         df.onset += df.offset
         return df[[col for col in df.columns if not col == 'offset']]
+
+
+def make_spanner_cols(df, spanner_types=None):
+    """ From a raw chord list as returned by ``get_chords(spanners=True)``
+        create a DataFrame with Spanner IDs for all chords for all spanner
+        types they are associated with.
+
+    Parameters
+    ----------
+    spanner_types : :obj:`collection`
+        If this parameter is passed, only the enlisted
+        spanner types (e.g. ``Slur`` or ``Pedal``) are included.
+
+    """
+
+    cols = {
+        'nxt_m': 'Spanner/next/location/measures',
+        'nxt_f': 'Spanner/next/location/fractions',
+        'prv_m': 'Spanner/prev/location/measures',
+        'prv_f': 'Spanner/prev/location/fractions',
+        'type':  'Spanner:type',
+        }
+
+    def get_spanner_ids(spanner_type, subtype=None):
+
+        if spanner_type == 'Slur':
+            f_cols = ['Chord/' + cols[c] for c in ['nxt_m', 'nxt_f', 'prv_m', 'prv_f']]
+            type_col = 'Chord/' + cols['type']
+        else:
+            f_cols = [cols[c] for c in ['nxt_m', 'nxt_f', 'prv_m', 'prv_f']]
+            type_col = cols['type']
+        sel = df[type_col] == spanner_type
+        subtype_col = f"Spanner/{spanner_type}/subtype"
+        if subtype is None and subtype_col in df:
+            subtypes = set(df.loc[df[subtype_col].notna(), subtype_col])
+            results = [get_spanner_ids(spanner_type, st) for st in subtypes]
+            return dict(ChainMap(*results))
+        elif subtype:
+            sel = sel & (df[subtype_col] == subtype)
+        existing = [c for c in f_cols if c in df.columns]
+        features = pd.DataFrame('', index=df.index, columns=f_cols)
+        features.loc[sel, existing] = df.loc[sel, existing]
+        features = features.apply(lambda col: col.fillna('').str.replace('-', ''))
+        features.insert(0, 'staff', df.staff)
+
+        current_id = -1
+        column_name = spanner_type
+        if subtype:
+            column_name += ':' + subtype
+        if spanner_type != 'Slur':
+            staff_stacks = {i: {} for i in df.staff.unique()}
+        else:
+            features.insert(1, 'voice', df.voice)
+            staff_stacks = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
+
+        def spanner_ids(row, distinguish_voices=False):
+            nonlocal staff_stacks, current_id
+            if distinguish_voices:
+                staff, voice, nxt_m, nxt_f, prv_m, prv_f = row
+                layer = (staff, voice)
+            else:
+                staff, nxt_m, nxt_f, prv_m, prv_f = row
+                layer = staff
+            if nxt_m != '' or nxt_f != '':
+                current_id += 1
+                staff_stacks[layer][(nxt_m, nxt_f)] = current_id
+                return ', '.join(str(i) for i in staff_stacks[layer].values())
+
+            val = ', '.join(str(i) for i in staff_stacks[layer].values())
+            if prv_m != '' or prv_f != '':
+                if len(staff_stacks[layer]) == 0 or (prv_m, prv_f) not in staff_stacks[layer]:
+                    print(f"Spanner ending (type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype }) could not be matched with a beginning.")
+                    return 'err'
+                del(staff_stacks[layer][(prv_m, prv_f)])
+            return val if val != '' else np.nan
+
+        return {column_name: [spanner_ids(row, distinguish_voices=(spanner_type == 'Slur')) for row in features.values]}
+
+    type_col = cols['type']
+    types = list(set(df.loc[df[type_col].notna(), type_col])) if type_col in df.columns else []
+    if 'Chord/' + type_col in df.columns:
+        types += ['Slur']
+    if spanner_types is not None:
+        types = [t for t in types if t in spanner_types]
+    list_of_dicts = [get_spanner_ids(t) for t in types]
+    merged_dict = dict(ChainMap(*list_of_dicts))
+    renaming = {
+        'HairPin:1': 'decrescendo',
+        'HairPin:3': 'diminuendo',
+    }
+    return pd.DataFrame(merged_dict, index=df.index).rename(columns=renaming)
+
 
 
 def sort_note_list(df, mc_col='mc', onset_col='onset', midi_col='midi', duration_col='duration'):
@@ -486,7 +603,9 @@ def make_oneliner(node):
         if isinstance(c, bs4.element.Tag):
             result += make_oneliner(c)
         else:
-            result += str(c).replace('"', '&quot;')
+            result += str(c).replace('"', '&quot;')\
+                            .replace('<', '&lt;')\
+                            .replace('>', '&gt;')
     result += closing_tag(node.name)
     return result
 

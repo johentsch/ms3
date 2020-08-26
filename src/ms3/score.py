@@ -119,6 +119,7 @@ class MSCX:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
         self.output_mscx = self.parsed.output_mscx
+        self.get_chords = self.parsed.get_chords
         self.get_harmonies = self.parsed.get_harmonies
 
     @property
