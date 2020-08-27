@@ -121,6 +121,7 @@ class MSCX:
         self.output_mscx = self.parsed.output_mscx
         self.get_chords = self.parsed.get_chords
         self.get_harmonies = self.parsed.get_harmonies
+        self.get_metadata = self.parsed.get_metadata
 
     @property
     def measures(self):

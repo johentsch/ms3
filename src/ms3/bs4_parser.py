@@ -263,7 +263,32 @@ class _MSCX_bs4:
 
 
 
-    def get_chords(self, staff=None, voice=None, lyrics=False, articulation=False, spanners=False, **kwargs):
+    def get_chords(self, staff=None, voice=None, lyrics=False, staff_text=False, articulation=False, spanners=False, **kwargs):
+        """ Returns a DataFrame with the score's chords (groups of simultaneous notes in the same layer).
+            Such a list is needed for extracting certain types of information which is attached to chords rather than notes.
+
+        Parameters
+        ----------
+        staff : :obj:`int`
+            Get information from a particular staff only (1 = upper staff)
+        voice : :obj:`int`
+            Get information from a particular voice only (1 = only the first layer of every staff)
+        lyrics : :obj:`bool`, optional
+            Include lyrics.
+        staff_text : :obj:`bool`, optional
+            Include staff text such as tempo markings.
+        articulation : :obj:`bool`, optional
+            Include articulation such as arpeggios.
+        spanners : :obj:`bool`, optional
+            Include spanners such as slurs, 8va lines, pedal lines etc.
+        **kwargs : :obj:`bool`, optional
+            Set a particular keyword to True in order to include all columns from the _events DataFrame
+            whose names include that keyword. Column names include the tag names from the MSCX source code.
+
+        Returns
+        -------
+
+        """
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
                 'syllabic': 'Chord/Lyrics/syllabic',
@@ -271,16 +296,22 @@ class _MSCX_bs4:
         sel = self._events.event == 'Chord'
         if spanners:
             sel = sel | (self._events.event == 'Spanner')
+        if staff_text:
+            sel = sel | (self._events.event == 'StaffText')
         if staff:
             sel = sel & (self._events.staff == staff)
         if voice:
             sel = sel & self._events.voice == voice
         df = self.add_standard_cols(self._events[sel])
-        df = df.astype({'chord_id': 'Int64' if spanners else int})
+        df = df.astype({'chord_id': 'Int64' if spanners or staff_text else int})
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
         df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations)
         main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar',
                 'volta', 'chord_id']
+        if staff_text:
+            main_cols.append('staff_text')
+            text_cols = ['StaffText/text', 'StaffText/text/b', 'StaffText/text/i']
+            df.loc[:, 'staff_text'] = df[[c for c in text_cols if c in df.columns]].fillna('').sum(axis=1).replace('', np.nan)
         if lyrics:
             main_cols.append('lyrics')
             if 'syllabic' in df:
@@ -305,7 +336,7 @@ class _MSCX_bs4:
                 additional_cols.extend(spanner_ids.columns.to_list())
                 df = pd.concat([df, spanner_ids], axis=1)
         for feature in kwargs.keys():
-            additional_cols.extend([c for c in df.columns if feature in c])
+            additional_cols.extend([c for c in df.columns if feature in c and c not in main_cols])
         return df[main_cols + additional_cols]
 
 
@@ -363,12 +394,10 @@ class _MSCX_bs4:
 
     def get_metadata(self):
 
-        data = {}
-
-        for tag in self.soup.find_all('metaTag'):
-            tag_type = tag['name']
-            tag_str = tag.string
-            data[tag_type] = tag_str
+        data = {tag['name']: tag.string for tag in self.soup.find_all('metaTag')}
+        last_measure = self.ml.iloc[-1]
+        data['last_mc'] = last_measure.mc
+        data['last_mn'] = last_measure.mn
         data['label_count'] = len(self.get_harmonies())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
