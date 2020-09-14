@@ -313,7 +313,11 @@ class _MSCX_bs4:
         if staff_text:
             main_cols.append('staff_text')
             text_cols = ['StaffText/text', 'StaffText/text/b', 'StaffText/text/i']
-            df.loc[:, 'staff_text'] = df[[c for c in text_cols if c in df.columns]].fillna('').sum(axis=1).replace('', np.nan)
+            existing_cols = [c for c in text_cols if c in df.columns]
+            if len(existing_cols) > 0:
+                df.loc[:, 'staff_text'] = df[existing_cols].fillna('').sum(axis=1).replace('', np.nan)
+            else:
+                df.loc[:, 'staff_text'] = np.nan
         if lyrics:
             main_cols.append('lyrics')
             if 'syllabic' in df:
@@ -323,8 +327,10 @@ class _MSCX_bs4:
                 syl_start, syl_mid, syl_end = [empty.where(sy != which, '-').fillna('') for which in
                                                ['begin', 'middle', 'end']]
                 lyrics_col = syl_end + syl_mid + df.lyrics + syl_mid + syl_start
-            else:
+            elif 'lyrics' in df:
                 lyrics_col = df.lyrics
+            else:
+                lyrics_col = pd.Series(np.nan, index=df.index)
             df.loc[:, 'lyrics'] = lyrics_col
         if articulation:
             main_cols.append('articulation')
@@ -373,7 +379,7 @@ class _MSCX_bs4:
         sel = self._events.event == 'Harmony'
         if staff:
             sel = sel & self._events.staff == staff
-        if harmony_type:
+        if harmony_type is not None:
             if harmony_type == 0:
                 sel = sel & self._events[cols['harmony_type']].isna()
             else:
