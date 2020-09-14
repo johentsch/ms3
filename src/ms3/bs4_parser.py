@@ -7,6 +7,8 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import get_logger
+from .transformations import fifths2name
+
 
 class _MSCX_bs4:
     """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
@@ -401,7 +403,15 @@ class _MSCX_bs4:
         data['label_count'] = len(self.get_harmonies())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
-        data['parts']   = {part.trackName.string: [staff['id'] for staff in part.find_all('Staff')] for part in self.soup.find_all('Part')}
+        staff_groups = self.nl.groupby('staff').midi
+        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)} for t in
+                     self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
+        for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
+            ambitus[t.staff]['max_midi'] = t.midi
+            ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
+        data['parts'] = {
+            part.trackName.string: {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
+                                    part.find_all('Staff')} for part in self.soup.find_all('Part')}
         data['musescore'] = self.soup.find('programVersion').string
         return data
 

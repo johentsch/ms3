@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.1.4
+=============
+
+* extraction of metadata from scores
+
 Version 0.1.3
 =============
 

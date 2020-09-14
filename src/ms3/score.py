@@ -6,8 +6,6 @@ from .logger import get_logger
 
 
 
-
-
 class Score:
     """ Object representing a score.
 
