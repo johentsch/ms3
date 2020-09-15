@@ -13,6 +13,15 @@ from .transformations import fifths2name
 class _MSCX_bs4:
     """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
 
+    Attributes
+    ----------
+    mscx_src : :obj:`str`
+        Path to the uncompressed MuseScore 3 file (MSCX) to be parsed.
+    logger_name : :obj:`str`, optional
+        If you have defined a logger, pass its name.
+    level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
+        Pass a level name for which (and above which) you want to see log records.
+
     """
 
     durations = {"measure": frac(1),

@@ -5,7 +5,7 @@ from fractions import Fraction as frac
 from .logger import get_logger, function_logger
 
 class MeasureList:
-    """ Turns a _MSCX_bs4.raw_measures DataFrame into a measure list and performs a couple of consistency checks on the score.
+    """ Turns a _MSCX_bs4._measures DataFrame into a measure list and performs a couple of consistency checks on the score.
 
     Attributes
     ----------
@@ -215,8 +215,12 @@ class NextColumnMaker(object):
                 self.logger.debug(
                     f"MC {start} has been inferred as startRepeat for the endRepeat in MC {mc} because it is the first bar of the piece.")
             else:
-                self.logger.warning(f"""The endRepeat in MC {mc} is missing its startRepeat.
-    For correction, MC {start} is interpreted as such because it {reason}.""")
+                msg = f"""The endRepeat in MC {mc} is missing its startRepeat.
+    For correction, MC {start} is interpreted as such because it {reason}."""
+                if "section break" in msg:
+                    self.logger.debug(msg)
+                else:
+                    self.logger.warning(msg)
         else:
             start = None
 
@@ -236,8 +240,15 @@ class NextColumnMaker(object):
             self.logger.error(f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
         else:
             self.next[mc] = [start] + self.next[mc]
+            if self.potential_start is not None:
+                pot_mc, reason = self.potential_start
+                if pot_mc == mc + 1:
+                    self.potential_start = (pot_mc, reason + ' and the previous endRepeat')
+                else:
+                    self.potential_start = (mc + 1, 'is the first bar after the previous endRepeat')
+            else:
+                self.potential_start = (mc + 1, 'is the first bar after the previous endRepeat')
             self.start = None
-            self.potential_start = (mc + 1, 'is the first bar after the previous endRepeat')
 
     def treat_input(self, mc, repeat, section_break=False):
         if section_break:
@@ -450,10 +461,11 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
 
 @function_logger
 def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_col='next', section_breaks=None, name='offset'):
-    """
+    """ If one MN is composed of two MCs, the resulting column indicates the second MC's offset from the MN's beginning.
+
     Parameters
     ----------
-    mc_col, act_dur, next_col : :obj:`str`, optional
+    mc_col, timesig, act_dur, next_col : :obj:`str`, optional
         Names of the required columns.
     section_breaks : :obj:`str`, optional
         If you pass the name of a column, the string 'section' is taken into account
