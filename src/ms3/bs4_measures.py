@@ -370,7 +370,9 @@ def make_actdur_col(df, len_col, timesig_col='timesig', name='act_dur'):
 
 
 def make_keysig_col(df, keysig_col, name='keysig'):
-    return df[keysig_col].fillna(method='ffill').fillna(0).astype(int).rename(name)
+    if keysig_col in df:
+        return df[keysig_col].fillna(method='ffill').fillna(0).astype(int).rename(name)
+    return pd.Series(0, index=df.index).rename(name)
 
 
 def make_mn_col(df, dont_count, numbering_offset, name='mn'):
