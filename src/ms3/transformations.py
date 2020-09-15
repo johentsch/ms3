@@ -10,7 +10,7 @@ def fifths2acc(fifths):
     return abs(fifths // 7) * 'b' if fifths < 0 else fifths // 7 * '#'
 
 
-def fifths2name(fifths, midi=None):
+def fifths2name(fifths, midi=None, ms=False):
     """ Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc.
        Uses: map2elements(), fifths2str()
@@ -22,11 +22,18 @@ def fifths2name(fifths, midi=None):
     midi : :obj:`int`
         In order to include the octave into the note name,
         pass the corresponding MIDI pitch.
+    ms : :obj:`bool`, optional
+        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
     """
-    if pd.isnull(fifths):
+    try:
+        fifths = int(fifths)
+    except:
+        if isinstance(fifths, Iterable):
+            return map2elements(fifths, fifths2name, ms=ms)
         return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2name)
+
+    if ms:
+        fifths -= 14
     note_names = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
     name = fifths2str(fifths, note_names, inverted=True)
     if midi is not None:
@@ -39,11 +46,14 @@ def fifths2pc(fifths):
     """ Turn a stack of fifths into a chromatic pitch class.
         Uses: map2elements()
     """
-    if pd.isnull(fifths):
+    try:
+        fifths = int(fifths)
+    except:
+        if isinstance(fifths, Iterable):
+            return map2elements(fifths, fifths2pc)
         return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2pc)
-    return 7 * fifths % 12
+
+    return int(7 * fifths % 12)
 
  
 
@@ -60,7 +70,7 @@ def fifths2str(fifths, steps, inverted=False):
 def map2elements(e, f, *args, **kwargs):
     """ If `e` is an iterable, `f` is applied to all elements.
     """
-    if isinstance(e, Iterable):
+    if isinstance(e, Iterable) and not isinstance(e, str):
         return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
 
@@ -77,11 +87,13 @@ def midi2octave(midi, fifths=None):
         To be precise, for some Tonal Pitch Classes, the octave deviates
         from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.
     """
-    if pd.isnull(midi):
+    try:
+        midi = int(midi)
+    except:
+        if isinstance(midi, Iterable):
+            return map2elements(midi, midi2octave)
         return midi
-    if isinstance(midi, Iterable):
-        return map2elements(midi, midi2octave)
-    i = - 1
+    i = -1
     if fifths is not None:
         pc = fifths2pc(fifths)
         if midi % 12 != pc:

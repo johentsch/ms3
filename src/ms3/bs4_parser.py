@@ -349,7 +349,7 @@ class _MSCX_bs4:
 
 
 
-    def get_harmonies(self, staff=None, harmony_type=None, positioning=False):
+    def get_harmonies(self, staff=None, harmony_type=None, positioning=False, raw=False):
         """ Returns a list of harmony tags from the parsed score.
 
         Parameters
@@ -363,6 +363,9 @@ class _MSCX_bs4:
                 2 for Nashville Numbers
         positioning : :obj:`bool`, optional
             Set to True if you want to include information about how labels have been manually positioned.
+        raw : :obj:`bool`, optional
+            Set to True if you want to keep labels in their original form as encoded by MuseScore: Encoding root and
+            bass as TPC (tonal pitch class) where C = 14.
 
         Returns
         -------
@@ -388,10 +391,31 @@ class _MSCX_bs4:
         if len(df.index) == 0:
             return pd.DataFrame(columns=main_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
-        if 'nashville' in df.columns:
-            sel = df.nashville.notna()
-            df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
-            df.drop(columns='nashville', inplace=True)
+        if not raw:
+            drop_cols, compose_label = [], []
+            if 'nashville' in df.columns:
+                sel = df.nashville.notna()
+                df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
+                drop_cols.append('nashville')
+            if 'leftParen' in df.columns:
+                df.leftParen.replace('/', '(', inplace=True)
+                compose_label.append('leftParen')
+                drop_cols.append('leftParen')
+            if 'root' in df.columns:
+                df.root = fifths2name(df.root, ms=True)
+                compose_label.append('root')
+                drop_cols.append('root')
+            compose_label.append('label')
+            if 'base' in df.columns:
+                df.base = '/' + fifths2name(df.base, ms=True)
+                compose_label.append('base')
+                drop_cols.append('base')
+            if 'rightParen' in df.columns:
+                df.rightParen.replace('/', ')', inplace=True)
+                compose_label.append('rightParen')
+                drop_cols.append('rightParen')
+            df.label = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+            df.drop(columns=drop_cols, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
         if positioning:
             additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}

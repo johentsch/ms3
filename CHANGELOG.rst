@@ -6,6 +6,7 @@ Version 0.1.4
 =============
 
 * extraction of metadata from scores
+* conversion of MuseScore's encoding of absolute chords
 
 Version 0.1.3
 =============
