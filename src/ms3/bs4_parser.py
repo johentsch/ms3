@@ -376,23 +376,13 @@ class _MSCX_bs4:
 
 
 
-    def get_harmonies(self, staff=None, voice=None, harmony_type=None, positioning=False, raw=True):
+    def get_annotations(self, positioning=False):
         """ Returns a list of harmony tags from the parsed score.
 
         Parameters
         ----------
-        staff : :obj:`int`, optional
-            Select harmonies from a given staff only. Pass `staff=1` for the upper staff.
-        harmony_type : {0, 1, 2}, optional
-            If MuseScore's harmony feature has been used, you can filter harmony types by passing
-                0 for 'normal' chord labels only
-                1 for Roman Numeral Analysis
-                2 for Nashville Numbers
         positioning : :obj:`bool`, optional
             Set to True if you want to include information about how labels have been manually positioned.
-        raw : :obj:`bool`, optional
-            Set to True (default) if you want to keep labels in their original form as encoded by MuseScore: Encoding root and
-            bass as TPC (tonal pitch class) where C = 14.
 
         Returns
         -------
@@ -405,28 +395,19 @@ class _MSCX_bs4:
                 'base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
                 'rightParen': 'Harmony/rightParen'}
-        main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'root', 'label', 'base', 'leftParen', 'rightParen', 'harmony_type']
+        std_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'label',]
+        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'harmony_type']
         sel = self._events.event == 'Harmony'
-        if staff is not None:
-            sel = sel & (self._events.staff == staff)
-        if voice is not None:
-            sel = sel & (self._events.voice == voice)
-        if harmony_type is not None and cols['harmony_type'] in self._events.columns:
-            if harmony_type == 0:
-                sel = sel & self._events[cols['harmony_type']].isna()
-            else:
-                sel = sel & (pd.to_numeric(self._events[cols['harmony_type']]).astype('Int64') == harmony_type).fillna(False)
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
-            return pd.DataFrame(columns=main_cols)
+            return pd.DataFrame(columns=std_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
-        if not raw:
-            df = decode_harmonies(df)
+        if 'harmony_type' in df.columns:
+            df.harmony_type.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
-        if positioning:
-            additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
-            df.rename(columns=additional_cols, inplace=True)
-            columns += list(additional_cols.values())
+        additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
+        df.rename(columns=additional_cols, inplace=True)
+        columns += list(additional_cols.values())
         return df[columns]
 
 
@@ -436,7 +417,7 @@ class _MSCX_bs4:
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = last_measure.mc
         data['last_mn'] = last_measure.mn
-        data['label_count'] = len(self.get_harmonies())
+        data['label_count'] = len(self.get_annotations())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
         staff_groups = self.nl.groupby('staff').midi
