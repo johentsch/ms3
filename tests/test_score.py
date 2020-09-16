@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-
 """Tests for `ms3` package."""
 
 import pytest
 import os
 import tempfile
-from fractions import Fraction as frac
+
 
 import pandas as pd
 
 import ms3
+from ms3.utils import load_tsv
 
 @pytest.fixture(
     params=['Did03M-Son_regina-1762-Sarti.mscx', 'D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx', '76CASM34A33UM.mscx'],
@@ -104,102 +104,6 @@ def assert_dfs_equal(old, new, exclude=[]):
 
 
 
-def load_tsv(path, index_col=[0, 1], converters={}, dtypes={}, stringtype=False, **kwargs):
-    """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
-    Parameters
-    ----------
-    path : :obj:`str`
-        Path to a TSV file as output by format_data().
-    index_col : :obj:`list`, optional
-        By default, the first two columns are loaded as MultiIndex.
-        The first level distinguishes pieces and the second level the elements within.
-    converters, dtypes : :obj:`dict`, optional
-        Enhances or overwrites the mapping from column names to types included the constants.
-    stringtype : :obj:`bool`, optional
-        If you're using pandas >= 1.0.0 you might want to set this to True in order
-        to be using the new `string` datatype that includes the new null type `pd.NA`.
-    """
-
-    def str2inttuple(l):
-        return tuple() if l == '' else tuple(int(s) for s in l.split(', '))
-
-    def int2bool(s):
-        try:
-            return bool(int(s))
-        except:
-            return s
-
-    CONVERTERS = {
-        'added_tones': str2inttuple,
-        'act_dur': frac,
-        'chord_tones': str2inttuple,
-        'globalkey_is_minor': int2bool,
-        'localkey_is_minor': int2bool,
-        'next': str2inttuple,
-        'nominal_duration': frac,
-        'offset': frac,
-        'onset': frac,
-        'duration': frac,
-        'scalar': frac, }
-
-    DTYPES = {
-        'alt_label': str,
-        'barline': str,
-        'bass_note': 'Int64',
-        'cadence': str,
-        'cadences_id': 'Int64',
-        'changes': str,
-        'chord': str,
-        'chord_type': str,
-        'dont_count': 'Int64',
-        'figbass': str,
-        'form': str,
-        'globalkey': str,
-        'gracenote': str,
-        'harmonies_id': 'Int64',
-        'keysig': int,
-        'label': str,
-        'localkey': str,
-        'mc': int,
-        'midi': int,
-        'mn': int,
-        'notes_id': 'Int64',
-        'numbering_offset': 'Int64',
-        'numeral': str,
-        'pedal': str,
-        'playthrough': int,
-        'phraseend': str,
-        'relativeroot': str,
-        'repeats': str,
-        'root': 'Int64',
-        'special': str,
-        'staff': int,
-        'tied': 'Int64',
-        'timesig': str,
-        'tpc': int,
-        'voice': int,
-        'voices': int,
-        'volta': 'Int64'
-    }
-
-
-    if converters is None:
-        conv = None
-    else:
-        conv = dict(CONVERTERS)
-        conv.update(converters)
-
-    if dtypes is None:
-        types = None
-    else:
-        types = dict(DTYPES)
-        types.update(dtypes)
-
-    if stringtype:
-        types = {col: 'string' if typ == str else typ for col, typ in types.items()}
-    return pd.read_csv(path, sep='\t', index_col=index_col,
-                       dtype=types,
-                       converters=conv, **kwargs)
 
 

@@ -7,7 +7,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import get_logger
-from .transformations import fifths2name
+from .utils import fifths2name
 
 
 class _MSCX_bs4:
@@ -38,12 +38,14 @@ class _MSCX_bs4:
                  "256th": frac(1 / 256),
                  "512th": frac(1 / 512), }
 
-    def __init__(self, mscx_src, logger_name='_MSCX_bs4', level=None):
+    def __init__(self, mscx_src, read_only=False, logger_name='_MSCX_bs4', level=None):
         self.logger = get_logger(logger_name, level=level)
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
         self.first_mc = 1
         self.measure_nodes = {}
+        if not read_only:
+            self.tags = {}
         self._ml = None
         cols = ['mc', 'onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
@@ -60,12 +62,16 @@ class _MSCX_bs4:
         for staff in self.soup.find('Part').find_next_siblings('Staff'):
             staff_id = int(staff['id'])
             self.measure_nodes[staff_id] = {}
+            if not read_only:
+                self.tags[staff_id] = {}
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
                 self.measure_nodes[staff_id][mc] = measure
+                if not read_only:
+                    self.tags[staff_id][mc] = {}
 
-        self.parse_measures()
+        self.parse_measures(read_only=read_only)
 
-    def parse_measures(self):
+    def parse_measures(self, read_only=False):
         """ Converts the score into the three DataFrame self._measures, self._events, and self._notes
         """
         grace_tags = ['grace4', 'grace4after', 'grace8', 'grace8after', 'grace16', 'grace16after', 'grace32',
@@ -89,6 +95,8 @@ class _MSCX_bs4:
                 voice_nodes = measure.find_all('voice', recursive=False)
                 # measure_info['voices'] = len(voice_nodes)
                 for voice_id, voice_node in enumerate(voice_nodes, start=1):
+                    if not read_only:
+                        self.tags[staff_id][mc][voice_id] = {}
                     current_position = frac(0)
                     duration_multiplier = 1
                     multiplier_stack = [1]
@@ -149,7 +157,13 @@ class _MSCX_bs4:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
+                            if not read_only:
+                                remember = {'id': len(event_list),
+                                            'name': event_name,
+                                            'tag': event_node}
+                                self.tags[staff_id][mc][voice_id][event['onset']] = remember
                             event_list.append(event)
+
 
                         current_position += event['duration']
 

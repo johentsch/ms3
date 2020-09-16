@@ -1,6 +1,7 @@
 import os
 
 from .bs4_parser import _MSCX_bs4
+from .annotations import Annotations
 from .logger import get_logger
 
 
@@ -35,29 +36,35 @@ class Score:
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.paths, self.files, self.fnames, self.fexts, self.logger_names = {}, {}, {}, {}, {}, {}
         self._mscx = None
-        self.handle_path(mscx_src)
+        self._annotations = {}
         self.parser = parser
-        if 'mscx' in self.fnames:
-            self.parse_mscx()
-        elif mscx_src is not None:
-            self.logger.error("At the moment, only .mscx files are accepted.")
+        if mscx_src is not None:
+            self.parse_mscx(mscx_src)
+
 
     def handle_path(self, path, key=None):
-        if path is not None:
-            file_path, file = os.path.split(os.path.abspath(path))
+        full_path = os.path.abspath(path)
+        if os.path.isfile(full_path):
+            file_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
             if key is None:
-                key = file_ext.replace('.', '', 1)
-            self.full_paths[key] = path
+                key = file_ext[1:]
+            elif key == 'file':
+                key = file
+            self.full_paths[key] = full_path
             self.paths[key] = file_path
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
             self.logger_names[key] = file_name.replace('.', '')
+            return key
+        else:
+            self.logger.error("No file found at this path: " + full_path)
+            return None
 
 
 
-    def parse_mscx(self, mscx_src=None, parser=None, logger_name=None):
+    def parse_mscx(self, mscx_src, parser=None, logger_name=None):
         self.handle_path(mscx_src)
         if parser is not None:
             self.parser = parser
@@ -78,6 +85,19 @@ class Score:
             raise LookupError("No XML has been parsed so far. Use the method parse_mscx().")
         return self._mscx
 
+
+    def load_annotations(self, tsv_path, name=None):
+        if name is None:
+            name = 'file'
+        key = self.handle_path(tsv_path, name)
+        self._annotations[key] = Annotations(tsv_path)
+
+    def __repr__(self):
+        msg = ''
+        if 'mscx' in self.full_paths:
+            msg = f"MuseScore file: {self.full_paths['mscx']}\n"
+        msg += f"Annotations:\n{self._annotations}"
+        return msg
 
 class MSCX:
     """ Object for interacting with the XML structure of a MuseScore 3 file.
@@ -149,6 +169,4 @@ class MSCX:
     def version(self):
         """MuseScore version with which the file was created (read-only)."""
         return self.parsed.version
-
-
 
