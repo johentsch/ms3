@@ -72,7 +72,7 @@ class Score:
             ln = self.logger_names['mscx'] if logger_name is None else logger_name
             self._mscx = MSCX(self.full_paths['mscx'], self.parser, logger_name=ln)
             if self._mscx.has_annotations:
-                self._annotations['mscx'] = self._mscx._annotations
+                self._annotations['annotations'] = self._mscx._annotations
         else:
             self.logger.error("At the moment, only .mscx files are accepted.")
 
@@ -97,9 +97,18 @@ class Score:
     def __repr__(self):
         msg = ''
         if 'mscx' in self.full_paths:
-            msg = f"MuseScore file: {self.full_paths['mscx']}\n"
-        msg += f"Annotations:\n{self._annotations}"
+            msg = f"MuseScore file\n--------------\n\n{self.full_paths['mscx']}\n\n"
+        if 'annotations' in self._annotations:
+            msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
+        if len(self._annotations) > 1:
+            msg += "Detached annotations\n--------------------\n\n"
+            for key, obj in self._annotations.items():
+                if key != 'annotations':
+                    msg += f"{key} -> {obj}\n\n"
         return msg
+
+    def __getattr__(self, item):
+        return self._annotations[item]
 
 class MSCX:
     """ Object for interacting with the XML structure of a MuseScore 3 file.
@@ -141,11 +150,11 @@ class MSCX:
 
         self.output_mscx = self.parsed.output_mscx
         self.get_chords = self.parsed.get_chords
-        self.get_harmonies = self.parsed.get_harmonies
+        self.get_harmonies = self.parsed.get_annotations
         self.get_metadata = self.parsed.get_metadata
         self.has_annotations = self.parsed.has_annotations
         if self.parsed.has_annotations:
-            self._annotations = Annotations(df=self.parsed.get_harmonies())
+            self._annotations = Annotations(df=self.parsed.get_annotations())
 
     @property
     def measures(self):
