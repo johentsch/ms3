@@ -2,6 +2,35 @@ from collections.abc import Iterable
 from fractions import Fraction as frac
 
 import pandas as pd
+import numpy as np
+
+
+def decode_harmonies(df):
+    drop_cols, compose_label = [], []
+    if 'nashville' in df.columns:
+        sel = df.nashville.notna()
+        df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
+        drop_cols.append('nashville')
+    if 'leftParen' in df.columns:
+        df.leftParen.replace('/', '(', inplace=True)
+        compose_label.append('leftParen')
+        drop_cols.append('leftParen')
+    if 'root' in df.columns:
+        df.root = fifths2name(df.root, ms=True)
+        compose_label.append('root')
+        drop_cols.append('root')
+    compose_label.append('label')
+    if 'base' in df.columns:
+        df.base = '/' + fifths2name(df.base, ms=True)
+        compose_label.append('base')
+        drop_cols.append('base')
+    if 'rightParen' in df.columns:
+        df.rightParen.replace('/', ')', inplace=True)
+        compose_label.append('rightParen')
+        drop_cols.append('rightParen')
+    df.label = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+    df.drop(columns=drop_cols, inplace=True)
+    return df
 
 
 def fifths2acc(fifths):

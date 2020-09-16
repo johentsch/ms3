@@ -1,5 +1,5 @@
 from fractions import Fraction as frac
-from collections import ChainMap # for merging dictionaries
+from collections import defaultdict, ChainMap # for merging dictionaries
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
@@ -7,7 +7,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import get_logger
-from .utils import fifths2name
+from .utils import fifths2name, decode_harmonies
 
 
 class _MSCX_bs4:
@@ -42,10 +42,11 @@ class _MSCX_bs4:
         self.logger = get_logger(logger_name, level=level)
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
+        self.read_only = read_only
         self.first_mc = 1
         self.measure_nodes = {}
-        if not read_only:
-            self.tags = {}
+        self.tags = {} # only used if not self.read_only
+        self.has_annotations = False
         self._ml = None
         cols = ['mc', 'onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
@@ -62,16 +63,12 @@ class _MSCX_bs4:
         for staff in self.soup.find('Part').find_next_siblings('Staff'):
             staff_id = int(staff['id'])
             self.measure_nodes[staff_id] = {}
-            if not read_only:
-                self.tags[staff_id] = {}
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
                 self.measure_nodes[staff_id][mc] = measure
-                if not read_only:
-                    self.tags[staff_id][mc] = {}
 
-        self.parse_measures(read_only=read_only)
+        self.parse_measures()
 
-    def parse_measures(self, read_only=False):
+    def parse_measures(self):
         """ Converts the score into the three DataFrame self._measures, self._events, and self._notes
         """
         grace_tags = ['grace4', 'grace4after', 'grace8', 'grace8after', 'grace16', 'grace16after', 'grace32',
@@ -87,16 +84,20 @@ class _MSCX_bs4:
                       self.measure_nodes.values()]
                 ),
                 start=self.first_mc):
+            if not self.read_only:
+                self.tags[mc] = {}
             # iterate through staves and collect information about each <Measure> node
             for staff_id, measure in zip(staff_ids, measure_stack):
+                if not self.read_only:
+                    self.tags[mc][staff_id] = {}
                 measure_info = {'mc': mc, 'staff': staff_id}
                 measure_info.update(recurse_node(measure, exclude_children=['voice']))
                 # iterate through <voice> tags and run a position counter
                 voice_nodes = measure.find_all('voice', recursive=False)
                 # measure_info['voices'] = len(voice_nodes)
                 for voice_id, voice_node in enumerate(voice_nodes, start=1):
-                    if not read_only:
-                        self.tags[staff_id][mc][voice_id] = {}
+                    if not self.read_only:
+                        self.tags[mc][staff_id][voice_id] = defaultdict(list)
                     current_position = frac(0)
                     duration_multiplier = 1
                     multiplier_stack = [1]
@@ -157,11 +158,11 @@ class _MSCX_bs4:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
-                            if not read_only:
+                            if not self.read_only:
                                 remember = {'id': len(event_list),
                                             'name': event_name,
                                             'tag': event_node}
-                                self.tags[staff_id][mc][voice_id][event['onset']] = remember
+                                self.tags[mc][staff_id][voice_id][event['onset']].append(remember)
                             event_list.append(event)
 
 
@@ -173,6 +174,9 @@ class _MSCX_bs4:
         self._measures = sort_cols(pd.DataFrame(measure_list), col_order)
         self._events = sort_cols(pd.DataFrame(event_list), col_order)
         self._notes = sort_cols(pd.DataFrame(note_list), col_order)
+        if 'Harmony' in self._events.event.values:
+            self.has_annotations = True
+
 
 
 
@@ -372,7 +376,7 @@ class _MSCX_bs4:
 
 
 
-    def get_harmonies(self, staff=None, harmony_type=None, positioning=False, raw=False):
+    def get_harmonies(self, staff=None, voice=None, harmony_type=None, positioning=False, raw=True):
         """ Returns a list of harmony tags from the parsed score.
 
         Parameters
@@ -387,7 +391,7 @@ class _MSCX_bs4:
         positioning : :obj:`bool`, optional
             Set to True if you want to include information about how labels have been manually positioned.
         raw : :obj:`bool`, optional
-            Set to True if you want to keep labels in their original form as encoded by MuseScore: Encoding root and
+            Set to True (default) if you want to keep labels in their original form as encoded by MuseScore: Encoding root and
             bass as TPC (tonal pitch class) where C = 14.
 
         Returns
@@ -403,9 +407,11 @@ class _MSCX_bs4:
                 'rightParen': 'Harmony/rightParen'}
         main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'root', 'label', 'base', 'leftParen', 'rightParen', 'harmony_type']
         sel = self._events.event == 'Harmony'
-        if staff:
-            sel = sel & self._events.staff == staff
-        if harmony_type is not None:
+        if staff is not None:
+            sel = sel & (self._events.staff == staff)
+        if voice is not None:
+            sel = sel & (self._events.voice == voice)
+        if harmony_type is not None and cols['harmony_type'] in self._events.columns:
             if harmony_type == 0:
                 sel = sel & self._events[cols['harmony_type']].isna()
             else:
@@ -415,30 +421,7 @@ class _MSCX_bs4:
             return pd.DataFrame(columns=main_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
         if not raw:
-            drop_cols, compose_label = [], []
-            if 'nashville' in df.columns:
-                sel = df.nashville.notna()
-                df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
-                drop_cols.append('nashville')
-            if 'leftParen' in df.columns:
-                df.leftParen.replace('/', '(', inplace=True)
-                compose_label.append('leftParen')
-                drop_cols.append('leftParen')
-            if 'root' in df.columns:
-                df.root = fifths2name(df.root, ms=True)
-                compose_label.append('root')
-                drop_cols.append('root')
-            compose_label.append('label')
-            if 'base' in df.columns:
-                df.base = '/' + fifths2name(df.base, ms=True)
-                compose_label.append('base')
-                drop_cols.append('base')
-            if 'rightParen' in df.columns:
-                df.rightParen.replace('/', ')', inplace=True)
-                compose_label.append('rightParen')
-                drop_cols.append('rightParen')
-            df.label = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
-            df.drop(columns=drop_cols, inplace=True)
+            df = decode_harmonies(df)
         columns = [c for c in main_cols if c in df.columns]
         if positioning:
             additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}

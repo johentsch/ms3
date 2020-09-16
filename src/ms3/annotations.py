@@ -3,9 +3,9 @@ from .logger import get_logger
 
 class Annotations:
 
-    def __init__(self, df=None, tsv_path=None, index_col=None, sep='\t', logger_name='Harmonies', level=None):
+    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', logger_name='Harmonies', level=None):
         self.logger = get_logger(logger_name, level)
-        if df:
+        if df is not None:
             self.df = df
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
