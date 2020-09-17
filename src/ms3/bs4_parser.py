@@ -162,7 +162,11 @@ class _MSCX_bs4:
                                 remember = {'id': len(event_list),
                                             'name': event_name,
                                             'tag': event_node}
-                                self.tags[mc][staff_id][voice_id][event['onset']].append(remember)
+                                position = event['onset']
+                                if event_name == 'location' and event['duration'] < 0:
+                                    # this is a backwards pointer: store it where it points to for easy deletion
+                                    position += event['duration']
+                                self.tags[mc][staff_id][voice_id][position].append(remember)
                             event_list.append(event)
 
 
@@ -376,13 +380,8 @@ class _MSCX_bs4:
 
 
 
-    def get_annotations(self, positioning=False):
+    def get_annotations(self):
         """ Returns a list of harmony tags from the parsed score.
-
-        Parameters
-        ----------
-        positioning : :obj:`bool`, optional
-            Set to True if you want to include information about how labels have been manually positioned.
 
         Returns
         -------
@@ -433,14 +432,29 @@ class _MSCX_bs4:
         return data
 
 
-
-
-
-
     def add_standard_cols(self, df):
         df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'offset', 'volta']], on='mc', how='left')
         df.onset += df.offset
         return df[[col for col in df.columns if not col == 'offset']]
+
+
+    def delete_label(self, mc, staff, voice, onset):
+        ids = []
+        elements = self.tags[mc][staff][voice][onset]
+
+        names = [e['name'] for e in elements]
+        if 'Chord' in names and 'location' in names:
+            NotImplementedError(f"Check this: {elements}")
+
+        for e in elements:
+            if e['name'] in ['Harmony', 'location']:
+                ids.append(e['id'])
+                e['tag'].decompose()
+
+        return ids
+
+
+####################### END OF CLASS DEFINITION #######################
 
 
 def make_spanner_cols(df, spanner_types=None):

@@ -5,13 +5,13 @@ from .logger import get_logger
 
 class Annotations:
 
-    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', logger_name='Harmonies', level=None):
+    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', logger_name='Harmonies', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         if df is not None:
             self.df = df
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
-            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep)
+            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
 
 
     def __repr__(self):
@@ -19,7 +19,7 @@ class Annotations:
         return f"{len(self.df)} labels:\n{self.df.groupby(layers).size().to_string()}"
 
 
-    def get_labels(self, staff=None, voice=None, harmony_type=None, positioning=False, decode=False):
+    def get_labels(self, staff=None, voice=None, harmony_type=None, positioning=False, decode=False, drop=False):
         """ Returns a list of harmony tags from the parsed score.
 
         Parameters
@@ -51,6 +51,8 @@ class Annotations:
             # if the column contains strings and NaN:
             # (pd.to_numeric(self.df['harmony_type']).astype('Int64') == harmony_type).fillna(False)
         res = self.df[sel]
+        if drop:
+            self.df = self.df[~sel]
         if decode:
             res = decode_harmonies(res)
         if positioning:
