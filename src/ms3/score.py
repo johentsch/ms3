@@ -183,10 +183,11 @@ class MSCX:
 
 
     def delete_labels(self, df):
-        ids = []
-        for mc, staff, voice, onset in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False):
-            ids.extend(self.parsed.delete_label(mc, staff, voice, onset))
-        if len(ids) > 0:
+        changes = sum(self.parsed.delete_label(mc, staff, voice, onset)
+                      for mc, staff, voice, onset
+                      in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)
+                     )
+        if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
 

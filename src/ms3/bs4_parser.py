@@ -7,7 +7,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import get_logger
-from .utils import fifths2name, decode_harmonies
+from .utils import fifths2name, ordinal_suffix
 
 
 class _MSCX_bs4:
@@ -159,9 +159,9 @@ class _MSCX_bs4:
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             if not self.read_only:
-                                remember = {'id': len(event_list),
-                                            'name': event_name,
-                                            'tag': event_node}
+                                remember = {'name': event_name,
+                                            'duration': event['duration'],
+                                            'tag': event_node,}
                                 position = event['onset']
                                 if event_name == 'location' and event['duration'] < 0:
                                     # this is a backwards pointer: store it where it points to for easy deletion
@@ -439,19 +439,185 @@ class _MSCX_bs4:
 
 
     def delete_label(self, mc, staff, voice, onset):
-        ids = []
+        if self.read_only:
+            self.read_only = False
+            self.parse_measures()
         elements = self.tags[mc][staff][voice][onset]
-
         names = [e['name'] for e in elements]
         if 'Chord' in names and 'location' in names:
             NotImplementedError(f"Check this: {elements}")
 
+        changes = False
         for e in elements:
             if e['name'] in ['Harmony', 'location']:
-                ids.append(e['id'])
                 e['tag'].decompose()
+                self.logger.debug(f"<{e['name']}>-tag deleted in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
+                changes = True
+        return changes
 
-        return ids
+
+    def add_label(self, label, mc, onset, staff=1, voice=1):
+        if self.read_only:
+            self.read_only = False
+            self.parse_measures()
+        if mc not in self.tags:
+            self.logger.error(f"MC {mc} not found.")
+            return
+        if staff not in self.tags[mc]:
+            self.logger.error(f"Staff {staff} not found.")
+            return
+        if voice not in [1, 2, 3, 4]:
+            self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
+            return
+        onset = frac(onset)
+        if voice > 1 and voice not in self.tags[mc][staff]:
+            existing_voices = self.measure_nodes[staff][mc].find_all('voice')
+            n = len(existing_voices)
+            if not voice <= n:
+                last = existing_voices[-1]
+                while voice > n:
+                    last = self.new_tag('voice', after=last)
+                    n += 1
+                remember = self.insert_label(label, loc_before=onset, within=last)
+                self.tags[mc][staff][voice] = defaultdict(list)
+                self.tags[mc][staff][voice][onset] = remember
+                self.logger.debug(f"Added {label} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at onset {onset}.")
+                return
+
+        def get_duration_event(names):
+            if 'Chord' in names or 'Rest' in names:
+                try:
+                    ix = names.index('Chord')
+                    name = '<Chord>'
+                except:
+                    ix = names.index('Rest')
+                    name = '<Rest>'
+                return ix, name
+            return None
+
+        measure = self.tags[mc][staff][voice]
+        if onset in measure:
+            elements = self.tags[mc][staff][voice][onset]
+            names = [e['name'] for e in elements]
+            res = get_duration_event(names)
+            if res is not None:
+                ix, name = res
+                chord = elements[ix]['tag']
+                remember = self.insert_label(label, before=chord)
+                self.tags[mc][staff][voice][onset].insert(ix, remember[0])
+                self.logger.debug(f"Added {label} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
+                if 'Harmony' in names:
+                    self.logger.warning(
+                        f"The chord in MC {mc}, onset {onset}, staff {staff}, voice {voice} was already carrying a label.")
+                return
+            else:
+                raise NotImplementedError(f"MC {mc}, onset {onset}, staff {staff}, voice {voice} has no chord: {elements}")
+
+        ordered = list(reversed(sorted(measure)))
+        prv_pos, nxt_pos = next((prv, nxt)
+                                for prv, nxt
+                                in zip(ordered + [None], [None] + ordered)
+                                if prv < onset)
+        assert prv_pos is not None, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        prv = measure[prv_pos]
+        nxt = None if nxt_pos is None else measure[nxt_pos]
+        prv_names = [e['name'] for e in prv]
+        prev_ev = get_duration_event(prv_names)
+        if nxt is not None:
+            nxt_names = [e['name'] for e in nxt]
+            nxt_ev = get_duration_event(nxt_names)
+        # distinguish six cases: prv can be [event, location], nxt can be [event, location, None]
+        if prev_ev is not None:
+            # prv is event (chord or rest)
+            prv_ix, prv_name = prev_ev
+            if nxt is None:
+                loc_after = prv_pos + prv[prv_ix]['duration'] - onset
+                # i.e. the ending of the last event minus the onset
+                remember = self.insert_label(label, loc_before= -loc_after, after=prv[prv_ix]['tag'])
+                self.logger.debug(f"Added {label} at {loc_after} before the ending of MC {mc}'s last {prv_name}.")
+            elif nxt_ev is not None:
+                # nxt is event (chord or rest)
+                _, nxt_name = nxt_ev
+                loc_after = nxt_pos - onset
+                remember = self.insert_label(label, loc_before= -loc_after, loc_after=loc_after, after=prv[prv_ix]['tag'])
+                self.logger.debug(f"Added {label} at {loc_after} before the {nxt_name} at onset {nxt_pos}.")
+            else:
+                # nxt has location tag(s)
+                loc_ix = nxt_names.index('location')
+                loc_dur = nxt[loc_ix]['duration']
+                assert loc_dur < 0, "Positive location tag"
+                loc_before = loc_dur - nxt_pos + onset
+                remember = self.insert_label(label, loc_before=loc_before, before=nxt[loc_ix]['tag'])
+                loc_after = str(nxt_pos - onset)
+                nxt[loc_ix]['tag'].fractions.string = loc_after
+                nxt_name = [f"<{e}>" for e in nxt_names if e != 'location']
+                self.logger.debug(f"""Added {label} at {-loc_before} before the ending of the {prv_name} at onset {prv_pos}
+and {loc_after} before the subsequent {', '.join(nxt_name)}.""")
+
+        self.tags[mc][staff][voice][onset] = remember
+
+
+
+
+
+
+    def insert_label(self, label, loc_before=None, before=None, loc_after=None, after=None, within=None):
+        tag = self.new_label(label, before=before, after=after, within=within)
+        remember = [dict(
+                        name = 'Harmony',
+                        duration = frac(0),
+                        tag = tag
+                    )]
+        if loc_before is not None:
+            location = self.new_location(loc_before)
+            tag.insert_before(location)
+            remember.insert(0, dict(
+                        name = 'location',
+                        duration = loc_after,
+                        tag = tag
+                    ))
+        if loc_after is not None:
+            location = self.new_location(loc_after)
+            tag.insert_after(location)
+            remember.append(dict(
+                        name = 'location',
+                        duration = loc_before,
+                        tag = tag
+                    ))
+        return remember
+
+
+    def new_label(self, label, after=None, before=None, within=None):
+        tag = self.new_tag('Harmony')
+        _ = self.new_tag('name', value=label, within=tag)
+        if after is not None:
+            after.insert_after(tag)
+        elif before is not None:
+            before.insert_before(tag)
+        elif within is not None:
+            within.append(tag)
+        return tag
+
+    def new_location(self, location):
+        tag = self.new_tag('location')
+        _ = self.new_tag('fractions', value=str(location), within=tag)
+        return tag
+
+
+
+    def new_tag(self, name, value=None, after=None, before=None, within=None):
+        tag = self.soup.new_tag(name)
+        if after is not None:
+            after.insert_after(tag)
+        elif before is not None:
+            before.insert_before(tag)
+        elif within is not None:
+            within.append(tag)
+        if value is not None:
+            tag.string = value
+        return tag
+
+
 
 
 ####################### END OF CLASS DEFINITION #######################

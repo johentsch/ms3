@@ -239,3 +239,15 @@ def midi2octave(midi, fifths=None):
         ]:
             i += 1
     return midi // 12 + i
+
+
+def ordinal_suffix(n):
+    suffixes = {
+        1: 'st',
+        2: 'nd',
+        3: 'rd'
+    }
+    n = str(n)
+    if n[-1] in suffixes:
+        return suffixes[n[-1]]
+    return 'th'
