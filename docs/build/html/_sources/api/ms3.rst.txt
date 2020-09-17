@@ -4,6 +4,14 @@ ms3 package
 Submodules
 ----------
 
+ms3.annotations module
+----------------------
+
+.. automodule:: ms3.annotations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 ms3.bs4\_measures module
 ------------------------
 
@@ -44,10 +52,10 @@ ms3.skeleton module
    :undoc-members:
    :show-inheritance:
 
-ms3.transformations module
---------------------------
+ms3.utils module
+----------------
 
-.. automodule:: ms3.transformations
+.. automodule:: ms3.utils
    :members:
    :undoc-members:
    :show-inheritance:

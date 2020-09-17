@@ -4,8 +4,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ms3.bs4_measures &#8212; ms3 0.1.2 documentation</title>
+    <title>ms3.bs4_measures &#8212; ms3 unknown documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -39,7 +38,7 @@
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">function_logger</span>
 
 <div class="viewcode-block" id="MeasureList"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList">[docs]</a><span class="k">class</span> <span class="nc">MeasureList</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot; Turns a _MSCX_bs4.raw_measures DataFrame into a measure list and performs a couple of consistency checks on the score.</span>
+    <span class="sd">&quot;&quot;&quot; Turns a _MSCX_bs4._measures DataFrame into a measure list and performs a couple of consistency checks on the score.</span>
 
 <span class="sd">    Attributes</span>
 <span class="sd">    ----------</span>
@@ -249,8 +248,12 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> has been inferred as startRepeat for the endRepeat in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> because it is the first bar of the piece.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;The endRepeat in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> is missing its startRepeat.</span>
-<span class="s2">    For correction, MC </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> is interpreted as such because it </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;The endRepeat in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> is missing its startRepeat.</span>
+<span class="s2">    For correction, MC </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> is interpreted as such because it </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span>
+                <span class="k">if</span> <span class="s2">&quot;section break&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -270,8 +273,15 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No starting point for the repeatEnd in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> could be determined. It is being ignored.&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;is the first bar after the previous endRepeat&#39;</span><span class="p">)</span></div>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pot_mc</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span>
+                <span class="k">if</span> <span class="n">pot_mc</span> <span class="o">==</span> <span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">pot_mc</span><span class="p">,</span> <span class="n">reason</span> <span class="o">+</span> <span class="s1">&#39; and the previous endRepeat&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;is the first bar after the previous endRepeat&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;is the first bar after the previous endRepeat&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="NextColumnMaker.treat_input"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.NextColumnMaker.treat_input">[docs]</a>    <span class="k">def</span> <span class="nf">treat_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">section_break</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">section_break</span><span class="p">:</span>
@@ -404,7 +414,9 @@
 
 
 <div class="viewcode-block" id="make_keysig_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_keysig_col">[docs]</a><span class="k">def</span> <span class="nf">make_keysig_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">keysig_col</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;keysig&#39;</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">keysig_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">keysig_col</span> <span class="ow">in</span> <span class="n">df</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">keysig_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="make_mn_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_mn_col">[docs]</a><span class="k">def</span> <span class="nf">make_mn_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">):</span>
@@ -482,10 +494,11 @@
 
 <div class="viewcode-block" id="make_offset_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_offset_col">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">make_offset_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">timesig</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">next_col</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;offset&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot; If one MN is composed of two MCs, the resulting column indicates the second MC&#39;s offset from the MN&#39;s beginning.</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    mc_col, act_dur, next_col : :obj:`str`, optional</span>
+<span class="sd">    mc_col, timesig, act_dur, next_col : :obj:`str`, optional</span>
 <span class="sd">        Names of the required columns.</span>
 <span class="sd">    section_breaks : :obj:`str`, optional</span>
 <span class="sd">        If you pass the name of a column, the string &#39;section&#39; is taken into account</span>
@@ -668,7 +681,7 @@
       &copy;2020, johentsch.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

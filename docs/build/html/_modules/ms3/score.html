@@ -4,8 +4,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ms3.score &#8212; ms3 0.1.2 documentation</title>
+    <title>ms3.score &#8212; ms3 unknown documentation</title>
     <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -35,9 +34,8 @@
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">.bs4_parser</span> <span class="kn">import</span> <span class="n">_MSCX_bs4</span>
+<span class="kn">from</span> <span class="nn">.annotations</span> <span class="kn">import</span> <span class="n">Annotations</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">get_logger</span>
-
-
 
 
 
@@ -71,40 +69,65 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
-        <span class="k">if</span> <span class="s1">&#39;mscx&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
-        <span class="k">elif</span> <span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;At the moment, only .mscx files are accepted.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="Score.handle_path"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.handle_path">[docs]</a>    <span class="k">def</span> <span class="nf">handle_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">file_path</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="n">full_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+            <span class="n">file_path</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
             <span class="n">file_name</span><span class="p">,</span> <span class="n">file_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">key</span> <span class="o">=</span> <span class="n">file_ext</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">path</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">file_ext</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;file&#39;</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">file</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_path</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_path</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_ext</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">key</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No file found at this path: &quot;</span> <span class="o">+</span> <span class="n">full_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
 
 
 
-<div class="viewcode-block" id="Score.parse_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
+<div class="viewcode-block" id="Score.parse_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">parser</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
         <span class="k">if</span> <span class="s1">&#39;mscx&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">:</span>
             <span class="n">ln</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">logger_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">logger_name</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="n">MSCX</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="n">ln</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span><span class="o">.</span><span class="n">has_annotations</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="s1">&#39;annotations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span><span class="o">.</span><span class="n">_annotations</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;At the moment, only .mscx files are accepted.&quot;</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No .mscx file specified.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Score.output_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.output_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">output_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">output_mscx</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Score.detach_labels"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.detach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;annotations&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No annotations present in score.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">get_labels</span><span class="p">(</span><span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_type</span><span class="o">=</span><span class="n">harmony_type</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No labels found.&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="s1">&#39;annotations&#39;</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span><span class="o">.</span><span class="n">delete_labels</span><span class="p">(</span><span class="n">df</span><span class="p">)</span></div>
+
+
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -112,8 +135,37 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s2">&quot;No XML has been parsed so far. Use the method parse_mscx().&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span>
 
+
+<div class="viewcode-block" id="Score.load_annotations"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.Score.load_annotations">[docs]</a>    <span class="k">def</span> <span class="nf">load_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tsv_path</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;file&#39;</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">if</span> <span class="s1">&#39;mscx&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;MuseScore file&quot;</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">changed</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot; (CHANGED!!!)</span><span class="se">\n</span><span class="s2">---------------!!!!!!!!!!!!&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">--------------&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">]</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="s1">&#39;annotations&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Attached annotations</span><span class="se">\n</span><span class="s2">--------------------</span><span class="se">\n\n</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">annotations</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;No annotations attached.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;Detached annotations</span><span class="se">\n</span><span class="s2">--------------------</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">msg</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">item</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="MSCX"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.MSCX">[docs]</a><span class="k">class</span> <span class="nc">MSCX</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot; Object for interacting with the XML structure of a MuseScore 3 file.</span>
@@ -140,9 +192,11 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="s1">&#39;MSCX&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="n">parser</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
 
         <span class="k">assert</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span>
 
@@ -154,7 +208,20 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_mscx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">output_mscx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_chords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_chords</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_harmonies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_annotations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_annotations</span><span class="p">())</span>
+
+
+<div class="viewcode-block" id="MSCX.delete_labels"><a class="viewcode-back" href="../../api/ms3.html#ms3.score.MSCX.delete_labels">[docs]</a>    <span class="k">def</span> <span class="nf">delete_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">onset</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;onset&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+            <span class="n">ids</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">delete_label</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">onset</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">parse_measures</span><span class="p">()</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">measures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -184,8 +251,6 @@
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;MuseScore version with which the file was created (read-only).&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">version</span></div>
-
-
 
 </pre></div>
 
@@ -248,7 +313,7 @@
       &copy;2020, johentsch.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
       &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
       
     </div>

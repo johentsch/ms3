@@ -1,0 +1,345 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ms3.utils &#8212; ms3 unknown documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for ms3.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="decode_harmonies"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.decode_harmonies">[docs]</a><span class="k">def</span> <span class="nf">decode_harmonies</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="n">drop_cols</span><span class="p">,</span> <span class="n">compose_label</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="s1">&#39;nashville&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">nashville</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;nashville&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;nashville&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;leftParen&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">leftParen</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;leftParen&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;leftParen&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;root&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">)</span>
+    <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;base&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;rightParen&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">rightParen</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;rightParen&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;rightParen&#39;</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">compose_label</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">drop_cols</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="fifths2acc"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2acc">[docs]</a><span class="k">def</span> <span class="nf">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns accidentals for a stack of fifths that can be combined with a</span>
+<span class="sd">        basic representation of the seven steps.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">fifths</span> <span class="o">//</span> <span class="mi">7</span><span class="p">)</span> <span class="o">*</span> <span class="s1">&#39;b&#39;</span> <span class="k">if</span> <span class="n">fifths</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">fifths</span> <span class="o">//</span> <span class="mi">7</span> <span class="o">*</span> <span class="s1">&#39;#&#39;</span></div>
+
+
+<div class="viewcode-block" id="fifths2name"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2name">[docs]</a><span class="k">def</span> <span class="nf">fifths2name</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">midi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return note name of a stack of fifths such that</span>
+<span class="sd">       0 = C, -1 = F, -2 = Bb, 1 = G etc.</span>
+<span class="sd">       Uses: map2elements(), fifths2str()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fifths : :obj:`int`</span>
+<span class="sd">        Tonal pitch class to turn into a note name.</span>
+<span class="sd">    midi : :obj:`int`</span>
+<span class="sd">        In order to include the octave into the note name,</span>
+<span class="sd">        pass the corresponding MIDI pitch.</span>
+<span class="sd">    ms : :obj:`bool`, optional</span>
+<span class="sd">        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+
+    <span class="k">if</span> <span class="n">ms</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">-=</span> <span class="mi">14</span>
+    <span class="n">note_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">note_names</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">midi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">octave</span> <span class="o">=</span> <span class="n">midi2octave</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">fifths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">octave</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="fifths2pc"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2pc">[docs]</a><span class="k">def</span> <span class="nf">fifths2pc</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Turn a stack of fifths into a chromatic pitch class.</span>
+<span class="sd">        Uses: map2elements()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="n">fifths</span> <span class="o">%</span> <span class="mi">12</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="fifths2str"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2str">[docs]</a><span class="k">def</span> <span class="nf">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Boiler plate used by fifths2-functions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">acc</span> <span class="o">=</span> <span class="n">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inverted</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="n">acc</span>
+    <span class="k">return</span> <span class="n">acc</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="load_tsv"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.load_tsv">[docs]</a><span class="k">def</span> <span class="nf">load_tsv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">dtypes</span><span class="o">=</span><span class="p">{},</span> <span class="n">stringtype</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Loads the TSV file `path` while applying correct type conversion and parsing tuples.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : :obj:`str`</span>
+<span class="sd">        Path to a TSV file as output by format_data().</span>
+<span class="sd">    index_col : :obj:`list`, optional</span>
+<span class="sd">        By default, the first two columns are loaded as MultiIndex.</span>
+<span class="sd">        The first level distinguishes pieces and the second level the elements within.</span>
+<span class="sd">    converters, dtypes : :obj:`dict`, optional</span>
+<span class="sd">        Enhances or overwrites the mapping from column names to types included the constants.</span>
+<span class="sd">    stringtype : :obj:`bool`, optional</span>
+<span class="sd">        If you&#39;re using pandas &gt;= 1.0.0 you might want to set this to True in order</span>
+<span class="sd">        to be using the new `string` datatype that includes the new null type `pd.NA`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">str2inttuple</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">()</span> <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">int2bool</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span>
+
+    <span class="n">CONVERTERS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;act_dur&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;chord_tones&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;globalkey_is_minor&#39;</span><span class="p">:</span> <span class="n">int2bool</span><span class="p">,</span>
+        <span class="s1">&#39;localkey_is_minor&#39;</span><span class="p">:</span> <span class="n">int2bool</span><span class="p">,</span>
+        <span class="s1">&#39;next&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;nominal_duration&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;offset&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;onset&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;duration&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;scalar&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span> <span class="p">}</span>
+
+    <span class="n">DTYPES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;alt_label&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;barline&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;bass_note&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;cadence&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;cadences_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;changes&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;chord&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;chord_type&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;dont_count&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;figbass&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;globalkey&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;gracenote&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;harmonies_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;keysig&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;localkey&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;midi&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;mn&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;notes_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;numbering_offset&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;numeral&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;pedal&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;playthrough&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;phraseend&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;relativeroot&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;repeats&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;special&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;staff&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;tied&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;timesig&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;tpc&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;voice&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;voices&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;volta&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">converters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">CONVERTERS</span><span class="p">)</span>
+        <span class="n">conv</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">converters</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dtypes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">DTYPES</span><span class="p">)</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stringtype</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span> <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">typ</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">typ</span> <span class="ow">in</span> <span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="n">index_col</span><span class="p">,</span>
+                       <span class="n">dtype</span><span class="o">=</span><span class="n">types</span><span class="p">,</span>
+                       <span class="n">converters</span><span class="o">=</span><span class="n">conv</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="map2elements"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.map2elements">[docs]</a><span class="k">def</span> <span class="nf">map2elements</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; If `e` is an iterable, `f` is applied to all elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">map2elements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="midi2octave"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.midi2octave">[docs]</a><span class="k">def</span> <span class="nf">midi2octave</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">fifths</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; For a given MIDI pitch, calculate the octave. Middle octave = 4</span>
+<span class="sd">        Uses: fifths2pc(), map2elements()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    midi : :obj:`int`</span>
+<span class="sd">        MIDI pitch (positive integer)</span>
+<span class="sd">    tpc : :obj:`int`, optional</span>
+<span class="sd">        To be precise, for some Tonal Pitch Classes, the octave deviates</span>
+<span class="sd">        from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">midi</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">midi2octave</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">midi</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="n">fifths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">fifths2pc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">midi</span> <span class="o">%</span> <span class="mi">12</span> <span class="o">!=</span> <span class="n">pc</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;midi2octave(): The Tonal Pitch Class </span><span class="si">{</span><span class="n">fifths</span><span class="si">}</span><span class="s2"> cannot be MIDI pitch </span><span class="si">{</span><span class="n">midi</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fifths</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="mi">12</span><span class="p">,</span>  <span class="c1"># B#</span>
+            <span class="mi">19</span><span class="p">,</span>  <span class="c1"># B##</span>
+            <span class="mi">26</span><span class="p">,</span>  <span class="c1"># B###</span>
+            <span class="mi">24</span><span class="p">,</span>  <span class="c1"># A###</span>
+        <span class="p">]:</span>
+            <span class="n">i</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">fifths</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="o">-</span><span class="mi">7</span><span class="p">,</span>  <span class="c1"># Cb</span>
+            <span class="o">-</span><span class="mi">14</span><span class="p">,</span>  <span class="c1"># Cbb</span>
+            <span class="o">-</span><span class="mi">21</span><span class="p">,</span>  <span class="c1"># Cbbb</span>
+            <span class="o">-</span><span class="mi">19</span><span class="p">,</span>  <span class="c1"># Dbbb</span>
+        <span class="p">]:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">midi</span> <span class="o">//</span> <span class="mi">12</span> <span class="o">+</span> <span class="n">i</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ms3</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../api/ms3.html">ms3 Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2020, johentsch.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
