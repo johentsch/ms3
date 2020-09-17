@@ -65,7 +65,7 @@ class Score:
 
 
     def parse_mscx(self, mscx_src, parser=None, logger_name=None):
-        self.handle_path(mscx_src)
+        _ = self.handle_path(mscx_src)
         if parser is not None:
             self.parser = parser
         if 'mscx' in self.fnames:
@@ -74,10 +74,27 @@ class Score:
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
         else:
-            self.logger.error("At the moment, only .mscx files are accepted.")
+            self.logger.error("No .mscx file specified.")
 
     def output_mscx(self, filepath):
         self.mscx.output_mscx(filepath)
+
+
+    def detach_labels(self, key, staff=None, voice=None, harmony_type=None):
+        if 'annotations' not in self._annotations:
+            self.logger.info("No annotations present in score.")
+            return
+        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_type=harmony_type, drop=True)
+        if len(df) == 0:
+            self.logger.info("No labels found.")
+            return
+        self._annotations[key] = Annotations(df=df)
+        if len(self.annotations.df) == 0:
+            self.mscx.has_annotations = False
+            del(self._annotations['annotations'])
+        self._mscx.delete_labels(df)
+
+
 
     @property
     def mscx(self):
@@ -97,10 +114,17 @@ class Score:
     def __repr__(self):
         msg = ''
         if 'mscx' in self.full_paths:
-            msg = f"MuseScore file\n--------------\n\n{self.full_paths['mscx']}\n\n"
+            msg = f"MuseScore file"
+            if self.mscx.changed:
+                msg += " (CHANGED!!!)\n---------------!!!!!!!!!!!!"
+            else:
+                msg += "\n--------------"
+            msg += f"\n\n{self.full_paths['mscx']}\n\n"
         if 'annotations' in self._annotations:
             msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
-        if len(self._annotations) > 1:
+        else:
+            msg += "No annotations attached.\n\n"
+        if sum(True for key in self._annotations if key != 'annotations') > 0:
             msg += "Detached annotations\n--------------------\n\n"
             for key, obj in self._annotations.items():
                 if key != 'annotations':
@@ -139,6 +163,7 @@ class MSCX:
         if parser is not None:
             self.parser = parser
         self.parsed = None
+        self.changed = False
 
         assert os.path.isfile(self.mscx_src), f"{self.mscx_src} does not exist."
 
@@ -155,6 +180,15 @@ class MSCX:
         self.has_annotations = self.parsed.has_annotations
         if self.parsed.has_annotations:
             self._annotations = Annotations(df=self.parsed.get_annotations())
+
+
+    def delete_labels(self, df):
+        ids = []
+        for mc, staff, voice, onset in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False):
+            ids.extend(self.parsed.delete_label(mc, staff, voice, onset))
+        if len(ids) > 0:
+            self.changed = True
+            self.parsed.parse_measures()
 
     @property
     def measures(self):
