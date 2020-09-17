@@ -545,14 +545,38 @@ class _MSCX_bs4:
                 # nxt has location tag(s)
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
-                assert loc_dur < 0, "Positive location tag"
+                assert loc_dur < 0, f"Positive location tag at MC {mc}, when trying to insert {label} at onset {onset}: {nxt}"
                 loc_before = loc_dur - nxt_pos + onset
                 remember = self.insert_label(label, loc_before=loc_before, before=nxt[loc_ix]['tag'])
-                loc_after = str(nxt_pos - onset)
-                nxt[loc_ix]['tag'].fractions.string = loc_after
-                nxt_name = [f"<{e}>" for e in nxt_names if e != 'location']
+                loc_after = nxt_pos - onset
+                nxt[loc_ix]['tag'].fractions.string = str(loc_after)
+                nxt[loc_ix]['duration'] = loc_after
+                nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
                 self.logger.debug(f"""Added {label} at {-loc_before} before the ending of the {prv_name} at onset {prv_pos}
-and {loc_after} before the subsequent {', '.join(nxt_name)}.""")
+and {loc_after} before the subsequent {nxt_name}.""")
+
+        else:
+            # prv has location tag(s)
+            # loc_dur = prv[loc_ix]['duration']
+            # assert loc_dur > 0, "Negative location tag"
+            prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
+            loc_before = onset - prv_pos
+            if nxt is None:
+                remember = self.insert_label(label, loc_before=loc_before, after=prv[-1]['tag'])
+                self.logger.debug(f"Added {label} at {loc_before} after the previous {', '.join(prv_name)} at onset {prv_pos}.")
+            else:
+                loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
+                prv[loc_ix]['tag'].fractions.string = str(loc_before)
+                prv[loc_ix]['duration'] = loc_before
+                loc_after = nxt_pos - onset
+                remember = self.insert_label(label, loc_after=loc_after, after=prv[loc_ix]['tag'])
+                if nxt_ev is None:
+                    _, nxt_name = nxt_ev
+                else:
+                    nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
+                self.logger.debug(f"""Added {label} at {loc_before} after the previous {prv_name} at onset {prv_pos}
+and {loc_after} before the subsequent {nxt_name}.""")
+
 
         self.tags[mc][staff][voice][onset] = remember
 
@@ -574,7 +598,7 @@ and {loc_after} before the subsequent {', '.join(nxt_name)}.""")
             remember.insert(0, dict(
                         name = 'location',
                         duration = loc_after,
-                        tag = tag
+                        tag = location
                     ))
         if loc_after is not None:
             location = self.new_location(loc_after)
@@ -582,7 +606,7 @@ and {loc_after} before the subsequent {', '.join(nxt_name)}.""")
             remember.append(dict(
                         name = 'location',
                         duration = loc_before,
-                        tag = tag
+                        tag =location
                     ))
         return remember
 
