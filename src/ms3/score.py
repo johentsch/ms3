@@ -79,21 +79,34 @@ class Score:
     def output_mscx(self, filepath):
         self.mscx.output_mscx(filepath)
 
-
     def detach_labels(self, key, staff=None, voice=None, harmony_type=None):
         if 'annotations' not in self._annotations:
             self.logger.info("No annotations present in score.")
-            return
+            return False
         df = self.annotations.get_labels(staff=staff, voice=voice, harmony_type=harmony_type, drop=True)
         if len(df) == 0:
-            self.logger.info("No labels found.")
-            return
+            self.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_type {harmony_type}.")
+            return False
         self._annotations[key] = Annotations(df=df)
         if len(self.annotations.df) == 0:
             self.mscx.has_annotations = False
-            del(self._annotations['annotations'])
+            del (self._annotations['annotations'])
         self._mscx.delete_labels(df)
+        return True
 
+
+    def attach_labels(self, key):
+        if key not in self._annotations:
+            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
+Use on of the existing keys or load a new set with the method load_annotations().""")
+            return False
+        annotations = self._annotations[key]
+        df = annotations.df
+        if len(df) == 0:
+            self.logger.warning(f"The annotation set '{key}' does not contain any labels meeting the criteria.")
+            return False
+        self._mscx.add_labels(df)
+        self._annotations['annotations'] = self._mscx._annotations
 
 
     @property
@@ -105,10 +118,10 @@ class Score:
         return self._mscx
 
 
-    def load_annotations(self, tsv_path, name=None):
-        if name is None:
-            name = 'file'
-        key = self.handle_path(tsv_path, name)
+    def load_annotations(self, tsv_path, key=None):
+        if key is None:
+            key = 'file'
+        key = self.handle_path(tsv_path, key)
         self._annotations[key] = Annotations(tsv_path)
 
     def __repr__(self):
@@ -181,15 +194,28 @@ class MSCX:
         if self.parsed.has_annotations:
             self._annotations = Annotations(df=self.parsed.get_annotations())
 
-
     def delete_labels(self, df):
         changes = sum(self.parsed.delete_label(mc, staff, voice, onset)
                       for mc, staff, voice, onset
                       in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)
-                     )
+                      )
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
+
+
+    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', **kwargs):
+        parameters = ['label', 'mc', 'onset', 'staff', 'voice'] + list(kwargs.keys())
+        columns = [label, mc, onset, staff, voice] + list(kwargs.values())
+        changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
+                      for t
+                      in df[columns].itertuples(index=False)
+                      )
+        if changes > 0:
+            self.changed = True
+            self.parsed.parse_measures()
+            self._annotations = Annotations(df=self.parsed.get_annotations())
+
 
     @property
     def measures(self):
