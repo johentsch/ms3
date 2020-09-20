@@ -28,6 +28,8 @@ def decode_harmonies(df):
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
+    if 'harmony_type' in df.columns:
+        df.loc[df.harmony_type.isin([1, 2, 3, '1', '2', '3']), 'harmony_type'] == 0
     df.label = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
     df.drop(columns=drop_cols, inplace=True)
     return df

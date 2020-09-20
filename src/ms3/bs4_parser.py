@@ -516,10 +516,13 @@ because it precedes the label to be deleted which is the voice's last onset, {on
                     if nxt_name is None:
                         # The next onset is neither a chord nor a rest and therefore it needs to have exactly one
                         # location tag and a second one needs to be added based on the first one being deleted
-                        assert nxt_n_locs == 1, f"""The label on MC {mc}, onset {onset}, staff {staff}, voice {voice} has two 
-<location> tags but the next onset {nxt_onset} has {nxt_n_locs if nxt_n_locs > 1 else "none although it's neither a chord nor a rest"}."""
-                        if nxt_names[-1] != 'location':
-                            raise NotImplementedError(
+                        nxt_is_last = ix + 1 == len(onsets) - 1
+                        if not nxt_is_last:
+                            assert nxt_n_locs == 1, f"""The label on MC {mc}, onset {onset}, staff {staff}, voice {voice} has two 
+<location> tags but the next onset {nxt_onset} has {nxt_n_locs if nxt_n_locs > 1 else 
+"none although it's neither a chord nor a rest, nor the last onset,"}."""
+                            if nxt_names[-1] != 'location':
+                                raise NotImplementedError(
 f"Location tag is not the last element in MC {mc}, onset {nxt_onset}, staff {staff}, voice {voice}.")
                         if names[-1] != 'location':
                             raise NotImplementedError(
@@ -672,7 +675,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
             loc_before = onset - prv_pos
             if nxt is None:
                 remember = self.insert_label(label=label, loc_before=loc_before, after=prv[-1]['tag'], **kwargs)
-                self.logger.debug(f"Added {label} at {loc_before} after the previous {', '.join(prv_name)} at onset {prv_pos}.")
+                self.logger.debug(f"Added {label} at {loc_before} after the previous {', '.join(prv_names)} at onset {prv_pos}.")
             else:
                 loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
@@ -721,16 +724,30 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, harmony_type=None, after=None, before=None, within=None):
+    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None):
         tag = self.new_tag('Harmony')
-        if harmony_type is not None:
-            # only include tag for harmony_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            try:
-                if int(harmony_type) in [1, 2]:
-                    _ = self.new_tag('harmonyType', value=harmony_type, within=tag)
-            except:
-                pass
-        _ = self.new_tag('name', value=str(label), within=tag)
+        if not pd.isnull(harmony_type):
+            # only include <harmonyType> tag for harmony_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
+            if harmony_type in [1, 2, '1', '2']:
+                _ = self.new_tag('harmonyType', value=harmony_type, within=tag)
+        if not pd.isnull(leftParen):
+            _ = self.new_tag('leftParen', within=tag)
+        if not pd.isnull(root):
+            _ = self.new_tag('root', value=root, within=tag)
+        if not pd.isnull(label):
+            _ = self.new_tag('name', value=str(label), within=tag)
+        else:
+            assert not pd.isnull(root), "Either label or root need to be specified."
+        if not pd.isnull(base):
+            _ = self.new_tag('base', value=base, within=tag)
+        if not pd.isnull(offset_x) or not pd.isnull(offset_y):
+            if pd.isnull(offset_x):
+                offset_x = '0'
+            if pd.isnull(offset_y):
+                offset_y = '0'
+            _ = self.new_tag('offset', attributes={'x': offset_x, 'y': offset_y}, within=tag)
+        if not pd.isnull(rightParen):
+            _ = self.new_tag('rightParen', within=tag)
         if after is not None:
             after.insert_after(tag)
         elif before is not None:
@@ -738,6 +755,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         elif within is not None:
             within.append(tag)
         return tag
+
 
     def new_location(self, location):
         tag = self.new_tag('location')
@@ -746,16 +764,20 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
 
-    def new_tag(self, name, value=None, after=None, before=None, within=None):
+    def new_tag(self, name, value=None, attributes={}, after=None, before=None, within=None):
         tag = self.soup.new_tag(name)
+        if value is not None:
+            tag.string = str(value)
+        for k, v in attributes.items():
+            tag.attrs[k] = v
+
         if after is not None:
             after.insert_after(tag)
         elif before is not None:
             before.insert_before(tag)
         elif within is not None:
             within.append(tag)
-        if value is not None:
-            tag.string = str(value)
+
         return tag
 
 

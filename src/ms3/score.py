@@ -202,11 +202,27 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
+            self.logger.debug(f"{changes} labels successfully deleted.")
 
 
-    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', **kwargs):
-        parameters = ['label', 'mc', 'onset', 'staff', 'voice'] + list(kwargs.keys())
-        columns = [label, mc, onset, staff, voice] + list(kwargs.values())
+    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', root='root', base='base',
+                   leftParen='leftParen', rightParen='rightParen', offset_x='offset:x', offset_y='offset:y', **kwargs):
+        l = locals()
+        l = {k: v for k, v in l.items() if k not in ['df', 'kwargs', 'self']}
+        param2cols = {**l, **kwargs}
+        missing = {k: v for k, v in param2cols.items() if v not in df.columns}
+        if len(missing) > 0:
+            main_params = ['label', 'mc', 'onset', 'staff', 'voice']
+            missing_main = [param for param in missing.keys() if param in main_params]
+            missing_add  = [param for param in kwargs.keys() if param in missing]
+            if len(missing_add) > 0:
+                self.logger.warning(f"The following specified columns could not be found:\n{ {k: missing[k] for k in missing_add} }.")
+            assert len(missing_main) == 0, "The specified columns for the following main parameters are missing:\n" + str(
+                    {k: missing[k] for k in missing_main})
+
+        param2cols = {k: v for k, v in param2cols.items() if k not in missing}
+        parameters = list(param2cols.keys())
+        columns = list(param2cols.values())
         changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
                       for t
                       in df[columns].itertuples(index=False)
