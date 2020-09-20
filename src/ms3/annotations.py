@@ -12,14 +12,19 @@ class Annotations:
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-
+        if 'root' in self.df.columns:
+            if 'harmony_type' in self.df.columns:
+                htypes = self.df['harmony_type']
+            else:
+                htypes = pd.Series(0, index=self.df)
+            self.df.loc[self.df.root.notna(), 'harmony_type'] = 3
 
     def __repr__(self):
         layers = [col for col in ['staff', 'voice', 'harmony_type'] if col in self.df.columns]
         return f"{len(self.df)} labels:\n{self.df.groupby(layers).size().to_string()}"
 
 
-    def get_labels(self, staff=None, voice=None, harmony_type=None, positioning=False, decode=False, drop=False):
+    def get_labels(self, staff=None, voice=None, harmony_type=None, positioning=True, decode=False, drop=False):
         """ Returns a list of harmony tags from the parsed score.
 
         Parameters
@@ -51,10 +56,16 @@ class Annotations:
             # if the column contains strings and NaN:
             # (pd.to_numeric(self.df['harmony_type']).astype('Int64') == harmony_type).fillna(False)
         res = self.df[sel]
+        if not positioning:
+            pos_cols = ['offset', 'offset:x', 'offset:y']
+            res = res[[col for col in res.columns if not col in pos_cols]]
         if drop:
             self.df = self.df[~sel]
         if decode:
             res = decode_harmonies(res)
-        if positioning:
-            pass # TODO
         return res
+
+    def output_tsv(self, tsv_path, staff=None, voice=None, harmony_type=None, positioning=False, decode=False, sep='\t', index=False, **kwargs):
+        df = self.get_labels(staff=staff, voice=voice, harmony_type=harmony_type, positioning=positioning, decode=decode)
+        df.to_tsv(tsv_path, sep=sep, index=index, **kwargs)
+        self.logger.info(f"{len(df)} labels written to {tsv_path}.")
