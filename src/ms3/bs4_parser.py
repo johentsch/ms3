@@ -678,28 +678,31 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
         else:
             # prv has location tag(s)
-            # loc_dur = prv[loc_ix]['duration']
-            # assert loc_dur > 0, "Negative location tag"
             prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
             loc_before = onset - prv_pos
             if nxt is None:
                 remember = self.insert_label(label=label, loc_before=loc_before, after=prv[-1]['tag'], **kwargs)
-                self.logger.debug(f"Added {label_name} at {loc_before} after the previous {', '.join(prv_names)} at onset {prv_pos}.")
+                self.logger.debug(f"MC {mc}: Added {label_name} at {loc_before} after the previous {prv_name} at onset {prv_pos}.")
             else:
-                loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
+                try:
+                    loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
+                except:
+                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of onset {prv_pos} should include a <location> tag.")
+                    raise
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
                 prv[loc_ix]['duration'] = loc_before
                 loc_after = nxt_pos - onset
                 remember = self.insert_label(label=label, loc_after=loc_after, after=prv[loc_ix]['tag'], **kwargs)
-                if nxt_ev is None:
-                    _, nxt_name = nxt_ev
-                else:
+                if nxt_name is None:
                     nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
-                self.logger.debug(f"""Added {label_name} at {loc_before} after the previous {prv_name} at onset {prv_pos}
+                self.logger.debug(f"""MC {mc}: Added {label_name} at {loc_before} after the previous {prv_name} at onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
-
-        measure[onset] = remember
+        if remember[0]['name'] == 'location':
+            measure[prv_pos].append(remember[0])
+            measure[onset] = remember[1:]
+        else:
+            measure[onset] = remember
         return True
 
 

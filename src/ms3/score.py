@@ -151,21 +151,22 @@ class Score:
             self.logger.error("No .mscx file specified.")
 
     def output_mscx(self, filepath):
-        self.mscx.output_mscx(filepath)
+        self._mscx.output_mscx(filepath)
 
-    def detach_labels(self, key, staff=None, voice=None, label_type=None):
+    def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
         if 'annotations' not in self._annotations:
             self.logger.info("No annotations present in score.")
             return
-        df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=True)
+        df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=delete)
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
-        self._annotations[key] = Annotations(df=df)
-        if len(self.annotations.df) == 0:
+        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex())
+        if delete:
+            self._mscx.delete_labels(df)
+        if len(self._annotations['annotations'].df) == 0:
             self._mscx.has_annotations = False
             del (self._annotations['annotations'])
-        self._mscx.delete_labels(df)
         return
 
 
@@ -202,15 +203,14 @@ Use on of the existing keys or load a new set with the method load_annotations()
         if key is None:
             key = 'file'
         key = self.handle_path(tsv_path, key)
-        self._annotations[key] = Annotations(tsv_path)
-        if infer:
-            self._annotations[key].infer_types(self.get_infer_regex())
+        inf_dict = self.get_infer_regex() if infer else {}
+        self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict)
 
     def __repr__(self):
         msg = ''
         if 'mscx' in self.full_paths:
             msg = f"MuseScore file"
-            if self.mscx.changed:
+            if self._mscx.changed:
                 msg += " (CHANGED!!!)\n---------------!!!!!!!!!!!!"
             else:
                 msg += "\n--------------"
@@ -331,6 +331,9 @@ class MSCX:
         None
 
         """
+        if len(df) == 0:
+            self.logger.info("Nothing to add.")
+            return
         cols = dict(
             label_type='label_type',
             root='root',
@@ -358,10 +361,14 @@ class MSCX:
         parameters = list(param2cols.keys())
         columns = list(param2cols.values())
         self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
-        changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
-                      for t
-                      in df[columns].itertuples(index=False, name=None)
-                      )
+        tups = tuple(df[columns].itertuples(index=False, name=None))
+        params = [{a: b for a, b in zip(parameters, t)} for t in tups]
+        res = [self.parsed.add_label(**p) for p in params]
+        changes = sum(res)
+        # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
+        #               for t
+        #               in df[columns].itertuples(index=False, name=None)
+        #               )
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()

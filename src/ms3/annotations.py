@@ -10,7 +10,7 @@ class Annotations:
     def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', infer_types={}, logger_name='Harmonies', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         if df is not None:
-            self.df = df
+            self.df = df.copy()
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
