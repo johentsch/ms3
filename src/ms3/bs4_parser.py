@@ -591,6 +591,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             return False
 
         onset = frac(onset)
+        label_name = kwargs['decoded'] if 'decoded' in kwargs else label
         if voice not in self.tags[mc][staff]:
             # Adding label to an unused voice that has to be created
             existing_voices = self.measure_nodes[staff][mc].find_all('voice')
@@ -603,7 +604,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 remember = self.insert_label(label=label, loc_before=onset, within=last, **kwargs)
                 self.tags[mc][staff][voice] = defaultdict(list)
                 self.tags[mc][staff][voice][onset] = remember
-                self.logger.debug(f"Added {label} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at onset {onset}.")
+                self.logger.debug(f"Added {label_name} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at onset {onset}.")
                 return True
 
         measure = self.tags[mc][staff][voice]
@@ -619,7 +620,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                               tags_before_label )
                 remember = self.insert_label(label=label, before=before, **kwargs)
                 measure[onset].insert(ix, remember[0])
-                self.logger.debug(f"Added {label} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
+                self.logger.debug(f"Added {label_name} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
                 if 'Harmony' in names:
                     self.logger.warning(
                         f"The chord in MC {mc}, onset {onset}, staff {staff}, voice {voice} was already carrying a label.")
@@ -648,25 +649,25 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 loc_after = prv_pos + prv[prv_ix]['duration'] - onset
                 # i.e. the ending of the last event minus the onset
                 remember = self.insert_label(label=label, loc_before= -loc_after, after=prv[prv_ix]['tag'], **kwargs)
-                self.logger.debug(f"Added {label} at {loc_after} before the ending of MC {mc}'s last {prv_name}.")
+                self.logger.debug(f"Added {label_name} at {loc_after} before the ending of MC {mc}'s last {prv_name}.")
             elif nxt_name is not None:
                 # nxt is event (chord or rest)
                 loc_after = nxt_pos - onset
                 remember = self.insert_label(label=label, loc_before=-loc_after, loc_after=loc_after,
                                              after=prv[prv_ix]['tag'], **kwargs)
-                self.logger.debug(f"Added {label} at {loc_after} before the {nxt_name} at onset {nxt_pos}.")
+                self.logger.debug(f"Added {label_name} at {loc_after} before the {nxt_name} at onset {nxt_pos}.")
             else:
                 # nxt has location tag(s)
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
-                assert loc_dur < 0, f"Positive location tag at MC {mc}, when trying to insert {label} at onset {onset}: {nxt}"
+                assert loc_dur < 0, f"Positive location tag at MC {mc}, when trying to insert {label_name} at onset {onset}: {nxt}"
                 loc_before = loc_dur - nxt_pos + onset
                 remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
                 loc_after = nxt_pos - onset
                 nxt[loc_ix]['tag'].fractions.string = str(loc_after)
                 nxt[loc_ix]['duration'] = loc_after
                 nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
-                self.logger.debug(f"""Added {label} at {-loc_before} before the ending of the {prv_name} at onset {prv_pos}
+                self.logger.debug(f"""Added {label_name} at {-loc_before} before the ending of the {prv_name} at onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
         else:
@@ -677,7 +678,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
             loc_before = onset - prv_pos
             if nxt is None:
                 remember = self.insert_label(label=label, loc_before=loc_before, after=prv[-1]['tag'], **kwargs)
-                self.logger.debug(f"Added {label} at {loc_before} after the previous {', '.join(prv_names)} at onset {prv_pos}.")
+                self.logger.debug(f"Added {label_name} at {loc_before} after the previous {', '.join(prv_names)} at onset {prv_pos}.")
             else:
                 loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
@@ -688,7 +689,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
                     _, nxt_name = nxt_ev
                 else:
                     nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
-                self.logger.debug(f"""Added {label} at {loc_before} after the previous {prv_name} at onset {prv_pos}
+                self.logger.debug(f"""Added {label_name} at {loc_before} after the previous {prv_name} at onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
 
@@ -726,7 +727,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None):
+    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(harmony_type):
             # only include <harmonyType> tag for harmony_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)

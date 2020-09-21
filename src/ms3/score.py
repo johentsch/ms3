@@ -1,5 +1,6 @@
 import os
 
+from .utils import decode_harmonies
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import get_logger
@@ -245,6 +246,7 @@ class MSCX:
             offset_x='offset:x',
             offset_y='offset:y',
             nashville='nashville',
+            decoded='decoded'
         )
         missing_add = {k: v for k, v in kwargs.items() if v not in df.columns}
         if len(missing_add) > 0:
@@ -255,6 +257,8 @@ class MSCX:
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         main_cols = {k: l[k] for k in main_params}
         cols.update(kwargs)
+        if cols['decoded'] not in df.columns:
+            df[cols['decoded']] = decode_harmonies(df, return_series=True)
         add_cols = {k: v for k, v in cols.items() if v in df.columns}
         param2cols = {**main_cols, **add_cols}
         parameters = list(param2cols.keys())
