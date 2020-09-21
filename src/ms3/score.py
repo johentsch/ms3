@@ -82,31 +82,33 @@ class Score:
     def detach_labels(self, key, staff=None, voice=None, harmony_type=None):
         if 'annotations' not in self._annotations:
             self.logger.info("No annotations present in score.")
-            return False
+            return
         df = self.annotations.get_labels(staff=staff, voice=voice, harmony_type=harmony_type, drop=True)
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_type {harmony_type}.")
-            return False
+            return
         self._annotations[key] = Annotations(df=df)
         if len(self.annotations.df) == 0:
-            self.mscx.has_annotations = False
+            self._mscx.has_annotations = False
             del (self._annotations['annotations'])
         self._mscx.delete_labels(df)
-        return True
+        return
 
 
     def attach_labels(self, key):
         if key not in self._annotations:
             self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
-Use on of the existing keys or load a new set with the method load_annotations().""")
-            return False
+Use on of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
+            return
         annotations = self._annotations[key]
         df = annotations.df
         if len(df) == 0:
             self.logger.warning(f"The annotation set '{key}' does not contain any labels meeting the criteria.")
-            return False
+            return
         self._mscx.add_labels(df)
         self._annotations['annotations'] = self._mscx._annotations
+        if len(self._mscx._annotations.df) > 0:
+            self._mscx.has_annotations = True
 
 
     @property
@@ -146,6 +148,14 @@ Use on of the existing keys or load a new set with the method load_annotations()
 
     def __getattr__(self, item):
         return self._annotations[item]
+
+    # def __setattr__(self, key, value):
+    #     assert key != 'annotations', "The key 'annotations' is managed automatically, please pick a different one."
+    #     assert key.isidentifier(), "Please use an alphanumeric key without special characters."
+    #     if key in self.__dict__:
+    #         self.__dict__[key] = value
+    #     else:
+    #         self._annotations[key] = value
 
 class MSCX:
     """ Object for interacting with the XML structure of a MuseScore 3 file.
@@ -202,35 +212,63 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
-            self.logger.debug(f"{changes} labels successfully deleted.")
+            self.logger.debug(f"{changes}/{len(df)} labels successfully deleted.")
 
 
-    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', root='root', base='base',
-                   leftParen='leftParen', rightParen='rightParen', offset_x='offset:x', offset_y='offset:y', **kwargs):
+
+    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', **kwargs):
+        """
+
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            DataFrame with labels to be added.
+        label, mc, onset, staff, voice : :obj:`str`
+            Names of the DataFrame columns for the five required parameters.
+        kwargs:
+            harmony_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville
+                For these parameters, the standard column names are used automatically if the columns are present.
+                If the column names have changed, pass them as kwargs, e.g. ``base='name_of_the_base_column'``
+
+        Returns
+        -------
+        None
+
+        """
+        cols = dict(
+            harmony_type='harmony_type',
+            root='root',
+            base='base',
+            leftParen='leftParen',
+            rightParen='rightParen',
+            offset_x='offset:x',
+            offset_y='offset:y',
+            nashville='nashville',
+        )
+        missing_add = {k: v for k, v in kwargs.items() if v not in df.columns}
+        if len(missing_add) > 0:
+            self.logger.warning(f"The following specified columns could not be found:\n{missing_add}.")
+        main_params = ['label', 'mc', 'onset', 'staff', 'voice']
         l = locals()
-        l = {k: v for k, v in l.items() if k not in ['df', 'kwargs', 'self']}
-        param2cols = {**l, **kwargs}
-        missing = {k: v for k, v in param2cols.items() if v not in df.columns}
-        if len(missing) > 0:
-            main_params = ['label', 'mc', 'onset', 'staff', 'voice']
-            missing_main = [param for param in missing.keys() if param in main_params]
-            missing_add  = [param for param in kwargs.keys() if param in missing]
-            if len(missing_add) > 0:
-                self.logger.warning(f"The following specified columns could not be found:\n{ {k: missing[k] for k in missing_add} }.")
-            assert len(missing_main) == 0, "The specified columns for the following main parameters are missing:\n" + str(
-                    {k: missing[k] for k in missing_main})
-
-        param2cols = {k: v for k, v in param2cols.items() if k not in missing}
+        missing_main = {k: l[k] for k in main_params if l[k] not in df.columns}
+        assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
+        main_cols = {k: l[k] for k in main_params}
+        cols.update(kwargs)
+        add_cols = {k: v for k, v in cols.items() if v in df.columns}
+        param2cols = {**main_cols, **add_cols}
         parameters = list(param2cols.keys())
         columns = list(param2cols.values())
+        self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
         changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
                       for t
-                      in df[columns].itertuples(index=False)
+                      in df[columns].itertuples(index=False, name=None)
                       )
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
             self._annotations = Annotations(df=self.parsed.get_annotations())
+            self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
 
 
     @property

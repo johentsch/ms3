@@ -613,8 +613,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             names = [e['name'] for e in elements]
             ix, name = get_duration_event(names)
             if ix is not None:
-                # before = elements[ix]['tag']
-                before = next(elements[i]['tag'] for i in range(len(elements)) if elements[i]['name'] not in ['FiguredBass'])
+                # insert before the first tag that is not in the tags_before_label list
+                tags_before_label = ['Dynamic', 'endTuplet', 'FiguredBass', ]
+                before = next(elements[i]['tag'] for i in range(len(elements)) if elements[i]['name'] not in
+                              tags_before_label )
                 remember = self.insert_label(label=label, before=before, **kwargs)
                 measure[onset].insert(ix, remember[0])
                 self.logger.debug(f"Added {label} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
@@ -724,7 +726,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None):
+    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(harmony_type):
             # only include <harmonyType> tag for harmony_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
@@ -735,9 +737,11 @@ and {loc_after} before the subsequent {nxt_name}.""")
         if not pd.isnull(root):
             _ = self.new_tag('root', value=root, within=tag)
         if not pd.isnull(label):
-            _ = self.new_tag('name', value=str(label), within=tag)
+            _ = self.new_tag('name', value=label, within=tag)
         else:
             assert not pd.isnull(root), "Either label or root need to be specified."
+        if not pd.isnull(nashville):
+            _ = self.new_tag('function', value=nashville, within=tag)
         if not pd.isnull(base):
             _ = self.new_tag('base', value=base, within=tag)
         if not pd.isnull(offset_x) or not pd.isnull(offset_y):
