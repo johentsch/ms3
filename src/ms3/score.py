@@ -1,4 +1,4 @@
-import os
+import os, re
 
 from .utils import decode_harmonies
 from .bs4_parser import _MSCX_bs4
@@ -33,14 +33,84 @@ class Score:
         Puts the path into `paths, files, fnames, fexts` dicts with the given key.
     """
 
-    def __init__(self, mscx_src=None, parser='bs4', logger_name='Score', level=None):
+    abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
+
+    dcml_regex = re.compile(r"""
+                                ^(\.?
+                                    ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord>
+                                        (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form>(%|o|\+|M|\+M))?
+                                        (?P<figbass>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend>\])?
+                                )?
+                                (?P<phraseend>(\\\\|\{|\}|\}\{))?$
+                                """,
+                            re.VERBOSE)
+
+    nashville_regex = r"^(b*|#*)(\d).*$"
+
+    rn_regex = r"^$"
+
+    def __init__(self, mscx_src=None, parser='bs4', infer_label_types=['dcml'], logger_name='Score', level=None):
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.paths, self.files, self.fnames, self.fexts, self.logger_names = {}, {}, {}, {}, {}, {}
         self._mscx = None
         self._annotations = {}
+        self._types_to_infer = []
+        self._label_types = {
+            0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
+            1: "MuseScore's Roman Numeral Annotation format",
+            2: "MuseScore's Nashville Number format",
+            3: "Absolute chord encoded by MuseScore",
+            'dcml': "Latest version of the DCML harmonic annotation standard.",
+        }
+        self._harmony_regex = {
+            1: self.rn_regex,
+            2: self.nashville_regex,
+            3: self.abs_regex,
+            'dcml': self.dcml_regex,
+        }
+        self.infer_label_types = infer_label_types
         self.parser = parser
         if mscx_src is not None:
             self.parse_mscx(mscx_src)
+
+    @property
+    def infer_label_types(self):
+        return self._types_to_infer
+
+    @infer_label_types.setter
+    def infer_label_types(self, val):
+        if val is None:
+            val = []
+        before_inf, before_reg = self._types_to_infer, self.get_infer_regex()
+        if isinstance(val, list):
+            exist = [v for v in val if v in self._harmony_regex]
+            if len(exist) < len(val):
+                logger.warning(f"The following harmony types have not been added via the new_type() method:\n{[v for v in val if v not in self._harmony_regex]}")
+            self._types_to_infer = exist
+        elif isinstance(val, dict):
+            for k, v in val.items():
+                if k in self._harmony_regex:
+                    self._harmony_regex[k] = v
+                else:
+                    self.new_type(k, v)
+            self._types_to_infer = list(val.keys())
+        after_reg = self.get_infer_regex()
+        if before_inf != self._types_to_infer or before_reg != after_reg:
+            for ann in self._annotations.values():
+                ann.infer_types(after_reg)
+
+
+    def get_infer_regex(self):
+        return {t: self._harmony_regex[t] for t in self._types_to_infer}
+
 
 
     def handle_path(self, path, key=None):
@@ -74,19 +144,22 @@ class Score:
             self._mscx = MSCX(self.full_paths['mscx'], self.parser, logger_name=ln)
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
+                self._annotations['annotations'].infer_types(self.get_infer_regex())
+
+
         else:
             self.logger.error("No .mscx file specified.")
 
     def output_mscx(self, filepath):
         self.mscx.output_mscx(filepath)
 
-    def detach_labels(self, key, staff=None, voice=None, harmony_type=None):
+    def detach_labels(self, key, staff=None, voice=None, label_type=None):
         if 'annotations' not in self._annotations:
             self.logger.info("No annotations present in score.")
             return
-        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_type=harmony_type, drop=True)
+        df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=True)
         if len(df) == 0:
-            self.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_type {harmony_type}.")
+            self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
         self._annotations[key] = Annotations(df=df)
         if len(self.annotations.df) == 0:
@@ -147,6 +220,19 @@ Use on of the existing keys or load a new set with the method load_annotations()
                     msg += f"{key} -> {obj}\n\n"
         return msg
 
+    @property
+    def types(self):
+        return self._label_types
+
+    def new_type(self, name, regex, description='', infer=True):
+        assert name not in self._label_types, f"'{name}' already added to types: {self._label_types[name]}"
+        self._label_types[name] = description
+        self._harmony_regex[name] = regex
+        if infer:
+            self._types_to_infer.insert(0, name)
+            for ann in self._annotations.values():
+                ann.infer_types(self.get_infer_regex())
+
     def __getattr__(self, item):
         return self._annotations[item]
 
@@ -169,6 +255,8 @@ class MSCX:
         Holds the MSCX score parsed by the selected parser.
     parser : :obj:`str`, optional
         Which XML parser to use.
+    infer_label_types :obj:`bool`, optional
+        For label_type 0 (simple string), mark which ones
     logger_name : :obj:`str`, optional
         If you have defined a logger, pass its name.
     level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
@@ -228,7 +316,7 @@ class MSCX:
         label, mc, onset, staff, voice : :obj:`str`
             Names of the DataFrame columns for the five required parameters.
         kwargs:
-            harmony_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville
+            label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville
                 For these parameters, the standard column names are used automatically if the columns are present.
                 If the column names have changed, pass them as kwargs, e.g. ``base='name_of_the_base_column'``
 
@@ -238,7 +326,7 @@ class MSCX:
 
         """
         cols = dict(
-            harmony_type='harmony_type',
+            label_type='label_type',
             root='root',
             base='base',
             leftParen='leftParen',

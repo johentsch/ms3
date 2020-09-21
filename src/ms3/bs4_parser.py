@@ -387,7 +387,7 @@ class _MSCX_bs4:
         -------
 
         """
-        cols = {'harmony_type': 'Harmony/harmonyType',
+        cols = {'label_type': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
                 'nashville': 'Harmony/function',
                 'root': 'Harmony/root',
@@ -395,14 +395,14 @@ class _MSCX_bs4:
                 'leftParen': 'Harmony/leftParen',
                 'rightParen': 'Harmony/rightParen'}
         std_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'harmony_type']
+        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
             return pd.DataFrame(columns=std_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
-        if 'harmony_type' in df.columns:
-            df.harmony_type.fillna(0, inplace=True)
+        if 'label_type' in df.columns:
+            df.label_type.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
         additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
         df.rename(columns=additional_cols, inplace=True)
@@ -727,12 +727,12 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, harmony_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None):
+    def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None):
         tag = self.new_tag('Harmony')
-        if not pd.isnull(harmony_type):
-            # only include <harmonyType> tag for harmony_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            if harmony_type in [1, 2, '1', '2']:
-                _ = self.new_tag('harmonyType', value=harmony_type, within=tag)
+        if not pd.isnull(label_type):
+            # only include <harmonyType> tag for label_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
+            if label_type in [1, 2, '1', '2']:
+                _ = self.new_tag('harmonyType', value=label_type, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
         if not pd.isnull(root):
