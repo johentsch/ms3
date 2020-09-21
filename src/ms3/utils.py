@@ -1,3 +1,4 @@
+import os, re
 from collections.abc import Iterable
 from fractions import Fraction as frac
 
@@ -256,3 +257,35 @@ def ordinal_suffix(n):
     if n[-1] in suffixes:
         return suffixes[n[-1]]
     return 'th'
+
+
+def scan_directory(dir, file_re=r".*", folder_re=r".*", recursive=True):
+    """ Get a list of files.
+
+    Parameters
+    ----------
+    dir : :obj:`str`
+        Directory to be scanned for files.
+    file_re, folder_re : :obj:`str`, optional
+        Regular expressions for filtering certain file names or folder names.
+        The regEx are checked with search(), not match(), allowing for fuzzy search.
+    recursive : :obj:`bool`, optional
+        By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+
+    Returns
+    -------
+    list
+        List of full paths meeting the criteria.
+
+    """
+    res = []
+    for subdir, dirs, files in os.walk(dir):
+        if recursive:
+            dirs = [d for d in sorted(dirs)]
+        else:
+            dirs[:] = []
+        _, current_folder = os.path.split(subdir)
+        if re.search(folder_re, current_folder):
+            files = [os.path.join(subdir, f) for f in sorted(files) if re.search(file_re, f)]
+            res.extend(files)
+    return res

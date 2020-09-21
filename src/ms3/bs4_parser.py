@@ -459,7 +459,9 @@ class _MSCX_bs4:
             onsets = sorted(measure)
             ix = onsets.index(onset)
             if ix == 0:
-                raise NotImplementedError(
+                all_dur_ev = sum(True for os, tag_list in measure.items() if get_duration_event([t['name'] for t in tag_list])[0] is not None)
+                if all_dur_ev > 0:
+                    raise NotImplementedError(
 f"The label on MC {mc}, onset {onset}, staff {staff}, voice {voice} is the first onset but not attached to an event.")
             prv_onset = onsets[ix - 1]
             prv_elements = measure[prv_onset]
@@ -601,7 +603,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 while voice > n:
                     last = self.new_tag('voice', after=last)
                     n += 1
-                remember = self.insert_label(label=label, loc_before=onset, within=last, **kwargs)
+                remember = self.insert_label(label=label, loc_before=None if onset == 0 else onset, within=last, **kwargs)
                 self.tags[mc][staff][voice] = defaultdict(list)
                 self.tags[mc][staff][voice][onset] = remember
                 self.logger.debug(f"Added {label_name} to empty {voice}{ordinal_suffix(voice)} voice in MC {mc} at onset {onset}.")
@@ -612,21 +614,25 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             # There is an event (chord or rest) with the same onset to attach the label to
             elements = measure[onset]
             names = [e['name'] for e in elements]
-            ix, name = get_duration_event(names)
-            if ix is not None:
-                # insert before the first tag that is not in the tags_before_label list
-                tags_before_label = ['Dynamic', 'endTuplet', 'FiguredBass', ]
-                before = next(elements[i]['tag'] for i in range(len(elements)) if elements[i]['name'] not in
-                              tags_before_label )
-                remember = self.insert_label(label=label, before=before, **kwargs)
-                measure[onset].insert(ix, remember[0])
-                self.logger.debug(f"Added {label_name} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
-                if 'Harmony' in names:
-                    self.logger.warning(
-                        f"The chord in MC {mc}, onset {onset}, staff {staff}, voice {voice} was already carrying a label.")
-                return True
+            _, name = get_duration_event(names)
+            # insert before the first tag that is not in the tags_before_label list
+            tags_before_label = ['Dynamic', 'endTuplet', 'FiguredBass', 'location']
+            ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
+                          tags_before_label )
+            remember = self.insert_label(label=label, before=before, **kwargs)
+            measure[onset].insert(ix, remember[0])
+            old_names = list(names)
+            names.insert(ix, 'Harmony')
+            if name is None:
+                self.logger.debug(f"""MC {mc}, onset {onset}, staff {staff}, voice {voice} had only these tags:
+{old_names}\nAfter insertion: {names}""")
             else:
-                raise NotImplementedError(f"MC {mc}, onset {onset}, staff {staff}, voice {voice} has no chord: {elements}")
+                self.logger.debug(f"Added {label_name} to {name} in MC {mc}, onset {onset}, staff {staff}, voice {voice}.")
+            if 'Harmony' in old_names:
+                self.logger.warning(
+                    f"The chord in MC {mc}, onset {onset}, staff {staff}, voice {voice} was already carrying a label.")
+            return True
+
 
         # There is no event to attach the label to
         ordered = list(reversed(sorted(measure)))

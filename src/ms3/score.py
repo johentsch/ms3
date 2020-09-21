@@ -169,13 +169,17 @@ class Score:
         return
 
 
-    def attach_labels(self, key):
+    def attach_labels(self, key, staff=None, voice=None):
         if key not in self._annotations:
             self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use on of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
             return
         annotations = self._annotations[key]
-        df = annotations.df
+        df = annotations.df.copy()
+        if staff is not None:
+            df.staff = staff
+        if voice is not None:
+            df.voice = voice
         if len(df) == 0:
             self.logger.warning(f"The annotation set '{key}' does not contain any labels meeting the criteria.")
             return
@@ -194,11 +198,13 @@ Use on of the existing keys or load a new set with the method load_annotations()
         return self._mscx
 
 
-    def load_annotations(self, tsv_path, key=None):
+    def load_annotations(self, tsv_path, key=None, infer=True):
         if key is None:
             key = 'file'
         key = self.handle_path(tsv_path, key)
         self._annotations[key] = Annotations(tsv_path)
+        if infer:
+            self._annotations[key].infer_types(self.get_infer_regex())
 
     def __repr__(self):
         msg = ''
