@@ -855,8 +855,8 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 38	7/8	Chord	1/8	2	1	488.0		1								articStaccatoAbove																															eighth																																																	
 39	0	Chord	1/8	1	1	489.0		1											/	1.0035	0.301051	/	-0.10035	1.2042	/	-1.10385	0.501751							0			3/8						Slur				eighth																																																	
 39	1/8	Chord	1/8	1	1	490.0		1																																							eighth																																																	
-39	1/4	Harmony	0	1	1																																																										ii65																																	
 39	1/4	Dynamic	0	1	1																																																			f	96																																							
+39	1/4	Harmony	0	1	1																																																										ii65																																	
 39	1/4	Chord	1/8	1	1	491.0		1																																							eighth																																																	
 39	3/8	Chord	1/8	1	1	492.0		1																																-3/8			Slur				eighth																																																	
 39	1/2	Harmony	0	1	1																																																										V(4)																																	
@@ -875,8 +875,8 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 39	1/2	Chord	1/2	2	2	502.0		1																																							half																																																	
 40	0	Harmony	0	1	1																																																										I[I\\																																	
 40	0	Chord	1/4	1	1	503.0		1																																							quarter																																																	
-40	1/4	Harmony	0	1	1																																																										V7/IV																																	
 40	1/4	Dynamic	0	1	1																																																			fp	96																																							
+40	1/4	Harmony	0	1	1																																																										V7/IV																																	
 40	1/4	Chord	3/4	1	1	504.0		3/2					/	0.694375	-0.5	ornamentTrill																														1	half																																																	
 40	0	Chord	1/8	2	1	505.0		1										∅																			3/8						Slur				eighth																																																	
 40	1/8	Chord	1/8	2	1	506.0		1																																							eighth																																																	
@@ -935,13 +935,13 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 44	0	Harmony	0	1	1																																																										I]																																	
 44	0	Fermata	0	1	1																																																									fermataAbove																																		
 44	0	Chord	1/2	1	1	546.0		1																																							half																																																	
-44	1/2	Harmony	0	1	1																																																										I.V65/ii																																	
 44	1/2	Dynamic	0	1	1																																															/	-0.126829	3.3386		fp	96																																							
 44	1/2	Dynamic	0	1	1																																															/	-25.1709	-5	above	fp	96																																							
 44	1/2	Dynamic	0	1	1																																															/	-18.1709	-5	above	fp	96																																							
 44	1/2	Dynamic	0	1	1																																															/	-13.6709	-5	above	fp	96																																							
 44	1/2	Dynamic	0	1	1																																															/	-7.17086	-5	above	fp	96																																							
 44	1/2	Dynamic	0	1	1																																															/	-3.17086	-5	above	f	96																																							
+44	1/2	Harmony	0	1	1																																																										I.V65/ii																																	
 44	1/2	Chord	0	1	1	547.0	appoggiatura	1																																					/		eighth																																																	
 44	1/2	Chord	0	1	1	548.0	appoggiatura	1																																					/		eighth																																																	
 44	1/2	Chord	0	1	1	549.0	appoggiatura	1																																					/		eighth																																																	
@@ -1286,8 +1286,8 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 66	0	Harmony	0	1	1																																																										iv																																	
 66	0	Chord	1/8	1	1	782.0		1										∅																			1/8						Slur				eighth																																																	
 66	1/8	Chord	1/8	1	1	783.0		1																																-1/8			Slur				eighth																																																	
-66	1/4	Harmony	0	1	1																																																										#viio43\\																																	
 66	1/4	Dynamic	0	1	1																																																			f	96																																							
+66	1/4	Harmony	0	1	1																																																										#viio43\\																																	
 66	1/4	Chord	1/4	1	1	784.0		1				0																																			quarter																																																	
 66	1/2	Fermata	0	1	1																																																									fermataAbove																																		
 66	1/2	Rest	1/4	1	1			1																																																													quarter																											
@@ -2608,8 +2608,8 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 136	0	Harmony	0	1	1																																																										vi6																																	
 136	0	Chord	1/8	1	1	1600.0		1										∅																			3/8						Slur				eighth																																																	
 136	1/8	Chord	1/8	1	1	1601.0		1																																							eighth																																																	
-136	1/4	Harmony	0	1	1																																																										I6																																	
 136	1/4	Dynamic	0	1	1																																																			f	96																																							
+136	1/4	Harmony	0	1	1																																																										I6																																	
 136	1/4	Chord	1/8	1	1	1602.0		1																																							eighth																																																	
 136	3/8	Chord	1/8	1	1	1603.0		1																																-3/8			Slur				eighth																																																	
 136	1/2	Harmony	0	1	1																																																										ii65																																	
@@ -3110,8 +3110,8 @@ mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Beam/Fragment/y1	B
 162	1/4	Chord	1/4	1	1	1897.0		1																																	0		Slur				quarter																																																	
 162	1/2	Chord	0	1	1	1898.0	grace16	1										∅																		∅							Slur				16th	/																																																
 162	1/2	Chord	1/4	1	1	1899.0		1																																	0		Slur				quarter																																																	
-162	3/4	Harmony	0	1	1																																																										V																																	
 162	3/4	Dynamic	0	1	1																																																			f	96																																							
+162	3/4	Harmony	0	1	1																																																										V																																	
 162	3/4	Chord	0	1	1	1900.0	appoggiatura	1										∅																		∅							Slur		/		eighth																																																	
 162	3/4	Chord	1/4	1	1	1901.0		1																																	0		Slur				quarter																																																	
 162	0	Chord	1/4	2	1	1902.0		1																																							quarter																																																	

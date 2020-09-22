@@ -1,5 +1,7 @@
 import os, re
 
+import pandas as pd
+
 from .utils import decode_harmonies
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
@@ -206,6 +208,20 @@ Use on of the existing keys or load a new set with the method load_annotations()
         inf_dict = self.get_infer_regex() if infer else {}
         self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict)
 
+
+    def store_annotations(self, key=None, tsv_path=None, **kwargs):
+        if key is None:
+            assert self._mscx.has_annotations, "Score has no labels attached."
+            key = 'annotations'
+        if tsv_path is None:
+            path = self.paths['mscx']
+            fname = self.fnames['mscx']
+            tsv_path = os.path.join(path, fname + '_labels.tsv')
+        assert key in self._annotations, f"Key '{key}' not found. Available keys: {list(self._annotations.keys())}"
+        if self._annotations[key].output_tsv(tsv_path, **kwargs):
+            _ = self.handle_path(tsv_path, key=key)
+
+
     def __repr__(self):
         msg = ''
         if 'mscx' in self.full_paths:
@@ -223,8 +239,11 @@ Use on of the existing keys or load a new set with the method load_annotations()
             msg += "Detached annotations\n--------------------\n\n"
             for key, obj in self._annotations.items():
                 if key != 'annotations':
-                    msg += f"{key} -> {obj}\n\n"
+                    key_info = key + f" (stored as {self.files[key]})" if key in self.files else key
+                    msg += f"{key_info} -> {obj}\n\n"
         return msg
+
+
 
     @property
     def types(self):
@@ -300,14 +319,18 @@ class MSCX:
             self._annotations = Annotations(df=self.parsed.get_annotations())
 
     def delete_labels(self, df):
-        changes = sum(self.parsed.delete_label(mc, staff, voice, onset)
-                      for mc, staff, voice, onset
-                      in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)
-                      )
+        changed = pd.Series([self.parsed.delete_label(mc, staff, voice, onset)
+                               for mc, staff, voice, onset
+                               in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)],
+                            index=df.index)
+        changes = changed.sum()
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
-            self.logger.debug(f"{changes}/{len(df)} labels successfully deleted.")
+            target = len(df)
+            self.logger.debug(f"{changes}/{target} labels successfully deleted.")
+            if changes < target:
+                self.logger.warning(f"{target - changes} labels have not been deleted:\n{df.loc[~changed]}")
 
 
 

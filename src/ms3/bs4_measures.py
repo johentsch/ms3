@@ -12,7 +12,7 @@ class MeasureList:
     df : :obj:`pandas.DataFrame`
         The input DataFrame from _MSCX_bs4.raw_measures
     section_breaks : :obj:`bool`, default True
-        By default, section breaks allow for several anacrusis measures within the piece (relevant for `offset` column)
+        By default, section breaks allow for several anacrusis measures within the piece (relevant for `mc_offset` column)
         and make it possible to omit a repeat sign in the following bar (relevant for `next` column).
         Set to False if you want to ignore section breaks.
     secure : :obj:`bool`, default False
@@ -96,7 +96,7 @@ class MeasureList:
             self.ml.reset_index(drop=True, inplace=True)
         rn = {self.cols[col]: col for col in ['barline', 'dont_count', 'numbering_offset']}
         self.ml.rename(columns=rn, inplace=True)
-        self.ml = self.ml[['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'offset', 'breaks',
+        self.ml = self.ml[['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'breaks',
                            'repeats', 'volta', 'barline', 'numbering_offset', 'dont_count',
                            'next']]
         self.ml[['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
@@ -129,7 +129,7 @@ class MeasureList:
         return keep_one_row_each(self.df, compress_col=self.cols['mc'], differentiating_col=self.cols['staff'], logger=self.logger)
 
 
-    def check_measure_numbers(self, mc_col='mc', mn_col='mn', act_dur='act_dur', offset='offset',
+    def check_measure_numbers(self, mc_col='mc', mn_col='mn', act_dur='act_dur', mc_offset='mc_offset',
                               dont_count='dont_count', numbering_offset='numbering_offset'):
         def ordinal(i):
             if i == 1:
@@ -152,12 +152,12 @@ class MeasureList:
                             f"MC {mc:3}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn:3}, not MN {current_mn:3}.")
 
         # Check measure numbers for split measures
-        error_mask = (self.ml[offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
+        error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
         n_errors = error_mask.sum()
         if n_errors > 0:
             mcs = ', '.join(self.ml.loc[error_mask, mc_col].astype(str))
             context_mask = error_mask | error_mask.shift(-1).fillna(False) | error_mask.shift().fillna(False)
-            context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, offset, dont_count, numbering_offset]]
+            context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
                 f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}")
@@ -460,7 +460,7 @@ def make_next_col(df, mc_col='mc', repeats='repeats', volta_structure={}, sectio
 
 
 @function_logger
-def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_col='next', section_breaks=None, name='offset'):
+def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_col='next', section_breaks=None, name='mc_offset'):
     """ If one MN is composed of two MCs, the resulting column indicates the second MC's offset from the MN's beginning.
 
     Parameters

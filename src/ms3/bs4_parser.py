@@ -158,17 +158,17 @@ class _MSCX_bs4:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
-                            if not self.read_only:
-                                remember = {'name': event_name,
-                                            'duration': event['duration'],
-                                            'tag': event_node,}
-                                position = event['onset']
-                                if event_name == 'location' and event['duration'] < 0:
-                                    # this is a backwards pointer: store it where it points to for easy deletion
-                                    position += event['duration']
-                                self.tags[mc][staff_id][voice_id][position].append(remember)
                             event_list.append(event)
 
+                        if not self.read_only:
+                            remember = {'name': event_name,
+                                        'duration': event['duration'],
+                                        'tag': event_node, }
+                            position = event['onset']
+                            if event_name == 'location' and event['duration'] < 0:
+                                # this is a backwards pointer: store it where it points to for easy deletion
+                                position += event['duration']
+                            self.tags[mc][staff_id][voice_id][position].append(remember)
 
                         current_position += event['duration']
 
@@ -296,7 +296,7 @@ class _MSCX_bs4:
 
 
 
-    def get_chords(self, staff=None, voice=None, lyrics=False, staff_text=False, articulation=False, spanners=False, **kwargs):
+    def get_chords(self, staff=None, voice=None, lyrics=False, staff_text=False, dynamics=False, articulation=False, spanners=False, **kwargs):
         """ Returns a DataFrame with the score's chords (groups of simultaneous notes in the same layer).
             Such a list is needed for extracting certain types of information which is attached to chords rather than notes.
 
@@ -325,7 +325,8 @@ class _MSCX_bs4:
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
                 'syllabic': 'Chord/Lyrics/syllabic',
-                'articulation': 'Chord/Articulation/subtype'}
+                'articulation': 'Chord/Articulation/subtype',
+                'dynamics': 'Dynamic/subtype'}
         sel = self._events.event == 'Chord'
         if spanners:
             sel = sel | (self._events.event == 'Spanner')
@@ -365,6 +366,8 @@ class _MSCX_bs4:
             df.loc[:, 'lyrics'] = lyrics_col
         if articulation:
             main_cols.append('articulation')
+        if dynamics:
+            main_cols.append('dynamics')
         for col in main_cols:
             if not col in df.columns:
                 df[col] = np.nan
@@ -433,9 +436,9 @@ class _MSCX_bs4:
 
 
     def add_standard_cols(self, df):
-        df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'offset', 'volta']], on='mc', how='left')
-        df.onset += df.offset
-        return df[[col for col in df.columns if not col == 'offset']]
+        df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'mc_offset', 'volta']], on='mc', how='left')
+        # df.onset += df.mc_offset
+        return df[[col for col in df.columns if not col == 'mc_offset']]
 
 
     def delete_label(self, mc, staff, voice, onset):
@@ -444,6 +447,7 @@ class _MSCX_bs4:
             self.parse_measures()
         measure = self.tags[mc][staff][voice]
         if onset not in measure:
+            self.warning(f"MC {mc} has no onset {onset} in staff {staff}, voice {voice} where a harmony could be deleted.")
             return False
         elements = measure[onset]
         names = [e['name'] for e in elements]
@@ -452,14 +456,14 @@ class _MSCX_bs4:
             return False
         if 'Chord' in names and 'location' in names:
             NotImplementedError(f"Check MC {mc}, onset {onset}, staff {staff}, voice {voice}:\n{elements}")
-        _, name = get_duration_event(names)
+        _, name = get_duration_event(elements)
         if name is None:
             # this label is not attached to a chord or rest and depends on <location> tags, i.e. <location> tags on
             # previous and subsequent onsets might have to be adapted
             onsets = sorted(measure)
             ix = onsets.index(onset)
             if ix == 0:
-                all_dur_ev = sum(True for os, tag_list in measure.items() if get_duration_event([t['name'] for t in tag_list])[0] is not None)
+                all_dur_ev = sum(True for os, tag_list in measure.items() if get_duration_event(tag_list)[0] is not None)
                 if all_dur_ev > 0:
                     raise NotImplementedError(
 f"The label on MC {mc}, onset {onset}, staff {staff}, voice {voice} is the first onset but not attached to an event.")
@@ -514,7 +518,7 @@ because it precedes the label to be deleted which is the voice's last onset, {on
                     nxt_elements = measure[nxt_onset]
                     nxt_names = [e['name'] for e in nxt_elements]
                     nxt_n_locs = nxt_names.count('location')
-                    _, nxt_name = get_duration_event(nxt_names)
+                    _, nxt_name = get_duration_event(nxt_elements)
                     if nxt_name is None:
                         # The next onset is neither a chord nor a rest and therefore it needs to have exactly one
                         # location tag and a second one needs to be added based on the first one being deleted
@@ -614,9 +618,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             # There is an event (chord or rest) with the same onset to attach the label to
             elements = measure[onset]
             names = [e['name'] for e in elements]
-            _, name = get_duration_event(names)
+            _, name = get_duration_event(elements)
             # insert before the first tag that is not in the tags_before_label list
-            tags_before_label = ['Dynamic', 'endTuplet', 'FiguredBass', 'location']
+            tags_before_label = ['Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
             ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
                           tags_before_label )
             remember = self.insert_label(label=label, before=before, **kwargs)
@@ -644,10 +648,10 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         prv = measure[prv_pos]
         nxt = None if nxt_pos is None else measure[nxt_pos]
         prv_names = [e['name'] for e in prv]
-        prv_ix, prv_name = get_duration_event(prv_names)
+        prv_ix, prv_name = get_duration_event(prv)
         if nxt is not None:
             nxt_names = [e['name'] for e in nxt]
-            _, nxt_name = get_duration_event(nxt_names)
+            _, nxt_name = get_duration_event(nxt)
         # distinguish six cases: prv can be [event, location], nxt can be [event, location, None]
         if prv_ix is not None:
             # prv is event (chord or rest)
@@ -800,14 +804,15 @@ and {loc_after} before the subsequent {nxt_name}.""")
 ####################### END OF CLASS DEFINITION #######################
 
 
-def get_duration_event(names):
+def get_duration_event(elements):
+    names = [e['name'] for e in elements]
     if 'Chord' in names or 'Rest' in names:
-        try:
-            ix = names.index('Chord')
-            name = '<Chord>'
-        except:
+        if 'Rest' in names:
             ix = names.index('Rest')
             name = '<Rest>'
+        else:
+            ix = next(i for i, d in enumerate(elements) if d['name'] == 'Chord' and d['duration'] > 0)
+            name = '<Chord>'
         return ix, name
     return (None, None)
 

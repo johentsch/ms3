@@ -3,6 +3,7 @@
 
 import pytest
 import os
+import shutil
 import tempfile
 
 
@@ -34,10 +35,28 @@ class TestParser:
     def test_parse_and_write_back(self, score_object):
         original_mscx = score_object.full_paths['mscx']
         tmp_file = tempfile.NamedTemporaryFile(mode='r')
+        if score_object.mscx.has_annotations:
+            score_object.detach_labels('labels')
+            score_object.attach_labels('labels')
         score_object.output_mscx(tmp_file.name)
         original = open(original_mscx).read()
         after_parsing = tmp_file.read()
-        assert_all_lines_equal(original, after_parsing, original_mscx=original_mscx, tmp_file=tmp_file)
+        assert_all_lines_equal(original, after_parsing, original=original_mscx, tmp_file=tmp_file)
+
+
+    def test_store_and_load_labels(self, score_object):
+        if score_object.mscx.has_annotations:
+            fname = score_object.fnames['mscx'] + '_labels.tsv'
+            score_object.store_annotations(tsv_path=fname)
+            score_object.load_annotations(fname, key='tsv')
+            score_object.detach_labels('labels')
+            score_object.attach_labels('tsv')
+            tmp_file = tempfile.NamedTemporaryFile(mode='r')
+            score_object.output_mscx(tmp_file.name)
+            original_mscx = score_object.full_paths['mscx']
+            before = open(original_mscx).read()
+            after = tmp_file.read()
+            assert_all_lines_equal(before, after, original=original_mscx, tmp_file=tmp_file)
 
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']
@@ -65,14 +84,21 @@ class TestParser:
 
     def test_parse_to_eventlist(self, score_object):
         fname = score_object.fnames['mscx']
-        score_object.mscx.parsed._events.to_csv(fname + '_events.tsv', sep='\t', index=False)
+        score_object.mscx.events.to_csv(fname + '_events.tsv', sep='\t', index=False)
 
 
 
-def assert_all_lines_equal(before, after, original_mscx, tmp_file):
-    diff = [(bef, aft) for bef, aft in zip(before.splitlines(), after.splitlines()) if bef != aft]
+def assert_all_lines_equal(before, after, original, tmp_file):
+    diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
+    if len(diff) > 0:
+        line_n, left, _ = zip(*diff)
+        ln = len(str(max(line_n)))
+        left_col = max(len(s) for s in left)
+        diff = [('', original, tmp_file.name)] + diff
+        folder, file = os.path.split(original)
+        shutil.copy(tmp_file.name, os.path.join(folder, '..', file))
     assert len(diff) == 0, '\n' + '\n'.join(
-        f"{a} <--before   after-->{b}" for a, b in [(original_mscx, tmp_file.name)] + diff)
+        f"{a:{ln}}  {b:{left_col}}    {c}" for a, b, c in diff)
 
 
 def assert_dfs_equal(old, new, exclude=[]):

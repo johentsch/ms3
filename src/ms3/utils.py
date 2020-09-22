@@ -7,6 +7,7 @@ import numpy as np
 
 
 def decode_harmonies(df, return_series=False):
+    df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
         sel = df.nashville.notna()
@@ -61,7 +62,7 @@ def fifths2name(fifths, midi=None, ms=False):
         Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
     """
     try:
-        fifths = int(fifths)
+        fifths = int(float(fifths))
     except:
         if isinstance(fifths, Iterable):
             return map2elements(fifths, fifths2name, ms=ms)
@@ -82,7 +83,7 @@ def fifths2pc(fifths):
         Uses: map2elements()
     """
     try:
-        fifths = int(fifths)
+        fifths = int(float(fifths))
     except:
         if isinstance(fifths, Iterable):
             return map2elements(fifths, fifths2pc)
@@ -135,7 +136,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'localkey_is_minor': int2bool,
         'next': str2inttuple,
         'nominal_duration': frac,
-        'offset': frac,
+        'mc_offset': frac,
         'onset': frac,
         'duration': frac,
         'scalar': frac, }
@@ -143,11 +144,13 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
     DTYPES = {
         'alt_label': str,
         'barline': str,
+        'base': 'Int64',
         'bass_note': 'Int64',
         'cadence': str,
         'cadences_id': 'Int64',
         'changes': str,
         'chord': str,
+        'chord_id': 'Int64',
         'chord_type': str,
         'dont_count': 'Int64',
         'figbass': str,
@@ -157,10 +160,15 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'harmonies_id': 'Int64',
         'keysig': int,
         'label': str,
+        'label_type': object,
+        'leftParen': str,
         'localkey': str,
         'mc': int,
         'midi': int,
         'mn': int,
+        'offset:x': str,
+        'offset:y': str,
+        'nashville': 'Int64',
         'notes_id': 'Int64',
         'numbering_offset': 'Int64',
         'numeral': str,
@@ -169,6 +177,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'phraseend': str,
         'relativeroot': str,
         'repeats': str,
+        'rightParen': str,
         'root': 'Int64',
         'special': str,
         'staff': int,
@@ -220,7 +229,7 @@ def midi2octave(midi, fifths=None):
         from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.
     """
     try:
-        midi = int(midi)
+        midi = int(float(midi))
     except:
         if isinstance(midi, Iterable):
             return map2elements(midi, midi2octave)

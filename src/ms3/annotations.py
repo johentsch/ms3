@@ -71,7 +71,7 @@ class Annotations:
             self.df.label_type.fillna(0, inplace=True)
             self.df.loc[~self.df.label_type.isin([0, 1, 2, 3, '0', '1', '2', '3']), 'label_type'] = 0
         else:
-            self.df['label_type'] = pd.Series(0, index=self.df)
+            self.df['label_type'] = pd.Series(0, index=self.df.index, dtype='object')
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
         if 'root' in self.df.columns:
@@ -82,7 +82,8 @@ class Annotations:
             self.df.loc[sel & mtch, 'label_type'] = name
 
 
-    def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=False, decode=False, sep='\t', index=False, **kwargs):
+    def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, label_type=label_type, positioning=positioning, decode=decode)
-        df.to_tsv(tsv_path, sep=sep, index=index, **kwargs)
+        df.to_csv(tsv_path, sep=sep, index=index, **kwargs)
         self.logger.info(f"{len(df)} labels written to {tsv_path}.")
+        return True
