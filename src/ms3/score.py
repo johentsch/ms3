@@ -38,7 +38,8 @@ class Score:
     abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
 
     dcml_regex = re.compile(r"""
-                                ^(\.?
+                                ^(?P<first>
+                                  (\.?
                                     ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
                                     ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
                                     ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
@@ -50,8 +51,28 @@ class Score:
                                         (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                                     )
                                     (?P<pedalend>\])?
-                                )?
-                                (?P<phraseend>(\\\\|\{|\}|\}\{))?$
+                                  )?
+                                  (?P<phraseend>(\\\\|\{|\}|\}\{)
+                                  )?
+                                 )
+                                 (?P<second>
+                                  (-
+                                    ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord2>
+                                        (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form2>(%|o|\+|M|\+M))?
+                                        (?P<figbass2>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes2>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend2>\])?
+                                  )?
+                                  (?P<phraseend2>(\\\\|\{|\}|\}\{)
+                                  )?
+                                 )?
+                                $
                                 """,
                             re.VERBOSE)
 
@@ -59,7 +80,7 @@ class Score:
 
     rn_regex = r"^$"
 
-    def __init__(self, mscx_src=None, parser='bs4', infer_label_types=['dcml'], logger_name='Score', level=None):
+    def __init__(self, mscx_src=None, parser='bs4', infer_label_types=['dcml'], read_only=False, logger_name='Score', level=None):
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.paths, self.files, self.fnames, self.fexts, self.logger_names = {}, {}, {}, {}, {}, {}
         self._mscx = None
@@ -81,7 +102,7 @@ class Score:
         self.infer_label_types = infer_label_types
         self.parser = parser
         if mscx_src is not None:
-            self.parse_mscx(mscx_src)
+            self.parse_mscx(mscx_src, read_only=read_only)
 
     @property
     def infer_label_types(self):
@@ -137,13 +158,13 @@ class Score:
 
 
 
-    def parse_mscx(self, mscx_src, parser=None, logger_name=None):
+    def parse_mscx(self, mscx_src, read_only=False, parser=None, logger_name=None):
         _ = self.handle_path(mscx_src)
         if parser is not None:
             self.parser = parser
         if 'mscx' in self.fnames:
             ln = self.logger_names['mscx'] if logger_name is None else logger_name
-            self._mscx = MSCX(self.full_paths['mscx'], self.parser, logger_name=ln)
+            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, parser=self.parser, logger_name=ln)
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
                 self._annotations['annotations'].infer_types(self.get_infer_regex())
@@ -163,7 +184,7 @@ class Score:
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
-        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex())
+        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), logger_name=f"{self.logger.name}--{key}")
         if delete:
             self._mscx.delete_labels(df)
         if len(self._annotations['annotations'].df) == 0:
@@ -201,12 +222,10 @@ Use on of the existing keys or load a new set with the method load_annotations()
         return self._mscx
 
 
-    def load_annotations(self, tsv_path, key=None, infer=True):
-        if key is None:
-            key = 'file'
+    def load_annotations(self, tsv_path, key='file', infer=True):
         key = self.handle_path(tsv_path, key)
         inf_dict = self.get_infer_regex() if infer else {}
-        self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict)
+        self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict, logger_name=self.logger_names[key])
 
 
     def store_annotations(self, key=None, tsv_path=None, **kwargs):
@@ -219,7 +238,9 @@ Use on of the existing keys or load a new set with the method load_annotations()
             tsv_path = os.path.join(path, fname + '_labels.tsv')
         assert key in self._annotations, f"Key '{key}' not found. Available keys: {list(self._annotations.keys())}"
         if self._annotations[key].output_tsv(tsv_path, **kwargs):
-            _ = self.handle_path(tsv_path, key=key)
+            new_key = self.handle_path(tsv_path, key=key)
+            if key != 'annotations':
+                self._annotations[key].logger = get_logger(self.logger_names[new_key])
 
 
     def __repr__(self):
@@ -293,9 +314,10 @@ class MSCX:
         Write the internal score representation to a file.
     """
 
-    def __init__(self, mscx_src=None, parser='bs4', logger_name='MSCX', level=None):
+    def __init__(self, mscx_src=None, read_only=False, parser='bs4', logger_name='MSCX', level=None):
         self.logger = get_logger(logger_name, level=level)
         self.mscx_src = mscx_src
+        self.read_only = read_only
         self._annotations = None
         if parser is not None:
             self.parser = parser
@@ -306,7 +328,7 @@ class MSCX:
 
         implemented_parsers = ['bs4']
         if self.parser == 'bs4':
-            self.parsed = _MSCX_bs4(self.mscx_src, logger_name=self.logger.name)
+            self.parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_name=self.logger.name)
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
@@ -316,7 +338,7 @@ class MSCX:
         self.get_metadata = self.parsed.get_metadata
         self.has_annotations = self.parsed.has_annotations
         if self.parsed.has_annotations:
-            self._annotations = Annotations(df=self.parsed.get_annotations())
+            self._annotations = Annotations(df=self.parsed.get_annotations(), logger_name=self.logger.name)
 
     def delete_labels(self, df):
         changed = pd.Series([self.parsed.delete_label(mc, staff, voice, onset)
@@ -395,7 +417,7 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self.parsed.parse_measures()
-            self._annotations = Annotations(df=self.parsed.get_annotations())
+            self._annotations = Annotations(df=self.parsed.get_annotations(), logger_name=self.logger.name)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
 
 

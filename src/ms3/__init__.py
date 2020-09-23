@@ -10,4 +10,6 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
-from .score import *
+from .score import Score
+from .annotations import Annotations
+from .parse import Parse

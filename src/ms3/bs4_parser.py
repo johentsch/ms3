@@ -1,3 +1,4 @@
+import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 
@@ -55,7 +56,9 @@ class _MSCX_bs4:
         with open(mscx_src, 'r') as file:
             self.soup = bs4.BeautifulSoup(file.read(), 'xml')
 
-        self.version = self.soup.find('programVersion').string
+        if self.version[0] != '3':
+            # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
+            raise ValueError(f"Cannot parse MuseScore {self.version} file.")
 
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
@@ -178,7 +181,9 @@ class _MSCX_bs4:
         self._measures = sort_cols(pd.DataFrame(measure_list), col_order)
         self._events = sort_cols(pd.DataFrame(event_list), col_order)
         self._notes = sort_cols(pd.DataFrame(note_list), col_order)
-        if 'Harmony' in self._events.event.values:
+        if len(self._events) == 0:
+            self.logger.warning("Empty score?")
+        elif 'Harmony' in self._events.event.values:
             self.has_annotations = True
 
 
@@ -431,9 +436,12 @@ class _MSCX_bs4:
         data['parts'] = {
             part.trackName.string: {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
                                     part.find_all('Staff')} for part in self.soup.find_all('Part')}
-        data['musescore'] = self.soup.find('programVersion').string
+        data['musescore'] = self.version
         return data
 
+    @property
+    def version(self):
+        return self.soup.find('programVersion').string
 
     def add_standard_cols(self, df):
         df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'mc_offset', 'volta']], on='mc', how='left')
@@ -442,9 +450,7 @@ class _MSCX_bs4:
 
 
     def delete_label(self, mc, staff, voice, onset):
-        if self.read_only:
-            self.read_only = False
-            self.parse_measures()
+        self.make_writeable()
         measure = self.tags[mc][staff][voice]
         if onset not in measure:
             self.warning(f"MC {mc} has no onset {onset} in staff {staff}, voice {voice} where a harmony could be deleted.")
@@ -581,11 +587,18 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 # self.logger.debug(f"No superfluous <voice> tags in MC {mc}, staff {staff}.")
                 break
 
-
-    def add_label(self, label, mc, onset, staff=1, voice=1, **kwargs):
+    def make_writeable(self):
         if self.read_only:
             self.read_only = False
+            prev_level = self.logger.level
+            self.logger.setLevel(logging.CRITICAL)
+            # This is an automatic re-parse which does not have to be logged again
             self.parse_measures()
+            self.logger.setLevel(prev_level)
+
+
+    def add_label(self, label, mc, onset, staff=1, voice=1, **kwargs):
+        self.make_writeable()
         if mc not in self.tags:
             self.logger.error(f"MC {mc} not found.")
             return False

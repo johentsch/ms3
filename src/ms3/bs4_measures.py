@@ -278,7 +278,12 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
     """
     cols = [mc, volta_start, volta_length]
     sel = df[volta_start].notna()
-    voltas = df.loc[sel, cols].astype(int)
+    voltas = (df.loc[sel, cols])
+    if voltas[volta_length].isna().sum() > 0:
+        rows = voltas[voltas[volta_length].isna()]
+        logger.debug(f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed.")
+        voltas[volta_length] = voltas[volta_length].fillna(0)
+    voltas = voltas.astype(int)
     if len(voltas) == 0:
         return {}
     if frac_col is not None:
@@ -286,7 +291,9 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
     voltas.loc[voltas[volta_start] == 1, 'group'] = 1
     voltas.group = voltas.group.fillna(0).astype(int).cumsum()
     groups = {v[mc].iloc[0]: v[cols].to_numpy() for _, v in voltas.groupby('group')}
-    return {mc: treat_group(mc, group, logger=logger) for mc, group in groups.items()}
+    res = {mc: treat_group(mc, group, logger=logger) for mc, group in groups.items()}
+    logger.debug(f"Inferred volta structure: {res}")
+    return res
 
 
 
@@ -482,7 +489,8 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
     cols = [mc_col, next_col]
     if section_breaks is not None:
         cols.append(section_breaks)
-        offsets = {mc: 0 for mc in df[df[section_breaks].fillna('') == 'section'].mc + 1}
+        last_mc = df[mc_col].max()
+        offsets = {m: 0 for m in df[df[section_breaks].fillna('') == 'section'].mc + 1 if m <= last_mc}
         # offset == 0 is a neutral value but the presence of mc in offsets indicates that it could potentially be an
         # (incomplete) pickup measure which can be offset even if the previous measure is complete
     else:
@@ -504,29 +512,29 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
         add_offset(1)
     for t in irregular.itertuples(index=False):
         if section_breaks:
-            m, n, s = t
-            if s == 'section':
-                nxt = [i for i in n if i <= m]
+            mc, nx, sec = t
+            if sec == 'section':
+                nxt = [i for i in nx if i <= mc]
                 if len(nxt) == 0:
-                    logger.debug(f"MC {m} ends a section with an incomplete measure.")
+                    logger.debug(f"MC {mc} ends a section with an incomplete measure.")
             else:
-                nxt = [i for i in n]
+                nxt = [i for i in nx]
         else:
-            m, n = t
-            nxt = [i for i in n]
-        if m not in offsets:
-            completions = {mc: act_durs[mc] for mc in nxt if mc > -1}
-            expected = missing(m)
+            mc, nx = t
+            nxt = [i for i in nx]
+        if mc not in offsets:
+            completions = {m: act_durs[m] for m in nxt if m > -1}
+            expected = missing(mc)
             errors = sum(True for c in completions.values() if c != expected)
             if errors > 0:
                 logger.warning(
-                    f"The incomplete MC {m} (timesig {nom_durs[m]}, act_dur {act_durs[m]}) is completed by {errors} incorrect duration{'s' if errors > 1 else ''} (expected: {expected}):\n{completions}")
+                    f"The incomplete MC {mc} (timesig {nom_durs[mc]}, act_dur {act_durs[mc]}) is completed by {errors} incorrect duration{'s' if errors > 1 else ''} (expected: {expected}):\n{completions}")
             for compl in completions.keys():
                 add_offset(compl)
-        elif offsets[m] == 0:
-            add_offset(m)
-    mc2ix = {mc: ix for ix, mc in df.mc.iteritems()}
-    result = {mc2ix[mc]: offset for mc, offset in offsets.items()}
+        elif offsets[mc] == 0:
+            add_offset(mc)
+    mc2ix = {m: ix for ix, m in df.mc.iteritems()}
+    result = {mc2ix[m]: offset for m, offset in offsets.items()}
     return pd.Series(result, name=name).reindex(df.index, fill_value=0)
 
 

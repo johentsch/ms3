@@ -7,8 +7,9 @@ class Annotations:
 
 
 
-    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', infer_types={}, logger_name='Harmonies', level=None, **kwargs):
+    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', infer_types={}, logger_name='Annotations', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
+        self.regex_dict = infer_types
         if df is not None:
             self.df = df.copy()
         else:
@@ -16,13 +17,20 @@ class Annotations:
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
         if infer_types is None:
             infer_types = {}
-        self.infer_types(infer_types)
+        self.infer_types()
 
+
+    def n_labels(self):
+        return len(self.df)
+
+
+    def show_annotation_layers(self):
+        layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
+        return self.n_labels(), self.df.groupby(layers).size()
 
     def __repr__(self):
-        layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
-        return f"{len(self.df)} labels:\n{self.df.groupby(layers).size().to_string()}"
-
+        n, layers = self.show_annotation_layers()
+        return f"{n} labels:\n{layers.to_string()}"
 
     def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False):
         """ Returns a list of harmony tags from the parsed score.
@@ -66,7 +74,9 @@ class Annotations:
         return res
 
 
-    def infer_types(self, regex_dict):
+    def infer_types(self, regex_dict=None):
+        if regex_dict is not None:
+            self.regex_dict = regex_dict
         if 'label_type' in self.df.columns:
             self.df.label_type.fillna(0, inplace=True)
             self.df.loc[~self.df.label_type.isin([0, 1, 2, 3, '0', '1', '2', '3']), 'label_type'] = 0
@@ -76,7 +86,7 @@ class Annotations:
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
         if 'root' in self.df.columns:
             self.df.loc[self.df.root.notna(), 'label_type'] = 3
-        for name, regex in regex_dict.items():
+        for name, regex in self.regex_dict.items():
             sel = self.df.label_type == 0
             mtch = self.df[sel].label.str.match(regex)
             self.df.loc[sel & mtch, 'label_type'] = name

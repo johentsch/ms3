@@ -268,7 +268,7 @@ def ordinal_suffix(n):
     return 'th'
 
 
-def scan_directory(dir, file_re=r".*", folder_re=r".*", recursive=True):
+def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", recursive=True):
     """ Get a list of files.
 
     Parameters
@@ -287,14 +287,18 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", recursive=True):
         List of full paths meeting the criteria.
 
     """
+    def check_regex(reg, s):
+        res = re.search(reg, s) is not None and re.match(exclude_re, s) is None
+        return res
+
     res = []
     for subdir, dirs, files in os.walk(dir):
         if recursive:
-            dirs = [d for d in sorted(dirs)]
+            dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []
         _, current_folder = os.path.split(subdir)
-        if re.search(folder_re, current_folder):
-            files = [os.path.join(subdir, f) for f in sorted(files) if re.search(file_re, f)]
+        if check_regex(folder_re, current_folder):
+            files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
             res.extend(files)
     return res
