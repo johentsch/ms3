@@ -939,8 +939,10 @@ def sort_note_list(df, mc_col='mc', onset_col='onset', midi_col='midi', duration
     return df
 
 def make_tied_col(df, tie_col, next_col, prev_col):
-    has_tie = df[tie_col].fillna('').str.contains('Tie')
     new_col = pd.Series(np.nan, index=df.index, name='tied')
+    if tie_col not in df.columns:
+        return new_col
+    has_tie = df[tie_col].fillna('').str.contains('Tie')
     if has_tie.sum() == 0:
         return new_col
     # merge all columns whose names start with `next_col` and `prev_col` respectively

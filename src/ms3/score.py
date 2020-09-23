@@ -280,7 +280,15 @@ Use on of the existing keys or load a new set with the method load_annotations()
                 ann.infer_types(self.get_infer_regex())
 
     def __getattr__(self, item):
-        return self._annotations[item]
+        try:
+            return self._annotations[item]
+        except: AttributeError(item)
+
+    def __getstate__(self):
+        return self.__dict__
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
     # def __setattr__(self, key, value):
     #     assert key != 'annotations', "The key 'annotations' is managed automatically, please pick a different one."

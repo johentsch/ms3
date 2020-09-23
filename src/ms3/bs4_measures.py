@@ -149,7 +149,7 @@ class MeasureList:
                     current_mn = mc2mn[mc]
                     if current_mn != mn:
                         self.logger.warning(
-                            f"MC {mc:3}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn:3}, not MN {current_mn:3}.")
+                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, not MN {current_mn}.")
 
         # Check measure numbers for split measures
         error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
@@ -508,8 +508,17 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
 
 
     irregular = df.loc[sel, cols]
-    if irregular[mc_col].iloc[0] == 1:  # anacrusis
-        add_offset(1)
+    if irregular[mc_col].iloc[0] == 1:
+        # Check whether first MC is an anacrusis and mark accordingly
+        if len(irregular) > 1 and irregular[mc_col].iloc[1] == 2:
+            if not missing(1) + act_durs[2] == nom_durs[1]:
+                add_offset(1)
+            else:
+                # regular divided measure, no anacrusis
+                pass
+        else:
+            # is anacrusis
+            add_offset(1)
     for t in irregular.itertuples(index=False):
         if section_breaks:
             mc, nx, sec = t

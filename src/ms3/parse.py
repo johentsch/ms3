@@ -11,19 +11,19 @@ from .utils import scan_directory
 
 class Parse:
 
-    def __init__(self, dir=None, key=None, file_re='.*', folder_re='.*', recursive=True, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         self.logger = get_logger(logger_name, level)
-        self.full_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(list), defaultdict(
-            list), defaultdict(list), defaultdict(list), defaultdict(list)
-        self._parsed = {}
+        self.full_paths, self.rel_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
+            list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
+        self._parsed, self._notelists, self._measurelists, self._eventlists = {}, {}, {}, {}
         self.matches = pd.DataFrame()
         self.last_scanned_dir = dir
         if dir is not None:
-            self.add_dir(dir=dir, key=key, file_re=file_re, folder_re=folder_re, recursive=recursive)
+            self.add_dir(dir=dir, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
-    def add_dir(self, dir, key=None, file_re='.*', folder_re='.*', recursive=True):
+    def add_dir(self, dir, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         self.last_scanned_dir = os.path.abspath(dir)
-        res = scan_directory(dir, file_re=file_re, folder_re=folder_re, recursive=recursive)
+        res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         ix = [self.handle_path(p, key) for p in res]
         added = sum(True for i in ix if i[0] is not None)
         if added > 0:
@@ -39,13 +39,15 @@ class Parse:
         if os.path.isfile(full_path):
             file_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
+            rel_path = os.path.relpath(file_path, self.last_scanned_dir)
             if key is None:
-                key = os.path.relpath(file_path, self.last_scanned_dir)
+                key = rel_path
             if file in self.files[key]:
                 self.logger.error(f"""The file {file} is already registered for key '{key}'.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
                 return (None, None)
 
+            self.rel_paths[key].append(rel_path)
             self.full_paths[key].append(full_path)
             self.paths[key].append(file_path)
             self.files[key].append(file)
@@ -77,10 +79,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def parse_mscx(self, keys=None, read_only=False, level=None, parallel=True):
-        if keys is None:
-            keys = list(self.full_paths.keys())
-        elif isinstance(keys, str):
-            keys = [keys]
+        keys = self._treat_key_param(keys)
         parse_this = [(key, ix, path, read_only, level) for key in keys for ix, path in enumerate(self.full_paths[key]) if path.endswith('.mscx')]
         if parallel:
             pool = multiprocessing.Pool(multiprocessing.cpu_count())
@@ -90,6 +89,31 @@ Load one of the identically named files with a different key using add_dir(key='
         else:
             for params in parse_this:
                 self._parse(*params)
+
+
+    def _treat_key_param(self, keys):
+        if keys is None:
+            keys = list(self.full_paths.keys())
+        elif isinstance(keys, str):
+            keys = [keys]
+        return keys
+
+    def get_lists(self, keys=None, notes=False, measures=False, events=False, labels=False, chords=False):
+        if len(self._parsed) == 0:
+            self.logger.error("No scores have been parsed. Use parse_mscx()")
+            return []
+        keys = self._treat_key_param(keys)
+        scores = [k for k in self._parsed.keys() if k[0] in keys]
+        for ix in scores:
+            score = self._parsed[ix]
+            if notes:
+                self._notelists[ix] = score.mscx.notes
+            if measures:
+                self._measurelists[ix] = score.mscx.measures
+            if events:
+                self._eventlists[ix] = score.mscx.events
+
+
 
 
 

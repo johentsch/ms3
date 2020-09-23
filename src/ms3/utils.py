@@ -293,11 +293,11 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
 
     res = []
     for subdir, dirs, files in os.walk(dir):
-        if recursive:
+        _, current_folder = os.path.split(subdir)
+        if recursive and re.match(exclude_re, current_folder) is None:
             dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []
-        _, current_folder = os.path.split(subdir)
         if check_regex(folder_re, current_folder):
             files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
             res.extend(files)
