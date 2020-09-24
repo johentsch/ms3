@@ -282,7 +282,8 @@ Use on of the existing keys or load a new set with the method load_annotations()
     def __getattr__(self, item):
         try:
             return self._annotations[item]
-        except: AttributeError(item)
+        except:
+            AttributeError(item)
 
     def __getstate__(self):
         return self.__dict__
@@ -461,7 +462,13 @@ class MSCX:
 
     @property
     def chords(self):
-        return self._parsed.cl
+        return self._parsed.chords
+
+    @property
+    def labels(self):
+        if self._annotations is None:
+            return pd.DataFrame()
+        return self._annotations.get_labels()
 
     @property
     def notes(self):
@@ -480,7 +487,5 @@ class MSCX:
         """MuseScore version with which the file was created (read-only)."""
         return self._parsed.version
 
-    def __getstate__(self):
-        # for key in ['_parsed', 'output_mscx', 'get_chords', 'get_harmonies', 'get_metadata', 'has_annotations']:
-        #     self.__dict__[key] = None
-        return self.__dict__
+    # def __getstate__(self):
+    #     return self.__dict__

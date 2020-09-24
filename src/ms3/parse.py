@@ -15,13 +15,15 @@ class Parse:
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
-        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists, self._eventlists = {}, {}, {}, {}, {}, {}
+        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists, self._eventlists, self._labellists, self._chordlists = {}, {}, {}, {}, {}, {}, {}, {}
         self._lists = {
             'notes': self._notelists,
             'rests': self._restlists,
             'notes_and_rests': self._noterestlists,
             'measures': self._measurelists,
             'events': self._eventlists,
+            'labels': self._labellists,
+            'chords': self._chordlists,
         }
         self.matches = pd.DataFrame()
         self.last_scanned_dir = dir
@@ -91,6 +93,9 @@ Load one of the identically named files with a different key using add_dir(key='
 
     def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True):
         keys = self._treat_key_param(keys)
+        if parallel and not read_only:
+            read_only = True
+            self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
         parse_this = [(key, ix, path, read_only, level) for key in keys for ix, path in enumerate(self.full_paths[key]) if path.endswith('.mscx')]
         if parallel:
             pool = mp.Pool(mp.cpu_count())
@@ -132,12 +137,17 @@ Load one of the identically named files with a different key using add_dir(key='
         return res
 
 
-    def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='', rests_folder=None, rests_suffix='',
-                    notes_and_rests_folder=None, notes_and_rests_suffix='', measures_folder=None, measures_suffix='',
-                    events_folder=None, events_suffix='', simulate=False):
+    def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
+                                                    rests_folder=None, rests_suffix='',
+                                                    notes_and_rests_folder=None, notes_and_rests_suffix='',
+                                                    measures_folder=None, measures_suffix='',
+                                                    events_folder=None, events_suffix='',
+                                                    labels_folder=None, labels_suffix='',
+                                                    chords_folder=None, chords_suffix='',
+                                                    simulate=False):
         keys = self._treat_key_param(keys)
         l = locals()
-        list_types = ['notes', 'rests', 'notes_and_rests', 'measures', 'events']
+        list_types = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords']
         folder_vars = [t + '_folder' for t in list_types]
         suffix_vars = [t + '_suffix' for t in list_types]
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
@@ -147,7 +157,8 @@ Load one of the identically named files with a different key using add_dir(key='
         paths = []
         for (key, ix, what), li in lists.items():
             paths.append(self._store(df=li, key=key, ix=ix, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate))
-        return paths
+        if simulate:
+            return paths
 
 
     def _store(self, df, key, ix, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
@@ -168,6 +179,8 @@ Load one of the identically named files with a different key using add_dir(key='
         -------
 
         """
+        prev_logger = self.logger
+        self.logger = get_logger(self.fnames[key][ix])
         if os.path.isabs(folder):
             path = folder
         else:
@@ -187,8 +200,9 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.debug(f"Would have written {what} to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            no_tuples(df).to_csv(file_path, sep='\t', index=False, logger=self.logger)
+            no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, sep='\t', index=False)
             self.logger.debug(f"{what} written to {file_path}.")
+        self.logger = prev_logger
         return file_path
 
 
@@ -240,13 +254,18 @@ def group_index_tuples(l):
 
 
 @function_logger
-def no_tuples(df):
-    in_question = ['next', 'chord_tones', 'added_tones']
-    cols = [c for c in in_question if c in df.columns]
-    if len(cols) > 0:
+def no_collections_no_booleans(df):
+    collection_cols = ['next', 'chord_tones', 'added_tones']
+    cc = [c for c in collection_cols if c in df.columns]
+    if len(cc) > 0:
         df = df.copy()
-        df.loc[:, cols] = transform(df[cols], iterable2str, column_wise=True, logger=logger)
-        logger.debug(f"Transformed iterables in the columns {cols} to strings.")
+        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True, logger=logger)
+        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    bc = [c for c in bool_cols if c in df.columns]
+    if len(bc) > 0:
+        conv = {c: int for c in bc}
+        df = df.astype(conv)
     return df
 
 

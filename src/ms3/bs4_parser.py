@@ -7,7 +7,7 @@ import pandas as pd
 import numpy as np
 
 from .bs4_measures import MeasureList
-from .logger import get_logger
+from .logger import get_logger, function_logger
 from .utils import fifths2name, ordinal_suffix
 
 
@@ -228,15 +228,15 @@ class _MSCX_bs4:
 
     @property
     def chords(self):
-        """A list of <chord> tags (all <note> tags come within one)."""
-        self.make_standard_chordlist()
-        return self._cl
+        """A list of <chord> tags (all <note> tags come within one) and attached score information such as
+            lyrics, dynamics, articulations, slurs, etc."""
+        return self.get_chords()
 
     @property
     def cl(self):
-        """Like property `chords` but without recomputing."""
+        """Getting self._cl but without recomputing."""
         if len(self._cl) == 0:
-            return self.chords
+            self.make_standard_chordlist()
         return self._cl
 
     @property
@@ -275,6 +275,7 @@ class _MSCX_bs4:
 
 
     def make_standard_chordlist(self):
+        """ This chord list has chords only as opposed to the one yielded by selr.get_chords()"""
         self._cl = self.add_standard_cols(self._events[self._events.event == 'Chord'])
         self._cl = self._cl.astype({'chord_id': int})
         self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
@@ -315,7 +316,7 @@ class _MSCX_bs4:
 
 
 
-    def get_chords(self, staff=None, voice=None, lyrics=False, staff_text=False, dynamics=False, articulation=False, spanners=False, **kwargs):
+    def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False, articulation=False, spanners=False, **kwargs):
         """ Returns a DataFrame with the score's chords (groups of simultaneous notes in the same layer).
             Such a list is needed for extracting certain types of information which is attached to chords rather than notes.
 
@@ -325,10 +326,17 @@ class _MSCX_bs4:
             Get information from a particular staff only (1 = upper staff)
         voice : :obj:`int`
             Get information from a particular voice only (1 = only the first layer of every staff)
+        mode : {'auto', 'all', 'strict'}, optional
+            Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+                DataFrame has no empty columns except for those parameters that are set to True.
+            'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+            'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
         lyrics : :obj:`bool`, optional
             Include lyrics.
         staff_text : :obj:`bool`, optional
             Include staff text such as tempo markings.
+        dynamics : :obj:`bool`, optional
+            Include dynamic markings such as f or p.
         articulation : :obj:`bool`, optional
             Include articulation such as arpeggios.
         spanners : :obj:`bool`, optional
@@ -347,21 +355,46 @@ class _MSCX_bs4:
                 'articulation': 'Chord/Articulation/subtype',
                 'dynamics': 'Dynamic/subtype'}
         sel = self._events.event == 'Chord'
-        if spanners:
-            sel = sel | (self._events.event == 'Spanner')
-        if staff_text:
-            sel = sel | (self._events.event == 'StaffText')
+        aspects = ['lyrics', 'staff_text', 'dynamics', 'articulation', 'spanners']
+        if mode == 'all':
+            params = {p: True for p in aspects}
+        else:
+            l = locals()
+            params = {p: l[p] for p in aspects}
+        spanner_sel = self._events.event == 'Spanner'
+        staff_text_sel = self._events.event == 'StaffText'
+        dynamics_sel = self._events.event == 'Dynamic'
+        if mode == 'auto':
+            if not params['spanners'] and spanner_sel.any():
+                params['spanners'] = True
+            if not params['staff_text'] and staff_text_sel.any():
+                params['staff_text'] = True
+            if not params['dynamics'] and dynamics_sel.any():
+                params['dynamics'] = True
+        if params['spanners']:
+            sel = sel | spanner_sel
+        if params['staff_text']:
+            sel = sel | staff_text_sel
+        if params['dynamics']:
+            sel = sel | dynamics_sel
         if staff:
             sel = sel & (self._events.staff == staff)
         if voice:
             sel = sel & self._events.voice == voice
         df = self.add_standard_cols(self._events[sel])
-        df = df.astype({'chord_id': 'Int64' if spanners or staff_text else int})
+        df = df.astype({'chord_id': 'Int64' if df.chord_id.isna().any() else int})
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
+        if mode == 'auto':
+            if 'lyrics' in df.columns:
+                params['lyrics'] = True
+            if 'articulation' in df.columns:
+                params['articulation'] = True
+            if any(c in df.columns for c in ('Spanner:type', 'Chord/Spanner:type')):
+                params['spanners'] = True
         df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations)
         main_cols = ['mc', 'mn', 'timesig', 'onset', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar',
                 'volta', 'chord_id']
-        if staff_text:
+        if params['staff_text']:
             main_cols.append('staff_text')
             text_cols = ['StaffText/text', 'StaffText/text/b', 'StaffText/text/i']
             existing_cols = [c for c in text_cols if c in df.columns]
@@ -369,7 +402,7 @@ class _MSCX_bs4:
                 df.loc[:, 'staff_text'] = df[existing_cols].fillna('').sum(axis=1).replace('', np.nan)
             else:
                 df.loc[:, 'staff_text'] = np.nan
-        if lyrics:
+        if params['lyrics']:
             main_cols.append('lyrics')
             if 'syllabic' in df:
                 # turn the 'syllabic' column into the typical dashs
@@ -383,16 +416,16 @@ class _MSCX_bs4:
             else:
                 lyrics_col = pd.Series(np.nan, index=df.index)
             df.loc[:, 'lyrics'] = lyrics_col
-        if articulation:
+        if params['articulation']:
             main_cols.append('articulation')
-        if dynamics:
+        if params['dynamics']:
             main_cols.append('dynamics')
         for col in main_cols:
             if not col in df.columns:
                 df[col] = np.nan
         additional_cols = []
-        if spanners:
-            spanner_ids = make_spanner_cols(df)
+        if params['spanners']:
+            spanner_ids = make_spanner_cols(df, logger=self.logger)
             if len(spanner_ids.columns) > 0:
                 additional_cols.extend(spanner_ids.columns.to_list())
                 df = pd.concat([df, spanner_ids], axis=1)
@@ -851,6 +884,7 @@ def get_duration_event(elements):
     return (None, None)
 
 
+@function_logger
 def make_spanner_cols(df, spanner_types=None):
     """ From a raw chord list as returned by ``get_chords(spanners=True)``
         create a DataFrame with Spanner IDs for all chords for all spanner
@@ -920,7 +954,7 @@ def make_spanner_cols(df, spanner_types=None):
             val = ', '.join(str(i) for i in staff_stacks[layer].values())
             if prv_m != '' or prv_f != '':
                 if len(staff_stacks[layer]) == 0 or (prv_m, prv_f) not in staff_stacks[layer]:
-                    print(f"Spanner ending (type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype }) could not be matched with a beginning.")
+                    logger.warning(f"Spanner ending (type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype }) could not be matched with a beginning at id {current_id}.")
                     return 'err'
                 del(staff_stacks[layer][(prv_m, prv_f)])
             return val if val != '' else np.nan
