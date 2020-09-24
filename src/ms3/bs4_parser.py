@@ -41,6 +41,7 @@ class _MSCX_bs4:
 
     def __init__(self, mscx_src, read_only=False, logger_name='_MSCX_bs4', level=None):
         self.logger = get_logger(logger_name, level=level)
+        self.soup = None
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
         self.read_only = read_only
@@ -52,8 +53,15 @@ class _MSCX_bs4:
         cols = ['mc', 'onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
 
+        self.parse_measures()
 
-        with open(mscx_src, 'r') as file:
+
+
+    def parse_mscx(self):
+
+        assert self.mscx_src is not None, "No MSCX file specified." \
+                                          ""
+        with open(self.mscx_src, 'r') as file:
             self.soup = bs4.BeautifulSoup(file.read(), 'xml')
 
         if self.version[0] != '3':
@@ -69,11 +77,12 @@ class _MSCX_bs4:
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
                 self.measure_nodes[staff_id][mc] = measure
 
-        self.parse_measures()
 
     def parse_measures(self):
         """ Converts the score into the three DataFrame self._measures, self._events, and self._notes
         """
+        if self.soup is None:
+            self.parse_mscx()
         grace_tags = ['grace4', 'grace4after', 'grace8', 'grace8after', 'grace16', 'grace16after', 'grace32',
                       'grace32after', 'grace64', 'grace64after', 'appoggiatura', 'acciaccatura']
 
@@ -590,7 +599,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
     def make_writeable(self):
         if self.read_only:
             self.read_only = False
-            prev_level = self.logger.level
+            prev_level = self.logger.getEffectiveLevel()
             self.logger.setLevel(logging.CRITICAL)
             # This is an automatic re-parse which does not have to be logged again
             self.parse_measures()
@@ -810,6 +819,13 @@ and {loc_after} before the subsequent {nxt_name}.""")
             within.append(tag)
 
         return tag
+
+
+    def __getstate__(self):
+        self.soup = None
+        self.tags, self.measure_nodes = {}, {}
+        self.read_only = True
+        return self.__dict__
 
 
 
@@ -1050,7 +1066,8 @@ def make_oneliner(node):
         else:
             result += str(c).replace('"', '&quot;')\
                             .replace('<', '&lt;')\
-                            .replace('>', '&gt;')
+                            .replace('>', '&gt;')\
+                            .replace('&', '&amp;')
     result += closing_tag(node.name)
     return result
 

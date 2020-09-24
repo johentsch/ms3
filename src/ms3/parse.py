@@ -1,6 +1,6 @@
 import os
 import traceback
-import multiprocessing
+import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
 
 import pandas as pd
@@ -68,8 +68,10 @@ Load one of the identically named files with a different key using add_dir(key='
         self.logger = get_logger(f"{fname}")
         self.logger.debug(f"Attempting to parse {file}")
         try:
-            self._parsed[(key, ix)] = Score(path, read_only=read_only, level=level)
+            score = Score(path, read_only=read_only, level=level)
+            self._parsed[(key, ix)] = score
             self.logger.info(f"Done parsing {file}")
+            return score
         except (KeyboardInterrupt, SystemExit):
             raise
         except:
@@ -82,13 +84,15 @@ Load one of the identically named files with a different key using add_dir(key='
         keys = self._treat_key_param(keys)
         parse_this = [(key, ix, path, read_only, level) for key in keys for ix, path in enumerate(self.full_paths[key]) if path.endswith('.mscx')]
         if parallel:
-            pool = multiprocessing.Pool(multiprocessing.cpu_count())
-            pool.starmap(self._parse, parse_this)
+            pool = mp.Pool(mp.cpu_count())
+            res = pool.starmap(self._parse, parse_this)
             pool.close()
             pool.join()
+            indices = [t[:2] for t in parse_this]
+            self._parsed.update({i: score for i, score in zip(indices, res)})
         else:
             for params in parse_this:
-                self._parse(*params)
+                self._parsed[params[:2]] = self._parse(*params)
 
 
     def _treat_key_param(self, keys):

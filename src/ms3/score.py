@@ -305,7 +305,7 @@ class MSCX:
     ----------
     mscx_src : :obj:`str`
         MuseScore 3 file to parse.
-    parsed : :obj:`_MSCX_bs4`
+    _parsed : :obj:`_MSCX_bs4`
         Holds the MSCX score parsed by the selected parser.
     parser : :obj:`str`, optional
         Which XML parser to use.
@@ -329,34 +329,49 @@ class MSCX:
         self._annotations = None
         if parser is not None:
             self.parser = parser
-        self.parsed = None
+        self._parsed = None
         self.changed = False
+        self.output_mscx = None
+        self.get_chords = None
+        self.get_harmonies = None
+        self.get_metadata = None
+        self.has_annotations = None
 
+        if self.mscx_src is not None:
+            self.parse_mscx()
+
+
+    def parse_mscx(self, mscx_src=None):
+        if mscx_src is not None:
+            self.mscx_src = mscx_src
+        assert self.mscx_src is not None, "No path specified for parsing MSCX."
         assert os.path.isfile(self.mscx_src), f"{self.mscx_src} does not exist."
 
         implemented_parsers = ['bs4']
         if self.parser == 'bs4':
-            self.parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_name=self.logger.name)
+            self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_name=self.logger.name)
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
-        self.output_mscx = self.parsed.output_mscx
-        self.get_chords = self.parsed.get_chords
-        self.get_harmonies = self.parsed.get_annotations
-        self.get_metadata = self.parsed.get_metadata
-        self.has_annotations = self.parsed.has_annotations
-        if self.parsed.has_annotations:
-            self._annotations = Annotations(df=self.parsed.get_annotations(), logger_name=self.logger.name)
+        self.output_mscx = self._parsed.output_mscx
+        self.get_chords = self._parsed.get_chords
+        self.get_harmonies = self._parsed.get_annotations
+        self.get_metadata = self._parsed.get_metadata
+        self.has_annotations = self._parsed.has_annotations
+
+        if self._parsed.has_annotations:
+            self._annotations = Annotations(df=self._parsed.get_annotations(), logger_name=self.logger.name)
+
 
     def delete_labels(self, df):
-        changed = pd.Series([self.parsed.delete_label(mc, staff, voice, onset)
+        changed = pd.Series([self._parsed.delete_label(mc, staff, voice, onset)
                                for mc, staff, voice, onset
                                in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)],
                             index=df.index)
         changes = changed.sum()
         if changes > 0:
             self.changed = True
-            self.parsed.parse_measures()
+            self._parsed.parse_measures()
             target = len(df)
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
@@ -416,7 +431,7 @@ class MSCX:
         self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
         tups = tuple(df[columns].itertuples(index=False, name=None))
         params = [{a: b for a, b in zip(parameters, t)} for t in tups]
-        res = [self.parsed.add_label(**p) for p in params]
+        res = [self._parsed.add_label(**p) for p in params]
         changes = sum(res)
         # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
         #               for t
@@ -424,37 +439,48 @@ class MSCX:
         #               )
         if changes > 0:
             self.changed = True
-            self.parsed.parse_measures()
-            self._annotations = Annotations(df=self.parsed.get_annotations(), logger_name=self.logger.name)
+            self._parsed.parse_measures()
+            self._annotations = Annotations(df=self._parsed.get_annotations(), logger_name=self.logger.name)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
 
 
     @property
+    def parsed(self):
+        if self._parsed is None:
+            self.logger.error("Score has not been parsed yet.")
+            return None
+        return self._parsed
+
+    @property
     def measures(self):
-        return self.parsed.measures
+        return self._parsed.measures
 
     @property
     def events(self):
-        return self.parsed._events
+        return self._parsed._events
 
     @property
     def chords(self):
-        return self.parsed.chords
+        return self._parsed.chords
 
     @property
     def notes(self):
-        return self.parsed.notes
+        return self._parsed.notes
 
     @property
     def rests(self):
-        return self.parsed.rests
+        return self._parsed.rests
 
     @property
     def notes_and_rests(self):
-        return self.parsed.notes_and_rests
+        return self._parsed.notes_and_rests
 
     @property
     def version(self):
         """MuseScore version with which the file was created (read-only)."""
-        return self.parsed.version
+        return self._parsed.version
 
+    def __getstate__(self):
+        # for key in ['_parsed', 'output_mscx', 'get_chords', 'get_harmonies', 'get_metadata', 'has_annotations']:
+        #     self.__dict__[key] = None
+        return self.__dict__
