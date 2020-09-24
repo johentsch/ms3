@@ -48,6 +48,32 @@ def fifths2acc(fifths):
     return abs(fifths // 7) * 'b' if fifths < 0 else fifths // 7 * '#'
 
 
+
+def fifths2iv(fifths):
+    """ Return interval name of a stack of fifths such that
+       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc.
+       Uses: map2elements()
+    """
+    if pd.isnull(fifths):
+        return fifths
+    if isinstance(fifths, Iterable):
+        return map2elements(fifths, fifths2iv)
+    interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
+                          -1: ['D', 'D', 'D', 'm', 'm', 'm', 'm']}
+    fifths += 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
+    pos = fifths % 7
+    int_num = [4, 1, 5, 2, 6, 3, 7][pos]
+    qual_region = fifths // 7
+    if qual_region in interval_qualities:
+        int_qual = interval_qualities[qual_region][pos]
+    elif qual_region < 0:
+        int_qual = (abs(qual_region) - 1) * 'D'
+    else:
+        int_qual = qual_region * 'A'
+    return int_qual + str(int_num)
+
+
+
 def fifths2name(fifths, midi=None, ms=False):
     """ Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc.
@@ -80,6 +106,7 @@ def fifths2name(fifths, midi=None, ms=False):
     return name
 
 
+
 def fifths2pc(fifths):
     """ Turn a stack of fifths into a chromatic pitch class.
         Uses: map2elements()
@@ -94,6 +121,47 @@ def fifths2pc(fifths):
     return int(7 * fifths % 12)
 
 
+
+def fifths2rn(fifths, minor=False, auto_key=False):
+    """Return Roman numeral of a stack of fifths such that
+       0 = I, -1 = IV, 1 = V, -2 = bVII in major, VII in minor, etc.
+       Uses: map2elements(), is_minor_mode()
+
+    Parameters
+    ----------
+    auto_key : :obj:`bool`, optional
+        By default, the returned Roman numerals are uppercase. Pass True to pass upper-
+        or lowercase according to the position in the scale.
+    """
+    if pd.isnull(fifths):
+        return fifths
+    if isinstance(fifths, Iterable):
+        return map2elements(fifths, fifths2rn, minor=minor)
+    rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
+    sel = fifths + 3 if minor else fifths
+    res = fifths2str(sel, rn)
+    if auto_key and is_minor_mode(fifths, minor):
+        return res.lower()
+    return res
+
+
+
+def fifths2sd(fifths, minor=False):
+    """Return scale degree of a stack of fifths such that
+       0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
+       Uses: map2elements(), fifths2str()
+    """
+    if pd.isnull(fifths):
+        return fifths
+    if isinstance(fifths, Iterable):
+        return map2elements(fifths, fifths2sd, minor=minor)
+    sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
+    if minor:
+        fifths += 3
+    return fifths2str(fifths, sd)
+
+
+
 def fifths2str(fifths, steps, inverted=False):
     """ Boiler plate used by fifths2-functions.
     """
@@ -102,6 +170,14 @@ def fifths2str(fifths, steps, inverted=False):
     if inverted:
         return steps[fifths % 7] + acc
     return acc + steps[fifths % 7]
+
+
+def is_minor_mode(fifths, minor=False):
+    """ Returns True if the scale degree `fifths` naturally has a minor third in the scale.
+    """
+    thirds = [-4, -3, -2, -1, 0, 1, 2] if minor else [3, 4, 5, -1, 0, 1, 2]
+    third = thirds[(fifths + 1) % 7] - fifths
+    return third == -3
 
 
 def iterable2str(iterable):
@@ -222,6 +298,7 @@ def map2elements(e, f, *args, **kwargs):
     return f(e, *args, **kwargs)
 
 
+@function_logger
 def midi2octave(midi, fifths=None):
     """ For a given MIDI pitch, calculate the octave. Middle octave = 4
         Uses: fifths2pc(), map2elements()
@@ -244,7 +321,7 @@ def midi2octave(midi, fifths=None):
     if fifths is not None:
         pc = fifths2pc(fifths)
         if midi % 12 != pc:
-            logging.debug(f"midi2octave(): The Tonal Pitch Class {fifths} cannot be MIDI pitch {midi} ")
+            logger.debug(f"midi2octave(): The Tonal Pitch Class {fifths} cannot be MIDI pitch {midi} ")
         if fifths in [
             12,  # B#
             19,  # B##
@@ -260,6 +337,20 @@ def midi2octave(midi, fifths=None):
         ]:
             i += 1
     return midi // 12 + i
+
+
+@function_logger
+def name2tpc(nn):
+    """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
+        Uses: split_note_name()
+    """
+    if nn.__class__ == int or pd.isnull(nn):
+        return nn
+    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': -1, 'G': 1, 'A': 3, 'B': 5}
+    accidentals, note_name = split_note_name(nn, count=True, logger=logger)
+    step_tpc = name_tpcs[note_name.upper()]
+    return step_tpc + 7 * accidentals
+
 
 
 def ordinal_suffix(n):
@@ -308,6 +399,52 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
             files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
             res.extend(files)
     return res
+
+
+
+def sort_tpcs(tpcs, ascending=True, start=None):
+    """ Sort tonal pitch classes by order on the piano.
+        Uses: fifths2pc()
+
+    Parameters
+    ----------
+    tpcs : collection of :obj:`int`
+        Tonal pitch classes to sort.
+    ascending : :obj:`bool`, optional
+        Pass False to sort by descending order.
+    start : :obj:`int`, optional
+        Start on or above this TPC.
+    """
+    res = sorted(tpcs, key=lambda x: (fifths2pc(x), -x))
+    if start is not None:
+        pcs = [fifths2pc(tpc) for tpc in res]
+        start = fifths2pc(start)
+        i = 0
+        while i < len(pcs) - 1 and pcs[i] < start:
+            i += 1
+        res = res[i:] + res[:i]
+    return res if ascending else list(reversed(res))
+
+
+
+@function_logger
+def split_note_name(nn, count=False):
+    """ Splits a note name such as 'Ab' into accidentals and name.
+
+    nn : :obj:`str`
+        Note name.
+    count : :obj:`bool`, optional
+        Pass True to get the accidentals as integer rather than as string.
+    """
+    m = re.match("^([A-G]|[a-g])(#*|b*)$", str(nn))
+    if m is None:
+        logger.error(nn + " is not a valid scale degree.")
+        return None, None
+    note_name, accidentals = m.group(1), m.group(2)
+    if count:
+        accidentals = accidentals.count('#') - accidentals.count('b')
+    return accidentals, note_name
+
 
 
 @function_logger
@@ -365,7 +502,7 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     else:
         if df.__class__ == pd.core.series.Series:
             if param2col is not None:
-                logging.warning("When 'df' is a Series, the parameter 'param2col' has no use.")
+                logger.warning("When 'df' is a Series, the parameter 'param2col' has no use.")
             param_tuples = df.values
             result_dict = {t: func(t, **kwargs) for t in set(param_tuples)}
         else:

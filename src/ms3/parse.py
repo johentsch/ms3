@@ -1,6 +1,6 @@
 import os
 import traceback
-import pathos.multiprocessing as mp
+import multiprocessing as mp
 from collections import Counter, defaultdict
 
 import pandas as pd
@@ -15,7 +15,8 @@ class Parse:
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
-        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists, self._eventlists, self._labellists, self._chordlists = {}, {}, {}, {}, {}, {}, {}, {}
+        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists = {}, {}, {}, {}, {}
+        self._eventlists, self._labellists, self._chordlists, self._expandedlists = {}, {}, {}, {}
         self._lists = {
             'notes': self._notelists,
             'rests': self._restlists,
@@ -24,6 +25,7 @@ class Parse:
             'events': self._eventlists,
             'labels': self._labellists,
             'chords': self._chordlists,
+            'expanded': self._expandedlists,
         }
         self.matches = pd.DataFrame()
         self.last_scanned_dir = dir
@@ -116,12 +118,12 @@ Load one of the identically named files with a different key using add_dir(key='
             keys = [keys]
         return keys
 
-    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False, labels=False, chords=False):
+    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False, labels=False, chords=False, expanded=False):
         if len(self._parsed) == 0:
             self.logger.error("No scores have been parsed. Use parse_mscx()")
             return
         keys = self._treat_key_param(keys)
-        scores = {k: score for k, score in self._parsed.items() if k[0] in keys}
+        scores = {ix: score for ix, score in self._parsed.items() if ix[0] in keys}
         ix = list(scores.keys())
         bool_params = list(self._lists.keys())
         l = locals()
@@ -134,6 +136,8 @@ Load one of the identically named files with a different key using add_dir(key='
                     if i not in li:
                         li[i] = score.mscx.__getattribute__(param)
                     res[i + (param,)] = li[i]
+        if expanded:
+            res.update(self.expand_labels())
         return res
 
 
@@ -144,10 +148,11 @@ Load one of the identically named files with a different key using add_dir(key='
                                                     events_folder=None, events_suffix='',
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
+                                                    expanded_folder=None, expanded_suffix='',
                                                     simulate=False):
         keys = self._treat_key_param(keys)
         l = locals()
-        list_types = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords']
+        list_types = list(self._lists)
         folder_vars = [t + '_folder' for t in list_types]
         suffix_vars = [t + '_suffix' for t in list_types]
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
@@ -207,8 +212,16 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-
-
+    def expand_labels(self, keys=None, how='dcml'):
+        keys = self._treat_key_param(keys)
+        scores = {ix: score for ix, score in self._parsed.items() if ix[0] in keys}
+        res = {}
+        for ix, score in scores.items():
+            if score.mscx._annotations is not None:
+                exp = score.annotations.expanded
+                self._expandedlists[ix] = exp
+                res[ix + ('expanded',)] = exp
+        return res
 
 
     @property
@@ -256,7 +269,11 @@ def group_index_tuples(l):
 @function_logger
 def no_collections_no_booleans(df):
     collection_cols = ['next', 'chord_tones', 'added_tones']
-    cc = [c for c in collection_cols if c in df.columns]
+    try:
+        cc = [c for c in collection_cols if c in df.columns]
+    except:
+        print(f"df: {df}, class: {df.__class__}")
+        raise
     if len(cc) > 0:
         df = df.copy()
         df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True, logger=logger)

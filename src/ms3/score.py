@@ -483,6 +483,10 @@ class MSCX:
         return self._parsed.notes_and_rests
 
     @property
+    def expanded(self):
+        return self._annotations.expanded
+
+    @property
     def version(self):
         """MuseScore version with which the file was created (read-only)."""
         return self._parsed.version

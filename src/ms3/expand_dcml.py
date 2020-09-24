@@ -1,28 +1,14 @@
-""" This is the same code as in the mozart_piano_sonatas repo with the difference
-that here, all functions are part of the same class for a better logging facility.
+""" This is the same code as in the corpora repo as copied on September 24, 2020
+and then adapted.
 """
-
-################################################################################
-# Internal libraries
-################################################################################
-import argparse, os, re, sys, logging
-from collections.abc import Iterable
+import re, logging
 from inspect import getfullargspec
-from fractions import Fraction as frac
 
-
-
-################################################################################
-# External libraries
-################################################################################
 import pandas as pd
 import numpy as np
 
+from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, name2tpc, transform
 
-################################################################################
-# Helpers
-################################################################################
-from feature_matrices import name2tpc, transform
 
 ################################################################################
 # Constants
@@ -47,9 +33,6 @@ SM = SliceMaker()
 
 
 
-
-
-
 def changes2list(changes, sort=True):
     """Splits a string of changes into a list of 4-tuples.
 
@@ -64,131 +47,6 @@ def changes2list(changes, sort=True):
 
 
 
-
-
-
-
-def fifths2iv(fifths):
-    """ Return interval name of a stack of fifths such that
-       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc.
-    """
-    if pd.isnull(fifths):
-        return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2iv)
-    interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
-                   -1:['D', 'D', 'D', 'm', 'm', 'm', 'm']}
-    fifths += 1       # making 0 = fourth, 1 = unison, 2 = fifth etc.
-    pos = fifths % 7
-    int_num = [4, 1, 5, 2, 6, 3, 7][pos]
-    qual_region = fifths // 7
-    if qual_region in interval_qualities:
-        int_qual = interval_qualities[qual_region][pos]
-    elif qual_region < 0:
-        int_qual = (abs(qual_region) - 1) * 'D'
-    else:
-        int_qual = qual_region * 'A'
-    return int_qual + str(int_num)
-
-
-
-def fifths2acc(fifths):
-    """ Returns accidentals for a stack of fifths that can be combined with a
-        basic representation of the seven steps."""
-    return abs(fifths // 7) * 'b' if fifths < 0 else fifths // 7 * '#'
-
-
-
-def fifths2name(fifths):
-    """ Return note name of a stack of fifths such that
-       0 = C, -1 = F, -2 = Bb, 1 = G etc.
-    """
-    if pd.isnull(fifths):
-        return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2name)
-    note_names = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
-    return fifths2str(fifths, note_names)
-
-
-
-def fifths2pc(fifths):
-    """Turn a stack of fifths into a chromatic pitch class"""
-    if pd.isnull(fifths):
-        return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2pc)
-    return 7 * fifths % 12
-
-
-def is_minor_mode(fifths, minor=False):
-    """ Returns True if the TPC `fifths` naturally has a minor third in the scale.
-    """
-    thirds = [-4, -3, -2, -1, 0, 1, 2] if minor else [3, 4, 5, -1, 0, 1, 2]
-    third = thirds[(fifths + 1) % 7] - fifths
-    return third == -3
-
-
-def fifths2rn(fifths, minor=False, auto_key=False):
-    """Return Roman numeral of a stack of fifths such that
-       0 = I, -1 = IV, 1 = V, -2 = bVII in major, VII in minor, etc.
-
-    Parameters
-    ----------
-    auto_key : :obj:`bool`, optional
-        By default, the returned Roman numerals are uppercase. Pass True to pass upper-
-        or lowercase according to the position in the scale.
-    """
-    if pd.isnull(fifths):
-        return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2rn, minor=minor)
-    rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
-    sel = fifths + 3 if minor else fifths
-    res = fifths2str(sel, rn)
-    if auto_key and is_minor_mode(fifths, minor):
-        return res.lower()
-    return res
-
-
-
-def fifths2sd(fifths, minor=False):
-    """Return scale degree of a stack of fifths such that
-       0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
-    """
-    if pd.isnull(fifths):
-        return fifths
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2sd, minor=minor)
-    sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
-    if minor:
-        fifths += 3
-    return fifths2str(fifths, sd)
-
-
-
-def fifths2str(fifths, steps):
-    """ Boiler plate used by fifths2-functions.
-    """
-    fifths += 1
-    acc = fifths2acc(fifths)
-    return acc + steps[fifths % 7]
-
-
-
-
-
-
-
-def map2elements(e, f, *args, **kwargs):
-    """ If `e` is an iterable, `f` is applied to all elements.
-    """
-    if isinstance(e, Iterable):
-        return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
-    return f(e, *args, **kwargs)
-
-
-
 def merge_changes(left, right, *args):
     """ Merge to `changes` into one, e.g. `b3` and `+#7` to `+#7b3`.
         Uses: changes2list()
@@ -200,51 +58,10 @@ def merge_changes(left, right, *args):
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def series_is_minor(S, is_name=True):
     # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
     # return S.str.replace(regex, lambda m: m.group(1)).str.islower()
     return S.str.islower() # as soon as one character is not lowercase, it should be major
-
-
-
-def sort_tpcs(tpcs, ascending=True, start=None):
-    """ Sort tonal pitch classes by order on the piano.
-        Uses: fifths2pc()
-
-    Parameters
-    ----------
-    tpcs : collection of :obj:`int`
-        Tonal pitch classes to sort.
-    ascending : :obj:`bool`, optional
-        Pass False to sort by descending order.
-    start : :obj:`int`, optional
-        Start on or above this TPC.
-    """
-    res = sorted(tpcs, key=lambda x: (fifths2pc(x),-x))
-    if start is not None:
-        pcs = [fifths2pc(tpc) for tpc in res]
-        start = fifths2pc(start)
-        i = 0
-        while i < len(pcs) - 1 and pcs[i] < start:
-            i += 1
-        res = res[i:] + res[:i]
-    return res if ascending else list(reversed(res))
-
 
 
 
@@ -323,7 +140,7 @@ def transpose(e, n):
 
 class expand_labels():
 
-    def __init__(self, df, column, regex, groupby={'level': 0, 'group_keys': False}, cols={}, dropna=False, propagate=True, relative_to_global=False, chord_tones=False, absolute=False, all_in_c=False, logger_name=None):
+    def __init__(self, df, column, regex, groupby={'level': 0, 'group_keys': False}, cols={}, dropna=False, propagate=True, relative_to_global=False, chord_tones=False, absolute=False, all_in_c=False, logger_name='expand_labels'):
         """ Split harmony labels complying with the DCML syntax into columns holding their various features
             and allows for additional computations and transformations.
             Uses: split_labels(), replace_special(), propagate_keys(), propagate_pedal(),

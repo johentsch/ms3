@@ -67,7 +67,7 @@ class Annotations:
     def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', infer_types={}, logger_name='Annotations', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         self.regex_dict = infer_types
-        self.expanded = None
+        self._expanded = None
         if df is not None:
             self.df = df.copy()
         else:
@@ -124,7 +124,7 @@ class Annotations:
             sel = sel & (self.df.label_type == label_type)
             # if the column contains strings and NaN:
             # (pd.to_numeric(self.df['label_type']).astype('Int64') == label_type).fillna(False)
-        res = self.df[sel].copy
+        res = self.df[sel].copy()
         if not positioning:
             pos_cols = [c for c in ['offset', 'offset:x', 'offset:y'] if c in res.columns]
             res.drop(columns=pos_cols, inplace=True)
@@ -145,7 +145,15 @@ class Annotations:
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
         df = self.df[sel]
         exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
-        self.expanded = exp.df
+        self._expanded = exp.df
+        return self._expanded
+
+
+    @property
+    def expanded(self):
+        if self._expanded is None:
+            return self.expand_dcml()
+        return self._expanded
 
 
 
