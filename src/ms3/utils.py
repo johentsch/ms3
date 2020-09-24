@@ -5,6 +5,8 @@ from fractions import Fraction as frac
 import pandas as pd
 import numpy as np
 
+from .logger import function_logger
+
 
 def decode_harmonies(df, return_series=False):
     df = df.copy()
@@ -100,6 +102,10 @@ def fifths2str(fifths, steps, inverted=False):
     if inverted:
         return steps[fifths % 7] + acc
     return acc + steps[fifths % 7]
+
+
+def iterable2str(iterable):
+    return ', '.join(str(s) for s in iterable)
 
 
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
@@ -302,3 +308,70 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
             files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
             res.extend(files)
     return res
+
+
+@function_logger
+def transform(df, func, param2col=None, column_wise=False, **kwargs):
+    """ Compute a function for every row of a DataFrame, using several cols as arguments.
+        The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
+        but it optimizes the procedure by precomputing `func` for all occurrent parameter combinations.
+        Uses: inspect.getfullargspec()
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame` or :obj:`pandas.Series`
+        Dataframe containing function parameters.
+    func : :obj:`callable`
+        The result of this function for every row will be returned.
+    param2col : :obj:`dict` or :obj:`list`, optional
+        Mapping from parameter names of `func` to column names.
+        If you pass a list of column names, the columns' values are passed as positional arguments.
+        Pass None if you want to use all columns as positional arguments.
+    column_wise : :obj:`bool`, optional
+        Pass True if you want to map `func` to the elements of every column separately.
+        This is simply an optimized version of df.apply(func) but allows for naming
+        columns to use as function arguments. If param2col is None, `func` is mapped
+        to the elements of all columns, otherwise to all columns that are not named
+        as parameters in `param2col`.
+        In the case where `func` does not require a positional first element and
+        you want to pass the elements of the various columns as keyword argument,
+        give it as param2col={'function_argument': None}
+    inplace : :obj:`bool`, optional
+        Pass True if you want to mutate `df` rather than getting an altered copy.
+    **kwargs : Other parameters passed to `func`.
+    """
+    if column_wise:
+        if not df.__class__ == pd.core.series.Series:
+            if param2col is None:
+                return df.apply(transform, args=(func,), **kwargs)
+            if param2col.__class__ == dict:
+                var_arg = [k for k, v in param2col.items() if v is None]
+                apply_cols = [col for col in df.columns if not col in param2col.values()]
+                assert len(
+                    var_arg) < 2, f"Name only one variable keyword argument as which {apply_cols} are used {'argument': None}."
+                var_arg = var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
+                param2col = {k: v for k, v in param2col.items() if v is not None}
+                result_cols = {col: transform(df, func, {**{var_arg: col}, **param2col}, **kwargs) for col in
+                               apply_cols}
+                param2col = param2col.values()
+            else:
+                apply_cols = [col for col in df.columns if not col in param2col]
+                result_cols = {col: transform(df, func, [col] + param2col, **kwargs) for col in apply_cols}
+            return pd.DataFrame(result_cols, index=df.index)
+
+    if param2col.__class__ == dict:
+        param_tuples = list(df[param2col.values()].itertuples(index=False, name=None))
+        result_dict = {t: func(**{a: b for a, b in zip(param2col.keys(), t)}, **kwargs) for t in set(param_tuples)}
+    else:
+        if df.__class__ == pd.core.series.Series:
+            if param2col is not None:
+                logging.warning("When 'df' is a Series, the parameter 'param2col' has no use.")
+            param_tuples = df.values
+            result_dict = {t: func(t, **kwargs) for t in set(param_tuples)}
+        else:
+            if param2col is None:
+                param_tuples = list(df.itertuples(index=False, name=None))
+            else:
+                param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
+            result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
+    return pd.Series([result_dict[t] for t in param_tuples], index=df.index)

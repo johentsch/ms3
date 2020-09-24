@@ -5,17 +5,24 @@ from collections import Counter, defaultdict
 
 import pandas as pd
 
-from .logger import get_logger
+from .logger import get_logger, function_logger
 from .score import Score
-from .utils import scan_directory
+from .utils import iterable2str, scan_directory, transform
 
 class Parse:
 
     def __init__(self, dir=None, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         self.logger = get_logger(logger_name, level)
-        self.full_paths, self.rel_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
-            list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
-        self._parsed, self._notelists, self._measurelists, self._eventlists = {}, {}, {}, {}
+        self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
+            list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
+        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists, self._eventlists = {}, {}, {}, {}, {}, {}
+        self._lists = {
+            'notes': self._notelists,
+            'rests': self._restlists,
+            'notes_and_rests': self._noterestlists,
+            'measures': self._measurelists,
+            'events': self._eventlists,
+        }
         self.matches = pd.DataFrame()
         self.last_scanned_dir = dir
         if dir is not None:
@@ -47,6 +54,7 @@ class Parse:
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
                 return (None, None)
 
+            self.scan_paths[key].append(self.last_scanned_dir)
             self.rel_paths[key].append(rel_path)
             self.full_paths[key].append(full_path)
             self.paths[key].append(file_path)
@@ -76,11 +84,12 @@ Load one of the identically named files with a different key using add_dir(key='
             raise
         except:
             self.logger.exception(traceback.format_exc())
+            return None
         finally:
             self.logger = get_logger(prev_logger)
 
 
-    def parse_mscx(self, keys=None, read_only=False, level=None, parallel=True):
+    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True):
         keys = self._treat_key_param(keys)
         parse_this = [(key, ix, path, read_only, level) for key in keys for ix, path in enumerate(self.full_paths[key]) if path.endswith('.mscx')]
         if parallel:
@@ -102,20 +111,85 @@ Load one of the identically named files with a different key using add_dir(key='
             keys = [keys]
         return keys
 
-    def get_lists(self, keys=None, notes=False, measures=False, events=False, labels=False, chords=False):
+    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False, labels=False, chords=False):
         if len(self._parsed) == 0:
             self.logger.error("No scores have been parsed. Use parse_mscx()")
-            return []
+            return
         keys = self._treat_key_param(keys)
-        scores = [k for k in self._parsed.keys() if k[0] in keys]
-        for ix in scores:
-            score = self._parsed[ix]
-            if notes:
-                self._notelists[ix] = score.mscx.notes
-            if measures:
-                self._measurelists[ix] = score.mscx.measures
-            if events:
-                self._eventlists[ix] = score.mscx.events
+        scores = {k: score for k, score in self._parsed.items() if k[0] in keys}
+        ix = list(scores.keys())
+        bool_params = list(self._lists.keys())
+        l = locals()
+        params = {p: l[p] for p in bool_params}
+
+        res = {}
+        for i, score in scores.items():
+            for param, li in self._lists.items():
+                if params[param]:
+                    if i not in li:
+                        li[i] = score.mscx.__getattribute__(param)
+                    res[i + (param,)] = li[i]
+        return res
+
+
+    def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='', rests_folder=None, rests_suffix='',
+                    notes_and_rests_folder=None, notes_and_rests_suffix='', measures_folder=None, measures_suffix='',
+                    events_folder=None, events_suffix='', simulate=False):
+        keys = self._treat_key_param(keys)
+        l = locals()
+        list_types = ['notes', 'rests', 'notes_and_rests', 'measures', 'events']
+        folder_vars = [t + '_folder' for t in list_types]
+        suffix_vars = [t + '_suffix' for t in list_types]
+        folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
+        suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
+        list_params = {p: True for p in folder_params.keys()}
+        lists = self.get_lists(keys, **list_params)
+        paths = []
+        for (key, ix, what), li in lists.items():
+            paths.append(self._store(df=li, key=key, ix=ix, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate))
+        return paths
+
+
+    def _store(self, df, key, ix, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
+        """
+
+        Parameters
+        ----------
+        df
+        key
+        ix
+        folder
+        suffix
+        root_dir : :obj:`str`
+        what
+        simulate
+
+        Returns
+        -------
+
+        """
+        if os.path.isabs(folder):
+            path = folder
+        else:
+            root = os.path.abspath(self.scan_paths[key][ix]) if root_dir is None else os.path.abspath(root_dir)
+            if folder[0] == '.':
+                path = os.path.abspath(os.path.join(root, self.rel_paths[key][ix], folder))
+            else:
+                path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][ix]))
+            if path[:len(root)] != root:
+                self.logger.error(f"Not allowed to store files above the root {root}.\nErroneous path: {path}")
+                return None
+
+
+        fname = self.fnames[key][ix] + suffix + '.tsv'
+        file_path = os.path.join(path, fname)
+        if simulate:
+            self.logger.debug(f"Would have written {what} to {file_path}.")
+        else:
+            os.makedirs(path, exist_ok=True)
+            no_tuples(df).to_csv(file_path, sep='\t', index=False, logger=self.logger)
+            self.logger.debug(f"{what} written to {file_path}.")
+        return file_path
 
 
 
@@ -163,6 +237,17 @@ def group_index_tuples(l):
         if k is not None:
             d[k].append(i)
     return dict(d)
+
+
+@function_logger
+def no_tuples(df):
+    in_question = ['next', 'chord_tones', 'added_tones']
+    cols = [c for c in in_question if c in df.columns]
+    if len(cols) > 0:
+        df = df.copy()
+        df.loc[:, cols] = transform(df[cols], iterable2str, column_wise=True, logger=logger)
+        logger.debug(f"Transformed iterables in the columns {cols} to strings.")
+    return df
 
 
 def pretty_extensions(key2ext):

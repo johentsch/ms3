@@ -51,7 +51,8 @@ class _MSCX_bs4:
         self.has_annotations = False
         self._ml = None
         cols = ['mc', 'onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
-        self._nl, self._cl, self._rl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
+        self._nl, self._cl, self._rl, self._nrl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(
+            columns=cols), pd.DataFrame(columns=cols)
 
         self.parse_measures()
 
@@ -189,6 +190,8 @@ class _MSCX_bs4:
                      'pitch']
         self._measures = sort_cols(pd.DataFrame(measure_list), col_order)
         self._events = sort_cols(pd.DataFrame(event_list), col_order)
+        if 'chord_id' in self._events.columns:
+            self._events.chord_id = self._events.chord_id.astype('Int64')
         self._notes = sort_cols(pd.DataFrame(note_list), col_order)
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
@@ -265,8 +268,10 @@ class _MSCX_bs4:
     @property
     def notes_and_rests(self):
         """Get a combination of properties `notes` and `rests`"""
-        nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
-        return sort_note_list(nr.reset_index(drop=True))
+        if len(self._nrl) == 0:
+            nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
+            self._nrl = sort_note_list(nr.reset_index(drop=True))
+        return self._nrl
 
 
     def make_standard_chordlist(self):

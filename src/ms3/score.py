@@ -453,7 +453,7 @@ class MSCX:
 
     @property
     def measures(self):
-        return self._parsed.measures
+        return self._parsed.ml
 
     @property
     def events(self):
@@ -461,15 +461,15 @@ class MSCX:
 
     @property
     def chords(self):
-        return self._parsed.chords
+        return self._parsed.cl
 
     @property
     def notes(self):
-        return self._parsed.notes
+        return self._parsed.nl
 
     @property
     def rests(self):
-        return self._parsed.rests
+        return self._parsed.rl
 
     @property
     def notes_and_rests(self):
