@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3 Quick Reference &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
+    <title>Quick Reference &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -36,7 +36,7 @@
 
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="ms3 package" href="api/ms3.html" />
+    <link rel="next" title="Manual" href="manual.html" />
     <link rel="prev" title="Installing ms3" href="install.html" /> 
         <meta name="viewport" content="width=device-width, initial-scale=1">
   </head><body>
@@ -52,14 +52,14 @@
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
         <li class="right" >
-          <a href="api/ms3.html" title="ms3 package"
+          <a href="manual.html" title="Manual"
              accesskey="N">next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
     <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
 
-        <li class="nav-item nav-item-this"><a href="">ms3 Quick Reference</a></li> 
+        <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
     </div>
     </div>
@@ -70,17 +70,29 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="ms3-quick-reference">
-<h1>ms3 Quick Reference<a class="headerlink" href="#ms3-quick-reference" title="Permalink to this headline">¶</a></h1>
+  <div class="section" id="quick-reference">
+<h1>Quick Reference<a class="headerlink" href="#quick-reference" title="Permalink to this headline">¶</a></h1>
 <p>This page is a quick guide for using ms3 for different tasks. It supposes you are working in an interactive Python
 interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
 <div class="section" id="parsing-a-single-score">
 <h2>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h2>
-<p>Locate the <a class="reference external" href="https://musescore.org/en/download">MuseScore 3</a> score you want to parse and make sure it is uncompressed,
-i.e. it has the extension <code class="docutils literal notranslate"><span class="pre">.mscx</span></code> and not <code class="docutils literal notranslate"><span class="pre">.mscz</span></code>.</p>
-<div class="admonition tip">
-<p class="admonition-title">Tip</p>
-<p>MSCZ files are ZIP files containing the uncompressed MSCX. A later version of ms3 will be able to deal with MSCZ, too.</p>
+<p>The example score is called <code class="docutils literal notranslate"><span class="pre">stabat.mscx</span></code> and can be downloaded from
+<a class="reference external" href="https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx">here</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs/stabat.mscx&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
+<span class="go">    MuseScore file</span>
+<span class="go">    --------------</span>
+
+<span class="go">    ~/ms3/docs/stabat.mscx</span>
+
+<span class="go">    Attached annotations</span>
+<span class="go">    --------------------</span>
+
+<span class="go">    48 labels:</span>
+<span class="go">    staff  voice  label_type</span>
+<span class="go">    3      2      dcml          48</span>
+</pre></div>
 </div>
 </div>
 </div>
@@ -100,7 +112,8 @@ i.e. it has the extension <code class="docutils literal notranslate"><span class
 <li class="toctree-l2"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api/ms3.html">ms3 reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
@@ -113,8 +126,8 @@ i.e. it has the extension <code class="docutils literal notranslate"><span class
   </div>
   <div class="sphinxnext">
     <h4>Next page</h4>
-    <p class="topless"><a href="api/ms3.html"
-                          title="Next page">&rarr; ms3 package</a></p>
+    <p class="topless"><a href="manual.html"
+                          title="Next page">&rarr; Manual</a></p>
   </div>
   <div role="note" aria-label="source link">
     <h3>This Page</h3>
@@ -166,14 +179,14 @@ i.e. it has the extension <code class="docutils literal notranslate"><span class
           <a href="py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
         <li class="right" >
-          <a href="api/ms3.html" title="ms3 package"
+          <a href="manual.html" title="Manual"
              >next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
     <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
 
-        <li class="nav-item nav-item-this"><a href="">ms3 Quick Reference</a></li> 
+        <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
     </div>
     </div>

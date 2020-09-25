@@ -7,9 +7,12 @@ import pandas as pd
 
 from .logger import get_logger, function_logger
 from .score import Score
-from .utils import iterable2str, scan_directory, transform
+from .utils import iterable2str, resolve_dir, scan_directory, transform
 
 class Parse:
+    """
+    Class for storing and manipulating the information from multiple parses.
+    """
 
     def __init__(self, dir=None, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         self.logger = get_logger(logger_name, level)
@@ -33,7 +36,7 @@ class Parse:
             self.add_dir(dir=dir, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
     def add_dir(self, dir, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
-        self.last_scanned_dir = os.path.abspath(dir)
+        self.last_scanned_dir = resolve_dir(dir)
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         ix = [self.handle_path(p, key) for p in res]
         added = sum(True for i in ix if i[0] is not None)
@@ -46,7 +49,7 @@ class Parse:
         self.match_filenames()
 
     def handle_path(self, full_path, key=None):
-        full_path = os.path.abspath(full_path)
+        full_path = resolve_dir(full_path)
         if os.path.isfile(full_path):
             file_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
@@ -186,10 +189,11 @@ Load one of the identically named files with a different key using add_dir(key='
         """
         prev_logger = self.logger
         self.logger = get_logger(self.fnames[key][ix])
-        if os.path.isabs(folder):
+        if os.path.isabs(folder) or '~' in folder:
+            folder = resolve_dir(folder)
             path = folder
         else:
-            root = os.path.abspath(self.scan_paths[key][ix]) if root_dir is None else os.path.abspath(root_dir)
+            root = self.scan_paths[key][ix] if root_dir is None else resolve_dir(root_dir)
             if folder[0] == '.':
                 path = os.path.abspath(os.path.join(root, self.rel_paths[key][ix], folder))
             else:

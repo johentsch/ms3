@@ -55,7 +55,7 @@ clean:
 
 $(AUTODOCDIR): $(MODULEDIR)
 	mkdir -p $@
-	$(AUTODOCBUILD) -f -o $@ $^
+#	$(AUTODOCBUILD) -f -o $@ $^
 
 doc-requirements: $(AUTODOCDIR)
 

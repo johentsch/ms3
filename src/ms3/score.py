@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies
+from .utils import decode_harmonies, resolve_dir
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import get_logger
@@ -15,19 +15,21 @@ class Score:
 
     Attributes
     ----------
-    mscx_src : :obj:`str`, optional
-        Path to the MuseScore file to be parsed.
-    parser : {'bs4'}, optional
-        Which parser to use.
-    logger_name : :obj:`str`, optional
-        If you have defined a logger, pass its name.
-    level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
-        Pass a level name for which (and above which) you want to see log records.
-
+    infer_label_types : :obj:`list` or :obj:`dict`, optional
+        Changing this value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.
+    logger : :obj:`logging.Logger` or :obj:`logging.LoggerAdapter`
+        Current logger that the object is using.
+    parser : {'bs4'}
+        The only XML parser currently implemented is BeautifulSoup 4.
     paths, files, fnames, fexts, logger_names : :obj:`dict`
-        Dictionaries for keeping track of file information
+        Dictionaries for keeping track of file information handled by :py:meth:`~ms3.score.Score.handle_path`.
+    _annotations :
+    _harmony_regex :
+    _label_types :
     _mscx : :obj:`MSCX`
         After parsing, holds the `MSCX` object with the parsed score.
+    _types_to_infer
+
 
     Methods
     -------
@@ -80,7 +82,28 @@ class Score:
 
     rn_regex = r"^$"
 
-    def __init__(self, mscx_src=None, parser='bs4', infer_label_types=['dcml'], read_only=False, logger_name='Score', level=None):
+    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, logger_name='Score', level=None,
+                 parser='bs4'):
+        """
+
+        Parameters
+        ----------
+        mscx_src : :obj:`str`, optional
+            Path to the MuseScore file to be parsed.
+        infer_label_types : :obj:`list` or :obj:`dict`, optional
+            Determine which label types are determined automatically. Defaults to ['dcml'].
+            Pass ``[]`` to infer only main types 0 - 3.
+            Pass ``{'type_name': r"^(regular)(Expression)$"} to call :meth:`ms3.Score.new_type`.
+        read_only : :obj:`bool`, optional
+            Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+            of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.
+        logger_name : :obj:`str`, optional
+            If you have defined a logger, pass its name. Otherwise, the MSCX filename is used.
+        level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
+            Pass a level name for which (and above which) you want to see log records.
+        parser : {'bs4'}, optional
+            The only XML parser currently implemented is BeautifulSoup 4.
+        """
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.paths, self.files, self.fnames, self.fexts, self.logger_names = {}, {}, {}, {}, {}, {}
         self._mscx = None
@@ -102,7 +125,7 @@ class Score:
         self.infer_label_types = infer_label_types
         self.parser = parser
         if mscx_src is not None:
-            self.parse_mscx(mscx_src, read_only=read_only)
+            self._parse_mscx(mscx_src, read_only=read_only)
 
     @property
     def infer_label_types(self):
@@ -121,9 +144,12 @@ class Score:
         elif isinstance(val, dict):
             for k, v in val.items():
                 if k in self._harmony_regex:
-                    self._harmony_regex[k] = v
+                    if v is None:
+                        val[k] = self._harmony_regex[k]
+                    else:
+                        self._harmony_regex[k] = v
                 else:
-                    self.new_type(k, v)
+                    self.new_type(name=k, regex=v)
             self._types_to_infer = list(val.keys())
         after_reg = self.get_infer_regex()
         if before_inf != self._types_to_infer or before_reg != after_reg:
@@ -137,7 +163,7 @@ class Score:
 
 
     def handle_path(self, path, key=None):
-        full_path = os.path.abspath(path)
+        full_path = resolve_dir(path)
         if os.path.isfile(full_path):
             file_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
@@ -158,7 +184,12 @@ class Score:
 
 
 
-    def parse_mscx(self, mscx_src, read_only=False, parser=None, logger_name=None):
+    def _parse_mscx(self, mscx_src, read_only=False, parser=None, logger_name=None):
+        """
+        This method is called by :meth:`.__init__` to parse the score.
+        It doesn't systematically clean up data from previous parse.
+
+        """
         _ = self.handle_path(mscx_src)
         if parser is not None:
             self.parser = parser
@@ -174,12 +205,15 @@ class Score:
             self.logger.error("No .mscx file specified.")
 
     def output_mscx(self, filepath):
-        self._mscx.output_mscx(filepath)
+        return self._mscx.output_mscx(filepath)
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
         if 'annotations' not in self._annotations:
             self.logger.info("No annotations present in score.")
             return
+        assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
+        if not key.isidentifier():
+            self.logger.warning(f"'{key}' can not be used as an identifier. The extracted labels need to be accessed via self._annotations['{key}']")
         df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=delete)
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")

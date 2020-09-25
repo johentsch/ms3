@@ -1,0 +1,40 @@
+===============
+Quick Reference
+===============
+
+This page is a quick guide for using ms3 for different tasks. It supposes you are working in an interactive Python
+interpreter such as IPython, Jupyter, Google Colab, or just the console.
+
+Parsing a single score
+======================
+
+The example score is called ``stabat.mscx`` and can be downloaded from
+`here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__.
+
+.. code-block:: python
+
+    >>> from ms3 import Score
+    >>> s = Score('~/ms3/docs/stabat.mscx')
+    >>> s
+        MuseScore file
+        --------------
+
+        ~/ms3/docs/stabat.mscx
+
+        Attached annotations
+        --------------------
+
+        48 labels:
+        staff  voice  label_type
+        3      2      dcml          48
+
+
+
+
+
+
+
+
+
+
+

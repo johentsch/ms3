@@ -365,6 +365,12 @@ def ordinal_suffix(n):
     return 'th'
 
 
+def resolve_dir(dir):
+    if '~' in dir:
+        return os.path.expanduser(dir)
+    return os.path.abspath(dir)
+
+
 def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", recursive=True):
     """ Get a list of files.
 

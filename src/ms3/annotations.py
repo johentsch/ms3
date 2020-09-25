@@ -2,11 +2,14 @@ import re
 
 import pandas as pd
 
-from .utils import load_tsv, decode_harmonies
+from .utils import decode_harmonies, load_tsv, resolve_dir
 from .logger import get_logger
 from .expand_dcml import expand_labels
 
 class Annotations:
+    """
+    Class for storing, converting and manipulating annotation labels.
+    """
     dcml_double_re = re.compile(r"""
                                     ^(?P<first>
                                       (\.?
@@ -177,6 +180,6 @@ class Annotations:
 
     def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, label_type=label_type, positioning=positioning, decode=decode)
-        df.to_csv(tsv_path, sep=sep, index=index, **kwargs)
+        df.to_csv(resolve_dir(tsv_path), sep=sep, index=index, **kwargs)
         self.logger.info(f"{len(df)} labels written to {tsv_path}.")
         return True

@@ -1,0 +1,427 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Developers’ Reference &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
+    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Manual" href="manual.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="developers-reference">
+<h1>Developers’ Reference<a class="headerlink" href="#developers-reference" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-ms3.score">
+<span id="the-score-module"></span><h2>The score module<a class="headerlink" href="#module-ms3.score" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.score.Score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Score'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object representing a score.</p>
+<dl class="py attribute">
+<dt id="ms3.score.Score.infer_label_types">
+<code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#ms3.score.Score.infer_label_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changing this value results in a call to <code class="xref py py-meth docutils literal notranslate"><span class="pre">infer_types()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#list" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.logger">
+<code class="sig-name descname">logger</code><a class="headerlink" href="#ms3.score.Score.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current logger that the object is using.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/logging.html#logging.Logger" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.Logger</span></code></a> or <a class="reference external" href="https://docs.python.org/3.7/library/logging.html#logging.LoggerAdapter" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.LoggerAdapter</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.Score.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The only XML parser currently implemented is BeautifulSoup 4.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘bs4’}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">paths, files, fnames, fexts, logger_names</code></dt>
+<dd><p>Dictionaries for keeping track of file information handled by <a class="reference internal" href="#ms3.score.Score.handle_path" title="ms3.score.Score.handle_path"><code class="xref py py-meth docutils literal notranslate"><span class="pre">handle_path()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._annotations">
+<code class="sig-name descname">_annotations</code><a class="headerlink" href="#ms3.score.Score._annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._harmony_regex">
+<code class="sig-name descname">_harmony_regex</code><a class="headerlink" href="#ms3.score.Score._harmony_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._label_types">
+<code class="sig-name descname">_label_types</code><a class="headerlink" href="#ms3.score.Score._label_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._mscx">
+<code class="sig-name descname">_mscx</code><a class="headerlink" href="#ms3.score.Score._mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>After parsing, holds the <cite>MSCX</cite> object with the parsed score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._types_to_infer">
+<code class="sig-name descname">_types_to_infer</code><a class="headerlink" href="#ms3.score.Score._types_to_infer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.handle_path">
+<code class="sig-name descname">handle_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.handle_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.handle_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Puts the path into <cite>paths, files, fnames, fexts</cite> dicts with the given key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.mscx">
+<em class="property">property </em><code class="sig-name descname">mscx</code><a class="headerlink" href="#ms3.score.Score.mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the <cite>MSCX</cite> object with the parsed score.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.score.MSCX">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'MSCX'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object for interacting with the XML structure of a MuseScore 3 file.</p>
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore 3 file to parse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX._parsed">
+<code class="sig-name descname">_parsed</code><a class="headerlink" href="#ms3.score.MSCX._parsed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds the MSCX score parsed by the selected parser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.MSCX.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which XML parser to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">infer_label_types :obj:`bool`, optional</code></dt>
+<dd><p>For label_type 0 (simple string), mark which ones</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.logger_name">
+<code class="sig-name descname">logger_name</code><a class="headerlink" href="#ms3.score.MSCX.logger_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>If you have defined a logger, pass its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.level">
+<code class="sig-name descname">level</code><a class="headerlink" href="#ms3.score.MSCX.level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a level name for which (and above which) you want to see log records.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘W’, ‘D’, ‘I’, ‘E’, ‘C’, ‘WARNING’, ‘DEBUG’, ‘INFO’, ‘ERROR’, ‘CRITICAL’}, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.output_mscx">
+<code class="sig-name descname">output_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ms3.score.MSCX.output_mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the internal score representation to a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.add_labels">
+<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">label</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">onset</span><span class="o">=</span><span class="default_value">'onset'</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">'staff'</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">'voice'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.add_labels" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame with labels to be added.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>onset</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>kwargs</strong> – <dl class="simple">
+<dt>label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville</dt><dd><p>For these parameters, the standard column names are used automatically if the columns are present.
+If the column names have changed, pass them as kwargs, e.g. <code class="docutils literal notranslate"><span class="pre">base='name_of_the_base_column'</span></code></p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.version">
+<em class="property">property </em><code class="sig-name descname">version</code><a class="headerlink" href="#ms3.score.MSCX.version" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore version with which the file was created (read-only).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.annotations">
+<span id="the-annotations-module"></span><h2>The annotations module<a class="headerlink" href="#module-ms3.annotations" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.annotations.Annotations">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.annotations.</code><code class="sig-name descname">Annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tsv_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">df</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index_col</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">'\t'</span></em>, <em class="sig-param"><span class="n">infer_types</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Annotations'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for storing, converting and manipulating annotation labels.</p>
+<dl class="py method">
+<dt id="ms3.annotations.Annotations.get_labels">
+<code class="sig-name descname">get_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">drop</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.get_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.get_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of harmony tags from the parsed score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, optional) – Select harmonies from a given staff only. Pass <cite>staff=1</cite> for the upper staff.</p></li>
+<li><p><strong>label_type</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2</em><em>, </em><em>3</em><em>, </em><em>'dcml'</em><em>, </em><em>..}</em><em>, </em><em>optional</em>) – <dl class="simple">
+<dt>If MuseScore’s harmony feature has been used, you can filter harmony types by passing</dt><dd><p>0 for unrecognized strings
+1 for Roman Numeral Analysis
+2 for Nashville Numbers
+3 for encoded absolute chords
+‘dcml’ for labels from the DCML harmonic annotation standard
+… self-defined types that have been added to self.regex_dict through the use of self.infer_types()</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>positioning</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if you want to include information about how labels have been manually positioned.</p></li>
+<li><p><strong>decode</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if you don’t want to keep labels in their original form as encoded by MuseScore (with root and
+bass as TPC (tonal pitch class) where C = 14).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.parse">
+<span id="the-parse-module"></span><h2>The parse module<a class="headerlink" href="#module-ms3.parse" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.parse.Parse">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.parse.</code><code class="sig-name descname">Parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">folder_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">exclude_re</span><span class="o">=</span><span class="default_value">'^(\\.|__)'</span></em>, <em class="sig-param"><span class="n">recursive</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Parse'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for storing and manipulating the information from multiple parses.</p>
+</dd></dl>
+
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developers' Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.score">The score module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The annotations module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.parse">The parse module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="manual.html"
+                          title="Previous page">&larr; Manual</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="license.html"
+                          title="Next page">&rarr; License</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/reference.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

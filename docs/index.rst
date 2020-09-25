@@ -9,11 +9,12 @@ Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    Installation <install>
    Quick Reference <quick>
-   Full Reference <api/ms3>
+   Manual <manual>
+   Developers' Reference <reference>
    License <license>
    Authors <authors>
    Changelog <changelog>

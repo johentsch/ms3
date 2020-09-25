@@ -1,0 +1,435 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3.parse &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
+    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ms3.parse</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+<span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="k">as</span> <span class="nn">mp</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">function_logger</span>
+<span class="kn">from</span> <span class="nn">.score</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">iterable2str</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">scan_directory</span><span class="p">,</span> <span class="n">transform</span>
+
+<div class="viewcode-block" id="Parse"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse">[docs]</a><span class="k">class</span> <span class="nc">Parse</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|__)&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="s1">&#39;Parse&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span>
+            <span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">),</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_notelists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restlists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noterestlists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measurelists</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eventlists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labellists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chordlists</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expandedlists</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lists</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;notes&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_notelists</span><span class="p">,</span>
+            <span class="s1">&#39;rests&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restlists</span><span class="p">,</span>
+            <span class="s1">&#39;notes_and_rests&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_noterestlists</span><span class="p">,</span>
+            <span class="s1">&#39;measures&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_measurelists</span><span class="p">,</span>
+            <span class="s1">&#39;events&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eventlists</span><span class="p">,</span>
+            <span class="s1">&#39;labels&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labellists</span><span class="p">,</span>
+            <span class="s1">&#39;chords&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_chordlists</span><span class="p">,</span>
+            <span class="s1">&#39;expanded&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_expandedlists</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matches</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span> <span class="o">=</span> <span class="nb">dir</span>
+        <span class="k">if</span> <span class="nb">dir</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_dir</span><span class="p">(</span><span class="nb">dir</span><span class="o">=</span><span class="nb">dir</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="n">file_re</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="n">folder_re</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Parse.add_dir"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.add_dir">[docs]</a>    <span class="k">def</span> <span class="nf">add_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">dir</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|__)&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">scan_directory</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="n">file_re</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="n">folder_re</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">)</span>
+        <span class="n">ix</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">handle_path</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ix</span> <span class="k">if</span> <span class="n">i</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">added</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">grouped_ix</span> <span class="o">=</span> <span class="n">group_index_tuples</span><span class="p">(</span><span class="n">ix</span><span class="p">)</span>
+            <span class="n">exts</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_extensions</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">grouped_ix</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">added</span><span class="si">}</span><span class="s2"> paths stored.</span><span class="se">\n</span><span class="si">{</span><span class="n">pretty_extensions</span><span class="p">(</span><span class="n">exts</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No files added.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">match_filenames</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Parse.handle_path"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.handle_path">[docs]</a>    <span class="k">def</span> <span class="nf">handle_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_path</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">full_path</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
+            <span class="n">file_path</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+            <span class="n">file_name</span><span class="p">,</span> <span class="n">file_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="n">rel_path</span>
+            <span class="k">if</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;The file </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> is already registered for key &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39;.</span>
+<span class="s2">Load one of the identically named files with a different key using add_dir(key=&#39;KEY&#39;).&quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">scan_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_ext</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No file found at this path: &quot;</span> <span class="o">+</span> <span class="n">full_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span>
+        <span class="n">fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span>
+        <span class="n">prev_logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Attempting to parse </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="p">)]</span> <span class="o">=</span> <span class="n">score</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Done parsing </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">score</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">KeyboardInterrupt</span><span class="p">,</span> <span class="ne">SystemExit</span><span class="p">):</span>
+            <span class="k">raise</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">prev_logger</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Parse.parse_mscx"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parallel</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">read_only</span><span class="p">:</span>
+            <span class="n">read_only</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;When pieces are parsed in parallel, the resulting objects are always in read_only mode.&quot;</span><span class="p">)</span>
+        <span class="n">parse_this</span> <span class="o">=</span> <span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">read_only</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">path</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;.mscx&#39;</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">parallel</span><span class="p">:</span>
+            <span class="n">pool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">())</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">,</span> <span class="n">parse_this</span><span class="p">)</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">pool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">parse_this</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">i</span><span class="p">:</span> <span class="n">score</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">res</span><span class="p">)})</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">parse_this</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">[</span><span class="n">params</span><span class="p">[:</span><span class="mi">2</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse</span><span class="p">(</span><span class="o">*</span><span class="n">params</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_treat_key_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">keys</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">keys</span>
+
+<div class="viewcode-block" id="Parse.get_lists"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.get_lists">[docs]</a>    <span class="k">def</span> <span class="nf">get_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rests</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">notes_and_rests</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">measures</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">events</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">chords</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">expanded</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No scores have been parsed. Use parse_mscx()&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">{</span><span class="n">ix</span><span class="p">:</span> <span class="n">score</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">ix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">}</span>
+        <span class="n">ix</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">scores</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">bool_params</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lists</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">bool_params</span><span class="p">}</span>
+
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">li</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lists</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">params</span><span class="p">[</span><span class="n">param</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="n">i</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">li</span><span class="p">:</span>
+                        <span class="n">li</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
+                    <span class="n">res</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="p">(</span><span class="n">param</span><span class="p">,)]</span> <span class="o">=</span> <span class="n">li</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">expanded</span><span class="p">:</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expand_labels</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+<div class="viewcode-block" id="Parse.store_lists"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.store_lists">[docs]</a>    <span class="k">def</span> <span class="nf">store_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">rests_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rests_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">notes_and_rests_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_and_rests_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">measures_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">measures_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">events_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">events_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">labels_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">labels_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">chords_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">chords_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">expanded_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">expanded_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                                    <span class="n">simulate</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">list_types</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lists</span><span class="p">)</span>
+        <span class="n">folder_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="s1">&#39;_folder&#39;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">list_types</span><span class="p">]</span>
+        <span class="n">suffix_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="o">+</span> <span class="s1">&#39;_suffix&#39;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">list_types</span><span class="p">]</span>
+        <span class="n">folder_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">list_types</span><span class="p">,</span> <span class="n">folder_vars</span><span class="p">)</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="n">suffix_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">list_types</span><span class="p">,</span> <span class="n">suffix_vars</span><span class="p">)</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">folder_params</span><span class="p">}</span>
+        <span class="n">list_params</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="kc">True</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">folder_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="n">lists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lists</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="o">**</span><span class="n">list_params</span><span class="p">)</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">what</span><span class="p">),</span> <span class="n">li</span> <span class="ow">in</span> <span class="n">lists</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_store</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">li</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="o">=</span><span class="n">ix</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="n">folder_params</span><span class="p">[</span><span class="n">what</span><span class="p">],</span> <span class="n">suffix</span><span class="o">=</span><span class="n">suffix_params</span><span class="p">[</span><span class="n">what</span><span class="p">],</span> <span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="n">what</span><span class="p">,</span> <span class="n">simulate</span><span class="o">=</span><span class="n">simulate</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">simulate</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">paths</span></div>
+
+
+    <span class="k">def</span> <span class="nf">_store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s1">&#39;DataFrame&#39;</span><span class="p">,</span> <span class="n">simulate</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        df</span>
+<span class="sd">        key</span>
+<span class="sd">        ix</span>
+<span class="sd">        folder</span>
+<span class="sd">        suffix</span>
+<span class="sd">        root_dir : :obj:`str`</span>
+<span class="sd">        what</span>
+<span class="sd">        simulate</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">prev_logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isabs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;~&#39;</span> <span class="ow">in</span> <span class="n">folder</span><span class="p">:</span>
+            <span class="n">folder</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="n">folder</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scan_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span> <span class="k">if</span> <span class="n">root_dir</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">root_dir</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">folder</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">],</span> <span class="n">folder</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">folder</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]))</span>
+            <span class="k">if</span> <span class="n">path</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="n">root</span><span class="p">)]</span> <span class="o">!=</span> <span class="n">root</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not allowed to store files above the root </span><span class="si">{</span><span class="n">root</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">Erroneous path: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">None</span>
+
+
+        <span class="n">fname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">ix</span><span class="p">]</span> <span class="o">+</span> <span class="n">suffix</span> <span class="o">+</span> <span class="s1">&#39;.tsv&#39;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">simulate</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Would have written </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">no_collections_no_booleans</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> written to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">prev_logger</span>
+        <span class="k">return</span> <span class="n">file_path</span>
+
+
+
+<div class="viewcode-block" id="Parse.expand_labels"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.expand_labels">[docs]</a>    <span class="k">def</span> <span class="nf">expand_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;dcml&#39;</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">{</span><span class="n">ix</span><span class="p">:</span> <span class="n">score</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">ix</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">}</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">_annotations</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">exp</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">expanded</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_expandedlists</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span> <span class="o">=</span> <span class="n">exp</span>
+                <span class="n">res</span><span class="p">[</span><span class="n">ix</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;expanded&#39;</span><span class="p">,)]</span> <span class="o">=</span> <span class="n">exp</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parsed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">info</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="s1">&#39;mscx&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;annotations&#39;</span> <span class="ow">in</span> <span class="n">score</span><span class="o">.</span><span class="n">_annotations</span><span class="p">:</span>
+                <span class="n">info</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; -&gt; </span><span class="si">{</span><span class="n">score</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">n_labels</span><span class="p">()</span><span class="si">}</span><span class="s2"> labels&quot;</span>
+            <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">info</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+<div class="viewcode-block" id="Parse.match_filenames"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.match_filenames">[docs]</a>    <span class="k">def</span> <span class="nf">match_filenames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="Parse.count_extensions"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.Parse.count_extensions">[docs]</a>    <span class="k">def</span> <span class="nf">count_extensions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ix</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">c</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">Counter</span><span class="p">(</span><span class="n">l</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">ix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ix</span> <span class="k">if</span> <span class="n">i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
+
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">)</span><span class="si">}</span><span class="s2"> files.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="n">msg</span> <span class="o">+=</span> <span class="n">pretty_extensions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">count_extensions</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">msg</span></div>
+
+
+
+<div class="viewcode-block" id="group_index_tuples"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.group_index_tuples">[docs]</a><span class="k">def</span> <span class="nf">group_index_tuples</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">l</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">d</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">d</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="no_collections_no_booleans"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.no_collections_no_booleans">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">no_collections_no_booleans</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+    <span class="n">collection_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;next&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_tones&#39;</span><span class="p">,</span> <span class="s1">&#39;added_tones&#39;</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">cc</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">collection_cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;df: </span><span class="si">{</span><span class="n">df</span><span class="si">}</span><span class="s2">, class: </span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="vm">__class__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">raise</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">cc</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">cc</span><span class="p">],</span> <span class="n">iterable2str</span><span class="p">,</span> <span class="n">column_wise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Transformed iterables in the columns </span><span class="si">{</span><span class="n">cc</span><span class="si">}</span><span class="s2"> to strings.&quot;</span><span class="p">)</span>
+    <span class="n">bool_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;globalkey_is_minor&#39;</span><span class="p">,</span> <span class="s1">&#39;localkey_is_minor&#39;</span><span class="p">]</span>
+    <span class="n">bc</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">bool_cols</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="nb">int</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">bc</span><span class="p">}</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">conv</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="pretty_extensions"><a class="viewcode-back" href="../../api/ms3.html#ms3.parse.pretty_extensions">[docs]</a><span class="k">def</span> <span class="nf">pretty_extensions</span><span class="p">(</span><span class="n">key2ext</span><span class="p">):</span>
+    <span class="n">exts</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">KEY</span><span class="o">=</span><span class="s1">&#39;EXTENSIONS&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">key2ext</span><span class="p">)</span>
+    <span class="n">left</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">exts</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">:{</span><span class="n">left</span><span class="si">}}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">exts</span><span class="o">.</span><span class="n">items</span><span class="p">())</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
