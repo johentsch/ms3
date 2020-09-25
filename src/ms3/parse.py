@@ -36,7 +36,8 @@ class Parse:
             self.add_dir(dir=dir, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
     def add_dir(self, dir, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
-        self.last_scanned_dir = resolve_dir(dir)
+        dir = resolve_dir(dir)
+        self.last_scanned_dir = dir
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         ix = [self.handle_path(p, key) for p in res]
         added = sum(True for i in ix if i[0] is not None)

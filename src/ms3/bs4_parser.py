@@ -1,3 +1,4 @@
+import re
 import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
@@ -476,6 +477,12 @@ class _MSCX_bs4:
         data['label_count'] = len(self.get_annotations())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
+        first_label =  self.soup.find('Harmony')
+        first_label_name = first_label.find('name') if first_label is not None else None
+        if first_label_name is not None:
+            m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
+            if m.group(1) is not None:
+                data['annotated_key'] = m.group(1)
         staff_groups = self.nl.groupby('staff').midi
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)} for t in
                      self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}

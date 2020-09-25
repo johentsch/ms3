@@ -180,6 +180,8 @@ class Annotations:
 
     def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, label_type=label_type, positioning=positioning, decode=decode)
+        if decode and 'label_type' in df.columns:
+            df.drop(columns='label_type', inplace=True)
         df.to_csv(resolve_dir(tsv_path), sep=sep, index=index, **kwargs)
         self.logger.info(f"{len(df)} labels written to {tsv_path}.")
         return True

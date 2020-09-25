@@ -199,10 +199,8 @@ class Score:
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
                 self._annotations['annotations'].infer_types(self.get_infer_regex())
-
-
         else:
-            self.logger.error("No .mscx file specified.")
+            self.logger.error("No existing .mscx file specified.")
 
     def output_mscx(self, filepath):
         return self._mscx.output_mscx(filepath)

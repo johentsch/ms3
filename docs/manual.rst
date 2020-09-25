@@ -5,8 +5,29 @@ Manual
 This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
 interpreter such as IPython, Jupyter, Google Colab, or just the console.
 
+
+Basics
+======
+
+.. _mc_vs_mn:
+
+Measure counts (MC) vs. measure numbers (MN)
+--------------------------------------------
+
+Measure counts are strictly increasing numbers for all <measure> nodes in the score, regardless of their length. This
+information is crucial for correctly addressing positions in a MuseScore file and are shown in the software's status
+bar. The first measure is always counted as 1 (following MuseScore's convention), even if it is an anacrusis.
+
+Measure numbers are the traditional way by which humans refer to positions in a score. They follow a couple of
+conventions which can be summarised as counting complete bars. Quite often, a complete bar (MN) can be made up of
+two <measure> nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
+computers, therefore a mapping MC -> MN is preserved in the score information DataFrames.
+
+Using the library
+=================
+
 Parsing a single score
-======================
+----------------------
 
 .. rst-class:: bignums
 
@@ -76,6 +97,5 @@ Parsing options
 .. automethod:: ms3.score.Score.__init__
     :noindex:
 
-Bla bla
--------
+
 

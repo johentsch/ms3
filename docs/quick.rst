@@ -45,15 +45,16 @@ and stored as a tab-separated file (TSV) like this:
     >>> s.annotations.output_tsv('~/stabat_chords.tsv')
     True
 
+.. _detaching:
 
-Removing annotation labels from score
--------------------------------------
+Removing annotation labels
+--------------------------
 
 The annotations will be stored with a keyword that you choose. It needs to be different from ``'annotations'``.
 
 .. code-block:: python
 
-    >>> s.detach_labels('chords')
+    >>> s.detach_labels(key='chords')
     >>> s
     MuseScore file (CHANGED!!!)
     ---------------!!!!!!!!!!!!
@@ -89,7 +90,190 @@ To output the changed score without the labels, choose a different path unless y
 Adding labels to score
 ----------------------
 
+The method :py:meth:`~ms3.score.Score.attach_labels` can be used to re-attach a set of labels that has been
+:ref:`detached<detaching>`. Similarly we can load the empty score and the stored labels to reunite them:
 
+.. code-block:: python
+
+    >>> e = Score('~/stabat_empty.mscx')
+    >>> e.load_annotations('~/stabat_chords.tsv', key='tsv_chords')
+    >>> e
+    MuseScore file
+    --------------
+
+    ~/stabat_empty.mscx
+
+    No annotations attached.
+
+    Detached annotations
+    --------------------
+
+    tsv_chords (stored as stabat_chords.tsv) -> 48 labels:
+    staff  voice  label_type
+    3      2      0             48
+
+    >>> e.attach_labels(key='tsv_chords', voice=1)
+    >>> e
+    MuseScore file (CHANGED!!!)
+    ---------------!!!!!!!!!!!!
+
+    ~/stabat_empty.mscx
+
+    Attached annotations
+    --------------------
+
+    48 labels:
+    staff  voice  label_type
+    3      1      0             48
+
+    Detached annotations
+    --------------------
+
+    tsv_chords (stored as stabat_chords.tsv) -> 48 labels:
+    staff  voice  label_type
+    3      2      0             48
+
+As we can see, the parameter ``voice=1`` has been used to insert the labels in the first layer (coloured blue in MuseScore)
+of staff 3 when originally they had been attached to layer two (coloured in green in the software).
+
+
+Accessing score information
+---------------------------
+
+After parsing a score, all contained information is accessible in structured formats. Most information is returned as
+:obj:`pandas.DataFrame`, whereas a given set of metadata is accessible as dictionary.
+
+Since this information is attached to the parsed MSCX file (and not, say to loaded annotations), it is accessible
+via ``s.mscx``.
+
+Metadata
+~~~~~~~~
+
+The metadata contains the data that can be accessed and altered in MuseScore 3 through the menu ``File -> Score Properties``
+as well as information computed from the score, such as the names and ambitus of the contained staves. Note that the
+ambitus here pertain to the first page only.
+
+.. code-block:: python
+
+    >>> s.mscx.get_metadata()
+    {'arranger': None,
+     'composer': 'Giovanni Battista Pergolesi',
+     'copyright': 'Editions FREDIPI',
+     'creationDate': '2019-07-23',
+     'lyricist': None,
+     'movementNumber': '1',
+     'movementTitle': 'Stabat Mater dolorosa',
+     'platform': 'Microsoft Windows',
+     'poet': None,
+     'source': 'http://musescore.com/user/1630246/scores/5653570',
+     'translator': 'fredipi',
+     'workNumber': None,
+     'workTitle': 'Stabat Mater',   #  <- Score Properties until here
+     'last_mc': 13,                 #  <- computed information from here
+     'last_mn': 13,
+     'label_count': 48,
+     'TimeSig': {1: '4/4'},
+     'KeySig': {1: -4},
+     'annotated_key': 'f',
+     'parts':  {'Soprano': {1:  {'min_midi': 65,
+                                'min_name': 'F4',
+                                'max_midi': 70,
+                                'max_name': 'Bb4'}
+                              },
+                  'Alto':  {2:  {'min_midi': 64,
+                                'min_name': 'E4',
+                                'max_midi': 68,
+                                'max_name': 'Ab4'}
+                              },
+                  'Piano': {3: {'min_midi': 56,
+                                'min_name': 'Ab3',
+                                'max_midi': 85,
+                                'max_name': 'Db6'},
+                            4: {'min_midi': 44,
+                                'min_name': 'Ab2',
+                                'max_midi': 70,
+                                'max_name': 'Bb4'}
+                              }
+                  },
+     'musescore': '3.5.0'}
+
+
+The computed information contains the following:
+
+* ``last_mc/last_mn``: Last measure number and measure count (see :ref:`here<mc_vs_mn>` to learn the difference).
+* ``TimeSig/KeySig``: Time signatures and key signatures, each given as a dictionary with measure counts as keys.
+* ``annotated_key``: Only included if the first annotation label in the score starts with a key such as ``Ab`` or ``f#``.
+* ``parts``: contain several inner dictionaries: parts -> partname -> staves -> ambitus. For example, the dictionary
+    for the piano part contains staves 3 and for, one for the right hand (Ab3-Db6) and one for the left hand (Ab2-Bb4).
+* ``musescore``: The MuseScore version with which the files has been saved.
+
+
+Tabular information
+~~~~~~~~~~~~~~~~~~~
+
+The accessible DataFrames with score information are:
+
+* ``measures``: A list of all measures together with the strictly increasing **measure counts (MC)** mapped to the actual
+  **measure numbers (MN)**. Read more on the difference in the :ref:`manual<mc_vs_mn>`.
+* ``notes``: A list of all notes contained in the score together with their respective features.
+* ``chords``: Not to confound with labels or chord annotations, a chord is a notational unit in which all included
+  notes are part of the same notational layer and have the same onset. Every chord has a ``chord_id`` and every note
+  is part of a chord. These tables are used to convey score information that is not attached to a particular note,
+  such as lyrics, staff text, dynamics and other markup.
+* ``rests``: A list of rests.
+* ``events``: For sake of completeness, a raw version of the score information for debugging purposes.
+
+.. code-block:: python
+
+    >>> s.mscx.measures
+
++----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
+| mc | mn | keysig | timesig | act_dur | mc_offset | breaks | repeats      | volta | barline | numbering_offset | dont_count | next |
++====+====+========+=========+=========+===========+========+==============+=======+=========+==================+============+======+
+| 1  | 1  | -4     | 4/4     | 1       | 0         | NaN    | firstMeasure | <NA>  | NaN     | <NA>             | <NA>       | (2,) |
++----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
+| 2  | 2  | -4     | 4/4     | 1       | 0         | NaN    | NaN          | <NA>  | NaN     | <NA>             | <NA>       | (3,) |
++----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
+
+.. code-block:: python
+
+    >>> s.mscx.notes
+
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+| mc | mn | timesig | onset | staff | voice | duration | gracenote | nominal_duration | scalar | tied | tpc | midi | volta | chord_id |
++====+====+=========+=======+=======+=======+==========+===========+==================+========+======+=====+======+=======+==========+
+| 1  | 1  | 4/4     | 0     | 4     | 2     | 1/8      | NaN       | 1/8              | 1      | <NA> | -1  | 53   | <NA>  | 4        |
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+| 1  | 1  | 4/4     | 0     | 3     | 2     | 3/4      | NaN       | 1/2              | 3/2    | <NA> | -1  | 77   | <NA>  | 1        |
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+
+.. code-block:: python
+
+    >>> s.mscx.chords
+
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
+| mc | mn | timesig | onset | staff | voice | duration | gracenote | nominal_duration | scalar | volta | chord_id | staff_text | lyrics | articulation | dynamics | Slur | decrescendo | diminuendo |
++====+====+=========+=======+=======+=======+==========+===========+==================+========+=======+==========+============+========+==============+==========+======+=============+============+
+| 1  | 1  | 4/4     | 1/2   | 3     | 1     | 1/2      | NaN       | 1/2              | 1      | <NA>  | 0        | NaN        | NaN    | NaN          | NaN      | NaN  | NaN         | NaN        |
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
+| 1  | 1  | 4/4     | 0     | 3     | 2     | 3/4      | NaN       | 1/2              | 3/2    | <NA>  | 1        | NaN        | NaN    | NaN          | NaN      | 0    | NaN         | NaN        |
++----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
+
+.. code-block:: python
+
+    >>> s.mscx.rests
+
++----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
+| mc | mn | timesig | onset | staff | voice | duration | nominal_duration | scalar | volta |
++====+====+=========+=======+=======+=======+==========+==================+========+=======+
+| 1  | 1  | 4/4     | 0     | 1     | 1     | 1        | 1                | 1      | <NA>  |
++----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
+| 1  | 1  | 4/4     | 0     | 2     | 1     | 1        | 1                | 1      | <NA>  |
++----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
+
+
+Parsing multiple scores
+=======================
 
 
 

@@ -74,8 +74,23 @@
 <h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
 <p>This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
 interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
+<div class="section" id="basics">
+<h2>Basics<a class="headerlink" href="#basics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="measure-counts-mc-vs-measure-numbers-mn">
+<span id="mc-vs-mn"></span><h3>Measure counts (MC) vs. measure numbers (MN)<a class="headerlink" href="#measure-counts-mc-vs-measure-numbers-mn" title="Permalink to this headline">¶</a></h3>
+<p>Measure counts are strictly increasing numbers for all &lt;measure&gt; nodes in the score, regardless of their length. This
+information is crucial for correctly addressing positions in a MuseScore file and are shown in the software’s status
+bar. The first measure is always counted as 1 (following MuseScore’s convention), even if it is an anacrusis.</p>
+<p>Measure numbers are the traditional way by which humans refer to positions in a score. They follow a couple of
+conventions which can be summarised as counting complete bars. Quite often, a complete bar (MN) can be made up of
+two &lt;measure&gt; nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
+computers, therefore a mapping MC -&gt; MN is preserved in the score information DataFrames.</p>
+</div>
+</div>
+<div class="section" id="using-the-library">
+<h2>Using the library<a class="headerlink" href="#using-the-library" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="parsing-a-single-score">
-<h2>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h2>
+<h3>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h3>
 <ol class="bignums arabic">
 <li><p>Locate the <a class="reference external" href="https://musescore.org/en/download">MuseScore 3</a> score you want to parse.</p>
 <blockquote>
@@ -134,6 +149,7 @@ and bind it to the variable <code class="docutils literal notranslate"><span cla
 </div></blockquote>
 </li>
 </ol>
+</div>
 <div class="section" id="parsing-options">
 <h3>Parsing options<a class="headerlink" href="#parsing-options" title="Permalink to this headline">¶</a></h3>
 <dl class="py method">
@@ -157,9 +173,6 @@ of the score, such as adding and deleting labels. Set to <code class="docutils l
 </dd></dl>
 
 </div>
-<div class="section" id="bla-bla">
-<h3>Bla bla<a class="headerlink" href="#bla-bla" title="Permalink to this headline">¶</a></h3>
-</div>
 </div>
 </div>
 
@@ -176,9 +189,13 @@ of the score, such as adding and deleting labels. Set to <code class="docutils l
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Manual</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#basics">Basics</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#using-the-library">Using the library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#parsing-options">Parsing options</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#bla-bla">Bla bla</a></li>
 </ul>
 </li>
 </ul>
