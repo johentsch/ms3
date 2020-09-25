@@ -1,33 +1,66 @@
 
+
+
 <!DOCTYPE html>
 
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ms3.bs4_measures &#8212; ms3 unknown documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3.bs4_measures &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
+    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/language_data.js"></script>
-    <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
+    
+    
+     
+        <script src="../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
   </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.bs4_measures</a></li> 
+      </ul>
+    </div>
+    </div>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
-          
-
           <div class="body" role="main">
             
   <h1>Source code for ms3.bs4_measures</h1><div class="highlight"><pre>
@@ -45,7 +78,7 @@
 <span class="sd">    df : :obj:`pandas.DataFrame`</span>
 <span class="sd">        The input DataFrame from _MSCX_bs4.raw_measures</span>
 <span class="sd">    section_breaks : :obj:`bool`, default True</span>
-<span class="sd">        By default, section breaks allow for several anacrusis measures within the piece (relevant for `offset` column)</span>
+<span class="sd">        By default, section breaks allow for several anacrusis measures within the piece (relevant for `mc_offset` column)</span>
 <span class="sd">        and make it possible to omit a repeat sign in the following bar (relevant for `next` column).</span>
 <span class="sd">        Set to False if you want to ignore section breaks.</span>
 <span class="sd">    secure : :obj:`bool`, default False</span>
@@ -129,7 +162,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">rn</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]:</span> <span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;barline&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">]}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rn</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="s1">&#39;offset&#39;</span><span class="p">,</span> <span class="s1">&#39;breaks&#39;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;breaks&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;repeats&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">,</span> <span class="s1">&#39;barline&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">,</span>
                            <span class="s1">&#39;next&#39;</span><span class="p">]]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span>
@@ -162,7 +195,7 @@
         <span class="k">return</span> <span class="n">keep_one_row_each</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="n">compress_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">],</span> <span class="n">differentiating_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">],</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MeasureList.check_measure_numbers"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.check_measure_numbers">[docs]</a>    <span class="k">def</span> <span class="nf">check_measure_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">mn_col</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="s1">&#39;offset&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="MeasureList.check_measure_numbers"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.check_measure_numbers">[docs]</a>    <span class="k">def</span> <span class="nf">check_measure_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">mn_col</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">mc_offset</span><span class="o">=</span><span class="s1">&#39;mc_offset&#39;</span><span class="p">,</span>
                               <span class="n">dont_count</span><span class="o">=</span><span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="o">=</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">):</span>
         <span class="k">def</span> <span class="nf">ordinal</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
@@ -182,15 +215,15 @@
                     <span class="n">current_mn</span> <span class="o">=</span> <span class="n">mc2mn</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
                     <span class="k">if</span> <span class="n">current_mn</span> <span class="o">!=</span> <span class="n">mn</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2">, the </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2"> measure of a </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2"> volta, should have MN </span><span class="si">{</span><span class="n">mn</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2">, not MN </span><span class="si">{</span><span class="n">current_mn</span><span class="si">:</span><span class="s2">3</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                            <span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">, the </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2"> measure of a </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2"> volta, should have MN </span><span class="si">{</span><span class="n">mn</span><span class="si">}</span><span class="s2">, not MN </span><span class="si">{</span><span class="n">current_mn</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
         <span class="c1"># Check measure numbers for split measures</span>
-        <span class="n">error_mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">offset</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">dont_count</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">numbering_offset</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
+        <span class="n">error_mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">mc_offset</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">dont_count</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">numbering_offset</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
         <span class="n">n_errors</span> <span class="o">=</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">n_errors</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">mcs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">error_mask</span><span class="p">,</span> <span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
             <span class="n">context_mask</span> <span class="o">=</span> <span class="n">error_mask</span> <span class="o">|</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="o">|</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-            <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">context_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">mn_col</span><span class="p">,</span> <span class="n">act_dur</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">]]</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">context_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">mn_col</span><span class="p">,</span> <span class="n">act_dur</span><span class="p">,</span> <span class="n">mc_offset</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">]]</span>
             <span class="n">plural</span> <span class="o">=</span> <span class="n">n_errors</span> <span class="o">&gt;</span> <span class="mi">1</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;MC</span><span class="si">{</span><span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mcs</span><span class="si">}</span><span class="s2"> seem</span><span class="si">{</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="si">}</span><span class="s2"> to be offset from the MN&#39;s beginning but ha</span><span class="si">{</span><span class="s1">&#39;ve&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="si">}</span><span class="s2"> not been excluded from barcount. Context:</span><span class="se">\n</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
@@ -311,7 +344,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc</span><span class="p">,</span> <span class="n">volta_start</span><span class="p">,</span> <span class="n">volta_length</span><span class="p">]</span>
     <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">volta_start</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
-    <span class="n">voltas</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="n">voltas</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">voltas</span><span class="p">[</span><span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The volta in MC </span><span class="si">{</span><span class="n">rows</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2"> has no length: A standard length of 1 is supposed.&quot;</span><span class="p">)</span>
+        <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span> <span class="o">=</span> <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">voltas</span> <span class="o">=</span> <span class="n">voltas</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">voltas</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span> <span class="p">{}</span>
     <span class="k">if</span> <span class="n">frac_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -319,7 +357,9 @@
     <span class="n">voltas</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">voltas</span><span class="p">[</span><span class="n">volta_start</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">voltas</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">voltas</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
     <span class="n">groups</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">v</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">voltas</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;group&#39;</span><span class="p">)}</span>
-    <span class="k">return</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">treat_group</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span></div>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">treat_group</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inferred volta structure: </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span></div>
 
 
 
@@ -493,7 +533,7 @@
 
 
 <div class="viewcode-block" id="make_offset_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_offset_col">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">make_offset_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">timesig</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">next_col</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;offset&#39;</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">make_offset_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">timesig</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">next_col</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mc_offset&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; If one MN is composed of two MCs, the resulting column indicates the second MC&#39;s offset from the MN&#39;s beginning.</span>
 
 <span class="sd">    Parameters</span>
@@ -515,7 +555,8 @@
     <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">next_col</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section_breaks</span><span class="p">)</span>
-        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">}</span>
+        <span class="n">last_mc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">m</span> <span class="o">&lt;=</span> <span class="n">last_mc</span><span class="p">}</span>
         <span class="c1"># offset == 0 is a neutral value but the presence of mc in offsets indicates that it could potentially be an</span>
         <span class="c1"># (incomplete) pickup measure which can be offset even if the previous measure is complete</span>
     <span class="k">else</span><span class="p">:</span>
@@ -533,33 +574,42 @@
 
 
     <span class="n">irregular</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">irregular</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># anacrusis</span>
-        <span class="n">add_offset</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">irregular</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Check whether first MC is an anacrusis and mark accordingly</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">irregular</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">irregular</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">missing</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">act_durs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">nom_durs</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">add_offset</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># regular divided measure, no anacrusis</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># is anacrusis</span>
+            <span class="n">add_offset</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">irregular</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">section_breaks</span><span class="p">:</span>
-            <span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">s</span> <span class="o">=</span> <span class="n">t</span>
-            <span class="k">if</span> <span class="n">s</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">:</span>
-                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">n</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">m</span><span class="p">]</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">sec</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="k">if</span> <span class="n">sec</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">:</span>
+                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">mc</span><span class="p">]</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nxt</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2"> ends a section with an incomplete measure.&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> ends a section with an incomplete measure.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">n</span><span class="p">]</span>
+                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">t</span>
-            <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">n</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">m</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
-            <span class="n">completions</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">act_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="k">for</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">nxt</span> <span class="k">if</span> <span class="n">mc</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>
-            <span class="n">expected</span> <span class="o">=</span> <span class="n">missing</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">nx</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+            <span class="n">completions</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="n">act_durs</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">nxt</span> <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>
+            <span class="n">expected</span> <span class="o">=</span> <span class="n">missing</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
             <span class="n">errors</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">completions</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">errors</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The incomplete MC </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2"> (timesig </span><span class="si">{</span><span class="n">nom_durs</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="si">}</span><span class="s2">, act_dur </span><span class="si">{</span><span class="n">act_durs</span><span class="p">[</span><span class="n">m</span><span class="p">]</span><span class="si">}</span><span class="s2">) is completed by </span><span class="si">{</span><span class="n">errors</span><span class="si">}</span><span class="s2"> incorrect duration</span><span class="si">{</span><span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">errors</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">):</span><span class="se">\n</span><span class="si">{</span><span class="n">completions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;The incomplete MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> (timesig </span><span class="si">{</span><span class="n">nom_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="si">}</span><span class="s2">, act_dur </span><span class="si">{</span><span class="n">act_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="si">}</span><span class="s2">) is completed by </span><span class="si">{</span><span class="n">errors</span><span class="si">}</span><span class="s2"> incorrect duration</span><span class="si">{</span><span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">errors</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">):</span><span class="se">\n</span><span class="si">{</span><span class="n">completions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">compl</span> <span class="ow">in</span> <span class="n">completions</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">add_offset</span><span class="p">(</span><span class="n">compl</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">offsets</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">add_offset</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
-    <span class="n">mc2ix</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">ix</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()}</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc2ix</span><span class="p">[</span><span class="n">mc</span><span class="p">]:</span> <span class="n">offset</span> <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">offsets</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">elif</span> <span class="n">offsets</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">add_offset</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+    <span class="n">mc2ix</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="n">ix</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()}</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc2ix</span><span class="p">[</span><span class="n">m</span><span class="p">]:</span> <span class="n">offset</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">offsets</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
 
@@ -622,37 +672,21 @@
     <span class="k">return</span> <span class="n">correct</span></div>
 </pre></div>
 
+            <div class="clearer"></div>
           </div>
-          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">ms3</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../api/ms3.html">ms3 Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../api/modules.html">modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../api/ms3.html">ms3 reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
 </ul>
 </div>
 <div id="searchbox" style="display: none" role="search">
@@ -665,29 +699,50 @@
     </div>
 </div>
 <script>$('#searchbox').show(0);</script>
-
-
-
-
-
-
-
-
         </div>
       </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2020, johentsch.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.0.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
-      
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.bs4_measures</a></li> 
+      </ul>
+    </div>
     </div>
 
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
   </body>
 </html>

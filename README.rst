@@ -1,15 +1,11 @@
-===
-ms3
-===
+=========================
+ms3 - Parsing MuseScore 3
+=========================
 
 
-A parser for annotated MuseScore 3 files.
+.. include:: ./docs/intro.rst
 
-
-Description
-===========
-
-The parser is able to store lists of notes and other events in a music score to TSV files together with their positions (measure & beat). At a later point, it will be possible to add events from TSV files to a score.
+View the documentation on `GitHub <https://johentsch.github.io/ms3/>`__.
 
 
 Note

@@ -1,12 +1,8 @@
-===
-ms3
-===
+=========================
+ms3 - Parsing MuseScore 3
+=========================
 
-This is the documentation of **ms3**.
-
-.. note::
-
-    This is still a child library, although quickly growing.
+.. include:: ./intro.rst
 
 
 Contents
@@ -15,8 +11,9 @@ Contents
 .. toctree::
    :maxdepth: 2
 
-   ms3 Reference <api/ms3>
-   modules <api/modules>
+   Installation <install>
+   Quick Reference <quick>
+   ms3 reference <api/ms3>
    License <license>
    Authors <authors>
    Changelog <changelog>

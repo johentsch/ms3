@@ -2,7 +2,6 @@
 and then adapted.
 """
 import re, logging
-from inspect import getfullargspec
 
 import pandas as pd
 import numpy as np
@@ -79,7 +78,7 @@ def str_is_minor(tone, is_name=True):
 
 
 def transform_columns(df, func, columns=None, param2col=None, inplace=False, **kwargs):
-    """ Wrapper function to use transform() on df[columns].
+    """ Wrapper function to use transform() on df[columns], leaving the other columns untouched.
 
     Parameters
     ----------
@@ -323,13 +322,17 @@ class expand_labels():
             False: Return copy.
         cols : :obj:`dict`, optional
             The special symbols appear in the column `numeral` and are moved to the column `special`.
-            In case the column names for ['numeral','form', 'figbass', 'changes', 'relativeroot', 'special'] deviate, pass a dict, such as
-            {'numeral':         'numeral_col_name',
-             'form':            'form_col_name
-             'figbass':         'figbass_col_name',
-             'changes':         'changes_col_name',
-             'relativeroot':    'relativeroot_col_name',
-             'special':         'special_col_name'}
+            In case the column names for ``['numeral','form', 'figbass', 'changes', 'relativeroot', 'special']`` deviate, pass a dict, such as
+
+            .. code-block:: python
+
+                {'numeral':         'numeral_col_name',
+                 'form':            'form_col_name
+                 'figbass':         'figbass_col_name',
+                 'changes':         'changes_col_name',
+                 'relativeroot':    'relativeroot_col_name',
+                 'special':         'special_col_name'}
+
         special_map : :obj:`dict`, optional
             In case you want to add or alter special symbols to be replaced, pass a replacement map, e.g.
             {'N': 'bII6'}. The column 'figbass' is only altered if it's None to allow for inversions of special chords.
@@ -410,70 +413,6 @@ class expand_labels():
 
 
 
-    def transform(self, df, func, param2col=None, column_wise=False, **kwargs):
-        """ Compute a function for every row of a DataFrame, using several cols as arguments.
-            The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
-            but it optimizes the procedure by precomputing `func` for all occurrent parameter combinations.
-            Uses: inspect.getfullargspec()
-
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame` or :obj:`pandas.Series`
-            Dataframe containing function parameters.
-        func : :obj:`callable`
-            The result of this function for every row will be returned.
-        param2col : :obj:`dict` or :obj:`list`, optional
-            Mapping from parameter names of `func` to column names.
-            If you pass a list of column names, the columns' values are passed as positional arguments.
-            Pass None if you want to use all columns as positional arguments.
-        column_wise : :obj:`bool`, optional
-            Pass True if you want to map `func` to the elements of every column separately.
-            This is simply an optimized version of df.apply(func) but allows for naming
-            columns to use as function arguments. If param2col is None, `func` is mapped
-            to the elements of all columns, otherwise to all columns that are not named
-            as parameters in `param2col`.
-            In the case where `func` does not require a positional first element and
-            you want to pass the elements of the various columns as keyword argument,
-            give it as param2col={'function_argument': None}
-        inplace : :obj:`bool`, optional
-            Pass True if you want to mutate `df` rather than getting an altered copy.
-        **kwargs : Other parameters passed to `func`.
-        """
-        if column_wise:
-            if not df.__class__ == pd.core.series.Series:
-                if param2col is None:
-                    return df.apply(transform, args=(func,), **kwargs)
-                if param2col.__class__ == dict:
-                    var_arg = [k for k, v in param2col.items() if v is None]
-                    apply_cols = [col for col in df.columns if not col in param2col.values()]
-                    assert len(var_arg) < 2, f"Name only one variable keyword argument as which {apply_cols} are used {'argument': None}."
-                    var_arg = var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
-                    param2col = {k: v for k, v in param2col.items() if v is not None}
-                    result_cols = {col: transform(df, func, {**{var_arg: col}, **param2col}, **kwargs) for col in apply_cols}
-                    param2col = param2col.values()
-                else:
-                    apply_cols = [col for col in df.columns if not col in param2col]
-                    result_cols = {col: transform(df, func, [col] + param2col, **kwargs) for col in apply_cols}
-                return pd.DataFrame(result_cols, index=df.index)
-
-        if param2col.__class__ == dict:
-            param_tuples = list(df[param2col.values()].itertuples(index=False, name=None))
-            result_dict = {t: func(**{a:b for a, b in zip(param2col.keys(), t)}, **kwargs) for t in set(param_tuples)}
-        else:
-            if df.__class__ == pd.core.series.Series:
-                if param2col is not None:
-                    self.logger.warning("When 'df' is a Series, the parameter 'param2col' has no use.")
-                param_tuples = df.values
-                result_dict = {t: func(t, **kwargs) for t in set(param_tuples)}
-            else:
-                if param2col is None:
-                    param_tuples = list(df.itertuples(index=False, name=None))
-                else:
-                    param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
-                result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
-        return pd.Series([result_dict[t] for t in param_tuples], index=df.index)
-
-
 
     def propagate_keys(self, df, globalkey='globalkey', localkey='localkey', add_bool=True):
         """ Propagate information about global keys and local keys throughout the dataframe.
@@ -537,11 +476,14 @@ class expand_labels():
         drop_pedalend : :obj:`bool`, optional
             Pass False if you don't want the column with the ending brackets to be dropped.
         cols : :obj:`dict`, optional
-            In case the column names for ['pedal','pedalend', 'globalkey', 'localkey'] deviate, pass a dict, such as
-            {'pedal':       'pedal_col_name',
-             'pedalend':    'pedalend_col_name',
-             'globalkey':   'globalkey_col_name',
-             'localkey':    'localkey_col_name'}
+            In case the column names for ``['pedal','pedalend', 'globalkey', 'localkey']`` deviate, pass a dict, such as
+
+            .. code-block:: python
+
+                {'pedal':       'pedal_col_name',
+                 'pedalend':    'pedalend_col_name',
+                 'globalkey':   'globalkey_col_name',
+                 'localkey':    'localkey_col_name'}
         """
         df = df.copy()
         tmp_index = not df.index.is_unique
@@ -598,9 +540,9 @@ class expand_labels():
             tonal pitch classes represent intervals relative to the local tonic:
             -2: Second below tonic
             -1: fifth below tonic
-             0: tonic
-             1: fifth above tonic
-             2: second above tonic, etc.
+            0: tonic
+            1: fifth above tonic
+            2: second above tonic, etc.
             The labels need to have undergone split_labels() and propagate_keys().
             Pedal points are not taken into account.
             Uses: features2tpcs(), transform()
@@ -615,15 +557,19 @@ class expand_labels():
         expand : :obj:`bool`, optional
             Pass True if you need chord tones and added tones in separate columns.
         cols : :obj:`dict`, optional
-            In case the column names for ['mc', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey'] deviate, pass a dict, such as
-            {'mc':              'mc',
-             'numeral':         'numeral_col_name',
-             'form':            'form_col_name',
-             'figbass':         'figbass_col_name',
-             'changes':         'changes_col_name',
-             'relativeroot':    'relativeroot_col_name',
-             'localkey':        'localkey_col_name',
-             'globalkey':       'globalkey_col_name'}
+            In case the column names for ``['mc', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']`` deviate, pass a dict, such as
+
+            .. code-block:: python
+
+                {'mc':              'mc',
+                 'numeral':         'numeral_col_name',
+                 'form':            'form_col_name',
+                 'figbass':         'figbass_col_name',
+                 'changes':         'changes_col_name',
+                 'relativeroot':    'relativeroot_col_name',
+                 'localkey':        'localkey_col_name',
+                 'globalkey':       'globalkey_col_name'}
+
             You may also deactivate columns by setting them to None, e.g. {'changes': None}
 
         Returns
@@ -681,16 +627,20 @@ class expand_labels():
             Dataframe containing DCML chord labels that have been split by split_labels()
             and where the keys have been propagated using propagate_keys(add_bool=True).
         cols : :obj:`dict`, optional
-            In case the column names for ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey'] deviate, pass a dict, such as
-            {'chord':           'chord_col_name'
-             'pedal':           'pedal_col_name',
-             'numeral':         'numeral_col_name',
-             'form':            'form_col_name',
-             'figbass':         'figbass_col_name',
-             'changes':         'changes_col_name',
-             'relativeroot':    'relativeroot_col_name',
-             'localkey':        'localkey_col_name',
-             'globalkey':       'globalkey_col_name'}}
+            In case the column names for ``['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']`` deviate, pass a dict, such as
+
+            .. code-block:: python
+
+                {'chord':           'chord_col_name'
+                 'pedal':           'pedal_col_name',
+                 'numeral':         'numeral_col_name',
+                 'form':            'form_col_name',
+                 'figbass':         'figbass_col_name',
+                 'changes':         'changes_col_name',
+                 'relativeroot':    'relativeroot_col_name',
+                 'localkey':        'localkey_col_name',
+                 'globalkey':       'globalkey_col_name'}}
+
         inplace : :obj:`bool`, optional
             Pass True if you want to mutate the input.
 
@@ -1007,20 +957,22 @@ class expand_labels():
             DataFrame where columns (or column combinations) work as function arguments.
         to : {'name', 'iv', 'pc', 'sd', 'rn'}
             The tone representation that you want to get from the `note_cols`.
-            'name': Note names. Should only be used if the stacked fifths actually represent
+
+            * 'name': Note names. Should only be used if the stacked fifths actually represent
                     absolute tonal pitch classes rather than intervals over the local tonic.
                     In other words, make sure to use 'name' only if 0 means C rather than I.
-            'iv':   Intervals such that 0 = 'P1', 1 = 'P5', 4 = 'M3', -3 = 'm3', 6 = 'A4',
+            * 'iv':   Intervals such that 0 = 'P1', 1 = 'P5', 4 = 'M3', -3 = 'm3', 6 = 'A4',
                     -6 = 'D5' etc.
-            'pc':   (Relative) chromatic pitch class, or distance from tonic in semitones.
-            'sd':   Scale degrees such that 0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
+            * 'pc':   (Relative) chromatic pitch class, or distance from tonic in semitones.
+            * 'sd':   Scale degrees such that 0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
                     This representation requires a boolean column `minor_col` which is
                     True in those rows where the stacks of fifths occur in a local minor
                     context and False for the others. Alternatively, if all pitches are
                     in the same mode or you simply want to express them as degrees of
                     particular mode, you can pass the boolean keyword argument `minor`.
-            'rn':   Roman numerals such that 0 = 'I', -2 = 'bVII' in major, 'VII' in minor etc.
+            * 'rn':   Roman numerals such that 0 = 'I', -2 = 'bVII' in major, 'VII' in minor etc.
                     Requires boolean 'minor' values, see 'sd'.
+
         note_cols : :obj:`list`, optional
             List of columns that hold integers or collections of integers that represent
             stacks of fifth (0 = tonal center, 1 = fifth above, -1 = fourth above, etc).
@@ -1290,7 +1242,8 @@ class expand_labels():
             Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
         regex : :obj:`re.Pattern`
             Compiled regex with named groups for the five features.
-        **kwargs : arguments for features2tpcs (pass MC to show it in warnings!)
+        **kwargs :
+            arguments for features2tpcs (pass MC to show it in warnings!)
         """
         chord_features = re.match(regex, chord)
         assert chord_features is not None, f"{chord} does not match the regex."
