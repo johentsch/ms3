@@ -5,8 +5,14 @@ Changelog
 Version 0.2.0
 =============
 
+Beta stage:
+
+* attaching and detaching labels
+* parsing multiple pieces at once
 * extraction of metadata from scores
+* inclusion of staff text, dynamics and articulation in chord lists, added 'auto' mode
 * conversion of MuseScore's encoding of absolute chords
+* first version of docs
 
 Version 0.1.3
 =============
