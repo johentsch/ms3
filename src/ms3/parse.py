@@ -14,7 +14,7 @@ class Parse:
     Class for storing and manipulating the information from multiple parses.
     """
 
-    def __init__(self, dir=None, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
@@ -35,7 +35,7 @@ class Parse:
         if dir is not None:
             self.add_dir(dir=dir, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
-    def add_dir(self, dir, key=None, file_re='.*', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
+    def add_dir(self, dir, key=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         dir = resolve_dir(dir)
         self.last_scanned_dir = dir
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
@@ -137,9 +137,14 @@ Load one of the identically named files with a different key using add_dir(key='
         for i, score in scores.items():
             for param, li in self._lists.items():
                 if params[param]:
-                    if i not in li:
-                        li[i] = score.mscx.__getattribute__(param)
-                    res[i + (param,)] = li[i]
+                    if i in li:
+                        res[i + (param,)] = li[i]
+                    else:
+                        df = score.mscx.__getattribute__(param)
+                        if df is not None:
+                            li[i] = df
+                            res[i + (param,)] = df
+
         if expanded:
             res.update(self.expand_labels())
         return res
@@ -199,8 +204,9 @@ Load one of the identically named files with a different key using add_dir(key='
                 path = os.path.abspath(os.path.join(root, self.rel_paths[key][ix], folder))
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][ix]))
-            if path[:len(root)] != root:
-                self.logger.error(f"Not allowed to store files above the root {root}.\nErroneous path: {path}")
+            base, _ = os.path.split(root)
+            if path[:len(base)] != base:
+                self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
                 return None
 
 

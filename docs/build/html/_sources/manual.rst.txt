@@ -23,6 +23,13 @@ conventions which can be summarised as counting complete bars. Quite often, a co
 two <measure> nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
 computers, therefore a mapping MC -> MN is preserved in the score information DataFrames.
 
+.. _read_only:
+
+Read-only mode
+--------------
+
+For parsing faster using less memory.
+
 Using the library
 =================
 

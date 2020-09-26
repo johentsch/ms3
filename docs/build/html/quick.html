@@ -255,8 +255,8 @@ ambitus here pertain to the first page only.</p>
 </ul>
 </div>
 <div class="section" id="tabular-information">
-<h4>Tabular information<a class="headerlink" href="#tabular-information" title="Permalink to this headline">¶</a></h4>
-<p>The accessible Dataframes with score information are:</p>
+<span id="tabular-info"></span><h4>Tabular information<a class="headerlink" href="#tabular-information" title="Permalink to this headline">¶</a></h4>
+<p>The accessible DataFrames with score information are:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">measures</span></code>: A list of all measures together with the strictly increasing <strong>measure counts (MC)</strong> mapped to the actual
 <strong>measure numbers (MN)</strong>. Read more on the difference in the <a class="reference internal" href="manual.html#mc-vs-mn"><span class="std std-ref">manual</span></a>.</p></li>
@@ -273,24 +273,22 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </div>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 2%" />
 <col style="width: 3%" />
 <col style="width: 3%" />
 <col style="width: 7%" />
-<col style="width: 7%" />
-<col style="width: 7%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
 <col style="width: 9%" />
 <col style="width: 7%" />
-<col style="width: 11%" />
+<col style="width: 12%" />
 <col style="width: 6%" />
-<col style="width: 7%" />
+<col style="width: 8%" />
 <col style="width: 15%" />
 <col style="width: 10%" />
 <col style="width: 5%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>mc</p></th>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
 <th class="head"><p>mn</p></th>
 <th class="head"><p>keysig</p></th>
 <th class="head"><p>timesig</p></th>
@@ -306,8 +304,7 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>0</p></td>
-<td><p>1</p></td>
+<tr class="row-even"><td><p>1</p></td>
 <td><p>1</p></td>
 <td><p>-4</p></td>
 <td><p>4/4</p></td>
@@ -321,8 +318,7 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 <td><p>&lt;NA&gt;</p></td>
 <td><p>(2,)</p></td>
 </tr>
-<tr class="row-odd"><td><p>1</p></td>
-<td><p>2</p></td>
+<tr class="row-odd"><td><p>2</p></td>
 <td><p>2</p></td>
 <td><p>-4</p></td>
 <td><p>4/4</p></td>
@@ -343,10 +339,9 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </div>
 <table class="docutils align-default">
 <colgroup>
-<col style="width: 2%" />
 <col style="width: 3%" />
 <col style="width: 3%" />
-<col style="width: 7%" />
+<col style="width: 8%" />
 <col style="width: 6%" />
 <col style="width: 6%" />
 <col style="width: 6%" />
@@ -361,8 +356,7 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 <col style="width: 8%" />
 </colgroup>
 <thead>
-<tr class="row-odd"><th class="head"></th>
-<th class="head"><p>mc</p></th>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
 <th class="head"><p>mn</p></th>
 <th class="head"><p>timesig</p></th>
 <th class="head"><p>onset</p></th>
@@ -380,8 +374,7 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p>0</p></td>
-<td><p>1</p></td>
+<tr class="row-even"><td><p>1</p></td>
 <td><p>1</p></td>
 <td><p>4/4</p></td>
 <td><p>0</p></td>
@@ -399,7 +392,6 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </tr>
 <tr class="row-odd"><td><p>1</p></td>
 <td><p>1</p></td>
-<td><p>1</p></td>
 <td><p>4/4</p></td>
 <td><p>0</p></td>
 <td><p>3</p></td>
@@ -416,7 +408,281 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 </tr>
 </tbody>
 </table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">chords</span>
+</pre></div>
 </div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 2%" />
+<col style="width: 2%" />
+<col style="width: 5%" />
+<col style="width: 4%" />
+<col style="width: 4%" />
+<col style="width: 4%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 10%" />
+<col style="width: 5%" />
+<col style="width: 4%" />
+<col style="width: 6%" />
+<col style="width: 7%" />
+<col style="width: 5%" />
+<col style="width: 8%" />
+<col style="width: 6%" />
+<col style="width: 3%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
+<th class="head"><p>mn</p></th>
+<th class="head"><p>timesig</p></th>
+<th class="head"><p>onset</p></th>
+<th class="head"><p>staff</p></th>
+<th class="head"><p>voice</p></th>
+<th class="head"><p>duration</p></th>
+<th class="head"><p>gracenote</p></th>
+<th class="head"><p>nominal_duration</p></th>
+<th class="head"><p>scalar</p></th>
+<th class="head"><p>volta</p></th>
+<th class="head"><p>chord_id</p></th>
+<th class="head"><p>staff_text</p></th>
+<th class="head"><p>lyrics</p></th>
+<th class="head"><p>articulation</p></th>
+<th class="head"><p>dynamics</p></th>
+<th class="head"><p>Slur</p></th>
+<th class="head"><p>decrescendo</p></th>
+<th class="head"><p>diminuendo</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>1/2</p></td>
+<td><p>3</p></td>
+<td><p>1</p></td>
+<td><p>1/2</p></td>
+<td><p>NaN</p></td>
+<td><p>1/2</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>3</p></td>
+<td><p>2</p></td>
+<td><p>3/4</p></td>
+<td><p>NaN</p></td>
+<td><p>1/2</p></td>
+<td><p>3/2</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>1</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">rests</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 5%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 12%" />
+<col style="width: 22%" />
+<col style="width: 10%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
+<th class="head"><p>mn</p></th>
+<th class="head"><p>timesig</p></th>
+<th class="head"><p>onset</p></th>
+<th class="head"><p>staff</p></th>
+<th class="head"><p>voice</p></th>
+<th class="head"><p>duration</p></th>
+<th class="head"><p>nominal_duration</p></th>
+<th class="head"><p>scalar</p></th>
+<th class="head"><p>volta</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>2</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="section" id="parsing-multiple-scores">
+<h2>Parsing multiple scores<a class="headerlink" href="#parsing-multiple-scores" title="Permalink to this headline">¶</a></h2>
+<p>Often we want to perform operations on many scores at once, for example extracting the notelist of each and store it as
+a tab-separated values file (TSV).</p>
+<div class="section" id="loading">
+<h3>Loading<a class="headerlink" href="#loading" title="Permalink to this headline">¶</a></h3>
+<p>The first step is to create a <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a> object. When passing it
+the path of the cloned <a class="reference external" href="https://github.com/johentsch/ms3">Git</a>, it scans it for all MSCX files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Parse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
+<span class="go">10 files.</span>
+<span class="go">KEY       -&gt; EXTENSIONS</span>
+<span class="go">docs      -&gt; {&#39;.mscx&#39;: 4}</span>
+<span class="go">tests/MS3 -&gt; {&#39;.mscx&#39;: 6}</span>
+</pre></div>
+</div>
+<p>As we see, different keys have been automatically assigned for the different folders because no key has been specified.
+Instead, we could assign all ten files to the same key and then add the ‘docs’ once more with a different key:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">add_dir</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;doubly&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
+<span class="go">14 files.</span>
+<span class="go">KEY    -&gt; EXTENSIONS</span>
+<span class="go">all    -&gt; {&#39;.mscx&#39;: 10}</span>
+<span class="go">doubly -&gt; {&#39;.mscx&#39;: 4}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="parsing">
+<h3>Parsing<a class="headerlink" href="#parsing" title="Permalink to this headline">¶</a></h3>
+<p>… is as simple as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="go">WARNING Did03M-Son_regina-1762-Sarti -- bs4_measures.py (line 152) check_measure_numbers():</span>
+<span class="go">        MC 94, the 1st measure of a 2nd volta, should have MN 93, not MN 94.</span>
+</pre></div>
+</div>
+<p>Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
+<a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a> mode) are stored in the dictionary
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">_parsed</span></code>, the state of which can be viewed like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parsed</span>
+<span class="go">{(&#39;all&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 1): &#39;~/ms3/docs/o_quam.mscx -&gt; 26 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 2): &#39;~/ms3/docs/quae.mscx -&gt; 79 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 3): &#39;~/ms3/docs/stabat.mscx -&gt; 48 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 4): &#39;~/ms3/tests/MS3/05_symph_fant.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 5): &#39;~/ms3/tests/MS3/76CASM34A33UM.mscx -&gt; 173 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 6): &#39;~/ms3/tests/MS3/BWV_0815.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 7): &#39;~/ms3/tests/MS3/D973deutscher01.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 8): &#39;~/ms3/tests/MS3/Did03M-Son_regina-1762-Sarti.mscx -&gt; 193 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 9): &#39;~/ms3/tests/MS3/K281-3.mscx -&gt; 375 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 1): &#39;~/ms3/docs/o_quam.mscx -&gt; 26 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 2): &#39;~/ms3/docs/quae.mscx -&gt; 79 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 3): &#39;~/ms3/docs/stabat.mscx -&gt; 48 labels&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="extracting-score-information">
+<h3>Extracting score information<a class="headerlink" href="#extracting-score-information" title="Permalink to this headline">¶</a></h3>
+<p>Each of the <a class="reference internal" href="#tabular-info"><span class="std std-ref">previously discussed DataFrames</span></a> can be automatically stored for every score. To select
+one or several aspects from <code class="docutils literal notranslate"><span class="pre">[notes,</span> <span class="pre">measures,</span> <span class="pre">rests,</span> <span class="pre">notes_and_rests,</span> <span class="pre">events,</span> <span class="pre">labels,</span> <span class="pre">chords,</span> <span class="pre">expanded]</span></code>, it is enough
+to pass the respective <code class="docutils literal notranslate"><span class="pre">_folder</span></code> parameter to <code class="xref py py-meth docutils literal notranslate"><span class="pre">store_lists()</span></code> distinguishing where to store
+the TSV files. Additionally, the method accepts one <code class="docutils literal notranslate"><span class="pre">_suffix</span></code> parameter per aspect, i.e. a slug added to the respective
+filenames. If the parameter <code class="docutils literal notranslate"><span class="pre">simulate=True</span></code> is passed, no files are written but the file paths to be created are returned.</p>
+<p>In this variant, all aspects are stored each in individual folders but with identical filenames:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
+<span class="go">            rests_folder=&#39;./rests&#39;,</span>
+<span class="go">            notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
+<span class="go">            simulate=True</span>
+<span class="go">            )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
+</pre></div>
+</div>
+<p>In this variant, the different ways of specifying folder are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
+<span class="go">                    measures_folder=&#39;../measures&#39;,</span>
+<span class="go">                    rests_folder=&#39;rests&#39;,</span>
+<span class="go">                    labels_folder=&#39;~/labels&#39;,</span>
+<span class="go">                    expanded_folder=&#39;~/labels&#39;, expanded_suffix=&#39;_exp&#39;,</span>
+<span class="go">                    simulate = True</span>
+<span class="go">                    )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
+</pre></div>
+</div>
+<p>The rules for specifying the folders are as follows:</p>
+<ul class="simple">
+<li><p>absolute folder (e.g. <code class="docutils literal notranslate"><span class="pre">~/labels</span></code>): Store all files in this particular folder without creating subfolders.</p></li>
+<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> means that the file is to be placed relative to the location of the
+original MSCX file</p></li>
+<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>) creates the folder under the scan folder and
+places the files into a (newly created) relative folder structure below.</p></li>
+</ul>
 </div>
 </div>
 </div>
@@ -443,6 +709,12 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 <li class="toctree-l4"><a class="reference internal" href="#tabular-information">Tabular information</a></li>
 </ul>
 </li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-multiple-scores">Parsing multiple scores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#loading">Loading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsing">Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extracting-score-information">Extracting score information</a></li>
 </ul>
 </li>
 </ul>

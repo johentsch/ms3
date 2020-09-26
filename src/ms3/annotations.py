@@ -138,17 +138,24 @@ class Annotations:
         return res
 
 
-    def expand_dcml(self,  warn_about_others=True):
+    def expand_dcml(self,  warn_about_others=True, drop_others=True):
         if 'dcml' in self.regex_dict:
             del(self.regex_dict['dcml'])
         self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
         self.infer_types()
         sel = self.df.label_type == 'dcml'
+        if not sel.any():
+            self.logger.warning(f"Score doesn't contain any DCML harmonic annotations.")
+            return
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
         df = self.df[sel]
         exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
-        self._expanded = exp.df
+        if drop_others:
+            self._expanded = exp.df
+        else:
+            df = self.df.copy()
+            df.loc[sel, exp.df.columns] = exp.df
         return self._expanded
 
 

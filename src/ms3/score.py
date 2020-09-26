@@ -499,7 +499,7 @@ class MSCX:
     @property
     def labels(self):
         if self._annotations is None:
-            return pd.DataFrame()
+            return None
         return self._annotations.get_labels()
 
     @property
@@ -516,6 +516,8 @@ class MSCX:
 
     @property
     def expanded(self):
+        if self._annotations is None:
+            return None
         return self._annotations.expanded
 
     @property

@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 
 from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, name2tpc, transform
+from .logger import get_logger
 
 
 ################################################################################
@@ -196,10 +197,7 @@ class expand_labels():
             ix = df.index
             df.reset_index(drop=True, inplace=True)
 
-        if logger_name is None:
-            self.logger = logging.getLogger('expand_labels')
-        else:
-            self.logger = logging.getLogger(logger_name + '.expand_labels')
+        self.logger = get_logger(logger_name)
 
         for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey']:
             if not col in cols:
@@ -216,7 +214,7 @@ class expand_labels():
                 self.logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
         df = self.split_labels(df, column, regex, cols=cols, dropna=dropna)
-        df['chord_type'] = self.transform(df, self.features2type, [cols[col] for col in ['numeral', 'form', 'figbass']])
+        df['chord_type'] = transform(df, self.features2type, [cols[col] for col in ['numeral', 'form', 'figbass']])
         df = self.replace_special(df, regex=regex, merge=True, cols=cols)
 
         if propagate:
@@ -239,9 +237,9 @@ class expand_labels():
             if chord_tones:
                 ct = self.compute_chord_tones(df, expand=True, cols=cols)
                 if relative_to_global or absolute or all_in_c:
-                    transpose_by = self.transform(df, self.rn2tpc, [cols['localkey'], global_minor])
+                    transpose_by = transform(df, self.rn2tpc, [cols['localkey'], global_minor])
                     if absolute:
-                        transpose_by += self.transform(df, name2tpc, [cols['globalkey']])
+                        transpose_by += transform(df, name2tpc, [cols['globalkey']])
                     ct = pd.DataFrame([transpose(tpcs, fifths) for tpcs, fifths in zip(ct.itertuples(index=False, name=None), transpose_by.values)], index=ct.index, columns=ct.columns)
                 df = pd.concat([df, ct], axis=1)
 
@@ -671,7 +669,7 @@ class expand_labels():
 
         # Express pedals in relation to the global tonic
         param_cols = [cols[col] for col in ['pedal', 'localkey']] + [global_minor]
-        df['pedal'] = self.transform(df, self.rel2abs_key, param_cols)
+        df['pedal'] = transform(df, self.rel2abs_key, param_cols)
 
         # Make relativeroots to local keys
         param_cols = [cols[col] for col in ['relativeroot', 'localkey']] + [local_minor, global_minor]
@@ -683,11 +681,11 @@ class expand_labels():
 
         # Express numerals in relation to the global tonic
         param_cols = [cols[col] for col in ['numeral', 'localkey']] + [global_minor]
-        df['abs_numeral'] = self.transform(df, self.rel2abs_key, param_cols)
+        df['abs_numeral'] = transform(df, self.rel2abs_key, param_cols)
 
         # Transpose changes to be valid with the new numeral
         param_cols = [cols[col] for col in ['changes', 'numeral']] + ['abs_numeral', local_minor, global_minor]
-        df[cols['changes']] = self.transform(df, self.transpose_changes, param_cols)
+        df[cols['changes']] = transform(df, self.transpose_changes, param_cols)
 
         # Combine the new chord features
         df[cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes + ')').fillna('') # + ('/' + df.relativeroot).fillna('')

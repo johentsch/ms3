@@ -207,6 +207,7 @@ The computed information contains the following:
     for the piano part contains staves 3 and for, one for the right hand (Ab3-Db6) and one for the left hand (Ab2-Bb4).
 * ``musescore``: The MuseScore version with which the files has been saved.
 
+.. _tabular_info:
 
 Tabular information
 ~~~~~~~~~~~~~~~~~~~
@@ -275,7 +276,146 @@ The accessible DataFrames with score information are:
 Parsing multiple scores
 =======================
 
+Often we want to perform operations on many scores at once, for example extracting the notelist of each and store it as
+a tab-separated values file (TSV).
+
+Loading
+-------
+
+The first step is to create a :py:class:`~ms3.parse.Parse` object. When passing it
+the path of the cloned `Git <https://github.com/johentsch/ms3>`__, it scans it for all MSCX files:
+
+.. code-block:: python
+
+    >>> from ms3 import Parse
+    >>> p = Parse('~/ms3')
+    >>> p
+    10 files.
+    KEY       -> EXTENSIONS
+    docs      -> {'.mscx': 4}
+    tests/MS3 -> {'.mscx': 6}
+
+As we see, different keys have been automatically assigned for the different folders because no key has been specified.
+Instead, we could assign all ten files to the same key and then add the 'docs' once more with a different key:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3', key='all')
+    >>> p.add_dir('~/ms3/docs', key='doubly')
+    >>> p
+    14 files.
+    KEY    -> EXTENSIONS
+    all    -> {'.mscx': 10}
+    doubly -> {'.mscx': 4}
 
 
+Parsing
+-------
+
+... is as simple as
+
+.. code-block:: python
+
+    >>> p.parse_mscx()
+    WARNING Did03M-Son_regina-1762-Sarti -- bs4_measures.py (line 152) check_measure_numbers():
+	    MC 94, the 1st measure of a 2nd volta, should have MN 93, not MN 94.
+
+Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
+:py:class:`~ms3.score.Score` objects (:ref:`read_only` mode) are stored in the dictionary
+:py:attr:`~ms3.parse.Parse._parsed`, the state of which can be viewed like this:
+
+.. code-block:: python
+
+    >>> p.parsed
+    {('all', 0): '~/ms3/docs/cujus.mscx -> 88 labels',
+     ('all', 1): '~/ms3/docs/o_quam.mscx -> 26 labels',
+     ('all', 2): '~/ms3/docs/quae.mscx -> 79 labels',
+     ('all', 3): '~/ms3/docs/stabat.mscx -> 48 labels',
+     ('all', 4): '~/ms3/tests/MS3/05_symph_fant.mscx',
+     ('all', 5): '~/ms3/tests/MS3/76CASM34A33UM.mscx -> 173 labels',
+     ('all', 6): '~/ms3/tests/MS3/BWV_0815.mscx',
+     ('all', 7): '~/ms3/tests/MS3/D973deutscher01.mscx',
+     ('all', 8): '~/ms3/tests/MS3/Did03M-Son_regina-1762-Sarti.mscx -> 193 labels',
+     ('all', 9): '~/ms3/tests/MS3/K281-3.mscx -> 375 labels',
+     ('doubly', 0): '~/ms3/docs/cujus.mscx -> 88 labels',
+     ('doubly', 1): '~/ms3/docs/o_quam.mscx -> 26 labels',
+     ('doubly', 2): '~/ms3/docs/quae.mscx -> 79 labels',
+     ('doubly', 3): '~/ms3/docs/stabat.mscx -> 48 labels'}
 
 
+Extracting score information
+----------------------------
+
+Each of the :ref:`previously discussed DataFrames<tabular_info>` can be automatically stored for every score. To select
+one or several aspects from ``[notes, measures, rests, notes_and_rests, events, labels, chords, expanded]``, it is enough
+to pass the respective ``_folder`` parameter to :py:meth:`~ms3.parse.Parsed.store_lists` distinguishing where to store
+the TSV files. Additionally, the method accepts one ``_suffix`` parameter per aspect, i.e. a slug added to the respective
+filenames. If the parameter ``simulate=True`` is passed, no files are written but the file paths to be created are returned.
+
+In this variant, all aspects are stored each in individual folders but with identical filenames:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3/docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',
+                rests_folder='./rests',
+                notes_and_rests_folder='./notes_and_rests',
+                simulate=True
+                )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/docs/rests/cujus.tsv',
+     '~/ms3/docs/notes_and_rests/cujus.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/docs/rests/o_quam.tsv',
+     '~/ms3/docs/notes_and_rests/o_quam.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/docs/rests/quae.tsv',
+     '~/ms3/docs/notes_and_rests/quae.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/docs/rests/stabat.tsv',
+     '~/ms3/docs/notes_and_rests/stabat.tsv']
+
+
+In this variant, the different ways of specifying folder are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of ``~/ms3``:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3', folder_re='docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',
+                        measures_folder='../measures',
+                        rests_folder='rests',
+                        labels_folder='~/labels',
+                        expanded_folder='~/labels', expanded_suffix='_exp',
+                        simulate = True
+                        )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/rests/docs/cujus.tsv',
+     '~/ms3/measures/cujus.tsv',
+     '~/labels/cujus.tsv',
+     '~/labels/cujus_exp.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/rests/docs/o_quam.tsv',
+     '~/ms3/measures/o_quam.tsv',
+     '~/labels/o_quam.tsv',
+     '~/labels/o_quam_exp.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/rests/docs/quae.tsv',
+     '~/ms3/measures/quae.tsv',
+     '~/labels/quae.tsv',
+     '~/labels/quae_exp.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/rests/docs/stabat.tsv',
+     '~/ms3/measures/stabat.tsv',
+     '~/labels/stabat.tsv',
+     '~/labels/stabat_exp.tsv']
+
+The rules for specifying the folders are as follows:
+
+* absolute folder (e.g. ``~/labels``): Store all files in this particular folder without creating subfolders.
+* relative folder starting with ``./`` or ``../`` means that the file is to be placed relative to the location of the
+  original MSCX file
+* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``) creates the folder under the scan folder and
+  places the files into a (newly created) relative folder structure below.
