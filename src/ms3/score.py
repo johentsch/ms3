@@ -57,8 +57,8 @@ class Score:
                                   (?P<phraseend>(\\\\|\{|\}|\}\{)
                                   )?
                                  )
-                                 (?P<second>
-                                  (-
+                                 (-
+                                  (?P<second>
                                     ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
                                     ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
                                     ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
