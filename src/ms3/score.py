@@ -57,8 +57,8 @@ class Score:
                                   (?P<phraseend>(\\\\|\{|\}|\}\{)
                                   )?
                                  )
-                                 (?P<second>
-                                  (-
+                                 (-
+                                  (?P<second>
                                     ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
                                     ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
                                     ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
@@ -93,7 +93,7 @@ class Score:
         infer_label_types : :obj:`list` or :obj:`dict`, optional
             Determine which label types are determined automatically. Defaults to ['dcml'].
             Pass ``[]`` to infer only main types 0 - 3.
-            Pass ``{'type_name': r"^(regular)(Expression)$"} to call :meth:`ms3.Score.new_type`.
+            Pass ``{'type_name': r"^(regular)(Expression)$"}`` to call :meth:`ms3.Score.new_type`.
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
             of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.

@@ -228,13 +228,28 @@ The accessible DataFrames with score information are:
 
     >>> s.mscx.measures
 
-+----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
-| mc | mn | keysig | timesig | act_dur | mc_offset | breaks | repeats      | volta | barline | numbering_offset | dont_count | next |
-+====+====+========+=========+=========+===========+========+==============+=======+=========+==================+============+======+
-| 1  | 1  | -4     | 4/4     | 1       | 0         | NaN    | firstMeasure | <NA>  | NaN     | <NA>             | <NA>       | (2,) |
-+----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
-| 2  | 2  | -4     | 4/4     | 1       | 0         | NaN    | NaN          | <NA>  | NaN     | <NA>             | <NA>       | (3,) |
-+----+----+--------+---------+---------+-----------+--------+--------------+-------+---------+------------------+------------+------+
+.. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |barline| replace:: :ref:`barline <barline>`
+.. |breaks| replace:: :ref:`breaks <breaks>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |keysig| replace:: :ref:`keysig <keysig>`
+.. |mc| replace:: :ref:`mc <mc>`
+.. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
+.. |mn| replace:: :ref:`mn <mn>`
+.. |next| replace:: :ref:`next <next>`
+.. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
+.. |timesig| replace:: :ref:`timesig <timesig>`
+.. |repeats| replace:: :ref:`repeats <repeats>`
+.. |volta| replace:: :ref:`volta <volta>`
+
+
++------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
+| |mc| | |mn| | |keysig| | |timesig| | |act_dur| | |mc_offset| | |breaks| | |repeats|    | |volta| | |barline| | |numbering_offset| | |dont_count| | |next| |
++------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
+| 1    | 1    | -4       | 4/4       | 1         | 0           | NaN      | firstMeasure | <NA>    | NaN       | <NA>               | <NA>         | (2,)   |
++------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
+| 2    | 2    | -4       | 4/4       | 1         | 0           | NaN      | NaN          | <NA>    | NaN       | <NA>               | <NA>         | (3,)   |
++------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
 
 .. code-block:: python
 

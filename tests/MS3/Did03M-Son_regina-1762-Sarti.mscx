@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <museScore version="3.01">
-  <programVersion>3.4.2</programVersion>
-  <programRevision>148e43f</programRevision>
+  <programVersion>3.5.0</programVersion>
+  <programRevision>43c5553</programRevision>
   <Score>
     <LayerTag id="0" tag="default"></LayerTag>
     <currentLayer>0</currentLayer>
@@ -249,6 +249,14 @@
           <controller ctrl="0" value="0"/>
           <controller ctrl="32" value="17"/>
           <program value="68"/>
+          <controller ctrl="7" value="101"/>
+          <controller ctrl="10" value="63"/>
+          <synti>Fluid</synti>
+          </Channel>
+        <Channel name="harmony">
+          <controller ctrl="0" value="0"/>
+          <controller ctrl="32" value="17"/>
+          <program value="0"/>
           <controller ctrl="7" value="101"/>
           <controller ctrl="10" value="63"/>
           <synti>Fluid</synti>
@@ -971,7 +979,7 @@ Text: Pietro Metastasio (1689-1782)</text>
         </Measure>
       <Measure>
         <LayoutBreak>
-          <subtype>line</subtype>
+          <subtype>page</subtype>
           </LayoutBreak>
         <voice>
           <Harmony>
@@ -7307,6 +7315,19 @@ Text: Pietro Metastasio (1689-1782)</text>
           <StaffText>
             <text><font size="7.6"></font><b>Go To Measure 94</b></text>
             </StaffText>
+          <Spanner type="Volta">
+            <Volta>
+              <endHookType>1</endHookType>
+              <beginText>1.</beginText>
+              <endings>1</endings>
+              </Volta>
+            <next>
+              <location>
+                <measures>2</measures>
+                <fractions>-1/1</fractions>
+                </location>
+              </next>
+            </Spanner>
           </voice>
         </Measure>
       <Measure>
@@ -24624,7 +24645,7 @@ Text: Pietro Metastasio (1689-1782)</text>
             <durationType>eighth</durationType>
             <Lyrics>
               <syllabic>end</syllabic>
-              <offset x="-2.5e-7" y="2.54144"/>
+              <offset x="-2.5e-07" y="2.54144"/>
               <text>ro</text>
               </Lyrics>
             <StemDirection>down</StemDirection>
