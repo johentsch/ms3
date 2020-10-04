@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.2.0 documentation</title>
+    <title>ms3.score &#8212; ms3 0.1.2 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.2.0 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -123,8 +123,8 @@
 <span class="s2">                                  (?P&lt;phraseend&gt;(\\\\|\{|\}|\}\{)</span>
 <span class="s2">                                  )?</span>
 <span class="s2">                                 )</span>
-<span class="s2">                                 (?P&lt;second&gt;</span>
-<span class="s2">                                  (-</span>
+<span class="s2">                                 (-</span>
+<span class="s2">                                  (?P&lt;second&gt;</span>
 <span class="s2">                                    ((?P&lt;globalkey2&gt;[a-gA-G](b*|\#*))\.)?</span>
 <span class="s2">                                    ((?P&lt;localkey2&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?</span>
 <span class="s2">                                    ((?P&lt;pedal2&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?</span>
@@ -159,7 +159,7 @@
 <span class="sd">        infer_label_types : :obj:`list` or :obj:`dict`, optional</span>
 <span class="sd">            Determine which label types are determined automatically. Defaults to [&#39;dcml&#39;].</span>
 <span class="sd">            Pass ``[]`` to infer only main types 0 - 3.</span>
-<span class="sd">            Pass ``{&#39;type_name&#39;: r&quot;^(regular)(Expression)$&quot;} to call :meth:`ms3.Score.new_type`.</span>
+<span class="sd">            Pass ``{&#39;type_name&#39;: r&quot;^(regular)(Expression)$&quot;}`` to call :meth:`ms3.Score.new_type`.</span>
 <span class="sd">        read_only : :obj:`bool`, optional</span>
 <span class="sd">            Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations</span>
 <span class="sd">            of the score, such as adding and deleting labels. Set to ``True`` if you&#39;re only extracting information.</span>
@@ -655,7 +655,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.2.0 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 

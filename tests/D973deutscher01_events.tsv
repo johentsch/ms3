@@ -1,194 +1,194 @@
 mc	onset	event	duration	staff	voice	chord_id	gracenote	scalar	Chord/Articulation/subtype	Chord/BeamMode	Chord/Spanner/Slur	Chord/Spanner/next/location/fractions	Chord/Spanner/prev/location/fractions	Chord/Spanner:type	Chord/Tremolo/subtype	Chord/acciaccatura	Chord/appoggiatura	Chord/dots	Chord/durationType	Chord/grace16	Chord/grace16after	Chord/grace32	Chord/grace32after	Chord/grace4	Chord/grace8after	Clef/concertClefType	Clef/transposingClefType	Dynamic/subtype	Dynamic/velocity	Rest/duration	Rest/durationType	Spanner/HairPin/subtype	Spanner/next/location/fractions	Spanner/next/location/measures	Spanner/prev/location/fractions	Spanner/prev/location/measures	Spanner:type	Tuplet/Number/style	Tuplet/Number/text	Tuplet/actualNotes	Tuplet/baseNote	Tuplet/normalNotes	endTuplet	location/fractions
 1	0	Dynamic	0	1	1																							f	96															
-1	0	Chord	1/16	1	1	0.0		1											16th																									
-1	1/16	Chord	3/16	1	1	1.0		3/2		mid								1	eighth																									
-1	1/4	Chord	1/16	1	1	2.0		1		mid									16th																									
-1	0	Chord	1/16	1	2	3.0		1											16th																									
-1	1/16	Chord	1/4	1	2	4.0		1							r64				quarter																									
+1	0	Chord	1/16	1	1	0		1											16th																									
+1	1/16	Chord	3/16	1	1	1		3/2		mid								1	eighth																									
+1	1/4	Chord	1/16	1	1	2		1		mid									16th																									
+1	0	Chord	1/16	1	2	3		1											16th																									
+1	1/16	Chord	1/4	1	2	4		1							r64				quarter																									
 1	0	Rest	1/4	2	1			1																							quarter													
 1	1/4	Rest	1/16	2	1			1																							16th													
-2	0	Chord	3/16	1	1	5.0		3/2	articAccentBelow		∅	3/16		Slur				1	eighth																									
-2	3/16	Chord	1/16	1	1	6.0		1					-3/16	Slur					16th																									
-2	1/4	Chord	1/4	1	1	7.0		1											quarter																									
-2	1/2	Chord	1/4	1	1	8.0		1											quarter																									
-2	0	Chord	1/4	2	1	9.0		1											quarter																									
-2	1/4	Chord	1/4	2	1	10.0		1											quarter																									
-2	1/2	Chord	1/4	2	1	11.0		1											quarter																									
-3	0	Chord	1/8	1	1	12.0		1	articAccentAbove										eighth																									
-3	1/8	Chord	1/8	1	1	13.0		1											eighth																									
-3	1/4	Chord	1/4	1	1	14.0		1											quarter																									
-3	1/2	Chord	1/4	1	1	15.0		1											quarter																									
-3	0	Chord	1/4	1	2	16.0		1											quarter																									
-3	1/4	Chord	1/4	1	2	17.0		1											quarter																									
-3	1/2	Chord	1/4	1	2	18.0		1											quarter																									
-3	0	Chord	1/4	2	1	19.0		1											quarter																									
-3	1/4	Chord	1/4	2	1	20.0		1											quarter																									
-3	1/2	Chord	1/4	2	1	21.0		1											quarter																									
-4	0	Chord	1/8	1	1	22.0		1	articAccentAbove										eighth																									
-4	1/8	Chord	1/8	1	1	23.0		1											eighth																									
-4	1/4	Chord	1/8	1	1	24.0		1											eighth																									
-4	3/8	Chord	1/8	1	1	25.0		1											eighth																									
-4	1/2	Chord	1/8	1	1	26.0		1											eighth																									
-4	5/8	Chord	1/8	1	1	27.0		1											eighth																									
-4	0	Chord	1/4	1	2	28.0		1											quarter																									
-4	1/4	Chord	1/4	1	2	29.0		1											quarter																									
-4	1/2	Chord	1/4	1	2	30.0		1											quarter																									
-4	0	Chord	1/4	2	1	31.0		1											quarter																									
-4	1/4	Chord	1/4	2	1	32.0		1											quarter																									
-4	1/2	Chord	1/4	2	1	33.0		1											quarter																									
-5	0	Chord	7/16	1	1	34.0		7/4										2	quarter																									
-5	7/16	Chord	1/16	1	1	35.0		1											16th																									
-5	1/2	Chord	3/16	1	1	36.0		3/2										1	eighth																									
-5	11/16	Chord	1/16	1	1	37.0		1											16th																									
-5	0	Chord	7/16	1	2	38.0		7/4										2	quarter																									
-5	0	Chord	1/4	2	1	39.0		1											quarter																									
-5	1/4	Chord	1/4	2	1	40.0		1											quarter																									
+2	0	Chord	3/16	1	1	5		3/2	articAccentBelow		∅	3/16		Slur				1	eighth																									
+2	3/16	Chord	1/16	1	1	6		1					-3/16	Slur					16th																									
+2	1/4	Chord	1/4	1	1	7		1											quarter																									
+2	1/2	Chord	1/4	1	1	8		1											quarter																									
+2	0	Chord	1/4	2	1	9		1											quarter																									
+2	1/4	Chord	1/4	2	1	10		1											quarter																									
+2	1/2	Chord	1/4	2	1	11		1											quarter																									
+3	0	Chord	1/8	1	1	12		1	articAccentAbove										eighth																									
+3	1/8	Chord	1/8	1	1	13		1											eighth																									
+3	1/4	Chord	1/4	1	1	14		1											quarter																									
+3	1/2	Chord	1/4	1	1	15		1											quarter																									
+3	0	Chord	1/4	1	2	16		1											quarter																									
+3	1/4	Chord	1/4	1	2	17		1											quarter																									
+3	1/2	Chord	1/4	1	2	18		1											quarter																									
+3	0	Chord	1/4	2	1	19		1											quarter																									
+3	1/4	Chord	1/4	2	1	20		1											quarter																									
+3	1/2	Chord	1/4	2	1	21		1											quarter																									
+4	0	Chord	1/8	1	1	22		1	articAccentAbove										eighth																									
+4	1/8	Chord	1/8	1	1	23		1											eighth																									
+4	1/4	Chord	1/8	1	1	24		1											eighth																									
+4	3/8	Chord	1/8	1	1	25		1											eighth																									
+4	1/2	Chord	1/8	1	1	26		1											eighth																									
+4	5/8	Chord	1/8	1	1	27		1											eighth																									
+4	0	Chord	1/4	1	2	28		1											quarter																									
+4	1/4	Chord	1/4	1	2	29		1											quarter																									
+4	1/2	Chord	1/4	1	2	30		1											quarter																									
+4	0	Chord	1/4	2	1	31		1											quarter																									
+4	1/4	Chord	1/4	2	1	32		1											quarter																									
+4	1/2	Chord	1/4	2	1	33		1											quarter																									
+5	0	Chord	7/16	1	1	34		7/4										2	quarter																									
+5	7/16	Chord	1/16	1	1	35		1											16th																									
+5	1/2	Chord	3/16	1	1	36		3/2										1	eighth																									
+5	11/16	Chord	1/16	1	1	37		1											16th																									
+5	0	Chord	7/16	1	2	38		7/4										2	quarter																									
+5	0	Chord	1/4	2	1	39		1											quarter																									
+5	1/4	Chord	1/4	2	1	40		1											quarter																									
 5	1/2	Rest	1/4	2	1			1																							quarter													
-6	0	Chord	1/8	1	1	41.0		1	articAccentAbove										eighth																									
-6	1/8	Chord	1/8	1	1	42.0		1											eighth																									
-6	1/4	Chord	1/4	1	1	43.0		1											quarter																									
-6	1/2	Chord	1/4	1	1	44.0		1											quarter																									
+6	0	Chord	1/8	1	1	41		1	articAccentAbove										eighth																									
+6	1/8	Chord	1/8	1	1	42		1											eighth																									
+6	1/4	Chord	1/4	1	1	43		1											quarter																									
+6	1/2	Chord	1/4	1	1	44		1											quarter																									
 6	0	location	1/2	1	2																																							1/2
-6	1/2	Chord	1/4	1	2	45.0		1											quarter																									
-6	0	Chord	1/4	2	1	46.0		1											quarter																									
-6	1/4	Chord	1/4	2	1	47.0		1											quarter																									
-6	1/2	Chord	1/4	2	1	48.0		1											quarter																									
-7	0	Chord	1/8	1	1	49.0		1											eighth																									
-7	1/8	Chord	1/8	1	1	50.0		1											eighth																									
-7	1/4	Chord	1/4	1	1	51.0		1											quarter																									
-7	1/2	Chord	1/4	1	1	52.0		1											quarter																									
-7	0	Chord	1/4	1	2	53.0		1											quarter																									
-7	1/4	Chord	1/4	1	2	54.0		1											quarter																									
-7	1/2	Chord	1/4	1	2	55.0		1											quarter																									
-7	0	Chord	1/4	2	1	56.0		1											quarter																									
-7	1/4	Chord	1/4	2	1	57.0		1											quarter																									
-7	1/2	Chord	1/4	2	1	58.0		1											quarter																									
-8	0	Chord	1/8	1	1	59.0		1											eighth																									
-8	1/8	Chord	1/8	1	1	60.0		1											eighth																									
-8	1/4	Chord	1/8	1	1	61.0		1											eighth																									
-8	3/8	Chord	1/8	1	1	62.0		1											eighth																									
-8	1/2	Chord	1/8	1	1	63.0		1											eighth																									
-8	5/8	Chord	1/8	1	1	64.0		1											eighth																									
-8	0	Chord	1/4	1	2	65.0		1											quarter																									
-8	1/4	Chord	1/4	1	2	66.0		1											quarter																									
-8	1/2	Chord	1/4	1	2	67.0		1											quarter																									
-8	0	Chord	1/4	2	1	68.0		1											quarter																									
-8	1/4	Chord	1/4	2	1	69.0		1											quarter																									
-8	1/2	Chord	1/4	2	1	70.0		1											quarter																									
+6	1/2	Chord	1/4	1	2	45		1											quarter																									
+6	0	Chord	1/4	2	1	46		1											quarter																									
+6	1/4	Chord	1/4	2	1	47		1											quarter																									
+6	1/2	Chord	1/4	2	1	48		1											quarter																									
+7	0	Chord	1/8	1	1	49		1											eighth																									
+7	1/8	Chord	1/8	1	1	50		1											eighth																									
+7	1/4	Chord	1/4	1	1	51		1											quarter																									
+7	1/2	Chord	1/4	1	1	52		1											quarter																									
+7	0	Chord	1/4	1	2	53		1											quarter																									
+7	1/4	Chord	1/4	1	2	54		1											quarter																									
+7	1/2	Chord	1/4	1	2	55		1											quarter																									
+7	0	Chord	1/4	2	1	56		1											quarter																									
+7	1/4	Chord	1/4	2	1	57		1											quarter																									
+7	1/2	Chord	1/4	2	1	58		1											quarter																									
+8	0	Chord	1/8	1	1	59		1											eighth																									
+8	1/8	Chord	1/8	1	1	60		1											eighth																									
+8	1/4	Chord	1/8	1	1	61		1											eighth																									
+8	3/8	Chord	1/8	1	1	62		1											eighth																									
+8	1/2	Chord	1/8	1	1	63		1											eighth																									
+8	5/8	Chord	1/8	1	1	64		1											eighth																									
+8	0	Chord	1/4	1	2	65		1											quarter																									
+8	1/4	Chord	1/4	1	2	66		1											quarter																									
+8	1/2	Chord	1/4	1	2	67		1											quarter																									
+8	0	Chord	1/4	2	1	68		1											quarter																									
+8	1/4	Chord	1/4	2	1	69		1											quarter																									
+8	1/2	Chord	1/4	2	1	70		1											quarter																									
 9	0	Spanner	0	1	1																											0	1/4	1			HairPin							
-9	0	Chord	7/16	1	1	71.0		7/4										2	quarter																									
-9	0	Chord	7/16	1	2	72.0		7/4										2	quarter																									
-9	0	Chord	1/4	2	1	73.0		1											quarter																									
-9	1/4	Chord	1/8	2	1	74.0		1											eighth																									
+9	0	Chord	7/16	1	1	71		7/4										2	quarter																									
+9	0	Chord	7/16	1	2	72		7/4										2	quarter																									
+9	0	Chord	1/4	2	1	73		1											quarter																									
+9	1/4	Chord	1/8	2	1	74		1											eighth																									
 9	3/8	Rest	1/16	2	1			1																							16th													
 10	0	Dynamic	0	1	1																							p	49															
-10	0	Chord	1/16	1	1	75.0		1											16th																									
-10	1/16	Chord	3/16	1	1	76.0		3/2										1	eighth																									
+10	0	Chord	1/16	1	1	75		1											16th																									
+10	1/16	Chord	3/16	1	1	76		3/2										1	eighth																									
 10	1/4	Spanner	0	1	1																														-1/4	-1	HairPin							
-10	1/4	Chord	1/16	1	1	77.0		1											16th																									
+10	1/4	Chord	1/16	1	1	77		1											16th																									
 10	0	Rest	1/16	2	1			1																							16th													
 10	1/16	Rest	1/4	2	1			1																							quarter													
-11	0	Chord	1/8	1	1	78.0		1	articAccentAbove										eighth																									
-11	1/8	Chord	1/8	1	1	79.0		1											eighth																									
-11	1/4	Chord	1/4	1	1	80.0		1											quarter																									
-11	1/2	Chord	1/4	1	1	81.0		1											quarter																									
-11	0	Chord	1/4	2	1	82.0		1											quarter																									
-11	1/4	Chord	1/4	2	1	83.0		1											quarter																									
-11	1/2	Chord	1/4	2	1	84.0		1											quarter																									
-12	0	Chord	1/4	1	1	85.0		1											quarter																									
-12	1/4	Chord	1/4	1	1	86.0		1											quarter																									
-12	1/2	Chord	1/4	1	1	87.0		1											quarter																									
-12	0	Chord	1/8	1	2	88.0		1											eighth																									
-12	1/8	Chord	1/8	1	2	89.0		1											eighth																									
-12	1/4	Chord	1/8	1	2	90.0		1											eighth																									
-12	3/8	Chord	1/8	1	2	91.0		1											eighth																									
-12	1/2	Chord	1/8	1	2	92.0		1											eighth																									
-12	5/8	Chord	1/8	1	2	93.0		1											eighth																									
-12	0	Chord	1/4	2	1	94.0		1											quarter																									
-12	1/4	Chord	1/4	2	1	95.0		1											quarter																									
-12	1/2	Chord	1/4	2	1	96.0		1											quarter																									
-13	0	Chord	1/8	1	1	97.0		1											eighth																									
-13	1/8	Chord	1/8	1	1	98.0		1											eighth																									
-13	1/4	Chord	1/8	1	1	99.0		1											eighth																									
-13	3/8	Chord	1/8	1	1	100.0		1											eighth																									
-13	1/2	Chord	1/8	1	1	101.0		1											eighth																									
-13	5/8	Chord	1/8	1	1	102.0		1											eighth																									
+11	0	Chord	1/8	1	1	78		1	articAccentAbove										eighth																									
+11	1/8	Chord	1/8	1	1	79		1											eighth																									
+11	1/4	Chord	1/4	1	1	80		1											quarter																									
+11	1/2	Chord	1/4	1	1	81		1											quarter																									
+11	0	Chord	1/4	2	1	82		1											quarter																									
+11	1/4	Chord	1/4	2	1	83		1											quarter																									
+11	1/2	Chord	1/4	2	1	84		1											quarter																									
+12	0	Chord	1/4	1	1	85		1											quarter																									
+12	1/4	Chord	1/4	1	1	86		1											quarter																									
+12	1/2	Chord	1/4	1	1	87		1											quarter																									
+12	0	Chord	1/8	1	2	88		1											eighth																									
+12	1/8	Chord	1/8	1	2	89		1											eighth																									
+12	1/4	Chord	1/8	1	2	90		1											eighth																									
+12	3/8	Chord	1/8	1	2	91		1											eighth																									
+12	1/2	Chord	1/8	1	2	92		1											eighth																									
+12	5/8	Chord	1/8	1	2	93		1											eighth																									
+12	0	Chord	1/4	2	1	94		1											quarter																									
+12	1/4	Chord	1/4	2	1	95		1											quarter																									
+12	1/2	Chord	1/4	2	1	96		1											quarter																									
+13	0	Chord	1/8	1	1	97		1											eighth																									
+13	1/8	Chord	1/8	1	1	98		1											eighth																									
+13	1/4	Chord	1/8	1	1	99		1											eighth																									
+13	3/8	Chord	1/8	1	1	100		1											eighth																									
+13	1/2	Chord	1/8	1	1	101		1											eighth																									
+13	5/8	Chord	1/8	1	1	102		1											eighth																									
 13	0	Spanner	0	1	2																											0	1/2				HairPin							
-13	0	Chord	0	1	2	103.0	grace32after	1											32nd				/																					
-13	0	Chord	0	1	2	104.0	grace16after	1											16th		/																							
-13	0	Chord	0	1	2	105.0	grace8after	1											eighth						/																			
-13	0	Chord	0	1	2	106.0	grace32	1											32nd			/																						
-13	0	Chord	0	1	2	107.0	grace16	1											16th	/																								
-13	0	Chord	0	1	2	108.0	grace4	1											quarter					/																				
-13	0	Chord	0	1	2	109.0	appoggiatura	1									/		eighth																									
-13	0	Chord	0	1	2	110.0	acciaccatura	1								/			eighth																									
-13	0	Chord	1/4	1	2	111.0		1											quarter																									
-13	1/4	Chord	1/4	1	2	112.0		1											quarter																									
+13	0	Chord	0	1	2	103	grace32after	1											32nd				/																					
+13	0	Chord	0	1	2	104	grace16after	1											16th		/																							
+13	0	Chord	0	1	2	105	grace8after	1											eighth						/																			
+13	0	Chord	0	1	2	106	grace32	1											32nd			/																						
+13	0	Chord	0	1	2	107	grace16	1											16th	/																								
+13	0	Chord	0	1	2	108	grace4	1											quarter					/																				
+13	0	Chord	0	1	2	109	appoggiatura	1									/		eighth																									
+13	0	Chord	0	1	2	110	acciaccatura	1								/			eighth																									
+13	0	Chord	1/4	1	2	111		1											quarter																									
+13	1/4	Chord	1/4	1	2	112		1											quarter																									
 13	1/2	Spanner	0	1	2																														-1/2		HairPin							
 13	1/2	Spanner	0	1	2																											1	-1/2	1			HairPin							
-13	1/2	Chord	1/4	1	2	113.0		1											quarter																									
-13	0	Chord	1/4	2	1	114.0		1											quarter																									
+13	1/2	Chord	1/4	1	2	113		1											quarter																									
+13	0	Chord	1/4	2	1	114		1											quarter																									
 13	1/4	Clef	0	2	1																					G	G																	
-13	1/4	Chord	1/8	2	1	115.0		1											eighth																									
-13	3/8	Chord	1/8	2	1	116.0		1											eighth																									
-13	1/2	Chord	1/8	2	1	117.0		1											eighth																									
-13	5/8	Chord	1/8	2	1	118.0		1											eighth																									
-14	0	Chord	1/8	1	1	119.0		1											eighth																									
-14	1/8	Chord	1/8	1	1	120.0		1											eighth																									
-14	1/4	Chord	1/8	1	1	121.0		1											eighth																									
-14	3/8	Chord	1/8	1	1	122.0		1											eighth																									
-14	1/2	Chord	1/8	1	1	123.0		1											eighth																									
-14	5/8	Chord	1/8	1	1	124.0		1											eighth																									
+13	1/4	Chord	1/8	2	1	115		1											eighth																									
+13	3/8	Chord	1/8	2	1	116		1											eighth																									
+13	1/2	Chord	1/8	2	1	117		1											eighth																									
+13	5/8	Chord	1/8	2	1	118		1											eighth																									
+14	0	Chord	1/8	1	1	119		1											eighth																									
+14	1/8	Chord	1/8	1	1	120		1											eighth																									
+14	1/4	Chord	1/8	1	1	121		1											eighth																									
+14	3/8	Chord	1/8	1	1	122		1											eighth																									
+14	1/2	Chord	1/8	1	1	123		1											eighth																									
+14	5/8	Chord	1/8	1	1	124		1											eighth																									
 14	0	Spanner	0	1	2																														1/2	-1	HairPin							
-14	0	Chord	1/4	1	2	125.0		1											quarter																									
+14	0	Chord	1/4	1	2	125		1											quarter																									
 14	1/4	Rest	1/2	1	2			1																							half													
-14	0	Chord	1/4	2	1	126.0		1											quarter																									
+14	0	Chord	1/4	2	1	126		1											quarter																									
 14	1/4	Clef	0	2	1																					F	F																	
-14	1/4	Chord	1/4	2	1	127.0		1											quarter																									
+14	1/4	Chord	1/4	2	1	127		1											quarter																									
 14	1/2	Rest	1/4	2	1			1																							quarter													
-15	0	Chord	1/8	1	1	128.0		1	articAccentAbove										eighth																									
-15	1/8	Chord	1/8	1	1	129.0		1											eighth																									
-15	1/4	Chord	1/4	1	1	130.0		1											quarter																									
-15	1/2	Chord	1/4	1	1	131.0		1											quarter																									
-15	0	Chord	1/4	2	1	132.0		1											quarter																									
-15	1/4	Chord	1/4	2	1	133.0		1											quarter																									
-15	1/2	Chord	1/4	2	1	134.0		1											quarter																									
+15	0	Chord	1/8	1	1	128		1	articAccentAbove										eighth																									
+15	1/8	Chord	1/8	1	1	129		1											eighth																									
+15	1/4	Chord	1/4	1	1	130		1											quarter																									
+15	1/2	Chord	1/4	1	1	131		1											quarter																									
+15	0	Chord	1/4	2	1	132		1											quarter																									
+15	1/4	Chord	1/4	2	1	133		1											quarter																									
+15	1/2	Chord	1/4	2	1	134		1											quarter																									
 16	0	Rest	3/4	1	1			1																						3/4	measure													
 16	0	Rest	3/4	2	1			1																						3/4	measure													
-17	0	Chord	1/4	1	1	135.0		1											quarter																									
-17	1/4	Chord	1/4	1	1	136.0		1											quarter																									
-17	1/2	Chord	1/4	1	1	137.0		1											quarter																									
-17	0	Chord	1/8	1	2	138.0		1											eighth																									
-17	1/8	Chord	1/8	1	2	139.0		1											eighth																									
-17	1/4	Chord	1/8	1	2	140.0		1											eighth																									
-17	3/8	Chord	1/8	1	2	141.0		1											eighth																									
-17	1/2	Chord	1/8	1	2	142.0		1											eighth																									
-17	5/8	Chord	1/8	1	2	143.0		1											eighth																									
-17	0	Chord	1/4	2	1	144.0		1											quarter																									
-17	1/4	Chord	1/8	2	1	145.0		1	articAccentBelow										eighth																									
-17	3/8	Chord	1/8	2	1	146.0		1											eighth																									
-17	1/2	Chord	1/8	2	1	147.0		1											eighth																									
-17	5/8	Chord	1/8	2	1	148.0		1											eighth																									
-18	0	Chord	1/8	1	1	149.0		1											eighth																									
-18	1/8	Chord	1/8	1	1	150.0		1											eighth																									
-18	1/4	Chord	1/8	1	1	151.0		1											eighth																									
-18	3/8	Chord	1/8	1	1	152.0		1											eighth																									
+17	0	Chord	1/4	1	1	135		1											quarter																									
+17	1/4	Chord	1/4	1	1	136		1											quarter																									
+17	1/2	Chord	1/4	1	1	137		1											quarter																									
+17	0	Chord	1/8	1	2	138		1											eighth																									
+17	1/8	Chord	1/8	1	2	139		1											eighth																									
+17	1/4	Chord	1/8	1	2	140		1											eighth																									
+17	3/8	Chord	1/8	1	2	141		1											eighth																									
+17	1/2	Chord	1/8	1	2	142		1											eighth																									
+17	5/8	Chord	1/8	1	2	143		1											eighth																									
+17	0	Chord	1/4	2	1	144		1											quarter																									
+17	1/4	Chord	1/8	2	1	145		1	articAccentBelow										eighth																									
+17	3/8	Chord	1/8	2	1	146		1											eighth																									
+17	1/2	Chord	1/8	2	1	147		1											eighth																									
+17	5/8	Chord	1/8	2	1	148		1											eighth																									
+18	0	Chord	1/8	1	1	149		1											eighth																									
+18	1/8	Chord	1/8	1	1	150		1											eighth																									
+18	1/4	Chord	1/8	1	1	151		1											eighth																									
+18	3/8	Chord	1/8	1	1	152		1											eighth																									
 18	1/2	Tuplet	0	1	1																																	Tuplet	3	3	eighth	2		
-18	1/2	Chord	1/12	1	1	153.0		2/3											eighth																									
-18	7/12	Chord	1/12	1	1	154.0		2/3											eighth																									
-18	2/3	Chord	1/12	1	1	155.0		2/3											eighth																									
+18	1/2	Chord	1/12	1	1	153		2/3											eighth																									
+18	7/12	Chord	1/12	1	1	154		2/3											eighth																									
+18	2/3	Chord	1/12	1	1	155		2/3											eighth																									
 18	3/4	endTuplet	0	1	1																																						/	
-18	0	Chord	1/4	1	2	156.0		1											quarter																									
-18	1/4	Chord	1/4	1	2	157.0		1											quarter																									
-18	1/2	Chord	1/4	1	2	158.0		1											quarter																									
-18	0	Chord	1/4	2	1	159.0		1											quarter																									
-18	1/4	Chord	1/4	2	1	160.0		1											quarter																									
-18	1/2	Chord	1/4	2	1	161.0		1											quarter																									
-19	0	Chord	7/16	1	1	162.0		7/4										2	quarter																									
-19	0	Chord	7/16	1	2	163.0		7/4										2	quarter																									
-19	0	Chord	7/16	2	1	164.0		7/4										2	quarter																									
-20	0	Chord	3/4	1	1	165.0		3/2										1	half																									
-20	0	Chord	3/4	2	1	166.0		3/2										1	half																									
-21	0	Chord	3/4	1	1	167.0		3/2										1	half																									
-21	0	Chord	7/16	1	2	168.0		7/4										2	quarter																									
-21	0	Chord	3/4	2	1	169.0		3/2										1	half																									
+18	0	Chord	1/4	1	2	156		1											quarter																									
+18	1/4	Chord	1/4	1	2	157		1											quarter																									
+18	1/2	Chord	1/4	1	2	158		1											quarter																									
+18	0	Chord	1/4	2	1	159		1											quarter																									
+18	1/4	Chord	1/4	2	1	160		1											quarter																									
+18	1/2	Chord	1/4	2	1	161		1											quarter																									
+19	0	Chord	7/16	1	1	162		7/4										2	quarter																									
+19	0	Chord	7/16	1	2	163		7/4										2	quarter																									
+19	0	Chord	7/16	2	1	164		7/4										2	quarter																									
+20	0	Chord	3/4	1	1	165		3/2										1	half																									
+20	0	Chord	3/4	2	1	166		3/2										1	half																									
+21	0	Chord	3/4	1	1	167		3/2										1	half																									
+21	0	Chord	7/16	1	2	168		7/4										2	quarter																									
+21	0	Chord	3/4	2	1	169		3/2										1	half																									

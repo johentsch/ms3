@@ -136,6 +136,7 @@ pygments_style = 'sphinx'
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 html_theme = 'cloud'
+# pip install cloud_sptheme
 # view theme options here: https://cloud-sptheme.readthedocs.io/en/latest/cloud_theme.html#list-of-options
 
 # don't order elements alphabetically
