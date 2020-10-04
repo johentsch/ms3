@@ -193,8 +193,16 @@ Load one of the identically named files with a different key using add_dir(key='
         -------
 
         """
+        def restore_logger(val):
+            nonlocal prev_logger
+            self.logger = prev_logger
+            return val
+
         prev_logger = self.logger
-        self.logger = get_logger(self.fnames[key][ix])
+        self.logger = get_logger(self.fnames[key][ix] + f":{what}")
+        if df is None:
+            self.logger.debug(f"No DataFrame for {what}.")
+            return restore_logger(None)
         if os.path.isabs(folder) or '~' in folder:
             folder = resolve_dir(folder)
             path = folder
@@ -207,7 +215,7 @@ Load one of the identically named files with a different key using add_dir(key='
             base, _ = os.path.split(root)
             if path[:len(base)] != base:
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
-                return None
+                return restore_logger(None)
 
 
         fname = self.fnames[key][ix] + suffix + '.tsv'
@@ -218,7 +226,7 @@ Load one of the identically named files with a different key using add_dir(key='
             os.makedirs(path, exist_ok=True)
             no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, sep='\t', index=False)
             self.logger.debug(f"{what} written to {file_path}.")
-        self.logger = prev_logger
+
         return file_path
 
 
@@ -279,6 +287,8 @@ def group_index_tuples(l):
 
 @function_logger
 def no_collections_no_booleans(df):
+    if df is None:
+        return None
     collection_cols = ['next', 'chord_tones', 'added_tones']
     try:
         cc = [c for c in collection_cols if c in df.columns]

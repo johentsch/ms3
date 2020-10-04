@@ -32,7 +32,7 @@ The example score is called ``stabat.mscx`` and can be downloaded from
 Storing the labels
 ------------------
 
-The annotations contained in a score are stored in a :py:class:`~ms3.annotations.Annotations` object and can be accessed
+The annotations contained in a score are stored in an :py:class:`~ms3.annotations.Annotations` object and can be accessed
 and stored as a tab-separated file (TSV) like this:
 
 .. code-block:: python
@@ -143,7 +143,7 @@ Accessing score information
 After parsing a score, all contained information is accessible in structured formats. Most information is returned as
 :obj:`pandas.DataFrame`, whereas a given set of metadata is accessible as dictionary.
 
-Since this information is attached to the parsed MSCX file (and not, say to loaded annotations), it is accessible
+Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
 via ``s.mscx``.
 
 Metadata
@@ -359,10 +359,10 @@ In this variant, all aspects are stored each in individual folders but with iden
     >>> p = Parse('~/ms3/docs', key='pergo')
     >>> p.parse_mscx()
     >>> p.store_lists(  notes_folder='./notes',
-                rests_folder='./rests',
-                notes_and_rests_folder='./notes_and_rests',
-                simulate=True
-                )
+                        rests_folder='./rests',
+                        notes_and_rests_folder='./notes_and_rests',
+                        simulate=True
+                        )
     ['~/ms3/docs/notes/cujus.tsv',
      '~/ms3/docs/rests/cujus.tsv',
      '~/ms3/docs/notes_and_rests/cujus.tsv',

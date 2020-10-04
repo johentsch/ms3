@@ -23,6 +23,9 @@ def decode_harmonies(df, return_series=False):
         df.root = fifths2name(df.root, ms=True)
         compose_label.append('root')
         drop_cols.append('root')
+        if 'rootCase' in df.columns:
+            drop_cols.append('rootCase')
+        # TODO: use rootCase
     compose_label.append('label')
     if 'base' in df.columns:
         df.base = '/' + fifths2name(df.base, ms=True)
