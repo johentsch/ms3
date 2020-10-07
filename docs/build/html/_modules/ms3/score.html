@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.1.2 documentation</title>
+    <title>ms3.score &#8212; ms3 0.2.0.post0.dev6+g543f395.dirty documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.2.0.post0.dev6+g543f395.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -89,12 +89,14 @@
 <span class="sd">        The only XML parser currently implemented is BeautifulSoup 4.</span>
 <span class="sd">    paths, files, fnames, fexts, logger_names : :obj:`dict`</span>
 <span class="sd">        Dictionaries for keeping track of file information handled by :py:meth:`~ms3.score.Score.handle_path`.</span>
+
+
 <span class="sd">    _annotations :</span>
 <span class="sd">    _harmony_regex :</span>
 <span class="sd">    _label_types :</span>
 <span class="sd">    _mscx : :obj:`MSCX`</span>
 <span class="sd">        After parsing, holds the `MSCX` object with the parsed score.</span>
-<span class="sd">    _types_to_infer</span>
+<span class="sd">    _types_to_infer:</span>
 
 
 <span class="sd">    Methods</span>
@@ -381,7 +383,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="ne">AttributeError</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
@@ -433,7 +435,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output_mscx</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_chords</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_metadata</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -455,7 +457,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output_mscx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">output_mscx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_chords</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">get_chords</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_harmonies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">get_annotations</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">get_metadata</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">metadata</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">has_annotations</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">has_annotations</span><span class="p">:</span>
@@ -655,7 +657,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.2.0.post0.dev6+g543f395.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 

@@ -1,4 +1,4 @@
-import re
+import sys, re
 
 import pandas as pd
 
@@ -85,6 +85,15 @@ class Annotations:
         return len(self.df)
 
 
+    def label_types(self):
+        """ Returns the counts of the label_types as dict.
+        """
+        if 'label_type' in self.df.columns:
+            return self.df.label_type.value_counts().to_dict()
+        else:
+            return {None: len(self.df)}
+
+
     def show_annotation_layers(self):
         layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
         return self.n_labels(), self.df.groupby(layers).size()
@@ -138,24 +147,43 @@ class Annotations:
         return res
 
 
-    def expand_dcml(self,  warn_about_others=True, drop_others=True):
-        if 'dcml' in self.regex_dict:
-            del(self.regex_dict['dcml'])
-        self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
-        self.infer_types()
+    def expand_dcml(self, drop_others=True, warn_about_others=True):
+        """ Expands all labels where the label_type has been inferred as 'dcml' and stores the DataFrame in self._expanded.
+
+        Parameters
+        ----------
+        drop_others : :obj:`bool`, optional
+            Set to False if you want to keep labels in the expanded DataFrame which have not label_type 'dcml'.
+        warn_about_others : :obj:`bool`, optional
+            Set to False to suppress warnings about labels that have not label_type 'dcml'.
+            Is automatically set to False if ``drop_others`` is set to False.
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            Expanded DCML labels
+        """
+        if 'dcml' not in self.regex_dict:
+            self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
+            self.infer_types()
         sel = self.df.label_type == 'dcml'
         if not sel.any():
             self.logger.warning(f"Score doesn't contain any DCML harmonic annotations.")
             return
+        if not drop_others:
+            warn_about_others = False
         if warn_about_others and (~sel).any():
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
         df = self.df[sel]
-        exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
-        if drop_others:
-            self._expanded = exp.df
-        else:
-            df = self.df.copy()
-            df.loc[sel, exp.df.columns] = exp.df
+        try:
+            exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
+            if drop_others:
+                self._expanded = exp.df
+            else:
+                df = self.df.copy()
+                df.loc[sel, exp.df.columns] = exp.df
+        except:
+            self.logger.warning(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
         return self._expanded
 
 

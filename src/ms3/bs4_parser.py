@@ -43,6 +43,7 @@ class _MSCX_bs4:
     def __init__(self, mscx_src, read_only=False, logger_name='_MSCX_bs4', level=None):
         self.logger = get_logger(logger_name, level=level)
         self.soup = None
+        self.metadata = None
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
         self.read_only = read_only
@@ -60,7 +61,8 @@ class _MSCX_bs4:
 
 
     def parse_mscx(self):
-
+        """ Load the XML structure from the score in self.mscx_src and store references to staves and measures.
+        """
         assert self.mscx_src is not None, "No MSCX file specified." \
                                           ""
         with open(self.mscx_src, 'r') as file:
@@ -198,6 +200,7 @@ class _MSCX_bs4:
             self.logger.warning("Empty score?")
         elif 'Harmony' in self._events.event.values:
             self.has_annotations = True
+        self.metadata = self._get_metadata()
 
 
 
@@ -468,12 +471,13 @@ class _MSCX_bs4:
         return df[columns]
 
 
-    def get_metadata(self):
-
-        data = {tag['name']: tag.string for tag in self.soup.find_all('metaTag')}
+    def _get_metadata(self):
+        assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
+        nav_str2str = lambda s: '' if s is None else str(s)
+        data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
         last_measure = self.ml.iloc[-1]
-        data['last_mc'] = last_measure.mc
-        data['last_mn'] = last_measure.mn
+        data['last_mc'] = int(last_measure.mc)
+        data['last_mn'] = int(last_measure.mn)
         data['label_count'] = len(self.get_annotations())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
@@ -481,23 +485,32 @@ class _MSCX_bs4:
         first_label_name = first_label.find('name') if first_label is not None else None
         if first_label_name is not None:
             m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
-            if m.group(1) is not None:
+            if m is not None:
                 data['annotated_key'] = m.group(1)
         staff_groups = self.nl.groupby('staff').midi
-        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)} for t in
-                     self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
+        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
+                        for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
             ambitus[t.staff]['max_midi'] = t.midi
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
         data['parts'] = {
-            part.trackName.string: {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
+            str(part.trackName.string): {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
                                     part.find_all('Staff')} for part in self.soup.find_all('Part')}
+        ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
+        mimi, mina, mami, mana = zip(*ambitus_tuples)
+        min_midi, max_midi = min(mimi), max(mami)
+        data['ambitus'] = {
+                            'min_midi': min_midi,
+                            'min_name': mina[mimi.index(min_midi)],
+                            'max_midi': max_midi,
+                            'max_name': mana[mami.index(max_midi)],
+                          }
         data['musescore'] = self.version
         return data
 
     @property
     def version(self):
-        return self.soup.find('programVersion').string
+        return str(self.soup.find('programVersion').string)
 
     def add_standard_cols(self, df):
         df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'mc_offset', 'volta']], on='mc', how='left')
@@ -868,6 +881,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
     def __getstate__(self):
+        """When pickling, make object read-only, i.e. delete the BeautifulSoup object and all references to tags."""
         self.soup = None
         self.tags, self.measure_nodes = {}, {}
         self.read_only = True

@@ -23,12 +23,14 @@ class Score:
         The only XML parser currently implemented is BeautifulSoup 4.
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by :py:meth:`~ms3.score.Score.handle_path`.
+
+
     _annotations :
     _harmony_regex :
     _label_types :
     _mscx : :obj:`MSCX`
         After parsing, holds the `MSCX` object with the parsed score.
-    _types_to_infer
+    _types_to_infer:
 
 
     Methods
@@ -315,7 +317,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
         try:
             return self._annotations[item]
         except:
-            AttributeError(item)
+            raise AttributeError(item)
 
     def __getstate__(self):
         return self.__dict__
@@ -367,7 +369,7 @@ class MSCX:
         self.output_mscx = None
         self.get_chords = None
         self.get_harmonies = None
-        self.get_metadata = None
+        self.metadata = None
         self.has_annotations = None
 
         if self.mscx_src is not None:
@@ -389,7 +391,7 @@ class MSCX:
         self.output_mscx = self._parsed.output_mscx
         self.get_chords = self._parsed.get_chords
         self.get_harmonies = self._parsed.get_annotations
-        self.get_metadata = self._parsed.get_metadata
+        self.metadata = self._parsed.metadata
         self.has_annotations = self._parsed.has_annotations
 
         if self._parsed.has_annotations:

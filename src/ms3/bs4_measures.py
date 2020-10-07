@@ -195,12 +195,12 @@ class NextColumnMaker(object):
         if self.start is not None:
             if self.potential_ending is None:
                 self.logger.warning(f"""The startRepeat in MC {self.start} is missing its endRepeat.
-    For correction, MC {mc - 1} is interpreted as such because it precedes the next startRepeat.""")
+For correction, MC {mc - 1} is interpreted as such because it precedes the next startRepeat.""")
                 self.end_section(mc - 1)
             else:
                 ending, reason = self.potential_ending
                 self.logger.warning(f"""The startRepeat in MC {self.start} is missing its endRepeat.
-    For correction, MC {ending} is interpreted as such because it {reason}.""")
+For correction, MC {ending} is interpreted as such because it {reason}.""")
                 self.end_section(ending)
         self.start = mc
         self.potential_start = None
@@ -216,7 +216,7 @@ class NextColumnMaker(object):
                     f"MC {start} has been inferred as startRepeat for the endRepeat in MC {mc} because it is the first bar of the piece.")
             else:
                 msg = f"""The endRepeat in MC {mc} is missing its startRepeat.
-    For correction, MC {start} is interpreted as such because it {reason}."""
+For correction, MC {start} is interpreted as such because it {reason}."""
                 if "section break" in msg:
                     self.logger.debug(msg)
                 else:

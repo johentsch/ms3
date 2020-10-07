@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quick Reference &#8212; ms3 0.1.2 documentation</title>
+    <title>Quick Reference &#8212; ms3 0.2.0.post0.dev6+g543f395.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.1.2 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.2.0.post0.dev6+g543f395.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -190,8 +190,8 @@ of staff 3 when originally they had been attached to layer two (coloured in gree
 <div class="section" id="accessing-score-information">
 <h3>Accessing score information<a class="headerlink" href="#accessing-score-information" title="Permalink to this headline">¶</a></h3>
 <p>After parsing a score, all contained information is accessible in structured formats. Most information is returned as
-<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
-<p>Since this information is attached to the parsed MSCX file (and not, say to loaded annotations), it is accessible
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
+<p>Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
 via <code class="docutils literal notranslate"><span class="pre">s.mscx</span></code>.</p>
 <div class="section" id="metadata">
 <h4>Metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h4>
@@ -288,8 +288,8 @@ such as lyrics, staff text, dynamics and other markup.</p></li>
 <col style="width: 6%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="manual.html#mc-vs-mn"><span class="std std-ref">mc</span></a></p></td>
-<td><p><a class="reference internal" href="manual.html#mc-vs-mn"><span class="std std-ref">mn</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="manual.html#mc"><span class="std std-ref">mc</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#mn"><span class="std std-ref">mn</span></a></p></td>
 <td><p><a class="reference internal" href="manual.html#keysig"><span class="std std-ref">keysig</span></a></p></td>
 <td><p><a class="reference internal" href="manual.html#timesig"><span class="std std-ref">timesig</span></a></p></td>
 <td><p><a class="reference internal" href="manual.html#act-dur"><span class="std std-ref">act_dur</span></a></p></td>
@@ -622,10 +622,10 @@ filenames. If the parameter <code class="docutils literal notranslate"><span cla
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
-<span class="go">            rests_folder=&#39;./rests&#39;,</span>
-<span class="go">            notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
-<span class="go">            simulate=True</span>
-<span class="go">            )</span>
+<span class="go">                    rests_folder=&#39;./rests&#39;,</span>
+<span class="go">                    notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
+<span class="go">                    simulate=True</span>
+<span class="go">                    )</span>
 <span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
 <span class="go"> &#39;~/ms3/docs/rests/cujus.tsv&#39;,</span>
 <span class="go"> &#39;~/ms3/docs/notes_and_rests/cujus.tsv&#39;,</span>
@@ -789,7 +789,7 @@ places the files into a (newly created) relative folder structure below.</p></li
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.1.2 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.2.0.post0.dev6+g543f395.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>

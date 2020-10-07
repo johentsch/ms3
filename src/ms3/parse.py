@@ -1,13 +1,13 @@
 import os
 import traceback
-import multiprocessing as mp
+import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
 
 import pandas as pd
 
 from .logger import get_logger, function_logger
 from .score import Score
-from .utils import iterable2str, resolve_dir, scan_directory, transform
+from .utils import group_ix_tuples, iterable2str, make_ix_tuples, metadata2series, resolve_dir, scan_directory, transform
 
 class Parse:
     """
@@ -18,7 +18,7 @@ class Parse:
         self.logger = get_logger(logger_name, level)
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
-        self._parsed, self._notelists, self._restlists, self._noterestlists, self._measurelists = {}, {}, {}, {}, {}
+        self._parsed, self._annotations, self._notelists, self._restlists, self._noterestlists, self._measurelists = {}, {}, {}, {}, {}, {}
         self._eventlists, self._labellists, self._chordlists, self._expandedlists = {}, {}, {}, {}
         self._lists = {
             'notes': self._notelists,
@@ -42,12 +42,14 @@ class Parse:
         ix = [self.handle_path(p, key) for p in res]
         added = sum(True for i in ix if i[0] is not None)
         if added > 0:
-            grouped_ix = group_index_tuples(ix)
+            grouped_ix = group_ix_tuples(ix)
             exts = {k: self.count_extensions(k, i) for k, i in grouped_ix.items()}
-            self.logger.debug(f"{added} paths stored.\n{pretty_extensions(exts)}")
+            self.logger.debug(f"{added} paths stored.\n{pretty_dict(exts, 'EXTENSIONS')}")
         else:
             self.logger.debug("No files added.")
         self.match_filenames()
+
+
 
     def handle_path(self, full_path, key=None):
         full_path = resolve_dir(full_path)
@@ -84,7 +86,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.logger = get_logger(f"{fname}")
         self.logger.debug(f"Attempting to parse {file}")
         try:
-            score = Score(path, read_only=read_only, level=level)
+            score = Score(path, read_only=read_only, logger_name=self.logger.name, level=level)
             self._parsed[(key, ix)] = score
             self.logger.info(f"Done parsing {file}")
             return score
@@ -97,12 +99,20 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger = get_logger(prev_logger)
 
 
-    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True):
+    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True):
         keys = self._treat_key_param(keys)
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
-        parse_this = [(key, ix, path, read_only, level) for key in keys for ix, path in enumerate(self.full_paths[key]) if path.endswith('.mscx')]
+        if only_new:
+            parse_this = [(key, ix, path, read_only, level) for key in keys
+                                                            for ix, path in enumerate(self.full_paths[key])
+                                                            if path.endswith('.mscx') and (key, ix) not in self._parsed]
+        else:
+            parse_this = [(key, ix, path, read_only, level) for key in keys
+                                                            for ix, path in enumerate(self.full_paths[key])
+                                                            if path.endswith('.mscx')]
+
         if parallel:
             pool = mp.Pool(mp.cpu_count())
             res = pool.starmap(self._parse, parse_this)
@@ -113,6 +123,7 @@ Load one of the identically named files with a different key using add_dir(key='
         else:
             for params in parse_this:
                 self._parsed[params[:2]] = self._parse(*params)
+        self._annotations.update({ix: score.annotations for ix, score in self._parsed.items()})
 
 
     def _treat_key_param(self, keys):
@@ -122,7 +133,29 @@ Load one of the identically named files with a different key using add_dir(key='
             keys = [keys]
         return keys
 
-    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False, labels=False, chords=False, expanded=False):
+
+    def collect_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                      labels=False, chords=False, expanded=False, only_new=True):
+        """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
+
+        Parameters
+        ----------
+        keys
+        notes
+        rests
+        notes_and_rests
+        measures
+        events
+        labels
+        chords
+        expanded
+        only_new : :obj:`bool`, optional
+            Set to True to also retrieve lists that have already been retrieved.
+
+        Returns
+        -------
+        None
+        """
         if len(self._parsed) == 0:
             self.logger.error("No scores have been parsed. Use parse_mscx()")
             return
@@ -133,21 +166,36 @@ Load one of the identically named files with a different key using add_dir(key='
         l = locals()
         params = {p: l[p] for p in bool_params}
 
-        res = {}
         for i, score in scores.items():
             for param, li in self._lists.items():
-                if params[param]:
-                    if i in li:
-                        res[i + (param,)] = li[i]
-                    else:
-                        df = score.mscx.__getattribute__(param)
-                        if df is not None:
-                            li[i] = df
-                            res[i + (param,)] = df
+                if params[param] and (i not in li or not only_new):
+                    df = score.mscx.__getattribute__(param)
+                    if df is not None:
+                        li[i] = df
 
-        if expanded:
-            res.update(self.expand_labels())
-        return res
+
+    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                  labels=False, chords=False, expanded=False):
+        if len(self._parsed) == 0:
+            self.logger.error("No scores have been parsed. Use parse_mscx()")
+            return
+        keys = self._treat_key_param(keys)
+        bool_params = list(self._lists.keys())
+        l = locals()
+        params = {p: l[p] for p in bool_params}
+        self.collect_lists(keys, only_new=True, **params)
+        res = {}
+
+
+
+
+
+
+    def metadata(self, keys=None):
+        idx, meta_series = zip(*[(ix, metadata2series(self._parsed[ix].mscx.metadata)) for ix in self._iterix(keys) if
+                          ix in self._parsed])
+        return pd.DataFrame(meta_series, index=idx)
+
 
 
     def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
@@ -173,6 +221,20 @@ Load one of the identically named files with a different key using add_dir(key='
             paths.append(self._store(df=li, key=key, ix=ix, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate))
         if simulate:
             return paths
+
+
+    def _iterix(self, keys=None):
+        """ Iterator through index tuples for a given set of keys.
+
+        Yields
+        ------
+        :obj:`tuple`
+            (str, int)
+        """
+        keys = self._treat_key_param(keys)
+        for key in sorted(keys):
+            for ix in make_ix_tuples(key, len(self.fnames[key])):
+                yield ix
 
 
     def _store(self, df, key, ix, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
@@ -231,16 +293,16 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def expand_labels(self, keys=None, how='dcml'):
-        keys = self._treat_key_param(keys)
-        scores = {ix: score for ix, score in self._parsed.items() if ix[0] in keys}
-        res = {}
-        for ix, score in scores.items():
-            if score.mscx._annotations is not None:
-                exp = score.annotations.expanded
-                self._expandedlists[ix] = exp
-                res[ix + ('expanded',)] = exp
-        return res
+    # def expand_labels(self, keys=None, how='dcml'):
+    #     keys = self._treat_key_param(keys)
+    #     scores = {ix: score for ix, score in self._parsed.items() if ix[0] in keys}
+    #     res = {}
+    #     for ix, score in scores.items():
+    #         if score.mscx._annotations is not None:
+    #             exp = score.annotations.expanded
+    #             self._expandedlists[ix] = exp
+    #             res[ix + ('expanded',)] = exp
+    #     return res
 
 
     @property
@@ -257,32 +319,76 @@ Load one of the identically named files with a different key using add_dir(key='
         pass
 
 
-    def count_extensions(self, key=None, ix=None):
-        if key is None:
-            c = {}
-            for key, l in self.fexts.items():
-                c[key] = dict(Counter(l))
-        elif ix is None:
-            c = Counter(self.fexts[key])
+    def count_label_types(self, keys=None, per_key=False):
+        keys = self._treat_key_param(keys)
+        annotated = [ix for ix in self._iterix(keys) if ix in self._annotations]
+        res_dict = defaultdict(Counter)
+        for key, ix in annotated:
+            res_dict[key].update(self._annotations[(key, ix)].label_types())
+        if per_key:
+            return {k: dict(v) for k, v in res_dict.items()}
+        return dict(sum(res_dict.values(), Counter()))
+
+
+
+
+
+    def count_extensions(self, keys=None, per_key=False):
+        """ Returns a dict {key: Counter} or just a Counter.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`Collection`, defaults to None
+            Key(s) for which to count file extensions.
+        per_key : :obj:`bool`, optional
+            If set to True, the results are returned as a dict {key: Counter},
+            otherwise the counts are summed up in one Counter.
+
+        Returns
+        -------
+        :obj:`dict` or :obj:`collections.Counter`
+
+        """
+        keys = self._treat_key_param(keys)
+        res_dict = {}
+        for key in keys:
+            res_dict[key] = Counter(self.fexts[key])
+        if per_key:
+            return {k: dict(v) for k, v in res_dict.items()}
+        return dict(sum(res_dict.values(), Counter()))
+
+
+    def info(self, keys=None, return_str=False):
+        ixs = list(self._iterix(keys))
+        info = f"{len(ixs)} files.\n"
+        exts = self.count_extensions(keys, per_key=True)
+        info += pretty_dict(exts, heading='EXTENSIONS')
+        parsed = sum(True for ix in ixs if ix in self._parsed)
+        if parsed > 0:
+            mscx = self.count_extensions(keys, per_key=False)['.mscx']
+            if parsed == mscx:
+                info += f"\n\nAll {mscx} MSCX files have been parsed."
+            else:
+                info += f"\n\n{parsed}/{mscx} MSCX files have been parsed."
+            annotated = sum(True for ix in ixs if ix in self._annotations)
+            info += f"\n{annotated} of them have annotations attached."
+            if annotated > 0:
+                l_types = self.count_label_types(keys, per_key=True)
+                info += f"\n{pretty_dict(l_types, heading='LABEL_TYPES')}"
+
         else:
-            c = Counter(self.fexts[key][i] for i in ix if i is not None)
-        return dict(c)
+            info += f"\n\nNo mscx files have been parsed."
+        if return_str:
+            return info
+        print(info)
 
 
 
     def __repr__(self):
-        msg = f"{sum(True for l in self.paths.values() for i in l)} files.\n"
-        msg += pretty_extensions(self.count_extensions())
-        return msg
+        return self.info(return_str=True)
 
 
 
-def group_index_tuples(l):
-    d = defaultdict(list)
-    for k, i in l:
-        if k is not None:
-            d[k].append(i)
-    return dict(d)
 
 
 @function_logger
@@ -307,7 +413,8 @@ def no_collections_no_booleans(df):
     return df
 
 
-def pretty_extensions(key2ext):
-    exts = dict(KEY='EXTENSIONS', **key2ext)
-    left = max(len(k) for k in exts.keys())
-    return '\n'.join(f"{k:{left}} -> {c}" for k, c in exts.items())
+def pretty_dict(d, heading=None):
+    if heading:
+        d = dict(KEY=heading, **d)
+    left = max(len(str(k)) for k in d.keys())
+    return '\n'.join(f"{k:{left}} -> {c}" for k, c in d.items())

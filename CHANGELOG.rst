@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 0.2.1
+=============
+
+* Parse.metadata() to return a DataFrame with all parsed pieces' metadata
+* improved the information that Parse objects return about themselves
+* improved expansion of DCML harmony labels
+
 Version 0.2.0
 =============
 

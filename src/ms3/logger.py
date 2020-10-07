@@ -52,6 +52,7 @@ def get_logger(name=None, level=None, adapter=ContextAdapter):
 def config_logger(name, level=None, logfile=None):
     """Configs the logger with name `name`. Overwrites existing config."""
     logger = logging.getLogger(name)
+    logger.propagate = False
     format = '%(levelname)-7s %(name)s -- %(message)s'
     formatter = logging.Formatter(format)
     if level is not None:
@@ -59,10 +60,13 @@ def config_logger(name, level=None, logfile=None):
             level = LEVELS[level]
         logger.setLevel(level)
     existing_handlers = [h for h in logger.handlers]
-    if not any(True for h in existing_handlers if h.__class__ == logging.StreamHandler):
+    stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
+    if stream_handlers == 0:
         streamHandler = logging.StreamHandler(sys.stdout)
         streamHandler.setFormatter(formatter)
         logger.addHandler(streamHandler)
+    elif stream_handlers > 1:
+        logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
     if logfile is not None:
         if not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == logfile):
             fileHandler = logging.FileHandler(logfile, mode='w')
