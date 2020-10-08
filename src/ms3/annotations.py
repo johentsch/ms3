@@ -89,7 +89,7 @@ class Annotations:
         """ Returns the counts of the label_types as dict.
         """
         if 'label_type' in self.df.columns:
-            return self.df.label_type.value_counts().to_dict()
+            return self.df.label_type.value_counts(dropna=False).to_dict()
         else:
             return {None: len(self.df)}
 
@@ -102,8 +102,8 @@ class Annotations:
         n, layers = self.show_annotation_layers()
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False):
-        """ Returns a list of harmony tags from the parsed score.
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True):
+        """ Returns an annotation label .
 
         Parameters
         ----------
@@ -122,6 +122,10 @@ class Annotations:
         decode : :obj:`bool`, optional
             Set to True if you don't want to keep labels in their original form as encoded by MuseScore (with root and
             bass as TPC (tonal pitch class) where C = 14).
+        drop : :obj:`bool`, optional
+            Set to True to delete the returned labels from this object.
+        warnings : :obj:`bool`, optional
+            Set to False to suppress warnings about non-existent label_types.
 
         Returns
         -------
@@ -133,12 +137,13 @@ class Annotations:
         if voice is not None:
             sel = sel & (self.df.voice == voice)
         if label_type is not None and 'label_type' in self.df.columns:
-            sel = sel & (self.df.label_type == label_type)
+            label_type = self._treat_label_type_param(label_type, warnings=warnings)
+            sel = sel & self.df.label_type.isin(label_type)
             # if the column contains strings and NaN:
             # (pd.to_numeric(self.df['label_type']).astype('Int64') == label_type).fillna(False)
         res = self.df[sel].copy()
         if not positioning:
-            pos_cols = [c for c in ['offset', 'offset:x', 'offset:y'] if c in res.columns]
+            pos_cols = [c for c in ['minDistance',  'offset', 'offset:x', 'offset:y'] if c in res.columns]
             res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]
@@ -220,3 +225,20 @@ class Annotations:
         df.to_csv(resolve_dir(tsv_path), sep=sep, index=index, **kwargs)
         self.logger.info(f"{len(df)} labels written to {tsv_path}.")
         return True
+
+
+    def _treat_label_type_param(self, label_type, warnings=True):
+        if label_type is None:
+            return None
+        all_types = {k: str(k) for k in self.label_types().keys()}
+        if isinstance(label_type, int) or isinstance(label_type, str):
+            label_type = [label_type]
+        lt = [str(t) for t in label_type]
+        if warnings:
+            not_found = [t for t in lt if t not in all_types]
+            if len(not_found) > 0:
+                plural = len(not_found) > 1
+                plural_s = 's' if plural else ''
+                self.logger.warning(
+                    f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
+        return [all_types[t] for t in lt if t in all_types]

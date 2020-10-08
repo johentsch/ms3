@@ -90,6 +90,8 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
         Original DataFrame plus additional columns with split features.
     """
     assert sum((absolute, all_in_c)) < 2, "Chord tones can be either 'absolute' or 'all_in_c', not both."
+    assert len(df.index.names) == 1, f"""df has a MultiIndex of {len(df.index.names)} levels, implying that it has information 
+from several pieces. Apply expand_labels() to one piece at a time."""
     df = df.copy()
     if regex is None:
         regex = re.compile(r"""
