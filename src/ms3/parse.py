@@ -262,7 +262,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 yield ix
 
 
-    def _store(self, df, key, ix, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
+    def _store(self, df, key, ix, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
         """
 
         Parameters
@@ -275,6 +275,7 @@ Load one of the identically named files with a different key using add_dir(key='
         root_dir : :obj:`str`
         what
         simulate
+        **kwargs: Arguments for :py:meth:`pandas.DataFrame.to_csv`
 
         Returns
         -------
@@ -304,14 +305,20 @@ Load one of the identically named files with a different key using add_dir(key='
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
                 return restore_logger(None)
 
+        if 'sep' not in kwargs:
+            kwargs['sep'] = '\t'
+        if 'index' not in kwargs:
+            kwargs['index'] = False
+        ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
 
-        fname = self.fnames[key][ix] + suffix + '.tsv'
+        fname = self.fnames[key][ix] + suffix + ext
         file_path = os.path.join(path, fname)
         if simulate:
             self.logger.debug(f"Would have written {what} to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, sep='\t', index=False)
+
+            no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, **kwargs)
             self.logger.debug(f"{what} written to {file_path}.")
 
         return file_path

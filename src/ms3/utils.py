@@ -445,6 +445,8 @@ def parts_info(d):
 
 
 def resolve_dir(dir):
+    if dir is None:
+        return None
     if '~' in dir:
         return os.path.expanduser(dir)
     return os.path.abspath(dir)

@@ -479,6 +479,74 @@ class MSCX:
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
 
 
+    def store_list(self, what='all', folder=None, suffix=None, **kwargs):
+        folder = resolve_dir(folder)
+        mscx_path, file = os.path.split(self.mscx_src)
+        fname, _ = os.path.splitext(file)
+        if folder is None:
+            folder = mscx_path
+        if not os.path.isdir(folder):
+            if input(folder + ' does not exist. Create? (y|n)') == "y":
+                os.mkdir(d)
+            else:
+                return
+        what, suffix = self._treat_storing_params(what, suffix)
+        if what is None:
+            self.logger.error("Nothing stored.")
+            return
+        if 'sep' not in kwargs:
+            kwargs['sep'] = '\t'
+        if 'index' not in kwargs:
+            kwargs['index'] = False
+        ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
+
+        for w, s in zip(what, suffix):
+            new_name = f"{fname}{s}{ext}"
+            full_path = os.path.join(folder, new_name)
+            df = self.__getattribute__(w)
+
+            df.to_csv(full_path, **kwargs)
+            self.logger.debug(f"{w} written to {full_path}")
+
+
+
+
+
+    def _treat_storing_params(self, what, suffix):
+        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded']
+        if what == 'all':
+            if suffix is None:
+                return tables, [f"_{t}" for t in tables]
+            elif len(suffix) < len(tables) or isinstance(suffix, str):
+                self.logger.error(f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
+                return None, None
+            elif len(suffix) > len(tables):
+                suffix = suffix[:len(tables)]
+            return tables, [str(s) for s in suffix]
+
+        if isinstance(what, str):
+            what = [what]
+
+        correct = [(i, w) for i, w in enumerate(what) if w in tables]
+        if len(correct) < len(what):
+            if len(correct) == 0:
+                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
+                return None, None
+            else:
+                incorrect = [w for w in what if w not in tables]
+                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
+                suffix = [suffix[i] for i, _ in correct]
+        if len(correct) < len(suffix):
+            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
+            return None, None
+        elif len(suffix) > len(correct):
+            suffix = suffix[:len(correct)]
+        return tables, [str(s) for s in suffix]
+
+
+
+
+
     @property
     def parsed(self):
         if self._parsed is None:

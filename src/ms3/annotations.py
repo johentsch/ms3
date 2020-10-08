@@ -181,12 +181,12 @@ class Annotations:
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
         df = self.df[sel]
         try:
-            exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
+            exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
             if drop_others:
-                self._expanded = exp.df
+                self._expanded = exp
             else:
                 df = self.df.copy()
-                df.loc[sel, exp.df.columns] = exp.df
+                df.loc[sel, exp.df.columns] = exp
         except:
             self.logger.warning(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
         return self._expanded
