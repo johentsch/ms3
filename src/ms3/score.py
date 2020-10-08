@@ -480,6 +480,28 @@ class MSCX:
 
 
     def store_list(self, what='all', folder=None, suffix=None, **kwargs):
+        """
+        Store one or several several lists as TSV files(s).
+        
+        Parameters
+        ----------
+        what : :obj:`str` or :obj:`Collection`, optional
+            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded'}
+        folder : :obj:`str`, optional
+            Where to store. Defaults to the directory of the parsed MSCX file.
+        suffix : :obj:`str` or :obj:`Collection`, optional
+            Suffix appended to the file name of the parsed MSCX file to create a new file name.
+            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
+            Number of suffixes needs to be equal to the number of ``what``.
+        **kwargs:
+            Keyword arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``.
+            If 'sep' is changed to a different separator, the file extension(s) will be changed to '.csv' rather than '.tsv'.
+
+        Returns
+        -------
+        None
+
+        """
         folder = resolve_dir(folder)
         mscx_path, file = os.path.split(self.mscx_src)
         fname, _ = os.path.splitext(file)
@@ -526,8 +548,12 @@ class MSCX:
 
         if isinstance(what, str):
             what = [what]
+        if isinstance(suffix, str):
+            suffix = [suffix]
 
         correct = [(i, w) for i, w in enumerate(what) if w in tables]
+        if suffix is None:
+            suffix = [f"_{w}" for _, w in correct]
         if len(correct) < len(what):
             if len(correct) == 0:
                 self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
