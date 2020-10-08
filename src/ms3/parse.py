@@ -134,6 +134,23 @@ Load one of the identically named files with a different key using add_dir(key='
         return keys
 
 
+    def _treat_label_type_param(self, label_type):
+        if label_type is None:
+            return None
+        all_types = {k: str(k) for k in self.count_label_types().keys()}
+        if isinstance(label_type, int) or isinstance(label_type, str):
+            label_type = [label_type]
+        lt = [str(t) for t in label_type]
+        not_found = [t for t in lt if t not in all_types]
+        if len(not_found) > 0:
+            plural = len(not_found) > 1
+            plural_s = 's' if plural else ''
+            self.logger.warning(
+                f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
+        return [all_types[t] for t in lt if t in all_types]
+
+
+
     def collect_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                       labels=False, chords=False, expanded=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
@@ -184,7 +201,15 @@ Load one of the identically named files with a different key using add_dir(key='
         l = locals()
         params = {p: l[p] for p in bool_params}
         self.collect_lists(keys, only_new=True, **params)
+        ixs = list(self._iterix(keys))
         res = {}
+        for param, li in self._lists.items():
+            if params[param]:
+                for ix in ixs:
+                    if ix in li:
+                        res[ix + (param,)] = li[ix]
+        return res
+
 
 
 
@@ -358,6 +383,21 @@ Load one of the identically named files with a different key using add_dir(key='
         return dict(sum(res_dict.values(), Counter()))
 
 
+    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False):
+        keys = self._treat_key_param(keys)
+        label_type = self._treat_label_type_param(label_type)
+        self.collect_lists(labels=True, only_new=True)
+        l = locals()
+        params = {p: l[p] for p in ['staff', 'voice', 'label_type', 'positioning', 'decode']}
+        ixs = [ix for ix in self._iterix(keys) if ix in self._annotations]
+        annotation_tables = [self._annotations[ix].get_labels(**params, warnings=False) for ix in ixs]
+        return pd.concat(annotation_tables, keys=ixs, names=['key', 'ix', 'i'])
+
+
+
+
+
+
     def info(self, keys=None, return_str=False):
         ixs = list(self._iterix(keys))
         info = f"{len(ixs)} files.\n"
@@ -393,14 +433,19 @@ Load one of the identically named files with a different key using add_dir(key='
 
 @function_logger
 def no_collections_no_booleans(df):
+    """
+    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
+    ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
+
+    """
     if df is None:
-        return None
+        return df
     collection_cols = ['next', 'chord_tones', 'added_tones']
     try:
         cc = [c for c in collection_cols if c in df.columns]
     except:
-        print(f"df: {df}, class: {df.__class__}")
-        raise
+        logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
+        return df
     if len(cc) > 0:
         df = df.copy()
         df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True, logger=logger)
