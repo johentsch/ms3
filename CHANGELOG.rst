@@ -8,6 +8,7 @@ Version 0.2.1
 * Parse.metadata() to return a DataFrame with all parsed pieces' metadata
 * Parse.get_labels() to retrieve labels of a particular kind
 * Parse.info() has improved the information that objects return about themselves
+* Parse can be used with a custom index instead of IDs [an ID is an (key, i) tuple]
 * Score.store_list()
 * improved expansion of DCML harmony labels
 

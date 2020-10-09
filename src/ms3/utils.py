@@ -187,7 +187,7 @@ def fifths2str(fifths, steps, inverted=False):
     return acc + steps[fifths % 7]
 
 
-def group_ix_tuples(l):
+def group_id_tuples(l):
     """ Turns a list of (key, ix) into a {key: [ix]}
 
     """
@@ -316,7 +316,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
                        converters=conv, **kwargs)
 
 
-def make_ix_tuples(key, n):
+def make_id_tuples(key, n):
     """ For a given key, this function return index tuples in the form [(key, 0), ..., (key, n)]
 
     Returns
