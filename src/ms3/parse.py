@@ -8,7 +8,7 @@ import pandas as pd
 
 from .logger import get_logger
 from .score import Score
-from .utils import group_id_tuples, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory
+from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory
 
 class Parse:
     """
@@ -35,8 +35,9 @@ class Parse:
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
 
         # dicts that have IDs as keys and are therefor accessed via [(key, i)]
-        self._parsed, self._annotations, self._notelists, self._restlists, self._noterestlists, self._measurelists = {}, {}, {}, {}, {}, {}
+        self._parsed_mscx, self._annotations, self._notelists, self._restlists, self._noterestlists = {}, {}, {}, {}, {}
         self._eventlists, self._labellists, self._chordlists, self._expandedlists, self._index = {}, {}, {}, {}, {}
+        self._measurelists, self._parsed_tsv = {}, {}
 
         # dict with keys as keys, holding the names of the index levels (which have to be the same for all corresponding IDs)
         self._levelnames = {}
@@ -58,7 +59,7 @@ class Parse:
     @property
     def parsed(self):
         """ Returns an overview of the MSCX files that have already been parsed."""
-        return {k: score.full_paths['mscx'] for k, score in self._parsed.items()}
+        return {k: score.full_paths['mscx'] for k, score in self._parsed_mscx.items()}
         # res = {}
         # for k, score in self._parsed.items():
         #     info = score.full_paths['mscx']
@@ -148,8 +149,8 @@ Therefore, the index for this key has been adapted.""")
             ids = list(self._iterids(keys))
         updated = {}
         for id in ids:
-            if id in self._parsed:
-                score = self._parsed[id]
+            if id in self._parsed_mscx:
+                score = self._parsed_mscx[id]
                 if 'annotations' in score._annotations:
                     updated[id] = score.annotations
                 elif id in self._annotations:
@@ -180,11 +181,11 @@ Therefore, the index for this key has been adapted.""")
         -------
         None
         """
-        if len(self._parsed) == 0:
+        if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return
         keys = self._treat_key_param(keys)
-        scores = {id: score for id, score in self._parsed.items() if id[0] in keys}
+        scores = {id: score for id, score in self._parsed_mscx.items() if id[0] in keys}
         ids = list(scores.keys())
         bool_params = list(self._lists.keys())
         l = locals()
@@ -220,8 +221,8 @@ Therefore, the index for this key has been adapted.""")
 
         if detached:
             for id in self._iterids(keys):
-                if id in self._parsed:
-                    for key, annotations in self._parsed[id]._annotations.items():
+                if id in self._parsed_mscx:
+                    for key, annotations in self._parsed_mscx[id]._annotations.items():
                         if key != 'annotations':
                             _, layers = annotations.annotation_layers
                             res_dict[key].update(layers.to_dict())
@@ -280,7 +281,7 @@ Therefore, the index for this key has been adapted.""")
         for key, i in annotated:
             res_dict[key].update(self._annotations[(key, i)].label_types)
         if len(res_dict) == 0:
-            if len(self._parsed) == 0:
+            if len(self._parsed_mscx) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
             else:
                 self.logger.info("None of the scores contain annotations.")
@@ -295,7 +296,7 @@ Therefore, the index for this key has been adapted.""")
         ids = [id for id in self._iterids(keys) if id in self._annotations]
         prev_logger = self.logger
         for id in ids:
-            score = self._parsed[id]
+            score = self._parsed_mscx[id]
             self.logger = score.logger
             try:
                 score.detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
@@ -309,7 +310,7 @@ Therefore, the index for this key has been adapted.""")
 
 
     def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False):
-        if len(self._parsed) == 0:
+        if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return pd.DataFrame()
         keys = self._treat_key_param(keys)
@@ -328,7 +329,7 @@ Therefore, the index for this key has been adapted.""")
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False):
-        if len(self._parsed) == 0:
+        if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return {}
         keys = self._treat_key_param(keys)
@@ -356,11 +357,12 @@ Therefore, the index for this key has been adapted.""")
             if key is None:
                 key = rel_path
             if file in self.files[key]:
-                if rel_path in self.rel_paths[key]:
-                    self.logger.error(f"""The file {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
+                same_name = [i for i, f in enumerate(self.files[key]) if f == file]
+                if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
+                    self.logger.error(f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
                     return (None, None)
-                self.logger.debug(f"The file {file} is already registered for key '{key}'.")
+                self.logger.debug(f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path.")
 
             self.scan_paths[key].append(self.last_scanned_dir)
             self.rel_paths[key].append(rel_path)
@@ -419,7 +421,7 @@ Load one of the identically named files with a different key using add_dir(key='
         info = f"{len(ids)} files.\n"
         exts = self.count_extensions(keys, per_key=True)
         info += pretty_dict(exts, heading='EXTENSIONS')
-        parsed_ids = [id for id in ids if id in self._parsed]
+        parsed_ids = [id for id in ids if id in self._parsed_mscx]
         parsed = len(parsed_ids)
         if parsed > 0:
             mscx = self.count_extensions(keys, per_key=False)['.mscx']
@@ -433,7 +435,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 layers = self.count_annotation_layers(keys, per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
-            detached = sum(True for id in parsed_ids if self._parsed[id].has_detached_annotations)
+            detached = sum(True for id in parsed_ids if self._parsed_mscx[id].has_detached_annotations)
             if detached > 0:
                 info += f"\n{detached} of them have detached annotations:"
                 layers = self.count_annotation_layers(keys, per_key=True, detached=True)
@@ -448,42 +450,69 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def metadata(self, keys=None):
-        if len(self._parsed) > 0:
-            ids, meta_series = zip(*[(id, metadata2series(self._parsed[id].mscx.metadata)) for id in self._iterids(keys) if
-                                     id in self._parsed])
+        parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+        if len(parsed_ids) > 0:
+            ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
             idx = self.ids2idx(ids, pandas_index=True)
             return pd.DataFrame(meta_series, index=idx)
-        self.logger.warning("No scores have been parsed so far. Use parse_mscx()")
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
         return pd.DataFrame()
+
+
+    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, fexts=None, **kwargs):
+        """ Shorthand for executing parse_mscx and parse_tsv at a time."""
+        self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new)
+        self.parse_tsv(keys=keys, fexts=fexts, **kwargs)
 
 
 
     def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True):
         keys = self._treat_key_param(keys)
+        if only_new:
+            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if self.fexts[key][i] == '.mscx' and (key, i) not in self._parsed_mscx]
+        else:
+            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if self.fexts[key][i] == '.mscx']
+
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
-        if only_new:
-            parse_this = [(key, i, path, read_only, level) for key in keys
-                                                            for i, path in enumerate(self.full_paths[key])
-                                                            if path.endswith('.mscx') and (key, i) not in self._parsed]
-        else:
-            parse_this = [(key, i, path, read_only, level) for key in keys
-                                                            for i, path in enumerate(self.full_paths[key])
-                                                            if path.endswith('.mscx')]
 
+        if only_new:
+            parse_this2 = [(key, i, path, read_only, level) for key in keys
+                          for i, path in enumerate(self.full_paths[key])
+                          if path.endswith('.mscx') and (key, i) not in self._parsed_mscx]
+        else:
+            parse_this2 = [(key, i, path, read_only, level) for key in keys
+                          for i, path in enumerate(self.full_paths[key])
+                          if path.endswith('.mscx')]
+
+        parse_this = [(key, i, path, read_only, level) for key, i, path in paths]
+        print(parse_this)
+        print(parse_this2)
         ids = [t[:2] for t in parse_this]
         if parallel:
             pool = mp.Pool(mp.cpu_count())
             res = pool.starmap(self._parse, parse_this)
             pool.close()
             pool.join()
-            self._parsed.update({i: score for i, score in zip(ids, res)})
+            self._parsed_mscx.update({id: score for id, score in zip(ids, res)})
         else:
             for params in parse_this:
-                self._parsed[params[:2]] = self._parse(*params)
+                self._parsed_mscx[params[:2]] = self._parse(*params)
         self.collect_annotations_objects_references(ids=ids)
 
+
+    def parse_tsv(self, keys=None, fexts=None, **kwargs):
+        if fexts is None:
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
+        else:
+            if isinstance(fexts, str):
+                fexts = [fexts]
+            fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
+        for id in ids:
+            self._parsed_tsv[id] = load_tsv(self.full_paths[id], **kwargs)
 
 
 
@@ -524,7 +553,7 @@ Load one of the identically named files with a different key using add_dir(key='
     def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
         """
-        ids = [id for id in self._iterids(keys) if id in self._parsed]
+        ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
             new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, simulate=simulate)
@@ -535,6 +564,42 @@ Load one of the identically named files with a different key using add_dir(key='
                 paths.append(new_path)
         if simulate:
             return list(set(paths))
+
+
+
+
+    def _calculate_path(self, key, i, root_dir, folder):
+        """ Constructs a path and file name from a loaded file based on the arguments.
+
+        Parameters
+        ----------
+        key, i : (:obj:`str`, :obj:`int`)
+            ID from which to construct the new path and filename.
+        folder : :obj:`str`
+            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
+            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
+            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
+            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
+        """
+        if os.path.isabs(folder) or '~' in folder:
+            folder = resolve_dir(folder)
+            path = folder
+        else:
+            root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
+            if folder[0] == '.':
+                path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
+            else:
+                path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
+            base, _ = os.path.split(root)
+            if path[:len(base)] != base:
+                self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
+                return None
+        return path
+
 
 
     def _iterids(self, keys=None):
@@ -574,7 +639,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.logger.debug(f"Attempting to parse {file}")
         try:
             score = Score(path, read_only=read_only, logger_name=self.logger.name, level=level)
-            self._parsed[(key, i)] = score
+            self._parsed_mscx[(key, i)] = score
             self.logger.info(f"Done parsing {file}")
             return score
         except (KeyboardInterrupt, SystemExit):
@@ -586,37 +651,6 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger = get_logger(prev_logger)
 
 
-    def _calculate_path(self, key, i, root_dir, folder):
-        """ Constructs a path and file name from a loaded file based on the arguments.
-
-        Parameters
-        ----------
-        key, i : (:obj:`str`, :obj:`int`)
-            ID from which to construct the new path and filename.
-        folder : :obj:`str`
-            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
-            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        """
-        if os.path.isabs(folder) or '~' in folder:
-            folder = resolve_dir(folder)
-            path = folder
-        else:
-            root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
-            if folder[0] == '.':
-                path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
-            else:
-                path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
-            base, _ = os.path.split(root)
-            if path[:len(base)] != base:
-                self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
-                return None
-        return path
 
 
     def _store_mscx(self, key, i, folder, suffix='', root_dir=None, simulate=False):
@@ -649,7 +683,7 @@ Load one of the identically named files with a different key using add_dir(key='
         fname = self.fnames[key][i]
         self.logger = get_logger(fname)
         id = (key, i)
-        if id not in self._parsed:
+        if id not in self._parsed_mscx:
             self.logger.error(f"No Score object found. Call parse_mscx() first.")
             return restore_logger(None)
         path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
@@ -662,7 +696,7 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            self._parsed[id].store_mscx(file_path)
+            self._parsed_mscx[id].store_mscx(file_path)
             self.logger.debug(f"Score written to {file_path}.")
 
         return restore_logger(file_path)
@@ -847,7 +881,29 @@ Using the first {li} elements, discarding {discarded}""")
     #     return res
 
 
-
+    def __getattr__(self, item):
+        if item in self.fexts:
+            fexts = self.fexts[item]
+            res = {}
+            for i, ext in enumerate(fexts):
+                id = (item, i)
+                ix = str(self._index[id])
+                if ext == '.mscx':
+                    if id in self._parsed_mscx:
+                        ix += " (parsed)"
+                        val = str(self._parsed_mscx[id])
+                    else:
+                        ix += " (not parsed)"
+                        val = self.full_paths[item][i]
+                else:
+                    if id in self._parsed_tsv:
+                        ix += " (parsed)"
+                        val = self._parsed_tsv[id].head(5).to_string()
+                    else:
+                        ix += " (not parsed)"
+                        val = self.full_paths[item][i]
+                ix += f"\n{'-' * len(ix)}\n\n"
+                print(ix, val)
 
     def __repr__(self):
         return self.info(return_str=True)

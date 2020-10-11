@@ -524,13 +524,13 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
 
     """
     def check_regex(reg, s):
-        res = re.search(reg, s) is not None and re.match(exclude_re, s) is None
+        res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
         return res
 
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)
-        if recursive and re.match(exclude_re, current_folder) is None:
+        if recursive and re.search(exclude_re, current_folder) is None:
             dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []
