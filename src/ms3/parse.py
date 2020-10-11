@@ -511,8 +511,8 @@ Load one of the identically named files with a different key using add_dir(key='
                 fexts = [fexts]
             fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
-        for id in ids:
-            self._parsed_tsv[id] = load_tsv(self.full_paths[id], **kwargs)
+        for key, i in ids:
+            self._parsed_tsv[(key, i)] = load_tsv(self.full_paths[key][i], **kwargs)
 
 
 
@@ -881,7 +881,7 @@ Using the first {li} elements, discarding {discarded}""")
     #     return res
 
 
-    def __getattr__(self, item):
+    def __getitem__(self, item):
         if item in self.fexts:
             fexts = self.fexts[item]
             res = {}
@@ -903,7 +903,7 @@ Using the first {li} elements, discarding {discarded}""")
                         ix += " (not parsed)"
                         val = self.full_paths[item][i]
                 ix += f"\n{'-' * len(ix)}\n\n"
-                print(ix, val)
+                print(ix, val, '\n')
 
     def __repr__(self):
         return self.info(return_str=True)
