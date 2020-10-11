@@ -248,6 +248,11 @@ Use on of the existing keys or load a new set with the method load_annotations()
 
 
     @property
+    def has_detached_annotations(self):
+        return sum(True for key in self._annotations if key != 'annotations') > 0
+
+
+    @property
     def mscx(self):
         """ Returns the `MSCX` object with the parsed score.
         """
@@ -290,7 +295,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
             msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
         else:
             msg += "No annotations attached.\n\n"
-        if sum(True for key in self._annotations if key != 'annotations') > 0:
+        if self.has_detached_annotations:
             msg += "Detached annotations\n--------------------\n\n"
             for key, obj in self._annotations.items():
                 if key != 'annotations':

@@ -494,8 +494,8 @@ class _MSCX_bs4:
             ambitus[t.staff]['max_midi'] = t.midi
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
         data['parts'] = {
-            str(part.trackName.string): {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
-                                    part.find_all('Staff')} for part in self.soup.find_all('Part')}
+            f"part_{i}" if part.trackName.string is None else str(part.trackName.string): {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
+                                    part.find_all('Staff')} for i, part in enumerate(self.soup.find_all('Part'), 1)}
         ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
         mimi, mina, mami, mana = zip(*ambitus_tuples)
         min_midi, max_midi = min(mimi), max(mami)

@@ -194,7 +194,7 @@ Therefore, the index for this key has been adapted.""")
                         li[i] = df
 
 
-    def count_annotation_layers(self, keys=None, per_key=False):
+    def count_annotation_layers(self, keys=None, per_key=False, detached=False):
         """ Returns a dict {key: Counter} or just a Counter.
 
         Parameters
@@ -204,6 +204,8 @@ Therefore, the index for this key has been adapted.""")
         per_key : :obj:`bool`, optional
             If set to True, the results are returned as a dict {key: Counter},
             otherwise the counts are summed up in one Counter.
+        detached : :obj:`bool`, optional
+            Set to True in order to count layers in annotations that are currently not attached to a score.
 
         Returns
         -------
@@ -211,10 +213,19 @@ Therefore, the index for this key has been adapted.""")
 
         """
         res_dict = defaultdict(Counter)
-        for key, i in self._iterids(keys):
-            if (key, i) in self._annotations:
-                _, layers = self._annotations[(key, i)].annotation_layers
-                res_dict[key].update(layers.to_dict())
+
+        if detached:
+            for id in self._iterids(keys):
+                if id in self._parsed:
+                    for key, annotations in self._parsed[id]._annotations.items():
+                        if key != 'annotations':
+                            _, layers = annotations.annotation_layers
+                            res_dict[key].update(layers.to_dict())
+        else:
+            for key, i in self._iterids(keys):
+                if (key, i) in self._annotations:
+                    _, layers = self._annotations[(key, i)].annotation_layers
+                    res_dict[key].update(layers.to_dict())
 
         def make_series(counts):
             if len(counts) == 0:
@@ -276,6 +287,7 @@ Therefore, the index for this key has been adapted.""")
 
 
     def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
+        assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         ids = [id for id in self._iterids(keys) if id in self._annotations]
         for id in ids:
             self._parsed[id].detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
@@ -395,7 +407,8 @@ Load one of the identically named files with a different key using add_dir(key='
         info = f"{len(ids)} files.\n"
         exts = self.count_extensions(keys, per_key=True)
         info += pretty_dict(exts, heading='EXTENSIONS')
-        parsed = sum(True for id in ids if id in self._parsed)
+        parsed_ids = [id for id in ids if id in self._parsed]
+        parsed = len(parsed_ids)
         if parsed > 0:
             mscx = self.count_extensions(keys, per_key=False)['.mscx']
             if parsed == mscx:
@@ -406,6 +419,12 @@ Load one of the identically named files with a different key using add_dir(key='
             info += f"\n{annotated} of them have annotations attached."
             if annotated > 0:
                 layers = self.count_annotation_layers(keys, per_key=True)
+                info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
+
+            detached = sum(True for id in parsed_ids if self._parsed[id].has_detached_annotations)
+            if detached > 0:
+                info += f"\n{detached} of them have detached annotations:"
+                layers = self.count_annotation_layers(keys, per_key=True, detached=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
         else:
