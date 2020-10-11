@@ -8,14 +8,14 @@ import pandas as pd
 
 from .logger import get_logger
 from .score import Score
-from .utils import group_id_tuples, make_id_tuples, metadata2series, no_collections_no_booleans, resolve_dir, scan_directory
+from .utils import group_id_tuples, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory
 
 class Parse:
     """
     Class for storing and manipulating the information from multiple parses (i.e. :py:class:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, index=None, file_re=r"\.mscx$", folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         """
 
         Parameters
@@ -51,13 +51,14 @@ class Parse:
     @property
     def parsed(self):
         """ Returns an overview of the MSCX files that have already been parsed."""
-        res = {}
-        for k, score in self._parsed.items():
-            info = score.full_paths['mscx']
-            if 'annotations' in score._annotations:
-                info += f" -> {score.annotations.n_labels()} labels"
-            res[k] = info
-        return res
+        return {k: score.full_paths['mscx'] for k, score in self._parsed.items()}
+        # res = {}
+        # for k, score in self._parsed.items():
+        #     info = score.full_paths['mscx']
+        #     if 'annotations' in score._annotations:
+        #         info += f" -> {score.annotations.n_labels()} labels"
+        #     res[k] = info
+        # return res
 
 
 
@@ -94,6 +95,8 @@ class Parse:
         """
         dir = resolve_dir(dir)
         self.last_scanned_dir = dir
+        if file_re in ['tsv', 'csv']:
+            file_re = r"\." + file_re + '$'
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         ids = [self.handle_path(p, key) for p in res]
         selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
@@ -146,6 +149,45 @@ class Parse:
                     if df is not None:
                         li[i] = df
 
+
+    def count_annotation_layers(self, keys=None, per_key=False):
+        """ Returns a dict {key: Counter} or just a Counter.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`Collection`, defaults to None
+            Key(s) for which to count annotation layers.
+        per_key : :obj:`bool`, optional
+            If set to True, the results are returned as a dict {key: Counter},
+            otherwise the counts are summed up in one Counter.
+
+        Returns
+        -------
+        :obj:`dict` or :obj:`collections.Counter`
+
+        """
+        res_dict = defaultdict(Counter)
+        for key, i in self._iterids(keys):
+            if (key, i) in self._annotations:
+                _, layers = self._annotations[(key, i)].annotation_layers
+                res_dict[key].update(layers.to_dict())
+
+        def make_series(counts):
+            if len(counts) == 0:
+                return pd.Series()
+            data = counts.values()
+            ix = pd.Index(counts.keys(), names=['staff', 'voice', 'label_type'])
+            return pd.Series(data, ix)
+
+        if per_key:
+            res = {k: make_series(v) for k, v in res_dict.items()}
+        else:
+            res = make_series(sum(res_dict.values(), Counter()))
+        if len(res) == 0:
+            self.logger.info("No annotations found. Maybe no scores have been parsed using parse_mscx()?")
+        return res
+
+
     def count_extensions(self, keys=None, per_key=False):
         """ Returns a dict {key: Counter} or just a Counter.
 
@@ -177,7 +219,7 @@ class Parse:
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
-            res_dict[key].update(self._annotations[(key, i)].label_types())
+            res_dict[key].update(self._annotations[(key, i)].label_types)
         if len(res_dict) == 0:
             if len(self._parsed) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
@@ -186,6 +228,7 @@ class Parse:
         if per_key:
             return {k: dict(v) for k, v in res_dict.items()}
         return dict(sum(res_dict.values(), Counter()))
+
 
 
 
@@ -236,9 +279,11 @@ class Parse:
             if key is None:
                 key = rel_path
             if file in self.files[key]:
-                self.logger.error(f"""The file {file} is already registered for key '{key}'.
+                if rel_path in self.rel_paths[key]:
+                    self.logger.error(f"""The file {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
-                return (None, None)
+                    return (None, None)
+                self.logger.debug(f"The file {file} is already registered for key '{key}'.")
 
             self.scan_paths[key].append(self.last_scanned_dir)
             self.rel_paths[key].append(rel_path)
@@ -290,8 +335,8 @@ Load one of the identically named files with a different key using add_dir(key='
             annotated = sum(True for id in ids if id in self._annotations)
             info += f"\n{annotated} of them have annotations attached."
             if annotated > 0:
-                l_types = self.count_label_types(keys, per_key=True)
-                info += f"\n{pretty_dict(l_types, heading='LABEL_TYPES')}"
+                layers = self.count_annotation_layers(keys, per_key=True)
+                info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
         else:
             info += f"\n\nNo mscx files have been parsed."
@@ -326,17 +371,31 @@ Load one of the identically named files with a different key using add_dir(key='
                                                             for i, path in enumerate(self.full_paths[key])
                                                             if path.endswith('.mscx')]
 
+        ids = [t[:2] for t in parse_this]
         if parallel:
             pool = mp.Pool(mp.cpu_count())
             res = pool.starmap(self._parse, parse_this)
             pool.close()
             pool.join()
-            indices = [t[:2] for t in parse_this]
-            self._parsed.update({i: score for i, score in zip(indices, res)})
+            self._parsed.update({i: score for i, score in zip(ids, res)})
         else:
             for params in parse_this:
                 self._parsed[params[:2]] = self._parse(*params)
-        self._annotations.update({id: score.annotations for id, score in self._parsed.items()})
+        self.collect_annotation_tables(ids=ids)
+
+
+    def collect_annotation_tables(self, keys=None, ids=None):
+        if ids is None:
+            ids = list(self._iterids(keys))
+        updated = {}
+        for id in ids:
+            if id in self._parsed:
+                score = self._parsed[id]
+                if 'annotations' in score._annotations:
+                    updated[id] = score.annotations
+                elif id in self._annotations:
+                    del(self._annotations[id])
+        self._annotations.update(updated)
 
 
 
@@ -525,7 +584,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
                 self.logger.error(f"The generated index is not unique and has been replaced by the standard index (IDs).\n{plural_phrase} several times:\n{pretty_dict(counts)}")
             if l_existing > 0:
-                plural_phrase = "s are" if l_existing > 1 " is"
+                plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
         return new_index
 
@@ -609,9 +668,3 @@ Using the first {li} elements, discarding {discarded}""")
 
 
 
-
-def pretty_dict(d, heading=None):
-    if heading:
-        d = dict(KEY=heading, **d)
-    left = max(len(str(k)) for k in d.keys())
-    return '\n'.join(f"{str(k):{left}} -> {c}" for k, c in d.items())

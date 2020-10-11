@@ -85,6 +85,7 @@ class Annotations:
         return len(self.df)
 
 
+    @property
     def label_types(self):
         """ Returns the counts of the label_types as dict.
         """
@@ -94,12 +95,13 @@ class Annotations:
             return {None: len(self.df)}
 
 
-    def show_annotation_layers(self):
+    @property
+    def annotation_layers(self):
         layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
         return self.n_labels(), self.df.groupby(layers).size()
 
     def __repr__(self):
-        n, layers = self.show_annotation_layers()
+        n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
     def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True):
@@ -230,7 +232,7 @@ class Annotations:
     def _treat_label_type_param(self, label_type, warnings=True):
         if label_type is None:
             return None
-        all_types = {k: str(k) for k in self.label_types().keys()}
+        all_types = {k: str(k) for k in self.label_types.keys()}
         if isinstance(label_type, int) or isinstance(label_type, str):
             label_type = [label_type]
         lt = [str(t) for t in label_type]

@@ -470,7 +470,33 @@ def parts_info(d):
 
 
 
+def pretty_dict(d, heading=None):
+    """ Turns a dictionary into a string where the keys are printed in a column, separated by '->'.
+    """
+    if heading is not None:
+        d = dict(KEY=str(heading), **d)
+    left = max(len(str(k)) for k in d.keys())
+    res = []
+    for k, v in d.items():
+        ks = str(k)
+        if isinstance(v, pd.DataFrame) or isinstance(v, pd.Series):
+            vs = v.to_string()
+        else:
+            vs = str(v)
+        if '\n' in vs:
+            lines = vs.split('\n')
+            res.extend([f"{ks if i == 0 else '':{left}} -> {l}" for i, l in enumerate(lines)])
+        else:
+            res.append(f"{ks:{left}} -> {vs}")
+    if heading is not None:
+        res.insert(1, '-' * (left + len(heading) + 4))
+    return '\n'.join(res)
+
+
+
 def resolve_dir(dir):
+    """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
+    """
     if dir is None:
         return None
     if '~' in dir:
