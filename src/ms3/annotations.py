@@ -232,7 +232,7 @@ class Annotations:
     def _treat_label_type_param(self, label_type, warnings=True):
         if label_type is None:
             return None
-        all_types = {k: str(k) for k in self.label_types.keys()}
+        all_types = {str(k): k for k in self.label_types.keys()}
         if isinstance(label_type, int) or isinstance(label_type, str):
             label_type = [label_type]
         lt = [str(t) for t in label_type]

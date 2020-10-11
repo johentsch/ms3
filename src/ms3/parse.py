@@ -29,10 +29,17 @@ class Parse:
             Pass a level name for which (and above which) you want to see log records.
         """
         self.logger = get_logger(logger_name, level)
+
+        # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
+
+        # dicts that have IDs as keys and are therefor accessed via [(key, i)]
         self._parsed, self._annotations, self._notelists, self._restlists, self._noterestlists, self._measurelists = {}, {}, {}, {}, {}, {}
         self._eventlists, self._labellists, self._chordlists, self._expandedlists, self._index = {}, {}, {}, {}, {}
+
+        # dict with keys as keys, holding the names of the index levels (which have to be the same for all corresponding IDs)
+        self._levelnames = {}
         self._lists = {
             'notes': self._notelists,
             'rests': self._restlists,
@@ -104,9 +111,46 @@ class Parse:
             grouped_ids = group_id_tuples(ids)
             exts = {k: self.count_extensions(k, i) for k, i in grouped_ids.items()}
             self.logger.debug(f"{len(added_ids)} paths stored.\n{pretty_dict(exts, 'EXTENSIONS')}")
-            self._index.update(self._treat_index_param(index, ids=added_ids, selector=selector))
+            new_index, level_names = self._treat_index_param(index, ids=added_ids, selector=selector)
+            self._index.update(new_index)
+            for k in grouped_ids.keys():
+                if k in self._levelnames:
+                    previous = self._levelnames[k]
+                    if previous != level_names:
+                        replacement_ids = [(k, i) for i in grouped_ids.values()]
+                        if None in previous:
+                            new_levels = [level for level in previous if level is not None]
+                            if len(new_levels) == 0:
+                                new_levels = None
+                            replacement_ix, new_levels = self._treat_index_param(new_levels, ids=replacement_ids)
+                            self.logger.warning(f"""The created index has different levels ({level_names}) than the index that already exists for key '{k}': {previous}.
+Since None stands for a custom level, an alternative index with levels {new_levels} has been created.""")
+                        else:
+                            replacement_ix, _ = self._treat_index_param(previous, ids=replacement_ids)
+                            self.logger.info(f"""The created index has different levels ({level_names}) than the index that already exists for key '{k}': {previous}.
+Therefore, the index for this key has been adapted.""")
+                        self._index.update(replacement_ix)
+                    else:
+                        self.logger.debug(f"Index level names match the existing ones for key '{k}.'")
+                else:
+                    self._levelnames[k] = level_names
         else:
             self.logger.debug("No files added.")
+
+
+
+    def collect_annotations_objects_references(self, keys=None, ids=None):
+        if ids is None:
+            ids = list(self._iterids(keys))
+        updated = {}
+        for id in ids:
+            if id in self._parsed:
+                score = self._parsed[id]
+                if 'annotations' in score._annotations:
+                    updated[id] = score.annotations
+                elif id in self._annotations:
+                    del (self._annotations[id])
+        self._annotations.update(updated)
 
 
 
@@ -231,6 +275,14 @@ class Parse:
 
 
 
+    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
+        ids = [id for id in self._iterids(keys) if id in self._annotations]
+        for id in ids:
+            self._parsed[id].detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
+        self.collect_annotations_objects_references(ids=ids)
+
+
+
 
     def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False):
         if len(self._parsed) == 0:
@@ -243,8 +295,9 @@ class Parse:
         params = {p: l[p] for p in ['staff', 'voice', 'label_type', 'positioning', 'decode']}
         ids = [id for id in self._iterids(keys) if id in self._annotations]
         annotation_tables = [self._annotations[id].get_labels(**params, warnings=False) for id in ids]
-        idx = self.ids2idx(ids)
-        return pd.concat(annotation_tables, keys=idx)
+        idx, names = self.ids2idx(ids)
+        names += tuple(annotation_tables[0].index.names)
+        return pd.concat(annotation_tables, keys=idx, names=names)
 
 
 
@@ -301,13 +354,30 @@ Load one of the identically named files with a different key using add_dir(key='
     def ids2idx(self, ids, pandas_index=False):
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
+        error = False
         if not all(l == levels[0] for l in levels[1:]):
             self.logger.warning(
                 f"Could not create index because the index values have different numbers of levels: {set(levels)}")
             idx = ids
+            error = True
+
+        if  error:
+            names = ['key', 'i']
+        else:
+            grouped_ids = group_id_tuples(ids)
+            level_names = {k: self._levelnames[k] for k in grouped_ids}
+            if len(set(level_names.keys())) > 1:
+                self.logger.warning(
+                    f"Could not set level names because they differ for the different keys:\n{pretty_dict(level_names, 'LEVEL_NAMES')}")
+                names = None
+            else:
+                names = tuple(level_names.values())[0]
+
         if pandas_index:
-            idx = pd.Index(idx)
-        return idx
+            idx = pd.Index(idx, names=names)
+            return idx
+
+        return idx, names
 
 
 
@@ -350,7 +420,7 @@ Load one of the identically named files with a different key using add_dir(key='
         if len(self._parsed) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed[id].mscx.metadata)) for id in self._iterids(keys) if
                                      id in self._parsed])
-            idx = self.ids2idx(ids)
+            idx = self.ids2idx(ids, pandas_index=True)
             return pd.DataFrame(meta_series, index=idx)
         self.logger.warning("No scores have been parsed so far. Use parse_mscx()")
         return pd.DataFrame()
@@ -381,21 +451,7 @@ Load one of the identically named files with a different key using add_dir(key='
         else:
             for params in parse_this:
                 self._parsed[params[:2]] = self._parse(*params)
-        self.collect_annotation_tables(ids=ids)
-
-
-    def collect_annotation_tables(self, keys=None, ids=None):
-        if ids is None:
-            ids = list(self._iterids(keys))
-        updated = {}
-        for id in ids:
-            if id in self._parsed:
-                score = self._parsed[id]
-                if 'annotations' in score._annotations:
-                    updated[id] = score.annotations
-                elif id in self._annotations:
-                    del(self._annotations[id])
-        self._annotations.update(updated)
+        self.collect_annotations_objects_references(ids=ids)
 
 
 
@@ -546,25 +602,31 @@ Load one of the identically named files with a different key using add_dir(key='
 
     def _treat_index_param(self, index_param, ids, selector=None):
         if index_param is None:
-            return {id: id for id in ids}
+            names = ('key', 'i')
+            return {id: id for id in ids}, names
         if isinstance(index_param, str):
             index_param = [index_param]
         index_levels = []
         is_index_level=False
+        names = []
         for i, level in enumerate(index_param):
             if isinstance(level, str):
                 if level in ['key', 'fname', 'i']:
                     new_level = self._make_index_level(level, ids=ids, selector=selector)
                     index_levels.append(new_level)
+                    names.append(level)
                     self.logger.debug(f"Level '{level}' generated: {new_level}")
                 else:
+                    assert len(index_levels) == 0, f"Failed to create index level '{level}', because it is neither a keyword nor a Collection."
                     is_index_level = True
                     break
             elif isinstance(level, Collection):
                 new_level = self._make_index_level(level, ids=ids, selector=selector)
                 if len(new_level) > 0:
                     index_levels.append(new_level)
+                    names.append(None)
             else:
+                assert len(index_levels) == 0, f"Failed to create index level '{level}', because it is neither a keyword nor a Collection."
                 is_index_level = True
                 break
         if is_index_level:
@@ -572,6 +634,7 @@ Load one of the identically named files with a different key using add_dir(key='
             new_level = self._make_index_level(index_param, ids=ids, selector=selector)
             if len(new_level) > 0:
                 index_levels.append(new_level)
+                names = [None]
         if len(index_levels) == 0:
             self.logger.error(f"No index could be created.")
         new_index = {id: ix for id, ix in zip(ids, zip(*[tuple(v.values()) for v in index_levels]))}
@@ -586,7 +649,7 @@ Load one of the identically named files with a different key using add_dir(key='
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
-        return new_index
+        return new_index, tuple(names)
 
 
 
@@ -633,7 +696,7 @@ Using the first {li} elements, discarding {discarded}""")
     def _treat_label_type_param(self, label_type):
         if label_type is None:
             return None
-        all_types = {k: str(k) for k in self.count_label_types().keys()}
+        all_types = {str(k): k for k in self.count_label_types().keys()}
         if isinstance(label_type, int) or isinstance(label_type, str):
             label_type = [label_type]
         lt = [str(t) for t in label_type]
