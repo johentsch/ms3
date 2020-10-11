@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, resolve_dir
+from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import get_logger
@@ -527,7 +527,7 @@ class MSCX:
             full_path = os.path.join(folder, new_name)
             df = self.__getattribute__(w)
 
-            df.to_csv(full_path, **kwargs)
+            no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
             self.logger.debug(f"{w} written to {full_path}")
 
 

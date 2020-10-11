@@ -6,9 +6,9 @@ from collections.abc import Collection
 
 import pandas as pd
 
-from .logger import get_logger, function_logger
+from .logger import get_logger
 from .score import Score
-from .utils import group_id_tuples, iterable2str, make_id_tuples, metadata2series, resolve_dir, scan_directory, transform
+from .utils import group_id_tuples, make_id_tuples, metadata2series, no_collections_no_booleans, resolve_dir, scan_directory
 
 class Parse:
     """
@@ -346,7 +346,6 @@ Load one of the identically named files with a different key using add_dir(key='
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
                                                     simulate=False):
-        keys = self._treat_key_param(keys)
         l = locals()
         list_types = list(self._lists)
         folder_vars = [t + '_folder' for t in list_types]
@@ -355,11 +354,14 @@ Load one of the identically named files with a different key using add_dir(key='
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
-        paths = []
+        paths = {}
         for (key, i, what), li in lists.items():
-            paths.append(self._store(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate))
+            new_path = self._store(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
+            if new_path in paths:
+                self.logger.warning(f"The {paths[new_path]} in {new_path} have been overwritten with {what}.")
+            paths[new_path] = what
         if simulate:
-            return paths
+            return list(paths.keys())
 
 
     def _iterids(self, keys=None):
@@ -589,31 +591,7 @@ Using the first {li} elements, discarding {discarded}""")
 
 
 
-@function_logger
-def no_collections_no_booleans(df):
-    """
-    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
-    ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
 
-    """
-    if df is None:
-        return df
-    collection_cols = ['next', 'chord_tones', 'added_tones']
-    try:
-        cc = [c for c in collection_cols if c in df.columns]
-    except:
-        logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
-        return df
-    if len(cc) > 0:
-        df = df.copy()
-        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True, logger=logger)
-        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
-    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
-    bc = [c for c in bool_cols if c in df.columns]
-    if len(bc) > 0:
-        conv = {c: int for c in bc}
-        df = df.astype(conv)
-    return df
 
 
 def pretty_dict(d, heading=None):

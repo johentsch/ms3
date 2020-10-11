@@ -409,6 +409,32 @@ def name2tpc(nn):
     return step_tpc + 7 * accidentals
 
 
+@function_logger
+def no_collections_no_booleans(df):
+    """
+    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
+    ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
+
+    """
+    if df is None:
+        return df
+    collection_cols = ['next', 'chord_tones', 'added_tones']
+    try:
+        cc = [c for c in collection_cols if c in df.columns]
+    except:
+        logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
+        return df
+    if len(cc) > 0:
+        df = df.copy()
+        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
+        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    bc = [c for c in bool_cols if c in df.columns]
+    if len(bc) > 0:
+        conv = {c: int for c in bc}
+        df = df.astype(conv)
+    return df
+
 
 def ordinal_suffix(n):
     suffixes = {
