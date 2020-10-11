@@ -1,4 +1,4 @@
-import os
+import sys, os
 import traceback
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
@@ -66,6 +66,10 @@ class Parse:
         #         info += f" -> {score.annotations.n_labels()} labels"
         #     res[k] = info
         # return res
+
+
+    def add_detached_annotations(self, mscx_key, tsv_key, match_dict=None):
+        pass
 
 
 
@@ -289,8 +293,16 @@ Therefore, the index for this key has been adapted.""")
     def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         ids = [id for id in self._iterids(keys) if id in self._annotations]
+        prev_logger = self.logger
         for id in ids:
-            self._parsed[id].detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
+            score = self._parsed[id]
+            self.logger = score.logger
+            try:
+                score.detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
+            except:
+                self.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
+            finally:
+                self.logger = prev_logger
         self.collect_annotations_objects_references(ids=ids)
 
 
@@ -499,13 +511,30 @@ Load one of the identically named files with a different key using add_dir(key='
         lists = self.get_lists(keys, **list_params)
         paths = {}
         for (key, i, what), li in lists.items():
-            new_path = self._store(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
+            new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 modus = 'would ' if simulate else ''
-                self.logger.warning(f"The {paths[new_path]} in {new_path} {modus}have been overwritten with {what}.")
+                self.logger.warning(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
             paths[new_path] = what
         if simulate:
             return list(set(paths.keys()))
+
+
+
+    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', simulate=False):
+        """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
+        """
+        ids = [id for id in self._iterids(keys) if id in self._parsed]
+        paths = []
+        for key, i in ids:
+            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, simulate=simulate)
+            if new_path in paths:
+                modus = 'would ' if simulate else ''
+                self.logger.warning(f"The score at {new_path} {modus}have been overwritten.")
+            else:
+                paths.append(new_path)
+        if simulate:
+            return list(set(paths))
 
 
     def _iterids(self, keys=None):
@@ -557,35 +586,23 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger = get_logger(prev_logger)
 
 
-    def _store(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
-        """
+    def _calculate_path(self, key, i, root_dir, folder):
+        """ Constructs a path and file name from a loaded file based on the arguments.
 
         Parameters
         ----------
-        df
-        key
-        i
-        folder
-        suffix
-        root_dir : :obj:`str`
-        what
-        simulate
-        **kwargs: Arguments for :py:meth:`pandas.DataFrame.to_csv`
-
-        Returns
-        -------
-
+        key, i : (:obj:`str`, :obj:`int`)
+            ID from which to construct the new path and filename.
+        folder : :obj:`str`
+            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
+            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
+            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
+            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
         """
-        def restore_logger(val):
-            nonlocal prev_logger
-            self.logger = prev_logger
-            return val
-
-        prev_logger = self.logger
-        self.logger = get_logger(self.fnames[key][i] + f":{what}")
-        if df is None:
-            self.logger.debug(f"No DataFrame for {what}.")
-            return restore_logger(None)
         if os.path.isabs(folder) or '~' in folder:
             folder = resolve_dir(folder)
             path = folder
@@ -598,7 +615,98 @@ Load one of the identically named files with a different key using add_dir(key='
             base, _ = os.path.split(root)
             if path[:len(base)] != base:
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
-                return restore_logger(None)
+                return None
+        return path
+
+
+    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, simulate=False):
+        """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
+
+        Parameters
+        ----------
+        key, i : (:obj:`str`, :obj:`int`)
+            ID from which to construct the new path and filename.
+        folder, root_dir : :obj:`str`
+            Parameters passed to :py:meth:`_calculate_path`.
+        suffix : :obj:`str`, optional
+            Suffix to append to the original file name.
+        simulate : :obj:`bool`, optional
+            Set to True if no files are to be written.
+
+        Returns
+        -------
+        :obj:`str`
+            Path of the stored file.
+
+        """
+
+        def restore_logger(val):
+            nonlocal prev_logger
+            self.logger = prev_logger
+            return val
+
+        prev_logger = self.logger
+        fname = self.fnames[key][i]
+        self.logger = get_logger(fname)
+        id = (key, i)
+        if id not in self._parsed:
+            self.logger.error(f"No Score object found. Call parse_mscx() first.")
+            return restore_logger(None)
+        path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
+        if path is None:
+            return restore_logger(None)
+
+        fname = fname + suffix + '.mscx'
+        file_path = os.path.join(path, fname)
+        if simulate:
+            self.logger.debug(f"Would have written score to {file_path}.")
+        else:
+            os.makedirs(path, exist_ok=True)
+            self._parsed[id].store_mscx(file_path)
+            self.logger.debug(f"Score written to {file_path}.")
+
+        return restore_logger(file_path)
+
+    def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
+        """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            DataFrame to store as a TSV.
+        key, i : (:obj:`str`, :obj:`int`)
+            ID from which to construct the new path and filename.
+        folder, root_dir : :obj:`str`
+            Parameters passed to :py:meth:`_calculate_path`.
+        suffix : :obj:`str`, optional
+            Suffix to append to the original file name.
+        what : :obj:`str`, optional
+            Descriptor, what the DataFrame contains for more informative log message.
+        simulate : :obj:`bool`, optional
+            Set to True if no files are to be written.
+        **kwargs: Arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``.
+            If 'sep' is changed to a different separator, the file extension(s) will be changed to '.csv' rather than '.tsv'.
+
+        Returns
+        -------
+        :obj:`str`
+            Path of the stored file.
+
+        """
+        def restore_logger(val):
+            nonlocal prev_logger
+            self.logger = prev_logger
+            return val
+
+        prev_logger = self.logger
+        fname = self.fnames[key][i]
+        self.logger = get_logger(fname + f":{what}")
+        if df is None:
+            self.logger.debug(f"No DataFrame for {what}.")
+            return restore_logger(None)
+        path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
+        if path is None:
+            return restore_logger(None)
 
         if 'sep' not in kwargs:
             kwargs['sep'] = '\t'
@@ -606,7 +714,7 @@ Load one of the identically named files with a different key using add_dir(key='
             kwargs['index'] = False
         ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
 
-        fname = self.fnames[key][i] + suffix + ext
+        fname = fname + suffix + ext
         file_path = os.path.join(path, fname)
         if simulate:
             self.logger.debug(f"Would have written {what} to {file_path}.")
@@ -616,7 +724,7 @@ Load one of the identically named files with a different key using add_dir(key='
             no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, **kwargs)
             self.logger.debug(f"{what} written to {file_path}.")
 
-        return file_path
+        return restore_logger(file_path)
 
 
     def _treat_index_param(self, index_param, ids, selector=None):

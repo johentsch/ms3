@@ -38,7 +38,7 @@ class TestParser:
         if score_object.mscx.has_annotations:
             score_object.detach_labels('labels')
             score_object.attach_labels('labels')
-        score_object.output_mscx(tmp_file.name)
+        score_object.store_mscx(tmp_file.name)
         original = open(original_mscx).read()
         after_parsing = tmp_file.read()
         assert_all_lines_equal(original, after_parsing, original=original_mscx, tmp_file=tmp_file)
@@ -52,7 +52,7 @@ class TestParser:
             score_object.detach_labels('labels')
             score_object.attach_labels('tsv')
             tmp_file = tempfile.NamedTemporaryFile(mode='r')
-            score_object.output_mscx(tmp_file.name)
+            score_object.store_mscx(tmp_file.name)
             original_mscx = score_object.full_paths['mscx']
             before = open(original_mscx).read()
             after = tmp_file.read()

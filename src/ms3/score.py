@@ -204,8 +204,8 @@ class Score:
         else:
             self.logger.error("No existing .mscx file specified.")
 
-    def output_mscx(self, filepath):
-        return self._mscx.output_mscx(filepath)
+    def store_mscx(self, filepath):
+        return self._mscx.store_mscx(filepath)
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
         if 'annotations' not in self._annotations:
@@ -276,7 +276,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
             fname = self.fnames['mscx']
             tsv_path = os.path.join(path, fname + '_labels.tsv')
         assert key in self._annotations, f"Key '{key}' not found. Available keys: {list(self._annotations.keys())}"
-        if self._annotations[key].output_tsv(tsv_path, **kwargs):
+        if self._annotations[key].store_tsv(tsv_path, **kwargs):
             new_key = self.handle_path(tsv_path, key=key)
             if key != 'annotations':
                 self._annotations[key].logger = get_logger(self.logger_names[new_key])
@@ -371,7 +371,7 @@ class MSCX:
             self.parser = parser
         self._parsed = None
         self.changed = False
-        self.output_mscx = None
+        self.store_mscx = None
         self.get_chords = None
         self.get_harmonies = None
         self.metadata = None
@@ -393,7 +393,7 @@ class MSCX:
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
-        self.output_mscx = self._parsed.output_mscx
+        self.store_mscx = self._parsed.store_mscx
         self.get_chords = self._parsed.get_chords
         self.get_harmonies = self._parsed.get_annotations
         self.metadata = self._parsed.metadata
@@ -406,7 +406,7 @@ class MSCX:
     def delete_labels(self, df):
         changed = pd.Series([self._parsed.delete_label(mc, staff, voice, onset)
                                for mc, staff, voice, onset
-                               in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)],
+                               in reversed(list(df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)))],
                             index=df.index)
         changes = changed.sum()
         if changes > 0:

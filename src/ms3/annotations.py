@@ -190,7 +190,7 @@ class Annotations:
                 df = self.df.copy()
                 df.loc[sel, exp.df.columns] = exp
         except:
-            self.logger.warning(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
+            self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
         return self._expanded
 
 
@@ -220,7 +220,7 @@ class Annotations:
             self.df.loc[sel & mtch, 'label_type'] = name
 
 
-    def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, label_type=label_type, positioning=positioning, decode=decode)
         if decode and 'label_type' in df.columns:
             df.drop(columns='label_type', inplace=True)
