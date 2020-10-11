@@ -73,7 +73,16 @@ class Parse:
             | Pass a string to identify the loaded files.
             | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
               itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        index
+        index : element or :obj:`Collection` of {'key', 'fname', 'i', :obj:`Collection`}
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`Collection`} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
+            | 'fname' evokes an index level made from file names.
         file_re
         folder_re
         exclude_re
@@ -358,10 +367,11 @@ Load one of the identically named files with a different key using add_dir(key='
         for (key, i, what), li in lists.items():
             new_path = self._store(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
-                self.logger.warning(f"The {paths[new_path]} in {new_path} have been overwritten with {what}.")
+                modus = 'would ' if simulate else ''
+                self.logger.warning(f"The {paths[new_path]} in {new_path} {modus}have been overwritten with {what}.")
             paths[new_path] = what
         if simulate:
-            return list(paths.keys())
+            return list(set(paths.keys()))
 
 
     def _iterids(self, keys=None):
@@ -506,11 +516,17 @@ Load one of the identically named files with a different key using add_dir(key='
         if len(index_levels) == 0:
             self.logger.error(f"No index could be created.")
         new_index = {id: ix for id, ix in zip(ids, zip(*[tuple(v.values()) for v in index_levels]))}
+        existing = [ix for ix in new_index if ix in self._index.keys()]
         counts = {k: v for k, v in Counter(new_index.values()).items() if v > 1}
-        if len(counts) > 0:
+        l_counts, l_existing = len(counts), len(existing)
+        if l_counts > 0 or l_existing > 0:
             new_index = self._treat_index_param(None, ids=ids)
-            plural_phrase = "These values occur" if len(counts) > 1 else "This value occurs"
-            self.logger.error(f"The generated index is not unique and has been replaced by the standard index (IDs).\n{plural_phrase} several times:\n{pretty_dict(counts)}")
+            if l_counts > 0:
+                plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
+                self.logger.error(f"The generated index is not unique and has been replaced by the standard index (IDs).\n{plural_phrase} several times:\n{pretty_dict(counts)}")
+            if l_existing > 0:
+                plural_phrase = "s are" if l_existing > 1 " is"
+                self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
         return new_index
 
 
