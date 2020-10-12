@@ -15,12 +15,12 @@ def ambitus2oneliner(ambitus):
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
 
 
-def decode_harmonies(df, return_series=False):
+def decode_harmonies(df, label_col='label', return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
         sel = df.nashville.notna()
-        df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
+        df.loc[sel, label_col] = df.loc[sel, 'nashville'] + df.loc[sel, label_col].replace('/', '')
         drop_cols.append('nashville')
     if 'leftParen' in df.columns:
         df.leftParen.replace('/', '(', inplace=True)
@@ -33,7 +33,7 @@ def decode_harmonies(df, return_series=False):
         if 'rootCase' in df.columns:
             drop_cols.append('rootCase')
         # TODO: use rootCase
-    compose_label.append('label')
+    compose_label.append(label_col)
     if 'base' in df.columns:
         df.base = '/' + fifths2name(df.base, ms=True)
         compose_label.append('base')
@@ -47,7 +47,7 @@ def decode_harmonies(df, return_series=False):
         return label_col
     if 'label_type' in df.columns:
         df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-    df.label = label_col
+    df[label_col] = label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
 
@@ -196,6 +196,15 @@ def group_id_tuples(l):
         if k is not None:
             d[k].append(i)
     return dict(d)
+
+
+@function_logger
+def is_any_row_equal(df1, df2):
+    """ Returns True if any two rows of the two DataFrames contain the same value tuples. """
+    assert len(df1.columns) == len(df2.columns), "Pass the same number of columns for both DataFrames"
+    v1 = set(df1.itertuples(index=False, name=None))
+    v2 = set(df2.itertuples(index=False, name=None))
+    return v1.intersection(v2)
 
 
 def is_minor_mode(fifths, minor=False):

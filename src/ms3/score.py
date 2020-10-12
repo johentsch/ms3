@@ -213,7 +213,7 @@ class Score:
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
-        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), logger_name=f"{self.logger.name}--{key}")
+        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), logger_name=f"{self.logger.name}:{key}")
         if delete:
             self._mscx.delete_labels(df)
         if len(self._annotations['annotations'].df) == 0:
@@ -222,21 +222,39 @@ class Score:
         return
 
 
-    def attach_labels(self, key, staff=None, voice=None):
+    def attach_labels(self, key, staff=None, voice=None, check_for_clashes=True):
+        """ Insert detached labels ``key`` into this score.
+
+        Parameters
+        ----------
+        key : :obj:`str`
+            Key of the detached labels you want to insert into the score.
+        staff, voice : :obj:`int`, optional
+            Pass one or both of these arguments to change the original annotation layer or if there was none.
+        check_for_clashes : :obj:`bool`, optional
+            Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
+            labels.
+
+        Returns
+        -------
+
+        """
+        assert key != 'annotations', "Labels with key 'annotations' are already attached."
         if key not in self._annotations:
             self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use on of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
             return
+
         annotations = self._annotations[key]
-        df = annotations.df.copy()
-        if staff is not None:
-            df.staff = staff
-        if voice is not None:
-            df.voice = voice
-        if len(df) == 0:
-            self.logger.warning(f"The annotation set '{key}' does not contain any labels meeting the criteria.")
+        if len(annotations.df) == 0:
+            self.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return
-        self._mscx.add_labels(df)
+        df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes):
+            return
+        df = annotations.df.copy()
+
+
+        self._mscx.add_labels(df, label=annotations.label_col)
         self._annotations['annotations'] = self._mscx._annotations
         if len(self._mscx._annotations.df) > 0:
             self._mscx.has_annotations = True
@@ -256,15 +274,18 @@ Use on of the existing keys or load a new set with the method load_annotations()
         return self._mscx
 
 
-    def load_annotations(self, tsv_path=None, anno_obj=None, key='file', infer=True):
+    def load_annotations(self, tsv_path=None, anno_obj=None, key='file', label_col='label', infer=True):
         """ Create an Annotations object from a tsv file and make it available as Score.key """
         assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
         inf_dict = self.get_infer_regex() if infer else {}
+        mscx = None if self._mscx is None else self._mscx
         if tsv_path is not None:
             key = self.handle_path(tsv_path, key)
             logger_name = f"{self.logger_names['mscx']}:{key}"
-            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, logger_name=logger_name)
+            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, label_col=label_col, mscx_obj=mscx, logger_name=logger_name)
         else:
+            anno_obj.mscx_obj = mscx
+            anno_obj.logger = get_logger(f"{logger_names['mscx']}:{key}")
             self._annotations[key] = anno_obj
 
 
@@ -382,9 +403,10 @@ class MSCX:
         self.changed = False
         self.store_mscx = None
         self.get_chords = None
-        self.get_harmonies = None
+        self.get_annotations = None
         self.metadata = None
         self.has_annotations = None
+        self.infer_mc = None
 
         if self.mscx_src is not None:
             self.parse_mscx()
@@ -404,12 +426,13 @@ class MSCX:
 
         self.store_mscx = self._parsed.store_mscx
         self.get_chords = self._parsed.get_chords
-        self.get_harmonies = self._parsed.get_annotations
+        self.get_annotations = self._parsed.get_annotations
         self.metadata = self._parsed.metadata
         self.has_annotations = self._parsed.has_annotations
+        self.infer_mc = self._parsed.infer_mc
 
         if self._parsed.has_annotations:
-            self._annotations = Annotations(df=self._parsed.get_annotations(), logger_name=self.logger.name)
+            self._annotations = Annotations(df=self.get_annotations(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
 
 
     def delete_labels(self, df):
@@ -472,7 +495,7 @@ class MSCX:
         main_cols = {k: l[k] for k in main_params}
         cols.update(kwargs)
         if cols['decoded'] not in df.columns:
-            df[cols['decoded']] = decode_harmonies(df, return_series=True)
+            df[cols['decoded']] = decode_harmonies(df, label_col=label, return_series=True)
         add_cols = {k: v for k, v in cols.items() if v in df.columns}
         param2cols = {**main_cols, **add_cols}
         parameters = list(param2cols.keys())
@@ -489,7 +512,7 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self._parsed.parse_measures()
-            self._annotations = Annotations(df=self._parsed.get_annotations(), logger_name=self.logger.name)
+            self._annotations = Annotations(df=self.get_annotations(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
 
 
@@ -587,24 +610,23 @@ class MSCX:
 
 
 
-    @property
-    def parsed(self):
-        if self._parsed is None:
-            self.logger.error("Score has not been parsed yet.")
-            return None
-        return self._parsed
+
+
+
 
     @property
-    def measures(self):
-        return self._parsed.ml
+    def chords(self):
+        return self._parsed.chords
 
     @property
     def events(self):
         return self._parsed._events
 
     @property
-    def chords(self):
-        return self._parsed.chords
+    def expanded(self):
+        if self._annotations is None:
+            return None
+        return self._annotations.expanded
 
     @property
     def labels(self):
@@ -613,22 +635,32 @@ class MSCX:
         return self._annotations.get_labels()
 
     @property
-    def notes(self):
-        return self._parsed.nl
+    def measures(self):
+        return self._parsed.ml
 
     @property
-    def rests(self):
-        return self._parsed.rl
+    def notes(self):
+        return self._parsed.nl
 
     @property
     def notes_and_rests(self):
         return self._parsed.notes_and_rests
 
     @property
-    def expanded(self):
-        if self._annotations is None:
+    def parsed(self):
+        if self._parsed is None:
+            self.logger.error("Score has not been parsed yet.")
             return None
-        return self._annotations.expanded
+        return self._parsed
+
+    @property
+    def rests(self):
+        return self._parsed.rl
+
+    @property
+    def staff_ids(self):
+        return self._parsed.staff_ids
+
 
     @property
     def version(self):

@@ -217,20 +217,7 @@ class _MSCX_bs4:
         ln = self.logger.name if logger_name is None else logger_name
         return MeasureList(self._measures, section_breaks=section_breaks, secure=secure, reset_index=reset_index, logger_name=ln)
 
-    @property
-    def measures(self):
-        """ Retrieve a standard measure list from the parsed score.
-        """
-        self._ml = self._make_measure_list()
-        return self._ml.ml
 
-
-    @property
-    def ml(self):
-        """Like property `measures` but without recomputing."""
-        if self._ml is None:
-            return self.measures
-        return self._ml.ml
 
     @property
     def chords(self):
@@ -246,6 +233,20 @@ class _MSCX_bs4:
         return self._cl
 
     @property
+    def measures(self):
+        """ Retrieve a standard measure list from the parsed score.
+        """
+        self._ml = self._make_measure_list()
+        return self._ml.ml
+
+    @property
+    def ml(self):
+        """Like property `measures` but without recomputing."""
+        if self._ml is None:
+            return self.measures
+        return self._ml.ml
+
+    @property
     def notes(self):
         """A list of all notes with their features."""
         self.make_standard_notelist()
@@ -257,6 +258,14 @@ class _MSCX_bs4:
         if len(self._nl) == 0:
             return self.notes
         return self._nl
+
+    @property
+    def notes_and_rests(self):
+        """Get a combination of properties `notes` and `rests`"""
+        if len(self._nrl) == 0:
+            nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
+            self._nrl = sort_note_list(nr.reset_index(drop=True))
+        return self._nrl
 
     @property
     def rests(self):
@@ -272,12 +281,8 @@ class _MSCX_bs4:
         return self._rl
 
     @property
-    def notes_and_rests(self):
-        """Get a combination of properties `notes` and `rests`"""
-        if len(self._nrl) == 0:
-            nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
-            self._nrl = sort_note_list(nr.reset_index(drop=True))
-        return self._nrl
+    def staff_ids(self):
+        return list(self.measure_nodes.keys())
 
 
     def make_standard_chordlist(self):
@@ -470,6 +475,56 @@ class _MSCX_bs4:
         columns += list(additional_cols.values())
         return df[columns]
 
+
+    def infer_mc(self, mn, onset=0, volta=None):
+        try:
+            mn = int(mn)
+        except:
+            m = re.match(r"^(\d+)([a-e])$", str(mn))
+            if m is None:
+                self.logger.error(f"MN {mn} is not a valid measure number.")
+                raise
+            mn = int(m.group(1))
+            volta = ord(m.group(2)) - 96 # turn 'a' into 1, 'b' into 2 etc.
+        candidates = self.ml[self.ml['mn'] == mn]
+        if len(candidates) == 0:
+            self.logger.error(f"MN {mn} does not occur in measure list, which ends at MN {self.ml['mn'].max()}.")
+            return
+        if len(candidates) == 1:
+            mc = candidates.iloc[0].mc
+            self.logger.debug(f"MN {mn} has unique match with MC {mc}.")
+            return mc, onset
+        if candidates.volta.notna().any():
+            if volta is None:
+                self.logger.error(f"""MN {mn} is ambiguous because it is a measure with first and second endings, but volta has not been specified:
+{candidates[['mc', 'mn', 'mc_offset', 'volta']]}""")
+                return None, None
+            candidates = candidates[candidates.volta == volta]
+        if len(candidates) == 1:
+            mc = candidates.iloc[0].mc
+            self.logger.debug(f"MN {mn}, volta {volta} has unique match with MC {mc}.")
+            return mc, onset
+        if len(candidates) == 0:
+            self.logger.error(f"Volta selection failed")
+            return None, None
+        onset = frac(onset)
+        if onset == 0:
+            mc = candidates.iloc[0].mc
+            return mc, onset
+        right_boundaries = candidates.act_dur + candidates.act_dur.shift().fillna(0)
+        left_boundary = 0
+        for i, right_boundary in enumerate(sorted(right_boundaries)):
+            j = i
+            if onset < right_boundary:
+                new_onset = onset - left_boundary
+                break
+            left_boundary = right_boundary
+        mc = candidates.iloc[j].mc
+        if left_boundary == right_boundary:
+            self.logger.warning(f"The onset {onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
+        # if new_onset < 0:
+        #     self.logger.warning(f"MN {mn}, onset {onset} -> MC {mc}, new_onset {new_onset}, left_boundary {left_boundary}, right_boundary {right_boundary}, right_boundaries {right_boundaries}")
+        return mc, new_onset
 
     def _get_metadata(self):
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
@@ -893,7 +948,8 @@ and {loc_after} before the subsequent {nxt_name}.""")
     def __getstate__(self):
         """When pickling, make object read-only, i.e. delete the BeautifulSoup object and all references to tags."""
         self.soup = None
-        self.tags, self.measure_nodes = {}, {}
+        self.tags, {}
+        self.measure_nodes = {k: None for k in self.measure_nodes.keys()}
         self.read_only = True
         return self.__dict__
 

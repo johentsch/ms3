@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, load_tsv, resolve_dir
+from .utils import decode_harmonies, equal_rows, load_tsv, resolve_dir
 from .logger import get_logger
 from .expand_dcml import expand_labels
 
@@ -67,11 +67,14 @@ class Annotations:
                             """,
                     re.VERBOSE)
 
-    def __init__(self, tsv_path=None, df=None, index_col=None, label_col='label', sep='\t', infer_types={}, logger_name='Annotations', level=None, **kwargs):
+    def __init__(self, tsv_path=None, df=None, index_col=None, label_col='label', sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_name='Annotations', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         self.regex_dict = infer_types
         self._expanded = None
         self.label_col = label_col
+        self.changed = False
+        self.read_only = read_only
+        self.mscx_obj = mscx_obj
         if df is not None:
             self.df = df.copy()
         else:
@@ -81,6 +84,60 @@ class Annotations:
         if 'offset' in self.df.columns:
             self.df.drop(columns='offset', inplace=True)
         self.infer_types()
+
+
+    def prepare_for_attaching(self, staff=None, voice=None, check_for_clashes=True):
+        if self.mscx_obj is None:
+            self.logger.warning(f"Annotations object not aware to which MSCX object it is attached.")
+            return pd.DataFrame()
+        df = self.df.copy()
+        cols = df.columns
+        error = False
+        if 'staff' not in cols:
+            if staff is None:
+                self.logger.warning(f"""Annotations don't have staff information. Pass the argument staff to decide where to attach them.
+Available staves are {self.mscx_obj.staff_ids}""")
+                error = True
+        if staff is not None:
+            df['staff'] = staff
+        if df.staff.isna().any():
+            self.logger.warning(f"The following labels don't have staff information: {df[df.staff.isna()]}")
+            error = True
+
+        if 'voice' not in cols:
+            if voice is None:
+                self.logger.warning(f"""Annotations don't have voice information. Pass the argument voice to decide where to attach them.
+Possible values are {{1, 2, 3, 4}}.""")
+                error = True
+        if voice is not None:
+            df['voice'] = voice
+        if df.voice.isna().any():
+            self.logger.warning(f"The following labels don't have staff information: {df[df.voice.isna()]}")
+            error = True
+
+        if 'mc' not in cols:
+            if 'mn' not in cols:
+                self.logger.warning(f"Annotations are lacking 'mn' and 'mc' columns.")
+                error = True
+            else:
+                error = not self.infer_mc_from_mn()
+
+        if 'onset' not in cols:
+            self.logger.info("No 'onset' column found. All labels will be inserted at onset 0.")
+
+        if check_for_clashes and self.mscx_obj.has_annotations:
+            cols = ['mc', 'onset', 'staff', 'voice']
+            existing = self.mscx_obj.get_annotations()[cols]
+            to_be_attached = df[cols]
+            clashes = equal_rows(existing, to_be_attached)
+            has_clashes = len(clashes) > 0
+            if has_clashes:
+                self.logger.error(f"The following positions already have labels:\n{pd.DataFrame(clashes, columns=cols)}")
+                error = True
+
+        if error:
+            return pd.DataFrame()
+        return df
 
 
     def n_labels(self):
@@ -201,6 +258,21 @@ class Annotations:
         if self._expanded is None:
             return self.expand_dcml()
         return self._expanded
+
+
+    def infer_mc_from_mn(self, mscx_obj=None):
+        if mscx_obj is None and self.mscx_obj is None:
+            self.logger.error(f"Either pass an MSCX object or load this Annotations object to a score using load_annotations().")
+            return False
+
+        mscx = mscx_obj if mscx_obj is not None else self.mscx_obj
+        cols = [c for c in ['mn', 'onset', 'volta'] if c in self.df.columns]
+        inferred_positions = [mscx.infer_mc(**dict(zip(cols, t))) for t in self.df[cols].values]
+        mcs, onsets = zip(*inferred_positions)
+        self.df['mc'] = mcs
+        self.df['onset'] = onsets
+        return True
+
 
 
 
