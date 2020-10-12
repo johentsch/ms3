@@ -25,18 +25,13 @@ class Score:
         Dictionaries for keeping track of file information handled by :py:meth:`~ms3.score.Score.handle_path`.
 
 
-    _annotations :
-    _harmony_regex :
-    _label_types :
-    _mscx : :obj:`MSCX`
-        After parsing, holds the `MSCX` object with the parsed score.
-    _types_to_infer:
 
 
     Methods
     -------
     handle_path(path, key)
         Puts the path into `paths, files, fnames, fexts` dicts with the given key.
+
     """
 
     abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
