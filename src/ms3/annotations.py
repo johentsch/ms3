@@ -175,12 +175,12 @@ class Annotations:
             self.infer_types()
         sel = self.df.label_type == 'dcml'
         if not sel.any():
-            self.logger.warning(f"Score doesn't contain any DCML harmonic annotations.")
+            self.logger.warning(f"Score does not contain any DCML harmonic annotations.")
             return
         if not drop_others:
             warn_about_others = False
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = self.df[sel]
         try:
             exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
