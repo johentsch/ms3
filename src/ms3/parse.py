@@ -468,28 +468,19 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True):
-        keys = self._treat_key_param(keys)
-        if only_new:
-            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if self.fexts[key][i] == '.mscx' and (key, i) not in self._parsed_mscx]
-        else:
-            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if self.fexts[key][i] == '.mscx']
 
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
 
         if only_new:
-            parse_this2 = [(key, i, path, read_only, level) for key in keys
-                          for i, path in enumerate(self.full_paths[key])
-                          if path.endswith('.mscx') and (key, i) not in self._parsed_mscx]
+            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if
+                     self.fexts[key][i] == '.mscx' and (key, i) not in self._parsed_mscx]
         else:
-            parse_this2 = [(key, i, path, read_only, level) for key in keys
-                          for i, path in enumerate(self.full_paths[key])
-                          if path.endswith('.mscx')]
+            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if
+                     self.fexts[key][i] == '.mscx']
 
         parse_this = [(key, i, path, read_only, level) for key, i, path in paths]
-        print(parse_this)
-        print(parse_this2)
         ids = [t[:2] for t in parse_this]
         if parallel:
             pool = mp.Pool(mp.cpu_count())
