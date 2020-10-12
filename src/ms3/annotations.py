@@ -67,15 +67,17 @@ class Annotations:
                             """,
                     re.VERBOSE)
 
-    def __init__(self, tsv_path=None, df=None, index_col=None, sep='\t', infer_types={}, logger_name='Annotations', level=None, **kwargs):
+    def __init__(self, tsv_path=None, df=None, index_col=None, label_col='label', sep='\t', infer_types={}, logger_name='Annotations', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         self.regex_dict = infer_types
         self._expanded = None
+        self.label_col = label_col
         if df is not None:
             self.df = df.copy()
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
+        assert self.label_col in self.df.columns, f"The DataFrame has no column named '{self.label_col}', only {self.df.columns.to_list()}."
         if 'offset' in self.df.columns:
             self.df.drop(columns='offset', inplace=True)
         self.infer_types()
@@ -216,7 +218,7 @@ class Annotations:
             self.df.loc[self.df.root.notna(), 'label_type'] = 3
         for name, regex in self.regex_dict.items():
             sel = self.df.label_type == 0
-            mtch = self.df[sel].label.str.match(regex)
+            mtch = self.df.loc[sel, self.label_col].str.match(regex)
             self.df.loc[sel & mtch, 'label_type'] = name
 
 
