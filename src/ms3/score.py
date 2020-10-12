@@ -256,11 +256,16 @@ Use on of the existing keys or load a new set with the method load_annotations()
         return self._mscx
 
 
-    def load_annotations(self, tsv_path, key='file', infer=True):
+    def load_annotations(self, tsv_path=None, anno_obj=None, key='file', infer=True):
         """ Create an Annotations object from a tsv file and make it available as Score.key """
-        key = self.handle_path(tsv_path, key)
+        assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
         inf_dict = self.get_infer_regex() if infer else {}
-        self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict, logger_name=self.logger_names[key])
+        if tsv_path is not None:
+            key = self.handle_path(tsv_path, key)
+            logger_name = f"{self.logger_names['mscx']}:{key}"
+            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, logger_name=logger_name)
+        else:
+            self._annotations[key] = anno_obj
 
 
     def store_annotations(self, key=None, tsv_path=None, **kwargs):

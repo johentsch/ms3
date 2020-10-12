@@ -5,6 +5,7 @@ from collections import Counter, defaultdict
 from collections.abc import Collection
 
 import pandas as pd
+import numpy as np
 
 from .annotations import Annotations
 from .logger import get_logger
@@ -53,7 +54,7 @@ class Parse:
             'expanded': self._expandedlists,
         }
 
-        self._matches = pd.DataFrame(columns=['mscx']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['mscx', 'annotations']+list(self._lists.keys()))
         self.last_scanned_dir = dir
         if dir is not None:
             self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
@@ -71,8 +72,22 @@ class Parse:
         # return res
 
 
-    def add_detached_annotations(self, mscx_key, tsv_key, match_dict=None):
-        pass
+    def add_detached_annotations(self, mscx_key, tsv_key, new_key=None, match_dict=None):
+        if new_key is None:
+            new_key = tsv_key
+        if match_dict is None:
+            matches = self.match_files(keys=[mscx_key, tsv_key])
+            match_dict = dict(matches[['mscx', 'labels']].values)
+        for score_id, labels_id in match_dict.items():
+            if score_id in self._parsed_mscx and not pd.isnull(labels_id):
+                if labels_id in self._annotations:
+                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=new_key)
+                else:
+                    k, i = labels_id
+                    self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
+Use parse_tsv(key='{key}') and specify label_col.""")
+            else:
+                self.logger.debug(f"Nothing to add to {score_id}. Make sure that it's counterpart has been recognized as tsv_type 'labels'.")
 
 
 
@@ -227,23 +242,20 @@ Therefore, the index for this key has been adapted.""")
         """
         res_dict = defaultdict(Counter)
 
-        if which == 'attached':
-            for key, i in self._iterids(keys):
-                if (key, i) in self._annotations:
-                    _, layers = self._annotations[(key, i)].annotation_layers
-                    res_dict[key].update(layers.to_dict())
-        elif which == 'detached':
+        if which == 'detached':
             for id in self._iterids(keys):
                 if id in self._parsed_mscx:
                     for key, annotations in self._parsed_mscx[id]._annotations.items():
                         if key != 'annotations':
                             _, layers = annotations.annotation_layers
                             res_dict[key].update(layers.to_dict())
-        elif which == 'tsv':
-            for id in self._iterids(keys):
-                if id in self._parsed_tsv and isinstance(self._parsed_tsv[id], Annotations):
-                    _, layers = self._parsed_tsv[id].annotation_layers
-                    res_dict[id[0]].update(layers.to_dict())
+        elif which in ['attached', 'tsv']:
+            for key, i in self._iterids(keys):
+                if (key, i) in self._annotations:
+                    ext = self.fexts[key][i]
+                    if (which == 'attached' and ext == '.mscx') or (which == 'tsv' and ext != '.mscx'):
+                        _, layers = self._annotations[(key, i)].annotation_layers
+                        res_dict[key].update(layers.to_dict())
         else:
             self.logger.error(f"Parameter 'which' needs to be one of {{'attached', 'detached', 'tsv'}}, not {which}.")
             return {} if per_key else pd.Series()
@@ -292,7 +304,6 @@ Therefore, the index for this key has been adapted.""")
 
 
     def count_label_types(self, keys=None, per_key=False):
-        keys = self._treat_key_param(keys)
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
@@ -302,6 +313,18 @@ Therefore, the index for this key has been adapted.""")
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
             else:
                 self.logger.info("None of the scores contain annotations.")
+        if per_key:
+            return {k: dict(v) for k, v in res_dict.items()}
+        return dict(sum(res_dict.values(), Counter()))
+
+
+
+    def count_tsv_types(self, keys=None, per_key=False):
+        parsed_tsvs = [id for id in self._iterids(keys) if id in self._parsed_tsv]
+        res_dict = defaultdict(Counter)
+        for key, i in parsed_tsvs:
+            t = self._tsv_types[(key, i)] if (key, i) in self._tsv_types else None
+            res_dict[key].update([t])
         if per_key:
             return {k: dict(v) for k, v in res_dict.items()}
         return dict(sum(res_dict.values(), Counter()))
@@ -450,7 +473,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 info += f"\n\nAll {mscx} MSCX files have been parsed."
             else:
                 info += f"\n\n{parsed_mscx}/{mscx} MSCX files have been parsed."
-            annotated = sum(True for id in ids if id in self._annotations)
+            annotated = sum(True for id in parsed_mscx_ids if id in self._annotations)
             info += f"\n{annotated} of them have annotations attached."
             if annotated > 0:
                 layers = self.count_annotation_layers(keys, which='attached', per_key=True)
@@ -467,7 +490,7 @@ Load one of the identically named files with a different key using add_dir(key='
         parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
         parsed_tsv = len(parsed_tsv_ids)
         if parsed_tsv > 0:
-            annotations = sum(True for id in parsed_tsv_ids if isinstance(self._parsed_tsv[id], Annotations))
+            annotations = sum(True for id in parsed_tsv_ids if id in self._annotations)
             if parsed_tsv == others:
                 info += f"\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
             else:
@@ -482,8 +505,68 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def match_files(self, ):
-        pass
+    def match_files(self, keys=None, what=['mscx', 'labels'], only_new=True):
+        lists = dict(self._lists)
+        lists['mscx'] = self._parsed_mscx
+        lists['annotations'] = self._annotations
+        if isinstance(what, str):
+            what = [what]
+        assert all(True for wh in what if wh in lists), f"Unknown matching parameter(s) for 'what': {[wh for wh in what if wh not in lists]}"
+        if len(what) == 1:
+            what.extend([wh for wh in lists if wh != what[0]])
+        for wh in what:
+            if wh not in self._matches.columns:
+                self._matches[wh] = np.nan
+
+        start = what[0]
+        existing = lists[start]
+        ids = list(self._iterids(keys))
+        ids_to_match = [id for id in ids if id in existing]
+        matching_candidates = {wh: {(key, i): self.fnames[key][i] for key, i in ids if (key, i) in lists[wh]} for wh in what[1:]}
+        remove = []
+        for i, wh in enumerate(what[1:], 1):
+            if len(matching_candidates[wh]) == 0:
+                self.logger.warning(f"There are no candidates for '{wh}' in the keys {keys}.")
+                remove.append(i)
+        for i in reversed(remove):
+            del(what[i])
+        res_ix = []
+        for key, i in ids_to_match:
+            ix = self._index[(key, i)]
+            if ix in self._matches.index:
+                print(f"index: {self._matches.index}\nix: {ix}")
+                row = self._matches.loc[ix].copy()
+            else:
+                row = pd.Series(np.nan, index=lists.keys(), name=ix)
+            row[start] = (key, i)
+            for wh in what[1:]:
+                if not pd.isnull(row[wh]) and only_new:
+                    self.logger.debug(f"{ix} had already been matched to {wh} {row[wh]}")
+                else:
+                    row[wh] = np.nan
+                    fname = self.fnames[key][i]
+                    file  = self.files[key][i]
+                    matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wh].items()}
+                    lengths = {id: len(prefix) for id, prefix in matches.items()}
+                    longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
+
+                    if len(longest) == 0:
+                        self.logger.error(f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                    elif len(longest) > 1:
+                        ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in longest.items()}
+                        self.logger.error(f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                    else:
+                        id = list(longest.keys())[0]
+                        row[wh] = id
+                        match_file = self.files[id[0]][id[1]]
+                        self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[id]}")
+
+                    if ix in self._matches.index:
+                        self._matches.loc[ix, :] = row
+                    else:
+                        self._matches = self._matches.append(row)
+                    res_ix.append(ix)
+        return self._matches.loc[res_ix]
 
 
     def metadata(self, keys=None):
@@ -498,10 +581,10 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, fexts=None,
-              annotation_col='label', infer_types={}, **kwargs):
+              label_col='label', infer_types={}, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
         self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new)
-        self.parse_tsv(keys=keys, fexts=fexts, label_col=annotation_col, infer_types=infer_types, level=level, **kwargs)
+        self.parse_tsv(keys=keys, fexts=fexts, label_col=label_col, infer_types=infer_types, level=level, **kwargs)
 
 
 
@@ -590,33 +673,51 @@ Load one of the identically named files with a different key using add_dir(key='
         if isinstance(label_col, str):
             label_col = [label_col]
         for key, i in ids:
+            rel_path = self.rel_paths[key][i] + self.files[key][i]
             path = self.full_paths[key][i]
             try:
                 df = load_tsv(path, **kwargs)
             except:
-                print(path)
+                self.logger.error(path)
                 raise
             l_cols = [c for c in df.columns if c in label_col]
             try:
-                if len(l_cols) == 0:
-                    self._parsed_tsv[(key, i)] = df
-                    tsv_type = self._infer_tsv_type(df)
-                    if tsv_type is not None:
-                        self._tsv_types[(key, i)] = tsv_type
-                        self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
-                    if len(label_col) > 1:
-                        self.logger.debug(f"None of the columns {label_col} was found in {path}:\n{df.columns.to_list()}")
-                    else:
-                        self.logger.debug(f"Column {label_col[0]} not found in {path}:\n{df.columns.to_list()}")
+                self._parsed_tsv[(key, i)] = df
+                if len(l_cols) > 0:
+                    tsv_type = 'labels'
                 else:
-                    l_col = l_cols[0]
-                    if len(l_cols) > 1:
-                        self.logger.info(f"Path contains several columns with annotations ({l_cols}). '{l_col}' was picked.")
-                    logger_name = self.files[key][i]
-                    self._parsed_tsv[(key, i)] = Annotations(df=df, label_col=l_col, infer_types=infer_types, logger_name=logger_name, level=level)
-                    self._annotations[(key, i)] = self._parsed_tsv[(key, i)]
+                    tsv_type = self._infer_tsv_type(df)
+
+                if tsv_type is None:
+                    self.logger.warning(
+                        f"None of the columns {label_col} was found in {rel_path} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                else:
+                    self._tsv_types[(key, i)] = tsv_type
+                    self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
+
+                    if tsv_type == 'labels':
+                        if len(l_cols) == 0:
+                            self.logger.info(
+f"""None of the columns {label_col} was found in {rel_path} ({df.columns.to_list()}) but the file was recognized to contain labels.
+Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
+                        else:
+                            l_col = l_cols[0]
+                            if len(l_cols) > 1:
+                                self.logger.info(f"Path contains several columns with annotations ({l_cols}). '{l_col}' was picked.")
+                            logger_name = self.files[key][i]
+                            self._annotations[(key, i)] = Annotations(df=df, label_col=l_col, infer_types=infer_types,
+                                                                      logger_name=logger_name, level=level)
+                            self.logger.debug(
+                                f"{rel_path} was additionally stored as an Annotations object.")
+                    else:
+                        self.logger.debug(
+                            f"None of the columns {label_col} was found in {rel_path}. Inferred its content as a list of {tsv_type}.")
             except:
-                self.logger.error(f"Parsing {path} failed with the following error:\n{sys.exc_info()[1]}")
+                self.logger.error(f"Parsing {rel_path} failed with the following error:\n{sys.exc_info()[1]}")
+
+
+
+
 
 
     def _infer_tsv_type(self, df):
@@ -971,7 +1072,7 @@ Using the first {li} elements, discarding {discarded}""")
             keys = list(self.full_paths.keys())
         elif isinstance(keys, str):
             keys = [keys]
-        return keys
+        return list(set(keys))
 
     def _treat_label_type_param(self, label_type):
         if label_type is None:

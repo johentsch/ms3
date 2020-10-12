@@ -42,7 +42,7 @@ and stored as a tab-separated file (TSV) like this:
     staff  voice  label_type
     3      2      0             48
 
-    >>> s.annotations.output_tsv('~/stabat_chords.tsv')
+    >>> s.annotations.store_tsv('~/stabat_chords.tsv')
     True
 
 .. _detaching:
@@ -83,7 +83,7 @@ To output the changed score without the labels, choose a different path unless y
 
 .. code-block:: python
 
-    >>> s.output_mscx('~/stabat_empty.mscx')
+    >>> s.store_mscx('~/stabat_empty.mscx')
     True
 
 
