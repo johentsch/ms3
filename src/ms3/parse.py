@@ -38,7 +38,7 @@ class Parse:
         # dicts that have IDs as keys and are therefor accessed via [(key, i)]
         self._parsed_mscx, self._annotations, self._notelists, self._restlists, self._noterestlists = {}, {}, {}, {}, {}
         self._eventlists, self._labellists, self._chordlists, self._expandedlists, self._index = {}, {}, {}, {}, {}
-        self._measurelists, self._parsed_tsv = {}, {}
+        self._measurelists, self._parsed_tsv, self._tsv_types = {}, {}, {}
 
         # dict with keys as keys, holding the names of the index levels (which have to be the same for all corresponding IDs)
         self._levelnames = {}
@@ -52,7 +52,8 @@ class Parse:
             'chords': self._chordlists,
             'expanded': self._expandedlists,
         }
-        self.matches = pd.DataFrame()
+
+        self._matches = pd.DataFrame(columns=['mscx']+list(self._lists.keys()))
         self.last_scanned_dir = dir
         if dir is not None:
             self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
@@ -440,8 +441,11 @@ Load one of the identically named files with a different key using add_dir(key='
         parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
         parsed_mscx = len(parsed_mscx_ids)
         ext_counts = self.count_extensions(keys, per_key=False)
+        mscx = ext_counts['.mscx']
+        others = sum(v for k, v in ext_counts.items() if k != '.mscx')
+
         if parsed_mscx > 0:
-            mscx = ext_counts['.mscx']
+
             if parsed_mscx == mscx:
                 info += f"\n\nAll {mscx} MSCX files have been parsed."
             else:
@@ -457,11 +461,12 @@ Load one of the identically named files with a different key using add_dir(key='
                 info += f"\n{detached} of them have detached annotations:"
                 layers = self.count_annotation_layers(keys, which='detached', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
+        elif mscx > 0:
+            info += f"\n\nNo mscx files have been parsed."
 
         parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
         parsed_tsv = len(parsed_tsv_ids)
         if parsed_tsv > 0:
-            others = sum(v for k, v in ext_counts.items() if k != '.mscx')
             annotations = sum(True for id in parsed_tsv_ids if isinstance(self._parsed_tsv[id], Annotations))
             if parsed_tsv == others:
                 info += f"\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
@@ -470,12 +475,15 @@ Load one of the identically named files with a different key using add_dir(key='
             if annotations > 0:
                 layers = self.count_annotation_layers(keys, which='tsv', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        else:
-            info += f"\n\nNo mscx files have been parsed."
+
         if return_str:
             return info
         print(info)
 
+
+
+    def match_files(self, ):
+        pass
 
 
     def metadata(self, keys=None):
@@ -583,25 +591,49 @@ Load one of the identically named files with a different key using add_dir(key='
             label_col = [label_col]
         for key, i in ids:
             path = self.full_paths[key][i]
-            df = load_tsv(path, **kwargs)
+            try:
+                df = load_tsv(path, **kwargs)
+            except:
+                print(path)
+                raise
             l_cols = [c for c in df.columns if c in label_col]
             try:
                 if len(l_cols) == 0:
                     self._parsed_tsv[(key, i)] = df
+                    tsv_type = self._infer_tsv_type(df)
+                    if tsv_type is not None:
+                        self._tsv_types[(key, i)] = tsv_type
+                        self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
                     if len(label_col) > 1:
-                        self.debug(f"None of the columns {label_col} was found in {path}:\n{df.columns.to_list()}")
+                        self.logger.debug(f"None of the columns {label_col} was found in {path}:\n{df.columns.to_list()}")
                     else:
-                        self.debug(f"Column {label_col[0]} not found in {path}:\n{df.columns.to_list()}")
+                        self.logger.debug(f"Column {label_col[0]} not found in {path}:\n{df.columns.to_list()}")
                 else:
                     l_col = l_cols[0]
                     if len(l_cols) > 1:
                         self.logger.info(f"Path contains several columns with annotations ({l_cols}). '{l_col}' was picked.")
                     logger_name = self.files[key][i]
                     self._parsed_tsv[(key, i)] = Annotations(df=df, label_col=l_col, infer_types=infer_types, logger_name=logger_name, level=level)
+                    self._annotations[(key, i)] = self._parsed_tsv[(key, i)]
             except:
                 self.logger.error(f"Parsing {path} failed with the following error:\n{sys.exc_info()[1]}")
 
 
+    def _infer_tsv_type(self, df):
+        type2cols = {
+            'notes': ['tpc', 'midi'],
+            'events': ['event'],
+            'chords': ['chord_id'],
+            'rests': ['nominal_duration'],
+            'measures': ['act_dur'],
+            'labels': ['label_type', 'mc', 'mn'],
+        }
+        res = None
+        for t, columns in type2cols.items():
+            if any(True for c in columns if c in df.columns):
+                res = t
+                break
+        return res
 
 
 
@@ -989,12 +1021,13 @@ Using the first {li} elements, discarding {discarded}""")
                             ix += " (parsed annotations)"
                             val = str(df)
                         else:
-                            ix += f" (parsed, length {len(df)})"
+                            t = self._tsv_types[id] if id in self._tsv_types else 'unrecognized DataFrame'
+                            ix += f" (parsed {t}, length {len(df)})"
                             val = df.head(5).to_string()
                     else:
                         ix += " (not parsed)"
                         val = self.full_paths[item][i]
-                ix += f"\n{'-' * len(ix)}\n\n"
+                ix += f"\n{'-' * len(ix)}\n{self.full_paths[item][i]}\n"
                 print(f"{ix}{val}\n")
 
     def __repr__(self):

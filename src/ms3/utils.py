@@ -236,18 +236,24 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         except:
             return s
 
+    def safe_frac(s):
+        try:
+            return frac(s)
+        except:
+            return s
+
     CONVERTERS = {
         'added_tones': str2inttuple,
-        'act_dur': frac,
+        'act_dur': safe_frac,
         'chord_tones': str2inttuple,
         'globalkey_is_minor': int2bool,
         'localkey_is_minor': int2bool,
         'next': str2inttuple,
-        'nominal_duration': frac,
-        'mc_offset': frac,
-        'onset': frac,
-        'duration': frac,
-        'scalar': frac, }
+        'nominal_duration': safe_frac,
+        'mc_offset': safe_frac,
+        'onset': safe_frac,
+        'duration': safe_frac,
+        'scalar': safe_frac, }
 
     DTYPES = {
         'alt_label': str,
