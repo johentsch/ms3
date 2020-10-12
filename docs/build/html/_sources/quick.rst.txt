@@ -143,7 +143,7 @@ Accessing score information
 After parsing a score, all contained information is accessible in structured formats. Most information is returned as
 :obj:`pandas.DataFrame`, whereas a given set of metadata is accessible as dictionary.
 
-Since this information is attached to the parsed MSCX file (and not, say to loaded annotations), it is accessible
+Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
 via ``s.mscx``.
 
 Metadata
@@ -233,9 +233,9 @@ The accessible DataFrames with score information are:
 .. |breaks| replace:: :ref:`breaks <breaks>`
 .. |dont_count| replace:: :ref:`dont_count <dont_count>`
 .. |keysig| replace:: :ref:`keysig <keysig>`
-.. |mc| replace:: :ref:`mc <mc_vs_mn>`
+.. |mc| replace:: :ref:`mc <mc>`
 .. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
-.. |mn| replace:: :ref:`mn <mc_vs_mn>`
+.. |mn| replace:: :ref:`mn <mn>`
 .. |next| replace:: :ref:`next <next>`
 .. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
 .. |timesig| replace:: :ref:`timesig <timesig>`
@@ -374,10 +374,10 @@ In this variant, all aspects are stored each in individual folders but with iden
     >>> p = Parse('~/ms3/docs', key='pergo')
     >>> p.parse_mscx()
     >>> p.store_lists(  notes_folder='./notes',
-                rests_folder='./rests',
-                notes_and_rests_folder='./notes_and_rests',
-                simulate=True
-                )
+                        rests_folder='./rests',
+                        notes_and_rests_folder='./notes_and_rests',
+                        simulate=True
+                        )
     ['~/ms3/docs/notes/cujus.tsv',
      '~/ms3/docs/rests/cujus.tsv',
      '~/ms3/docs/notes_and_rests/cujus.tsv',

@@ -34,6 +34,12 @@ class ContextAdapter(logging.LoggerAdapter):
 def get_logger(name=None, level=None, adapter=ContextAdapter):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     global CURRENT_LEVEL
+    if isinstance(name, logging.LoggerAdapter):
+        name = name.logger
+    if isinstance(name, logging.Logger):
+        if level is None:
+            level = name.level
+        name = name.name
     if name not in logging.root.manager.loggerDict:
         config_logger(name)
     logger = logging.getLogger(name)
@@ -41,6 +47,8 @@ def get_logger(name=None, level=None, adapter=ContextAdapter):
     if level is not None:
         CURRENT_LEVEL = LEVELS[level.upper()] if level.__class__ == str else level
     logger.setLevel(CURRENT_LEVEL)
+    for h in logger.handlers:
+        h.setLevel(CURRENT_LEVEL)
 
     if adapter is not None:
         return adapter(logger, {})
@@ -52,6 +60,7 @@ def get_logger(name=None, level=None, adapter=ContextAdapter):
 def config_logger(name, level=None, logfile=None):
     """Configs the logger with name `name`. Overwrites existing config."""
     logger = logging.getLogger(name)
+    logger.propagate = False
     format = '%(levelname)-7s %(name)s -- %(message)s'
     formatter = logging.Formatter(format)
     if level is not None:
@@ -59,10 +68,13 @@ def config_logger(name, level=None, logfile=None):
             level = LEVELS[level]
         logger.setLevel(level)
     existing_handlers = [h for h in logger.handlers]
-    if not any(True for h in existing_handlers if h.__class__ == logging.StreamHandler):
+    stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
+    if stream_handlers == 0:
         streamHandler = logging.StreamHandler(sys.stdout)
         streamHandler.setFormatter(formatter)
         logger.addHandler(streamHandler)
+    elif stream_handlers > 1:
+        logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
     if logfile is not None:
         if not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == logfile):
             fileHandler = logging.FileHandler(logfile, mode='w')

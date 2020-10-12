@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, resolve_dir
+from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import get_logger
@@ -23,18 +23,15 @@ class Score:
         The only XML parser currently implemented is BeautifulSoup 4.
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by :py:meth:`~ms3.score.Score.handle_path`.
-    _annotations :
-    _harmony_regex :
-    _label_types :
-    _mscx : :obj:`MSCX`
-        After parsing, holds the `MSCX` object with the parsed score.
-    _types_to_infer
+
+
 
 
     Methods
     -------
     handle_path(path, key)
         Puts the path into `paths, files, fnames, fexts` dicts with the given key.
+
     """
 
     abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
@@ -202,8 +199,8 @@ class Score:
         else:
             self.logger.error("No existing .mscx file specified.")
 
-    def output_mscx(self, filepath):
-        return self._mscx.output_mscx(filepath)
+    def store_mscx(self, filepath):
+        return self._mscx.store_mscx(filepath)
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
         if 'annotations' not in self._annotations:
@@ -246,6 +243,11 @@ Use on of the existing keys or load a new set with the method load_annotations()
 
 
     @property
+    def has_detached_annotations(self):
+        return sum(True for key in self._annotations if key != 'annotations') > 0
+
+
+    @property
     def mscx(self):
         """ Returns the `MSCX` object with the parsed score.
         """
@@ -269,7 +271,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
             fname = self.fnames['mscx']
             tsv_path = os.path.join(path, fname + '_labels.tsv')
         assert key in self._annotations, f"Key '{key}' not found. Available keys: {list(self._annotations.keys())}"
-        if self._annotations[key].output_tsv(tsv_path, **kwargs):
+        if self._annotations[key].store_tsv(tsv_path, **kwargs):
             new_key = self.handle_path(tsv_path, key=key)
             if key != 'annotations':
                 self._annotations[key].logger = get_logger(self.logger_names[new_key])
@@ -288,7 +290,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
             msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
         else:
             msg += "No annotations attached.\n\n"
-        if sum(True for key in self._annotations if key != 'annotations') > 0:
+        if self.has_detached_annotations:
             msg += "Detached annotations\n--------------------\n\n"
             for key, obj in self._annotations.items():
                 if key != 'annotations':
@@ -315,7 +317,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
         try:
             return self._annotations[item]
         except:
-            AttributeError(item)
+            raise AttributeError(item)
 
     def __getstate__(self):
         return self.__dict__
@@ -364,10 +366,10 @@ class MSCX:
             self.parser = parser
         self._parsed = None
         self.changed = False
-        self.output_mscx = None
+        self.store_mscx = None
         self.get_chords = None
         self.get_harmonies = None
-        self.get_metadata = None
+        self.metadata = None
         self.has_annotations = None
 
         if self.mscx_src is not None:
@@ -386,10 +388,10 @@ class MSCX:
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
-        self.output_mscx = self._parsed.output_mscx
+        self.store_mscx = self._parsed.store_mscx
         self.get_chords = self._parsed.get_chords
         self.get_harmonies = self._parsed.get_annotations
-        self.get_metadata = self._parsed.get_metadata
+        self.metadata = self._parsed.metadata
         self.has_annotations = self._parsed.has_annotations
 
         if self._parsed.has_annotations:
@@ -399,7 +401,7 @@ class MSCX:
     def delete_labels(self, df):
         changed = pd.Series([self._parsed.delete_label(mc, staff, voice, onset)
                                for mc, staff, voice, onset
-                               in df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)],
+                               in reversed(list(df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)))],
                             index=df.index)
         changes = changed.sum()
         if changes > 0:
@@ -475,6 +477,100 @@ class MSCX:
             self._parsed.parse_measures()
             self._annotations = Annotations(df=self._parsed.get_annotations(), logger_name=self.logger.name)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
+
+
+    def store_list(self, what='all', folder=None, suffix=None, **kwargs):
+        """
+        Store one or several several lists as TSV files(s).
+        
+        Parameters
+        ----------
+        what : :obj:`str` or :obj:`Collection`, optional
+            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded'}
+        folder : :obj:`str`, optional
+            Where to store. Defaults to the directory of the parsed MSCX file.
+        suffix : :obj:`str` or :obj:`Collection`, optional
+            Suffix appended to the file name of the parsed MSCX file to create a new file name.
+            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
+            Number of suffixes needs to be equal to the number of ``what``.
+        **kwargs:
+            Keyword arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``.
+            If 'sep' is changed to a different separator, the file extension(s) will be changed to '.csv' rather than '.tsv'.
+
+        Returns
+        -------
+        None
+
+        """
+        folder = resolve_dir(folder)
+        mscx_path, file = os.path.split(self.mscx_src)
+        fname, _ = os.path.splitext(file)
+        if folder is None:
+            folder = mscx_path
+        if not os.path.isdir(folder):
+            if input(folder + ' does not exist. Create? (y|n)') == "y":
+                os.mkdir(d)
+            else:
+                return
+        what, suffix = self._treat_storing_params(what, suffix)
+        if what is None:
+            self.logger.error("Nothing stored.")
+            return
+        if 'sep' not in kwargs:
+            kwargs['sep'] = '\t'
+        if 'index' not in kwargs:
+            kwargs['index'] = False
+        ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
+
+        for w, s in zip(what, suffix):
+            new_name = f"{fname}{s}{ext}"
+            full_path = os.path.join(folder, new_name)
+            df = self.__getattribute__(w)
+
+            no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
+            self.logger.debug(f"{w} written to {full_path}")
+
+
+
+
+
+    def _treat_storing_params(self, what, suffix):
+        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded']
+        if what == 'all':
+            if suffix is None:
+                return tables, [f"_{t}" for t in tables]
+            elif len(suffix) < len(tables) or isinstance(suffix, str):
+                self.logger.error(f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
+                return None, None
+            elif len(suffix) > len(tables):
+                suffix = suffix[:len(tables)]
+            return tables, [str(s) for s in suffix]
+
+        if isinstance(what, str):
+            what = [what]
+        if isinstance(suffix, str):
+            suffix = [suffix]
+
+        correct = [(i, w) for i, w in enumerate(what) if w in tables]
+        if suffix is None:
+            suffix = [f"_{w}" for _, w in correct]
+        if len(correct) < len(what):
+            if len(correct) == 0:
+                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
+                return None, None
+            else:
+                incorrect = [w for w in what if w not in tables]
+                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
+                suffix = [suffix[i] for i, _ in correct]
+        if len(correct) < len(suffix):
+            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
+            return None, None
+        elif len(suffix) > len(correct):
+            suffix = suffix[:len(correct)]
+        return tables, [str(s) for s in suffix]
+
+
+
 
 
     @property

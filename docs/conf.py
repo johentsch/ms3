@@ -68,6 +68,10 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax', 'sphinx.ext.githubpages',
               'sphinx.ext.napoleon']
 
+
+# Napoleon settings
+napoleon_use_admonition_for_examples = True
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

@@ -1,11 +1,18 @@
 import os, re
+from collections import defaultdict
 from collections.abc import Iterable
 from fractions import Fraction as frac
+from itertools import repeat
 
 import pandas as pd
 import numpy as np
 
 from .logger import function_logger
+
+
+def ambitus2oneliner(ambitus):
+    """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
+    return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
 
 
 def decode_harmonies(df, return_series=False):
@@ -43,6 +50,11 @@ def decode_harmonies(df, return_series=False):
     df.label = label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
+
+
+def dict2oneliner(d):
+    """ Turns a dictionary into a single-line string without brackets."""
+    return ', '.join(f"{k}: {v}" for k, v in d.items())
 
 
 def fifths2acc(fifths):
@@ -175,6 +187,17 @@ def fifths2str(fifths, steps, inverted=False):
     return acc + steps[fifths % 7]
 
 
+def group_id_tuples(l):
+    """ Turns a list of (key, ix) into a {key: [ix]}
+
+    """
+    d = defaultdict(list)
+    for k, i in l:
+        if k is not None:
+            d[k].append(i)
+    return dict(d)
+
+
 def is_minor_mode(fifths, minor=False):
     """ Returns True if the scale degree `fifths` naturally has a minor third in the scale.
     """
@@ -293,12 +316,43 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
                        converters=conv, **kwargs)
 
 
+def make_id_tuples(key, n):
+    """ For a given key, this function return index tuples in the form [(key, 0), ..., (key, n)]
+
+    Returns
+    -------
+    list
+        indices in the form [(key, 0), ..., (key, n)]
+
+    """
+    return list(zip(repeat(key), range(n)))
+
+
 def map2elements(e, f, *args, **kwargs):
     """ If `e` is an iterable, `f` is applied to all elements.
     """
     if isinstance(e, Iterable) and not isinstance(e, str):
         return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
+
+
+def metadata2series(d):
+    """ Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
+    Uses: ambitus2oneliner(), dict2oneliner(), parts_info()
+
+    Returns
+    -------
+    :obj:`pandas.Series`
+        A series allowing for storing metadata as a row of a DataFrame.
+    """
+    d = dict(d)
+    d['TimeSig'] = dict2oneliner(d['TimeSig'])
+    d['KeySig'] = dict2oneliner(d['KeySig'])
+    d['ambitus'] = ambitus2oneliner(d['ambitus'])
+    d.update(parts_info(d['parts']))
+    del (d['parts'])
+    s = pd.Series(d)
+    return s
 
 
 @function_logger
@@ -355,6 +409,32 @@ def name2tpc(nn):
     return step_tpc + 7 * accidentals
 
 
+@function_logger
+def no_collections_no_booleans(df):
+    """
+    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
+    ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
+
+    """
+    if df is None:
+        return df
+    collection_cols = ['next', 'chord_tones', 'added_tones']
+    try:
+        cc = [c for c in collection_cols if c in df.columns]
+    except:
+        logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
+        return df
+    if len(cc) > 0:
+        df = df.copy()
+        df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
+        logger.debug(f"Transformed iterables in the columns {cc} to strings.")
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    bc = [c for c in bool_cols if c in df.columns]
+    if len(bc) > 0:
+        conv = {c: int for c in bc}
+        df = df.astype(conv)
+    return df
+
 
 def ordinal_suffix(n):
     suffixes = {
@@ -368,7 +448,57 @@ def ordinal_suffix(n):
     return 'th'
 
 
+def parts_info(d):
+    """
+    Turns a (nested) ``metadata['parts']`` dict into a flat dict based on staves.
+
+    Example
+    -------
+    >>> d = s.mscx.metadata
+    >>> parts_info(d['parts'])
+    {'staff_1_name': 'Piano Right Hand',
+     'staff_1_ambitus': '60-87 (C4-Eb6)',
+     'staff_2_name': 'Piano Left Hand',
+     'staff_2_ambitus': '39-75 (Eb2-Eb5)'}
+    """
+    res = {}
+    for name, staves in d.items():
+        for staff, ambitus in staves.items():
+            res[f"staff_{staff}_name"] = name
+            res[f"staff_{staff}_ambitus"] = ambitus2oneliner(ambitus)
+    return res
+
+
+
+def pretty_dict(d, heading=None):
+    """ Turns a dictionary into a string where the keys are printed in a column, separated by '->'.
+    """
+    if heading is not None:
+        d = dict(KEY=str(heading), **d)
+    left = max(len(str(k)) for k in d.keys())
+    res = []
+    for k, v in d.items():
+        ks = str(k)
+        if isinstance(v, pd.DataFrame) or isinstance(v, pd.Series):
+            vs = v.to_string()
+        else:
+            vs = str(v)
+        if '\n' in vs:
+            lines = vs.split('\n')
+            res.extend([f"{ks if i == 0 else '':{left}} -> {l}" for i, l in enumerate(lines)])
+        else:
+            res.append(f"{ks:{left}} -> {vs}")
+    if heading is not None:
+        res.insert(1, '-' * (left + len(heading) + 4))
+    return '\n'.join(res)
+
+
+
 def resolve_dir(dir):
+    """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
+    """
+    if dir is None:
+        return None
     if '~' in dir:
         return os.path.expanduser(dir)
     return os.path.abspath(dir)
@@ -394,13 +524,13 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
 
     """
     def check_regex(reg, s):
-        res = re.search(reg, s) is not None and re.match(exclude_re, s) is None
+        res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
         return res
 
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)
-        if recursive and re.match(exclude_re, current_folder) is None:
+        if recursive and re.search(exclude_re, current_folder) is None:
             dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []
@@ -456,7 +586,6 @@ def split_note_name(nn, count=False):
 
 
 
-@function_logger
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
     """ Compute a function for every row of a DataFrame, using several cols as arguments.
         The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
@@ -474,17 +603,17 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
         If you pass a list of column names, the columns' values are passed as positional arguments.
         Pass None if you want to use all columns as positional arguments.
     column_wise : :obj:`bool`, optional
-        Pass True if you want to map `func` to the elements of every column separately.
+        Pass True if you want to map ``func`` to the elements of every column separately.
         This is simply an optimized version of df.apply(func) but allows for naming
-        columns to use as function arguments. If param2col is None, `func` is mapped
+        columns to use as function arguments. If param2col is None, ``func`` is mapped
         to the elements of all columns, otherwise to all columns that are not named
-        as parameters in `param2col`.
-        In the case where `func` does not require a positional first element and
+        as parameters in ``param2col``.
+        In the case where ``func`` does not require a positional first element and
         you want to pass the elements of the various columns as keyword argument,
         give it as param2col={'function_argument': None}
     inplace : :obj:`bool`, optional
-        Pass True if you want to mutate `df` rather than getting an altered copy.
-    **kwargs : Other parameters passed to `func`.
+        Pass True if you want to mutate ``df`` rather than getting an altered copy.
+    **kwargs : Other parameters passed to ``func``.
     """
     if column_wise:
         if not df.__class__ == pd.core.series.Series:
@@ -511,7 +640,7 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     else:
         if df.__class__ == pd.core.series.Series:
             if param2col is not None:
-                logger.warning("When 'df' is a Series, the parameter 'param2col' has no use.")
+                print("When 'df' is a Series, the parameter 'param2col' has no use.")
             param_tuples = df.values
             result_dict = {t: func(t, **kwargs) for t in set(param_tuples)}
         else:
@@ -520,4 +649,5 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             else:
                 param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
-    return pd.Series([result_dict[t] for t in param_tuples], index=df.index)
+    res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
+    return res

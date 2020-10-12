@@ -1,4 +1,4 @@
-import re
+import sys, re
 
 import pandas as pd
 
@@ -85,16 +85,27 @@ class Annotations:
         return len(self.df)
 
 
-    def show_annotation_layers(self):
+    @property
+    def label_types(self):
+        """ Returns the counts of the label_types as dict.
+        """
+        if 'label_type' in self.df.columns:
+            return self.df.label_type.value_counts(dropna=False).to_dict()
+        else:
+            return {None: len(self.df)}
+
+
+    @property
+    def annotation_layers(self):
         layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
         return self.n_labels(), self.df.groupby(layers).size()
 
     def __repr__(self):
-        n, layers = self.show_annotation_layers()
+        n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False):
-        """ Returns a list of harmony tags from the parsed score.
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True):
+        """ Returns an annotation label .
 
         Parameters
         ----------
@@ -113,6 +124,10 @@ class Annotations:
         decode : :obj:`bool`, optional
             Set to True if you don't want to keep labels in their original form as encoded by MuseScore (with root and
             bass as TPC (tonal pitch class) where C = 14).
+        drop : :obj:`bool`, optional
+            Set to True to delete the returned labels from this object.
+        warnings : :obj:`bool`, optional
+            Set to False to suppress warnings about non-existent label_types.
 
         Returns
         -------
@@ -124,12 +139,13 @@ class Annotations:
         if voice is not None:
             sel = sel & (self.df.voice == voice)
         if label_type is not None and 'label_type' in self.df.columns:
-            sel = sel & (self.df.label_type == label_type)
+            label_type = self._treat_label_type_param(label_type, warnings=warnings)
+            sel = sel & self.df.label_type.isin(label_type)
             # if the column contains strings and NaN:
             # (pd.to_numeric(self.df['label_type']).astype('Int64') == label_type).fillna(False)
         res = self.df[sel].copy()
         if not positioning:
-            pos_cols = [c for c in ['offset', 'offset:x', 'offset:y'] if c in res.columns]
+            pos_cols = [c for c in ['minDistance',  'offset', 'offset:x', 'offset:y'] if c in res.columns]
             res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]
@@ -138,24 +154,43 @@ class Annotations:
         return res
 
 
-    def expand_dcml(self,  warn_about_others=True, drop_others=True):
-        if 'dcml' in self.regex_dict:
-            del(self.regex_dict['dcml'])
-        self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
-        self.infer_types()
+    def expand_dcml(self, drop_others=True, warn_about_others=True):
+        """ Expands all labels where the label_type has been inferred as 'dcml' and stores the DataFrame in self._expanded.
+
+        Parameters
+        ----------
+        drop_others : :obj:`bool`, optional
+            Set to False if you want to keep labels in the expanded DataFrame which have not label_type 'dcml'.
+        warn_about_others : :obj:`bool`, optional
+            Set to False to suppress warnings about labels that have not label_type 'dcml'.
+            Is automatically set to False if ``drop_others`` is set to False.
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            Expanded DCML labels
+        """
+        if 'dcml' not in self.regex_dict:
+            self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
+            self.infer_types()
         sel = self.df.label_type == 'dcml'
         if not sel.any():
-            self.logger.warning(f"Score doesn't contain any DCML harmonic annotations.")
+            self.logger.warning(f"Score does not contain any DCML harmonic annotations.")
             return
+        if not drop_others:
+            warn_about_others = False
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['label', 'label_type']].to_string()}")
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel])[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = self.df[sel]
-        exp = expand_labels(df, column='label', regex=self.dcml_re, groupby=None, chord_tones=True, logger_name=self.logger.name)
-        if drop_others:
-            self._expanded = exp.df
-        else:
-            df = self.df.copy()
-            df.loc[sel, exp.df.columns] = exp.df
+        try:
+            exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
+            if drop_others:
+                self._expanded = exp
+            else:
+                df = self.df.copy()
+                df.loc[sel, exp.df.columns] = exp
+        except:
+            self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
         return self._expanded
 
 
@@ -185,10 +220,27 @@ class Annotations:
             self.df.loc[sel & mtch, 'label_type'] = name
 
 
-    def output_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, label_type=label_type, positioning=positioning, decode=decode)
         if decode and 'label_type' in df.columns:
             df.drop(columns='label_type', inplace=True)
         df.to_csv(resolve_dir(tsv_path), sep=sep, index=index, **kwargs)
         self.logger.info(f"{len(df)} labels written to {tsv_path}.")
         return True
+
+
+    def _treat_label_type_param(self, label_type, warnings=True):
+        if label_type is None:
+            return None
+        all_types = {str(k): k for k in self.label_types.keys()}
+        if isinstance(label_type, int) or isinstance(label_type, str):
+            label_type = [label_type]
+        lt = [str(t) for t in label_type]
+        if warnings:
+            not_found = [t for t in lt if t not in all_types]
+            if len(not_found) > 0:
+                plural = len(not_found) > 1
+                plural_s = 's' if plural else ''
+                self.logger.warning(
+                    f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
+        return [all_types[t] for t in lt if t in all_types]
