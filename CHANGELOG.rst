@@ -2,14 +2,17 @@
 Changelog
 =========
 
-Version 0.2.1
+Version 0.3.0
 =============
 
+* Parse.detach_levels() for emptying all parsed scores from annotations
+* Parse.store_mscx() for storing altered (e.g. emptied) score objects as MuseScore files
 * Parse.metadata() to return a DataFrame with all parsed pieces' metadata
 * Parse.get_labels() to retrieve labels of a particular kind
 * Parse.info() has improved the information that objects return about themselves
+* Parse['key'] for a quick overview of the files of a given key
 * Parse can be used with a custom index instead of IDs [an ID is an (key, i) tuple]
-* Score.store_list()
+* Score.store_list() for easily storing TSVs
 * improved expansion of DCML harmony labels
 
 Version 0.2.0
