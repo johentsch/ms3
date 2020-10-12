@@ -249,10 +249,10 @@ Use on of the existing keys or load a new set with the method load_annotations()
         if len(annotations.df) == 0:
             self.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return
-        df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes):
+        df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+        if len(df) == 0:
+            self.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return
-        df = annotations.df.copy()
-
 
         self._mscx.add_labels(df, label=annotations.label_col)
         self._annotations['annotations'] = self._mscx._annotations
@@ -285,7 +285,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
             self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, label_col=label_col, mscx_obj=mscx, logger_name=logger_name)
         else:
             anno_obj.mscx_obj = mscx
-            anno_obj.logger = get_logger(f"{logger_names['mscx']}:{key}")
+            anno_obj.logger = get_logger(f"{self.logger_names['mscx']}:{key}")
             self._annotations[key] = anno_obj
 
 

@@ -6,6 +6,8 @@ Version 0.3.1
 =============
 
 * Parse TSV files as Annotations objects
+* Parse.attach_labels() for inserting annotations into MuseScore files
+* Prepare detached labels so that they can actually be attached
 
 Version 0.3.0
 =============

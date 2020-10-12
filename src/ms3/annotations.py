@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, equal_rows, load_tsv, resolve_dir
+from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir
 from .logger import get_logger
 from .expand_dcml import expand_labels
 
@@ -100,7 +100,7 @@ Available staves are {self.mscx_obj.staff_ids}""")
                 error = True
         if staff is not None:
             df['staff'] = staff
-        if df.staff.isna().any():
+        if 'staff' in cols and df.staff.isna().any():
             self.logger.warning(f"The following labels don't have staff information: {df[df.staff.isna()]}")
             error = True
 
@@ -111,7 +111,7 @@ Possible values are {{1, 2, 3, 4}}.""")
                 error = True
         if voice is not None:
             df['voice'] = voice
-        if df.voice.isna().any():
+        if 'voice' in cols and df.voice.isna().any():
             self.logger.warning(f"The following labels don't have staff information: {df[df.voice.isna()]}")
             error = True
 
@@ -120,20 +120,30 @@ Possible values are {{1, 2, 3, 4}}.""")
                 self.logger.warning(f"Annotations are lacking 'mn' and 'mc' columns.")
                 error = True
             else:
-                error = not self.infer_mc_from_mn()
+                inferred_positions = self.infer_mc_from_mn()
+                if inferred_positions.isna().any().any():
+                    self.logger.error(f"Measure counts and corresponding onsets could not be successfully inferred.")
+                    error = True
+                else:
+                    self.logger.info(f"Measure counts and corresponding onsets successfully inferred.")
+                    df.insert(df.columns.get_loc('mn'), 'mc', inferred_positions['mc'])
+                    df.loc[:, 'onset'] = inferred_positions['onset']
 
         if 'onset' not in cols:
             self.logger.info("No 'onset' column found. All labels will be inserted at onset 0.")
 
-        if check_for_clashes and self.mscx_obj.has_annotations:
-            cols = ['mc', 'onset', 'staff', 'voice']
-            existing = self.mscx_obj.get_annotations()[cols]
-            to_be_attached = df[cols]
-            clashes = equal_rows(existing, to_be_attached)
-            has_clashes = len(clashes) > 0
-            if has_clashes:
-                self.logger.error(f"The following positions already have labels:\n{pd.DataFrame(clashes, columns=cols)}")
-                error = True
+        position_cols = ['mc', 'onset', 'staff', 'voice']
+        if all(c in df.columns for c in position_cols):
+            if check_for_clashes and self.mscx_obj.has_annotations:
+                existing = self.mscx_obj.get_annotations()[position_cols]
+                to_be_attached = df[position_cols]
+                clashes = is_any_row_equal(existing, to_be_attached)
+                has_clashes = len(clashes) > 0
+                if has_clashes:
+                    self.logger.error(f"The following positions already have labels:\n{pd.DataFrame(clashes, columns=position_cols)}")
+                    error = True
+        elif check_for_clashes:
+            self.logger.error(f"Check for clashes could not be performed because there are columns missing.")
 
         if error:
             return pd.DataFrame()
@@ -268,10 +278,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         mscx = mscx_obj if mscx_obj is not None else self.mscx_obj
         cols = [c for c in ['mn', 'onset', 'volta'] if c in self.df.columns]
         inferred_positions = [mscx.infer_mc(**dict(zip(cols, t))) for t in self.df[cols].values]
-        mcs, onsets = zip(*inferred_positions)
-        self.df['mc'] = mcs
-        self.df['onset'] = onsets
-        return True
+        return pd.DataFrame(inferred_positions, index=self.df.index, columns=['mc', 'onset'])
 
 
 

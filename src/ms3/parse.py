@@ -17,7 +17,7 @@ class Parse:
     Class for storing and manipulating the information from multiple parses (i.e. :py:class:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r"\.mscx$", folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
         """
 
         Parameters
@@ -85,9 +85,11 @@ class Parse:
                 else:
                     k, i = labels_id
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
-Use parse_tsv(key='{key}') and specify label_col.""")
+Use parse_tsv(key='{k}') and specify label_col.""")
             else:
                 self.logger.debug(f"Nothing to add to {score_id}. Make sure that it's counterpart has been recognized as tsv_type 'labels'.")
+
+
 
 
 
@@ -130,8 +132,8 @@ Use parse_tsv(key='{key}') and specify label_col.""")
             file_re = r"\." + file_re + '$'
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         ids = [self.handle_path(p, key) for p in res]
-        selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
-        if len(added_ids) > 0:
+        if len(ids) > 0:
+            selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             grouped_ids = group_id_tuples(ids)
             exts = {k: self.count_extensions(k, i) for k, i in grouped_ids.items()}
             self.logger.debug(f"{len(added_ids)} paths stored.\n{pretty_dict(exts, 'EXTENSIONS')}")
@@ -160,6 +162,32 @@ Therefore, the index for this key has been adapted.""")
                     self._levelnames[k] = level_names
         else:
             self.logger.debug("No files added.")
+
+
+    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, check_for_clashes=True):
+        layers = self.count_annotation_layers(keys, which='detached', per_key=True)
+        if annotation_key is None:
+            annotation_key = list(layers.keys())
+        elif isinstance(annotation_key, str):
+            annotation_key = [annotation_key]
+        if any(True for k in annotation_key if k not in layers):
+            wrong = [k for k in annotation_key if k not in layers]
+            annotation_key = [k for k in annotation_key if k in layers]
+            if len(annotation_key) == 0:
+                self.logger.error(
+f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
+Currently available annotation keys are {list(layers.keys())}""")
+                return
+            else:
+                self.logger.warning(
+f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
+Continuing with {annotation_key}.""")
+
+        for id in self._iterids(keys):
+            if id in self._parsed_mscx and self._parsed_mscx[id].has_detached_annotations:
+                for anno_key in annotation_key:
+                    if anno_key in self._parsed_mscx[id]._annotations:
+                        self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
 
 
 
@@ -551,10 +579,10 @@ Load one of the identically named files with a different key using add_dir(key='
                     longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
 
                     if len(longest) == 0:
-                        self.logger.error(f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                        self.logger.info(f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
                     elif len(longest) > 1:
                         ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in longest.items()}
-                        self.logger.error(f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                        self.logger.info(f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
                     else:
                         id = list(longest.keys())[0]
                         row[wh] = id
@@ -673,7 +701,7 @@ Load one of the identically named files with a different key using add_dir(key='
         if isinstance(label_col, str):
             label_col = [label_col]
         for key, i in ids:
-            rel_path = self.rel_paths[key][i] + self.files[key][i]
+            rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
             path = self.full_paths[key][i]
             try:
                 df = load_tsv(path, **kwargs)
@@ -694,7 +722,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 else:
                     self._tsv_types[(key, i)] = tsv_type
                     self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
-
+                    self.logger.info(f"{rel_path} parsed as a list of {tsv_type}.")
                     if tsv_type == 'labels':
                         if len(l_cols) == 0:
                             self.logger.info(
@@ -709,9 +737,7 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
                                                                       logger_name=logger_name, level=level)
                             self.logger.debug(
                                 f"{rel_path} was additionally stored as an Annotations object.")
-                    else:
-                        self.logger.debug(
-                            f"None of the columns {label_col} was found in {rel_path}. Inferred its content as a list of {tsv_type}.")
+
             except:
                 self.logger.error(f"Parsing {rel_path} failed with the following error:\n{sys.exc_info()[1]}")
 
@@ -1128,7 +1154,9 @@ Using the first {li} elements, discarding {discarded}""")
                     else:
                         ix += " (not parsed)"
                         val = self.full_paths[item][i]
-                ix += f"\n{'-' * len(ix)}\n{self.full_paths[item][i]}\n"
+                ix += f"\n{'-' * len(ix)}\n"
+                if ext != '.mscx':
+                    ix += f"{self.full_paths[item][i]}\n"
                 print(f"{ix}{val}\n")
 
     def __repr__(self):
