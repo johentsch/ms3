@@ -6,6 +6,7 @@ from collections.abc import Collection
 
 import pandas as pd
 
+from .annotations import Annotations
 from .logger import get_logger
 from .score import Score
 from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory
@@ -76,7 +77,9 @@ class Parse:
 
     def add_dir(self, dir, key=None, index=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
-        This function scans the directory ``dir`` for files matching the criteria.
+        This function scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
+        to the Parse object without looking at them. It is recommended to add different types of files with different keys,
+        e.g. 'mscx' for score, 'harmonies' for chord labels, and 'form' for form labels.
 
         Parameters
         ----------
@@ -199,16 +202,20 @@ Therefore, the index for this key has been adapted.""")
                         li[i] = df
 
 
-    def count_annotation_layers(self, keys=None, per_key=False, detached=False):
+    def count_annotation_layers(self, keys=None, which='attached', per_key=False):
         """ Returns a dict {key: Counter} or just a Counter.
 
         Parameters
         ----------
         keys : :obj:`str` or :obj:`Collection`, defaults to None
             Key(s) for which to count annotation layers.
+        which : {'attached', 'detached', 'tsv'}, optional
+            'attached': Counts layers from annotations attached to a score.
+            'detached': Counts layers from annotations that are in a Score object, but detached from the score.
+            'tsv': Counts layers from Annotation objects that have been loaded from or into annotation tables.
         per_key : :obj:`bool`, optional
-            If set to True, the results are returned as a dict {key: Counter},
-            otherwise the counts are summed up in one Counter.
+            If set to True, the results are returned as a dict {key: Counter}, otherwise the counts are summed up in one Counter.
+            If ``which='detached'``, the keys are keys from Score objects, otherwise they are keys from this Parse object.
         detached : :obj:`bool`, optional
             Set to True in order to count layers in annotations that are currently not attached to a score.
 
@@ -219,18 +226,27 @@ Therefore, the index for this key has been adapted.""")
         """
         res_dict = defaultdict(Counter)
 
-        if detached:
+        if which == 'attached':
+            for key, i in self._iterids(keys):
+                if (key, i) in self._annotations:
+                    _, layers = self._annotations[(key, i)].annotation_layers
+                    res_dict[key].update(layers.to_dict())
+        elif which == 'detached':
             for id in self._iterids(keys):
                 if id in self._parsed_mscx:
                     for key, annotations in self._parsed_mscx[id]._annotations.items():
                         if key != 'annotations':
                             _, layers = annotations.annotation_layers
                             res_dict[key].update(layers.to_dict())
+        elif which == 'tsv':
+            for id in self._iterids(keys):
+                if id in self._parsed_tsv and isinstance(self._parsed_tsv[id], Annotations):
+                    _, layers = self._parsed_tsv[id].annotation_layers
+                    res_dict[id[0]].update(layers.to_dict())
         else:
-            for key, i in self._iterids(keys):
-                if (key, i) in self._annotations:
-                    _, layers = self._annotations[(key, i)].annotation_layers
-                    res_dict[key].update(layers.to_dict())
+            self.logger.error(f"Parameter 'which' needs to be one of {{'attached', 'detached', 'tsv'}}, not {which}.")
+            return {} if per_key else pd.Series()
+
 
         def make_series(counts):
             if len(counts) == 0:
@@ -421,26 +437,39 @@ Load one of the identically named files with a different key using add_dir(key='
         info = f"{len(ids)} files.\n"
         exts = self.count_extensions(keys, per_key=True)
         info += pretty_dict(exts, heading='EXTENSIONS')
-        parsed_ids = [id for id in ids if id in self._parsed_mscx]
-        parsed = len(parsed_ids)
-        if parsed > 0:
-            mscx = self.count_extensions(keys, per_key=False)['.mscx']
-            if parsed == mscx:
+        parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
+        parsed_mscx = len(parsed_mscx_ids)
+        ext_counts = self.count_extensions(keys, per_key=False)
+        if parsed_mscx > 0:
+            mscx = ext_counts['.mscx']
+            if parsed_mscx == mscx:
                 info += f"\n\nAll {mscx} MSCX files have been parsed."
             else:
-                info += f"\n\n{parsed}/{mscx} MSCX files have been parsed."
+                info += f"\n\n{parsed_mscx}/{mscx} MSCX files have been parsed."
             annotated = sum(True for id in ids if id in self._annotations)
             info += f"\n{annotated} of them have annotations attached."
             if annotated > 0:
-                layers = self.count_annotation_layers(keys, per_key=True)
+                layers = self.count_annotation_layers(keys, which='attached', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
-            detached = sum(True for id in parsed_ids if self._parsed_mscx[id].has_detached_annotations)
+            detached = sum(True for id in parsed_mscx_ids if self._parsed_mscx[id].has_detached_annotations)
             if detached > 0:
                 info += f"\n{detached} of them have detached annotations:"
-                layers = self.count_annotation_layers(keys, per_key=True, detached=True)
+                layers = self.count_annotation_layers(keys, which='detached', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
+        parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
+        parsed_tsv = len(parsed_tsv_ids)
+        if parsed_tsv > 0:
+            others = sum(v for k, v in ext_counts.items() if k != '.mscx')
+            annotations = sum(True for id in parsed_tsv_ids if isinstance(self._parsed_tsv[id], Annotations))
+            if parsed_tsv == others:
+                info += f"\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
+            else:
+                info += f"\n\n{parsed_tsv}/{others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
+            if annotations > 0:
+                layers = self.count_annotation_layers(keys, which='tsv', per_key=True)
+                info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
         else:
             info += f"\n\nNo mscx files have been parsed."
         if return_str:
@@ -460,15 +489,39 @@ Load one of the identically named files with a different key using add_dir(key='
         return pd.DataFrame()
 
 
-    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, fexts=None, **kwargs):
+    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, fexts=None,
+              annotation_col='label', infer_types={}, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
         self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new)
-        self.parse_tsv(keys=keys, fexts=fexts, **kwargs)
+        self.parse_tsv(keys=keys, fexts=fexts, label_col=annotation_col, infer_types=infer_types, level=level, **kwargs)
 
 
 
     def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True):
+        """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
+        to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
+        having to re-parse at a later point.
 
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`Collection`, defaults to None
+            For which key(s) to parse all MSCX files.
+        read_only : :obj:`bool`, optional
+            If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
+        level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
+            Pass a level name for which (and above which) you want to see log records.
+        parallel : :obj:`bool`, optional
+            Defaults to True, meaning that all CPU cores are used simultaneously to speed up the parsing. It implies
+            that the resulting Score objects are in read-only mode and that you might not be able to use the computer
+            during parsing. Set to False to parse one score after the other.
+        only_new : :obj:`bool`, optional
+            By default, score which already have been parsed, are not parsed again. Pass False to parse them, too.
+
+        Returns
+        -------
+        None
+
+        """
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
@@ -494,7 +547,31 @@ Load one of the identically named files with a different key using add_dir(key='
         self.collect_annotations_objects_references(ids=ids)
 
 
-    def parse_tsv(self, keys=None, fexts=None, **kwargs):
+    def parse_tsv(self, keys=None, fexts=None, label_col='label', infer_types={}, level=None, **kwargs):
+        """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
+
+        Parameters
+        ----------
+        keys : : :obj:`str` or :obj:`Collection`, optional
+            Key(s) for which to parse all non-MSCX files.
+        fexts :  :obj:`str` or :obj:`Collection`, optional
+            If you want to parse only files with one or several particular file extension(s), pass the extension(s)
+        annotations : :obj:`str` or :obj:`Collection`, optional
+            By default, if a column called ``'label'`` is found, the TSV is treated as an annotation table and turned into
+            an Annotations object. Pass one or several column name(s) to treat *them* as label columns instead. If you
+            pass ``None`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
+        infer_types : :obj:`dict`, optional
+            To recognize one or several custom label type(s), pass ``{name: regEx}``.
+        level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
+            Pass a level name for which (and above which) you want to see log records.
+        **kwargs:
+            Arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``. In particular,
+            you might want to update the default dictionaries for ``dtypes`` and ``converters`` used in :py:func:`load_tsv`.
+
+        Returns
+        -------
+
+        """
         if fexts is None:
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
         else:
@@ -502,8 +579,27 @@ Load one of the identically named files with a different key using add_dir(key='
                 fexts = [fexts]
             fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
+        if isinstance(label_col, str):
+            label_col = [label_col]
         for key, i in ids:
-            self._parsed_tsv[(key, i)] = load_tsv(self.full_paths[key][i], **kwargs)
+            path = self.full_paths[key][i]
+            df = load_tsv(path, **kwargs)
+            l_cols = [c for c in df.columns if c in label_col]
+            try:
+                if len(l_cols) == 0:
+                    self._parsed_tsv[(key, i)] = df
+                    if len(label_col) > 1:
+                        self.debug(f"None of the columns {label_col} was found in {path}:\n{df.columns.to_list()}")
+                    else:
+                        self.debug(f"Column {label_col[0]} not found in {path}:\n{df.columns.to_list()}")
+                else:
+                    l_col = l_cols[0]
+                    if len(l_cols) > 1:
+                        self.logger.info(f"Path contains several columns with annotations ({l_cols}). '{l_col}' was picked.")
+                    logger_name = self.files[key][i]
+                    self._parsed_tsv[(key, i)] = Annotations(df=df, label_col=l_col, infer_types=infer_types, logger_name=logger_name, level=level)
+            except:
+                self.logger.error(f"Parsing {path} failed with the following error:\n{sys.exc_info()[1]}")
 
 
 
@@ -888,13 +984,18 @@ Using the first {li} elements, discarding {discarded}""")
                         val = self.full_paths[item][i]
                 else:
                     if id in self._parsed_tsv:
-                        ix += " (parsed)"
-                        val = self._parsed_tsv[id].head(5).to_string()
+                        df = self._parsed_tsv[id]
+                        if isinstance(df, Annotations):
+                            ix += " (parsed annotations)"
+                            val = str(df)
+                        else:
+                            ix += f" (parsed, length {len(df)})"
+                            val = df.head(5).to_string()
                     else:
                         ix += " (not parsed)"
                         val = self.full_paths[item][i]
                 ix += f"\n{'-' * len(ix)}\n\n"
-                print(ix, val, '\n')
+                print(f"{ix}{val}\n")
 
     def __repr__(self):
         return self.info(return_str=True)

@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.3.1
+=============
+
+* Parse TSV files as Annotations objects
+
 Version 0.3.0
 =============
 
@@ -13,6 +18,7 @@ Version 0.3.0
 * Parse['key'] for a quick overview of the files of a given key
 * Parse can be used with a custom index instead of IDs [an ID is an (key, i) tuple]
 * Score.store_list() for easily storing TSVs
+* renamed Score.output_mscx() to store_mscx() for consistency.
 * improved expansion of DCML harmony labels
 
 Version 0.2.0

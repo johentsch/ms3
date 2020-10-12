@@ -257,12 +257,15 @@ Use on of the existing keys or load a new set with the method load_annotations()
 
 
     def load_annotations(self, tsv_path, key='file', infer=True):
+        """ Create an Annotations object from a tsv file and make it available as Score.key """
         key = self.handle_path(tsv_path, key)
         inf_dict = self.get_infer_regex() if infer else {}
         self._annotations[key] = Annotations(tsv_path, infer_types=inf_dict, logger_name=self.logger_names[key])
 
 
     def store_annotations(self, key=None, tsv_path=None, **kwargs):
+        """ Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method
+        can also store detached labels by passing a ``key``. """
         if key is None:
             assert self._mscx.has_annotations, "Score has no labels attached."
             key = 'annotations'
@@ -314,6 +317,12 @@ Use on of the existing keys or load a new set with the method load_annotations()
                 ann.infer_types(self.get_infer_regex())
 
     def __getattr__(self, item):
+        try:
+            return self._annotations[item]
+        except:
+            raise AttributeError(item)
+
+    def __getitem__(self, item):
         try:
             return self._annotations[item]
         except:
