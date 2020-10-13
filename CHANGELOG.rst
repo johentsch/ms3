@@ -8,6 +8,7 @@ Version 0.3.1
 * Parse TSV files as Annotations objects
 * Parse.attach_labels() for inserting annotations into MuseScore files
 * Prepare detached labels so that they can actually be attached
+* Install "ms3 extract" command to the system
 
 Version 0.3.0
 =============
