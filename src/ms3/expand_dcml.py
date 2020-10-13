@@ -118,7 +118,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.reset_index(drop=True, inplace=True)
 
 
-    for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey']:
+    for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey', 'phraseend']:
         if not col in cols:
             cols[col] = col
     global_minor = f"{cols['globalkey']}_is_minor"
@@ -134,7 +134,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         else:
             logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
-    import logging
+
 
 
     ### Do the actual expansion
@@ -143,8 +143,17 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     df['chord_type'] = transform(df, features2type, [cols[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
     df = replace_special(df, regex=regex, merge=True, cols=cols, logger=logger)
 
+    ### Check phrase annotations
+    p_col = df[cols['phraseend']]
+    opening = p_col.fillna('').str.count('{')
+    closing = p_col.fillna('').str.count('}')
+    if opening.sum() != closing.sum():
+        o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
+        c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
+        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
+        self.logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
 
-    if propagate or chord_tones:
+if propagate or chord_tones:
         if not propagate:
             logger.info("Chord tones cannot be calculated without propagating keys.")
         key_cols = {col: cols[col] for col in ['localkey', 'globalkey']}
@@ -153,10 +162,11 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         except:
             logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}")
 
-        try:
-            df = propagate_pedal(df, cols=cols, logger=logger)
-        except:
-            logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
+        if propagate:
+            try:
+                df = propagate_pedal(df, cols=cols, logger=logger)
+            except:
+                logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
 
 
         if chord_tones:
@@ -563,8 +573,7 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
     n_b, n_e = len(beginnings), len(endings)
 
     def make_comparison():
-        return pd.concat([beginnings.reset_index(drop=True), endings.reset_index(drop=True)], axis=1).astype(
-            {'mc': 'Int64'})
+        return pd.concat([beginnings.reset_index(drop=True), endings.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
 
     assert n_b == n_e, f"{n_b} organ points started, {n_e} ended:\n{make_comparison()}"
     if relative:

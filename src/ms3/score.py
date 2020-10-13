@@ -550,8 +550,9 @@ class MSCX:
             else:
                 return
         what, suffix = self._treat_storing_params(what, suffix)
+        self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
         if what is None:
-            self.logger.error("Nothing stored.")
+            self.logger.error("Tell me 'what' to store.")
             return
         if 'sep' not in kwargs:
             kwargs['sep'] = '\t'
@@ -563,9 +564,8 @@ class MSCX:
             new_name = f"{fname}{s}{ext}"
             full_path = os.path.join(folder, new_name)
             df = self.__getattribute__(w)
-
             no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
-            self.logger.debug(f"{w} written to {full_path}")
+            self.logger.info(f"{w} written to {full_path}")
 
 
 
@@ -604,7 +604,7 @@ class MSCX:
             return None, None
         elif len(suffix) > len(correct):
             suffix = suffix[:len(correct)]
-        return tables, [str(s) for s in suffix]
+        return what, [str(s) for s in suffix]
 
 
 
