@@ -519,7 +519,7 @@ def resolve_dir(dir):
     return os.path.abspath(dir)
 
 
-def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", recursive=True):
+def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
     """ Get a list of files.
 
     Parameters
@@ -545,7 +545,7 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)
-        if recursive and re.search(exclude_re, current_folder) is None:
+        if recursive and check_regex('', current_folder):
             dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []

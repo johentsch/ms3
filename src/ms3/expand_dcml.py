@@ -153,7 +153,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
         self.logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
 
-if propagate or chord_tones:
+    if propagate or chord_tones:
         if not propagate:
             logger.info("Chord tones cannot be calculated without propagating keys.")
         key_cols = {col: cols[col] for col in ['localkey', 'globalkey']}

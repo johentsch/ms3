@@ -17,7 +17,7 @@ class Parse:
     Class for storing and manipulating the information from multiple parses (i.e. :py:class:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|__)", recursive=True, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)", recursive=True, simulate=False, logger_name='Parse', level=None):
         """
 
         Parameters
@@ -25,13 +25,15 @@ class Parse:
         dir, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
             If ``dir`` is not passed, no files are added to the new object.
+        simulate : :obj:`bool`, optional
+            Pass True if no parsing is actually to be done.
         logger_name : :obj:`str`, optional
             If you have defined a logger, pass its name. Otherwise, the logger 'Parse' is used.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
             Pass a level name for which (and above which) you want to see log records.
         """
         self.logger = get_logger(logger_name, level)
-
+        self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
@@ -241,7 +243,10 @@ Continuing with {annotation_key}.""")
         for i, score in scores.items():
             for param, li in self._lists.items():
                 if params[param] and (i not in li or not only_new):
-                    df = score.mscx.__getattribute__(param)
+                    if self.simulate:
+                        df = pd.DataFrame()
+                    else:
+                        df = score.mscx.__getattribute__(param)
                     if df is not None:
                         li[i] = df
 
@@ -396,7 +401,7 @@ Continuing with {annotation_key}.""")
 
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False):
+                  labels=False, chords=False, expanded=False, simulate=False):
         if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return {}
@@ -653,6 +658,14 @@ Load one of the identically named files with a different key using add_dir(key='
                      self.fexts[key][i] == '.mscx']
 
         parse_this = [(key, i, path, read_only, level) for key, i, path in paths]
+        if self.simulate:
+            prev_logger = self.logger
+            for key, i, path, read_only, level in parse_this:
+                self.logger = get_logger(self.fnames[key][i])
+                self._parsed_mscx[(key, i)] = Score(read_only=read_only, level=level)
+                self.logger.info(f"Would have parsed {path}")
+            self.logger = prev_logger
+            return
         ids = [t[:2] for t in parse_this]
         if parallel:
             pool = mp.Pool(mp.cpu_count())
@@ -689,8 +702,10 @@ Load one of the identically named files with a different key using add_dir(key='
 
         Returns
         -------
-
+        None
         """
+        if self.simulate:
+            return
         if fexts is None:
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
         else:
@@ -781,16 +796,23 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
         folder_vars = [t + '_folder' for t in list_types]
         suffix_vars = [t + '_suffix' for t in list_types]
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
+        if len(folder_params) == 0:
+            self.logger.warning("Pass at least one parameter to store files.")
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
         paths = {}
+        prev_logger = self.logger
         for (key, i, what), li in lists.items():
+            self.logger = get_logger(self.fnames[key][i])
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
+            modus = 'would have' if simulate else 'has'
             if new_path in paths:
-                modus = 'would ' if simulate else ''
-                self.logger.warning(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
+                self.logger.warning(f"The {paths[new_path]} at {new_path} {modus} been overwritten with {what}.")
+            else:
+                self.logger.info(f"{what} {modus} been stored as {new_path}.")
             paths[new_path] = what
+        self.logger = prev_logger
         if simulate:
             return list(set(paths.keys()))
 

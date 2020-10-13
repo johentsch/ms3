@@ -15,11 +15,10 @@ also be used as template for Python modules.
 Note: This skeleton file can be safely removed if not needed!
 """
 
-import argparse
-import sys
-import logging
+import argparse, os, sys, logging
 
-from ms3 import __version__
+from ms3 import Parse, __version__
+from ms3.utils import resolve_dir
 
 __author__ = "johentsch"
 __copyright__ = "johentsch"
@@ -105,14 +104,100 @@ def main(args):
     _logger.info("Script ends here")
 
 
+def extract(args):
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, level=args.level, simulate=args.test)
+    p.parse_mscx()
+    params = ['notes', 'rests', 'measures', 'events', 'labels', 'chords', 'expanded']
+    suffixes = {f"{p}_suffix": f"_{p}" if args.suffix is None else args.suffix for p in params if p in args}
+    p.store_lists(root_dir=args.out,
+                  notes_folder=args.notes,
+                  labels_folder=args.labels,
+                  measures_folder=args.measures,
+                  rests_folder=args.rests,
+                  events_folder=args.events,
+                  chords_folder=args.chords,
+                  expanded_folder=args.expanded,
+                  simulate=args.test,
+                  **suffixes)
+
+
+def check_and_create(d):
+    """ Turn input into an existing, absolute directory path.
+    """
+    if not os.path.isdir(d):
+        d = resolve_dir(os.path.join(os.getcwd(), d))
+        if not os.path.isdir(d):
+            if input(d + ' does not exist. Create? (y|n)') == "y":
+                os.mkdir(d)
+            else:
+                raise argparse.ArgumentTypeError(d + ' needs to be an existing directory')
+    return resolve_dir(d)
+
+def check_dir(d):
+    if not os.path.isdir(d):
+        d = resolve_dir(os.path.join(os.getcwd(), d))
+        if not os.path.isdir(d):
+            raise argparse.ArgumentTypeError(d + ' needs to be an existing directory')
+    return resolve_dir(d)
+
+
 def run():
     """Entry point for console_scripts
     """
-    main(sys.argv[1:])
+    parser = argparse.ArgumentParser(
+        prog='ms3',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='''\
+------------------------------------
+| Format Mozart data to your needs |
+------------------------------------
 
-class score():
-    pass
+This script needs to remain at the top level of (your local copy of) the repo  mozart_piano_sonatas.
+Run with parameter -t to see all file names.
+''')
+
+
+    subparsers = parser.add_subparsers(help='The action that you want to perform.')
+
+    extract_parser = subparsers.add_parser('extract', help="Extract selected information from MuseScore files and store it in TSV files.")
+    extract_parser.add_argument('mscx_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
+                                default=os.getcwd(),
+                                help='Folder that will be scanned for MuseScore files (.mscx).')
+    extract_parser.add_argument('-N', '--notes', metavar='folder', help="Folder where to store TSV files with notes.")
+    extract_parser.add_argument('-L', '--labels', metavar='folder', help="Folder where to store TSV files with annotation labels.")
+    extract_parser.add_argument('-M', '--measures', metavar='folder', help="Folder where to store TSV files with measure information.")
+    extract_parser.add_argument('-R', '--rests', metavar='folder', help="Folder where to store TSV files with rests.")
+    extract_parser.add_argument('-E', '--events', metavar='folder', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
+    extract_parser.add_argument('-C', '--chords', metavar='folder', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', help="Folder where to store TSV files with expanded DCML labels.")
+
+    extract_parser.add_argument('-s', '--suffix', nargs='?', default='', const=None, metavar='SUFFIX',
+                        help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
+    extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
+                                help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
+This setting has no effect on absolute folder paths.""")
+    extract_parser.add_argument('-f', '--file', metavar="regex", default=r'\.mscx$',
+                                help="Select only file names including this regular expression.")
+    extract_parser.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
+                                help="Any files or folders (and their subfolders) including this regex will be disregarded.")
+    extract_parser.add_argument('-l', '--level', metavar='LEVEL', default='i',
+                                help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
+    extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+    extract_parser.set_defaults(func=extract)
+
+    check_parser = subparsers.add_parser('check', help="Check DCML harmony labels.")
+    check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
+                              default=os.getcwd(),
+                              help='Folder that will be scanned for MuseScore files (.mscx).')
+    args = parser.parse_args()
+    if 'func' in args:
+        args.func(args)
+    else:
+        parser.print_help()
+
+
 
 
 if __name__ == "__main__":
+    print('YIP')
     run()
