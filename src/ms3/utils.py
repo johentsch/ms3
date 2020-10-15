@@ -42,12 +42,13 @@ def decode_harmonies(df, label_col='label', return_series=False):
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
-    label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+    new_label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
     if return_series:
-        return label_col
+        return new_label_col
     if 'label_type' in df.columns:
-        df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-    df[label_col] = label_col
+        #df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
+        drop_cols.append('label_type')
+    df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
 
@@ -600,6 +601,16 @@ def split_note_name(nn, count=False):
     return accidentals, note_name
 
 
+def chunkstring(string, length=80):
+    """ Generate chunks of a given length """
+    string = str(string)
+    return (string[0 + i:length + i] for i in range(0, len(string), length))
+
+
+def string2lines(string, length=80):
+    """ Use chunkstring() and make chunks into lines. """
+    return '\n'.join(chunkstring(string, length))
+
 
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
     """ Compute a function for every row of a DataFrame, using several cols as arguments.
@@ -666,3 +677,20 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
     res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
+
+
+@function_logger
+def update_cfg(cfg_dict, admitted_keys):
+    correct = {k: v for k, v in cfg_dict.items() if k in admitted_keys}
+    incorrect = {k: v for k, v in cfg_dict.items() if k not in admitted_keys}
+    if len(incorrect) > 0:
+        corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
+        logger.warning(f"Unknown config options: {incorrect}{corr}")
+    return correct
+
+@function_logger
+def update_labels_cfg(labels_cfg):
+    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode']
+    if 'logger' in labels_cfg:
+        del labels_cfg['logger']
+    return update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)

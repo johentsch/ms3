@@ -446,8 +446,8 @@ class _MSCX_bs4:
 
 
 
-    def get_annotations(self):
-        """ Returns a list of harmony tags from the parsed score.
+    def get_raw_labels(self):
+        """ Returns a list of <harmony> tags from the parsed score.
 
         Returns
         -------
@@ -477,9 +477,11 @@ class _MSCX_bs4:
 
 
     def infer_mc(self, mn, onset=0, volta=None):
+        """ onset is always mn_onset and needs to be converted to mc_onset """
         try:
             mn = int(mn)
         except:
+            # Check if MN has volta information, e.g. '16a' for first volta, or '16b' for second etc.
             m = re.match(r"^(\d+)([a-e])$", str(mn))
             if m is None:
                 self.logger.error(f"MN {mn} is not a valid measure number.")
@@ -496,9 +498,11 @@ class _MSCX_bs4:
             return mc, onset
         if candidates.volta.notna().any():
             if volta is None:
-                self.logger.error(f"""MN {mn} is ambiguous because it is a measure with first and second endings, but volta has not been specified:
+                mc = candidates.iloc[0].mc
+                self.logger.warning(f"""MN {mn} is ambiguous because it is a measure with first and second endings, but volta has not been specified.
+The first ending MC {mc} is being used. Suppress this warning by using disambiguating endings such as '16a' for first or '16b' for second.
 {candidates[['mc', 'mn', 'mc_offset', 'volta']]}""")
-                return None, None
+                return mc, onset
             candidates = candidates[candidates.volta == volta]
         if len(candidates) == 1:
             mc = candidates.iloc[0].mc
@@ -522,8 +526,6 @@ class _MSCX_bs4:
         mc = candidates.iloc[j].mc
         if left_boundary == right_boundary:
             self.logger.warning(f"The onset {onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
-        # if new_onset < 0:
-        #     self.logger.warning(f"MN {mn}, onset {onset} -> MC {mc}, new_onset {new_onset}, left_boundary {left_boundary}, right_boundary {right_boundary}, right_boundaries {right_boundaries}")
         return mc, new_onset
 
     def _get_metadata(self):
@@ -533,7 +535,7 @@ class _MSCX_bs4:
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
         data['last_mn'] = int(last_measure.mn)
-        data['label_count'] = len(self.get_annotations())
+        data['label_count'] = len(self.get_raw_labels())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
         first_label =  self.soup.find('Harmony')
@@ -948,7 +950,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
     def __getstate__(self):
         """When pickling, make object read-only, i.e. delete the BeautifulSoup object and all references to tags."""
         self.soup = None
-        self.tags, {}
+        self.tags = {}
         self.measure_nodes = {k: None for k in self.measure_nodes.keys()}
         self.read_only = True
         return self.__dict__

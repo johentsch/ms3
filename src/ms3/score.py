@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir
+from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, update_labels_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import get_logger
@@ -79,7 +79,7 @@ class Score:
 
     rn_regex = r"^$"
 
-    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, logger_name='Score', level=None,
+    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_name='Score', level=None,
                  parser='bs4'):
         """
 
@@ -122,7 +122,7 @@ class Score:
         self.infer_label_types = infer_label_types
         self.parser = parser
         if mscx_src is not None:
-            self._parse_mscx(mscx_src, read_only=read_only)
+            self._parse_mscx(mscx_src, read_only=read_only, labels_cfg=labels_cfg)
 
     @property
     def infer_label_types(self):
@@ -181,7 +181,7 @@ class Score:
 
 
 
-    def _parse_mscx(self, mscx_src, read_only=False, parser=None, logger_name=None):
+    def _parse_mscx(self, mscx_src, read_only=False, parser=None, labels_cfg={}, logger_name=None):
         """
         This method is called by :meth:`.__init__` to parse the score.
         It doesn't systematically clean up data from previous parse.
@@ -192,7 +192,7 @@ class Score:
             self.parser = parser
         if 'mscx' in self.fnames:
             ln = self.logger_names['mscx'] if logger_name is None else logger_name
-            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, parser=self.parser, logger_name=ln)
+            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_name=ln)
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
                 self._annotations['annotations'].infer_types(self.get_infer_regex())
@@ -237,27 +237,33 @@ class Score:
 
         Returns
         -------
-
+        :obj:`int`
+            Number of newly attached labels.
+        :obj:`int`
+            Number of labels that were to be attached.
         """
         assert key != 'annotations', "Labels with key 'annotations' are already attached."
         if key not in self._annotations:
             self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use on of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
-            return
+            return 0, 0
 
         annotations = self._annotations[key]
-        if len(annotations.df) == 0:
+        goal = len(annotations.df)
+        if goal == 0:
             self.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
-            return
+            return 0, 0
         df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes)
-        if len(df) == 0:
+        reached = len(df)
+        if reached == 0:
             self.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
-            return
+            return reached, goal
 
-        self._mscx.add_labels(df, label=annotations.label_col)
+        reached = self._mscx.add_labels(df, label=annotations.cols['label'])
         self._annotations['annotations'] = self._mscx._annotations
         if len(self._mscx._annotations.df) > 0:
             self._mscx.has_annotations = True
+        return reached, goal
 
 
     @property
@@ -274,7 +280,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
         return self._mscx
 
 
-    def load_annotations(self, tsv_path=None, anno_obj=None, key='file', label_col='label', infer=True):
+    def load_annotations(self, tsv_path=None, anno_obj=None, key='file', cols={}, infer=True):
         """ Create an Annotations object from a tsv file and make it available as Score.key """
         assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
         inf_dict = self.get_infer_regex() if infer else {}
@@ -282,7 +288,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
         if tsv_path is not None:
             key = self.handle_path(tsv_path, key)
             logger_name = f"{self.logger_names['mscx']}:{key}"
-            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, label_col=label_col, mscx_obj=mscx, logger_name=logger_name)
+            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx, logger_name=logger_name)
         else:
             anno_obj.mscx_obj = mscx
             anno_obj.logger = get_logger(f"{self.logger_names['mscx']}:{key}")
@@ -392,7 +398,7 @@ class MSCX:
         Write the internal score representation to a file.
     """
 
-    def __init__(self, mscx_src=None, read_only=False, parser='bs4', logger_name='MSCX', level=None):
+    def __init__(self, mscx_src=None, read_only=False, parser='bs4', labels_cfg={}, logger_name='MSCX', level=None):
         self.logger = get_logger(logger_name, level=level)
         self.mscx_src = mscx_src
         self.read_only = read_only
@@ -403,13 +409,30 @@ class MSCX:
         self.changed = False
         self.store_mscx = None
         self.get_chords = None
-        self.get_annotations = None
+        self.get_raw_labels = None
         self.metadata = None
         self.has_annotations = None
         self.infer_mc = None
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'label_type': None,
+            'positioning': True,
+            'decode': False
+            }
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
         if self.mscx_src is not None:
             self.parse_mscx()
+
+
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
+        for k in self.labels_cfg.keys():
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+
 
 
     def parse_mscx(self, mscx_src=None):
@@ -426,13 +449,13 @@ class MSCX:
 
         self.store_mscx = self._parsed.store_mscx
         self.get_chords = self._parsed.get_chords
-        self.get_annotations = self._parsed.get_annotations
+        self.get_raw_labels = self._parsed.get_raw_labels
         self.metadata = self._parsed.metadata
         self.has_annotations = self._parsed.has_annotations
         self.infer_mc = self._parsed.infer_mc
 
         if self._parsed.has_annotations:
-            self._annotations = Annotations(df=self.get_annotations(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
 
 
     def delete_labels(self, df):
@@ -468,7 +491,8 @@ class MSCX:
 
         Returns
         -------
-        None
+        :obj:`int`
+            Number of actually added labels.
 
         """
         if len(df) == 0:
@@ -512,8 +536,9 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self._parsed.parse_measures()
-            self._annotations = Annotations(df=self.get_annotations(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
+        return changes
 
 
     def store_list(self, what='all', folder=None, suffix=None, **kwargs):
@@ -632,7 +657,7 @@ class MSCX:
     def labels(self):
         if self._annotations is None:
             return None
-        return self._annotations.get_labels()
+        return self._annotations.get_labels(**self.labels_cfg)
 
     @property
     def measures(self):

@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir
+from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir, update_cfg
 from .logger import get_logger
 from .expand_dcml import expand_labels
 
@@ -67,20 +67,31 @@ class Annotations:
                             """,
                     re.VERBOSE)
 
-    def __init__(self, tsv_path=None, df=None, index_col=None, label_col='label', sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_name='Annotations', level=None, **kwargs):
+    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_name='Annotations', level=None, **kwargs):
         self.logger = get_logger(logger_name, level)
         self.regex_dict = infer_types
         self._expanded = None
-        self.label_col = label_col
         self.changed = False
         self.read_only = read_only
         self.mscx_obj = mscx_obj
+        self.cols = {
+            'mc': 'mc',
+            'mn': 'mn',
+            'onset': 'onset',
+            'label': 'label',
+            'staff': 'staff',
+            'voice': 'voice'
+        }
+        self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
+
         if df is not None:
             self.df = df.copy()
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        assert self.label_col in self.df.columns, f"The DataFrame has no column named '{self.label_col}', only {self.df.columns.to_list()}."
+        for col in ['label', 'onset']:
+            assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
+Present column names are:\n{self.df.columns.to_list()}."""
         if 'offset' in self.df.columns:
             self.df.drop(columns='offset', inplace=True)
         self.infer_types()
@@ -93,30 +104,32 @@ class Annotations:
         df = self.df.copy()
         cols = df.columns
         error = False
-        if 'staff' not in cols:
+        staff_col = self.cols['staff']
+        if staff_col not in cols:
             if staff is None:
                 self.logger.warning(f"""Annotations don't have staff information. Pass the argument staff to decide where to attach them.
 Available staves are {self.mscx_obj.staff_ids}""")
                 error = True
         if staff is not None:
-            df['staff'] = staff
-        if 'staff' in cols and df.staff.isna().any():
+            df[staff_col] = staff
+        if staff_col in cols and df[staff_col].isna().any():
             self.logger.warning(f"The following labels don't have staff information: {df[df.staff.isna()]}")
             error = True
 
-        if 'voice' not in cols:
+        voice_col = self.cols['voice']
+        if voice_col not in cols:
             if voice is None:
                 self.logger.warning(f"""Annotations don't have voice information. Pass the argument voice to decide where to attach them.
 Possible values are {{1, 2, 3, 4}}.""")
                 error = True
         if voice is not None:
-            df['voice'] = voice
-        if 'voice' in cols and df.voice.isna().any():
+            df[voice_col] = voice
+        if voice_col in cols and df[voice_col].isna().any():
             self.logger.warning(f"The following labels don't have staff information: {df[df.voice.isna()]}")
             error = True
 
-        if 'mc' not in cols:
-            if 'mn' not in cols:
+        if self.cols['mc'] not in cols:
+            if self.cols['mn'] not in cols:
                 self.logger.warning(f"Annotations are lacking 'mn' and 'mc' columns.")
                 error = True
             else:
@@ -129,14 +142,15 @@ Possible values are {{1, 2, 3, 4}}.""")
                     df.insert(df.columns.get_loc('mn'), 'mc', inferred_positions['mc'])
                     df.loc[:, 'onset'] = inferred_positions['onset']
 
-        if 'onset' not in cols:
-            self.logger.info("No 'onset' column found. All labels will be inserted at onset 0.")
+        if self.cols['onset' ] not in cols:
+            self.logger.info("No 'onset' column found. All labels will be inserted at mc_onset 0.")
 
         position_cols = ['mc', 'onset', 'staff', 'voice']
+        new_pos_cols = [self.cols[c] for c in position_cols]
         if all(c in df.columns for c in position_cols):
             if check_for_clashes and self.mscx_obj.has_annotations:
-                existing = self.mscx_obj.get_annotations()[position_cols]
-                to_be_attached = df[position_cols]
+                existing = self.mscx_obj.get_raw_labels()[position_cols]
+                to_be_attached = df[new_pos_cols]
                 clashes = is_any_row_equal(existing, to_be_attached)
                 has_clashes = len(clashes) > 0
                 if has_clashes:
@@ -276,7 +290,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             return False
 
         mscx = mscx_obj if mscx_obj is not None else self.mscx_obj
-        cols = [c for c in ['mn', 'onset', 'volta'] if c in self.df.columns]
+        cols = [self.cols[c] for c in ['mn', 'onset', 'volta'] if c in self.df.columns]
         inferred_positions = [mscx.infer_mc(**dict(zip(cols, t))) for t in self.df[cols].values]
         return pd.DataFrame(inferred_positions, index=self.df.index, columns=['mc', 'onset'])
 
@@ -297,7 +311,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.df.loc[self.df.root.notna(), 'label_type'] = 3
         for name, regex in self.regex_dict.items():
             sel = self.df.label_type == 0
-            mtch = self.df.loc[sel, self.label_col].str.match(regex)
+            mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
             self.df.loc[sel & mtch, 'label_type'] = name
 
 

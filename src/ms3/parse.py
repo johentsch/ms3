@@ -10,14 +10,17 @@ import numpy as np
 from .annotations import Annotations
 from .logger import get_logger
 from .score import Score
-from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory
+from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, \
+    resolve_dir, scan_directory, string2lines, update_labels_cfg
+
 
 class Parse:
     """
     Class for storing and manipulating the information from multiple parses (i.e. :py:class:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)", recursive=True, simulate=False, logger_name='Parse', level=None):
+    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
+                 recursive=True, simulate=False, labels_cfg={}, logger_name='Parse', level=None):
         """
 
         Parameters
@@ -38,10 +41,19 @@ class Parse:
         self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
             list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list)
 
-        # dicts that have IDs as keys and are therefor accessed via [(key, i)]
+        # dicts that have IDs as keys and are therefore accessed via [(key, i)]
         self._parsed_mscx, self._annotations, self._notelists, self._restlists, self._noterestlists = {}, {}, {}, {}, {}
         self._eventlists, self._labellists, self._chordlists, self._expandedlists, self._index = {}, {}, {}, {}, {}
         self._measurelists, self._parsed_tsv, self._tsv_types = {}, {}, {}
+
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'label_type': None,
+            'positioning': True,
+            'decode': False
+        }
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
         # dict with keys as keys, holding the names of the index levels (which have to be the same for all corresponding IDs)
         self._levelnames = {}
@@ -87,7 +99,7 @@ class Parse:
                 else:
                     k, i = labels_id
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
-Use parse_tsv(key='{k}') and specify label_col.""")
+Use parse_tsv(key='{k}') and specify col={{'label': label_col}}.""")
             else:
                 self.logger.debug(f"Nothing to add to {score_id}. Make sure that it's counterpart has been recognized as tsv_type 'labels'.")
 
@@ -185,30 +197,48 @@ Currently available annotation keys are {list(layers.keys())}""")
 f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
 Continuing with {annotation_key}.""")
 
-        for id in self._iterids(keys):
-            if id in self._parsed_mscx and self._parsed_mscx[id].has_detached_annotations:
-                for anno_key in annotation_key:
-                    if anno_key in self._parsed_mscx[id]._annotations:
-                        self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+        ids = list(self._iterids(keys, filter_detached_annotations=True))
+        reached, goal = 0, 0
+        for id in ids:
+            for anno_key in annotation_key:
+                if anno_key in self._parsed_mscx[id]._annotations:
+                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+                    self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
+                    reached += r
+                    goal += g
+        self.logger.info(f"{reached}/{goal} labels successfully added to {len(ids)} files.")
+        self._collect_annotations_objects_references(ids=ids)
 
 
 
-    def collect_annotations_objects_references(self, keys=None, ids=None):
+
+    def _collect_annotations_objects_references(self, keys=None, ids=None):
+        """ Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). """
         if ids is None:
-            ids = list(self._iterids(keys))
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
         updated = {}
         for id in ids:
-            if id in self._parsed_mscx:
-                score = self._parsed_mscx[id]
-                if 'annotations' in score._annotations:
-                    updated[id] = score.annotations
-                elif id in self._annotations:
-                    del (self._annotations[id])
+            score = self._parsed_mscx[id]
+            if 'annotations' in score._annotations:
+                updated[id] = score.annotations
+            elif id in self._annotations:
+                del (self._annotations[id])
         self._annotations.update(updated)
 
 
 
-    def collect_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
+        for k in self.labels_cfg.keys():
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.collect_lists(ids=list(self._labellists.keys()) labels=True)
+
+
+
+
+    def collect_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                       labels=False, chords=False, expanded=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
 
@@ -233,9 +263,9 @@ Continuing with {annotation_key}.""")
         if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return
-        keys = self._treat_key_param(keys)
-        scores = {id: score for id, score in self._parsed_mscx.items() if id[0] in keys}
-        ids = list(scores.keys())
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        scores = {id: self._parsed_mscx[id] for id in ids}
         bool_params = list(self._lists.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
@@ -276,12 +306,11 @@ Continuing with {annotation_key}.""")
         res_dict = defaultdict(Counter)
 
         if which == 'detached':
-            for id in self._iterids(keys):
-                if id in self._parsed_mscx:
-                    for key, annotations in self._parsed_mscx[id]._annotations.items():
-                        if key != 'annotations':
-                            _, layers = annotations.annotation_layers
-                            res_dict[key].update(layers.to_dict())
+            for id in self._iterids(keys, filter_detached_annotations=True):
+                for key, annotations in self._parsed_mscx[id]._annotations.items():
+                    if key != 'annotations':
+                        _, layers = annotations.annotation_layers
+                        res_dict[key].update(layers.to_dict())
         elif which in ['attached', 'tsv']:
             for key, i in self._iterids(keys):
                 if (key, i) in self._annotations:
@@ -353,9 +382,8 @@ Continuing with {annotation_key}.""")
 
 
     def count_tsv_types(self, keys=None, per_key=False):
-        parsed_tsvs = [id for id in self._iterids(keys) if id in self._parsed_tsv]
         res_dict = defaultdict(Counter)
-        for key, i in parsed_tsvs:
+        for key, i in self._iterids(keys, only_parsed_mscx=True):
             t = self._tsv_types[(key, i)] if (key, i) in self._tsv_types else None
             res_dict[key].update([t])
         if per_key:
@@ -366,7 +394,7 @@ Continuing with {annotation_key}.""")
 
     def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
-        ids = [id for id in self._iterids(keys) if id in self._annotations]
+        ids = list(self._iterids(keys, filter_attached_annotations=True))
         prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
@@ -377,12 +405,13 @@ Continuing with {annotation_key}.""")
                 self.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
             finally:
                 self.logger = prev_logger
-        self.collect_annotations_objects_references(ids=ids)
+        self._collect_annotations_objects_references(ids=ids)
 
 
 
 
-    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False):
+    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, concat=True):
+        """ This function does not take into account self.labels_cfg """
         if len(self._parsed_mscx) == 0:
             self.logger.error("No scores have been parsed so far. Use parse_mscx()")
             return pd.DataFrame()
@@ -395,7 +424,9 @@ Continuing with {annotation_key}.""")
         annotation_tables = [self._annotations[id].get_labels(**params, warnings=False) for id in ids]
         idx, names = self.ids2idx(ids)
         names += tuple(annotation_tables[0].index.names)
-        return pd.concat(annotation_tables, keys=idx, names=names)
+        if concat:
+            return pd.concat(annotation_tables, keys=idx, names=names)
+        return annotation_tables
 
 
 
@@ -410,11 +441,10 @@ Continuing with {annotation_key}.""")
         l = locals()
         params = {p: l[p] for p in bool_params}
         self.collect_lists(keys, only_new=True, **params)
-        ids = list(self._iterids(keys))
         res = {}
         for param, li in self._lists.items():
             if params[param]:
-                for id in ids:
+                for id in self._iterids(keys):
                     if id in li:
                         res[id + (param,)] = li[id]
         return res
@@ -598,6 +628,8 @@ Load one of the identically named files with a different key using add_dir(key='
                         self._matches.loc[ix, :] = row
                     else:
                         self._matches = self._matches.append(row)
+                        if len(self._matches) == 1:
+                            self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
                     res_ix.append(ix)
         return self._matches.loc[res_ix]
 
@@ -613,15 +645,15 @@ Load one of the identically named files with a different key using add_dir(key='
         return pd.DataFrame()
 
 
-    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, fexts=None,
-              label_col='label', infer_types={}, **kwargs):
+    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
+              cols={}, infer_types={}, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
-        self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new)
-        self.parse_tsv(keys=keys, fexts=fexts, label_col=label_col, infer_types=infer_types, level=level, **kwargs)
+        self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
+        self.parse_tsv(keys=keys, fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
 
 
 
-    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True):
+    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}):
         """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -646,6 +678,7 @@ Load one of the identically named files with a different key using add_dir(key='
         None
 
         """
+        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
@@ -657,7 +690,7 @@ Load one of the identically named files with a different key using add_dir(key='
             paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if
                      self.fexts[key][i] == '.mscx']
 
-        parse_this = [(key, i, path, read_only, level) for key, i, path in paths]
+        parse_this = [(key, i, path, read_only, level, self.labels_cfg) for key, i, path in paths]
         if self.simulate:
             prev_logger = self.logger
             for key, i, path, read_only, level in parse_this:
@@ -676,10 +709,10 @@ Load one of the identically named files with a different key using add_dir(key='
         else:
             for params in parse_this:
                 self._parsed_mscx[params[:2]] = self._parse(*params)
-        self.collect_annotations_objects_references(ids=ids)
+        self._collect_annotations_objects_references(ids=ids)
 
 
-    def parse_tsv(self, keys=None, fexts=None, label_col='label', infer_types={}, level=None, **kwargs):
+    def parse_tsv(self, keys=None, fexts=None, cols={}, infer_types={}, level=None, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -713,8 +746,6 @@ Load one of the identically named files with a different key using add_dir(key='
                 fexts = [fexts]
             fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
-        if isinstance(label_col, str):
-            label_col = [label_col]
         for key, i in ids:
             rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
             path = self.full_paths[key][i]
@@ -723,35 +754,33 @@ Load one of the identically named files with a different key using add_dir(key='
             except:
                 self.logger.error(path)
                 raise
-            l_cols = [c for c in df.columns if c in label_col]
+            label_col = cols['label'] if 'label' in cols else 'label'
             try:
                 self._parsed_tsv[(key, i)] = df
-                if len(l_cols) > 0:
+                if label_col in df.columns:
                     tsv_type = 'labels'
                 else:
                     tsv_type = self._infer_tsv_type(df)
 
                 if tsv_type is None:
                     self.logger.warning(
-                        f"None of the columns {label_col} was found in {rel_path} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                        f"No label column '{label_col}' was found in {rel_path} and its content could not be inferred. Columns: {df.columns.to_list()}")
                 else:
                     self._tsv_types[(key, i)] = tsv_type
                     self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
-                    self.logger.info(f"{rel_path} parsed as a list of {tsv_type}.")
                     if tsv_type == 'labels':
-                        if len(l_cols) == 0:
-                            self.logger.info(
-f"""None of the columns {label_col} was found in {rel_path} ({df.columns.to_list()}) but the file was recognized to contain labels.
-Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
-                        else:
-                            l_col = l_cols[0]
-                            if len(l_cols) > 1:
-                                self.logger.info(f"Path contains several columns with annotations ({l_cols}). '{l_col}' was picked.")
+                        if label_col in df.columns:
                             logger_name = self.files[key][i]
-                            self._annotations[(key, i)] = Annotations(df=df, label_col=l_col, infer_types=infer_types,
+                            self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                       logger_name=logger_name, level=level)
                             self.logger.debug(
-                                f"{rel_path} was additionally stored as an Annotations object.")
+                                f"{rel_path} parsed as a list of labels and an Annotations object was created.")
+                        else:
+                            self.logger.info(
+f"""The file {rel_path} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                    else:
+                        self.logger.info(f"{rel_path} parsed as a list of {tsv_type}.")
 
             except:
                 self.logger.error(f"Parsing {rel_path} failed with the following error:\n{sys.exc_info()[1]}")
@@ -870,7 +899,7 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
 
 
 
-    def _iterids(self, keys=None):
+    def _iterids(self, keys=None, only_parsed_mscx=False, filter_attached_annotations=False, filter_detached_annotations=False):
         """ Iterator through IDs for a given set of keys.
 
         Yields
@@ -881,6 +910,19 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
             for id in make_id_tuples(key, len(self.fnames[key])):
+                if only_parsed_mscx or filter_attached_annotations or filter_detached_annotations:
+                    if id not in self._parsed_mscx:
+                        continue
+                    if filter_attached_annotations:
+                        if 'annotations' in self._parsed_mscx[id]._annotations:
+                            pass
+                        else:
+                            continue
+                    if filter_detached_annotations:
+                        if self._parsed_mscx[id].has_detached_annotations:
+                            pass
+                        else:
+                            continue
                 yield id
 
 
@@ -897,7 +939,7 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
                 if i in selector:
                     yield e
 
-    def _parse(self, key, i, path=None, read_only=False, level=None):
+    def _parse(self, key, i, path=None, read_only=False, level=None, labels_cfg={}):
         if path is None:
             path = self.full_paths[key][i]
         file = self.files[key][i]
@@ -906,7 +948,7 @@ Try parse_tsv(key='{key}') with a different value for 'label_column'.""")
         self.logger = get_logger(f"{fname}")
         self.logger.debug(f"Attempting to parse {file}")
         try:
-            score = Score(path, read_only=read_only, logger_name=self.logger.name, level=level)
+            score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_name=self.logger.name, level=level)
             self._parsed_mscx[(key, i)] = score
             self.logger.info(f"Done parsing {file}")
             return score
@@ -1149,37 +1191,59 @@ Using the first {li} elements, discarding {discarded}""")
     #     return res
 
 
+    # def __getattr__(self, item):
+    #     if item in self.fexts: # is an existing key
+    #         fexts = self.fexts[item]
+    #         res = {}
+    #         for i, ext in enumerate(fexts):
+    #             id = (item, i)
+    #             ix = str(self._index[id])
+    #             if ext == '.mscx':
+    #                 if id in self._parsed_mscx:
+    #                     ix += " (parsed)"
+    #                     val = str(self._parsed_mscx[id])
+    #                 else:
+    #                     ix += " (not parsed)"
+    #                     val = self.full_paths[item][i]
+    #             else:
+    #                 if id in self._parsed_tsv:
+    #                     df = self._parsed_tsv[id]
+    #                     if isinstance(df, Annotations):
+    #                         ix += " (parsed annotations)"
+    #                         val = str(df)
+    #                     else:
+    #                         t = self._tsv_types[id] if id in self._tsv_types else 'unrecognized DataFrame'
+    #                         ix += f" (parsed {t}, length {len(df)})"
+    #                         val = df.head(5).to_string()
+    #                 else:
+    #                     ix += " (not parsed)"
+    #                     val = self.full_paths[item][i]
+    #             ix += f"\n{'-' * len(ix)}\n"
+    #             if ext != '.mscx':
+    #                 ix += f"{self.full_paths[item][i]}\n"
+    #             print(f"{ix}{val}\n")
+    #     else:
+    #         raise AttributeError(item)
+
+
     def __getitem__(self, item):
-        if item in self.fexts:
-            fexts = self.fexts[item]
-            res = {}
-            for i, ext in enumerate(fexts):
-                id = (item, i)
-                ix = str(self._index[id])
-                if ext == '.mscx':
-                    if id in self._parsed_mscx:
-                        ix += " (parsed)"
-                        val = str(self._parsed_mscx[id])
-                    else:
-                        ix += " (not parsed)"
-                        val = self.full_paths[item][i]
-                else:
-                    if id in self._parsed_tsv:
-                        df = self._parsed_tsv[id]
-                        if isinstance(df, Annotations):
-                            ix += " (parsed annotations)"
-                            val = str(df)
-                        else:
-                            t = self._tsv_types[id] if id in self._tsv_types else 'unrecognized DataFrame'
-                            ix += f" (parsed {t}, length {len(df)})"
-                            val = df.head(5).to_string()
-                    else:
-                        ix += " (not parsed)"
-                        val = self.full_paths[item][i]
-                ix += f"\n{'-' * len(ix)}\n"
-                if ext != '.mscx':
-                    ix += f"{self.full_paths[item][i]}\n"
-                print(f"{ix}{val}\n")
+        if item in self._index:
+            id = item
+        elif item in self._index.values():
+            id = next(k for k, v in self._index.items() if v == item)
+        else:
+            if item in self.files:
+                self.logger.info(f"'{item}' is neither an ID nor an index, but a key with the following IDs:\n" + string2lines(make_id_tuples(item, len(self.files[item]))))
+            else:
+                self.logger.warning(f"'{item}' is neither an ID nor an index.")
+            return
+        if id in self._parsed_mscx:
+            return self._parsed_mscx[id]
+        if id in self._parsed_tsv:
+            return self._parsed_tsv[id]
+        else:
+            self.logger.warning(f"{self.full_paths[id]} has or could not been parsed.")
+
 
     def __repr__(self):
         return self.info(return_str=True)

@@ -105,7 +105,11 @@ def main(args):
 
 
 def extract(args):
-    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, level=args.level, simulate=args.test)
+    labels_cfg = {
+        'positioning': args.positioning,
+        'decode': args.raw,
+    }
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, level=args.level, simulate=args.test)
     p.parse_mscx()
     params = ['notes', 'rests', 'measures', 'events', 'labels', 'chords', 'expanded']
     suffixes = {f"{p}_suffix": f"_{p}" if args.suffix is None else args.suffix for p in params if p in args}
@@ -183,6 +187,9 @@ This setting has no effect on absolute folder paths.""")
     extract_parser.add_argument('-l', '--level', metavar='LEVEL', default='i',
                                 help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+    extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include their spacial positionings in order to restore them when re-inserting.")
+    extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
+    extract_parser.add_argument('--nonrecursive', action='store_false', help="Don't scan folders recursively, i.e. parse only files in MSCX_DIR.")
     extract_parser.set_defaults(func=extract)
 
     check_parser = subparsers.add_parser('check', help="Check DCML harmony labels.")

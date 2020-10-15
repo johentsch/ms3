@@ -9,6 +9,10 @@ Version 0.3.1
 * Parse.attach_labels() for inserting annotations into MuseScore files
 * Prepare detached labels so that they can actually be attached
 * Install "ms3 extract" command to the system
+* Simulate parsing and table extraction
+* Passing labels_cfg to Score/Parse to control the format of annotation lists
+* Easy access to individual parsed files through Parse[ID] or Parse[ix]
+* parse annotation files with diverging column names
 
 Version 0.3.0
 =============
@@ -18,7 +22,7 @@ Version 0.3.0
 * Parse.metadata() to return a DataFrame with all parsed pieces' metadata
 * Parse.get_labels() to retrieve labels of a particular kind
 * Parse.info() has improved the information that objects return about themselves
-* Parse['key'] for a quick overview of the files of a given key
+* Parse.key for a quick overview of the files of a given key
 * Parse can be used with a custom index instead of IDs [an ID is an (key, i) tuple]
 * Score.store_list() for easily storing TSVs
 * renamed Score.output_mscx() to store_mscx() for consistency.

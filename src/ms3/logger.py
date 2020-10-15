@@ -125,7 +125,7 @@ def function_logger(f):
 
         func_globals = f.__globals__
         saved_values = func_globals.copy()
-        func_globals.update({'logger': logg})
+        f.__globals__.update({'logger': logg})
         try:
             result = f(*args, **kwargs)
         finally:
