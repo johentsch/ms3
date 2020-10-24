@@ -87,16 +87,16 @@ class TestParser:
         score_object.mscx.events.to_csv(fname + '_events.tsv', sep='\t', index=False)
 
 
-
 def assert_all_lines_equal(before, after, original, tmp_file):
     diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
     if len(diff) > 0:
         line_n, left, _ = zip(*diff)
         ln = len(str(max(line_n)))
         left_col = max(len(s) for s in left)
-        diff = [('', original, tmp_file.name)] + diff
         folder, file = os.path.split(original)
-        shutil.copy(tmp_file.name, os.path.join(folder, '..', file))
+        tmp_persist = os.path.join(folder, '..', file)
+        shutil.copy(tmp_file.name, tmp_persist)
+        diff = [('', original, tmp_persist)] + diff
     assert len(diff) == 0, '\n' + '\n'.join(
         f"{a:{ln}}  {b:{left_col}}    {c}" for a, b, c in diff)
 

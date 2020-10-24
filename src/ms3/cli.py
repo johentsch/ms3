@@ -109,6 +109,9 @@ def extract(args):
         'positioning': args.positioning,
         'decode': args.raw,
     }
+    if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
+        print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
+        return
     p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, level=args.level, simulate=args.test)
     p.parse_mscx()
     params = ['notes', 'rests', 'measures', 'events', 'labels', 'chords', 'expanded']
@@ -184,7 +187,7 @@ This setting has no effect on absolute folder paths.""")
                                 help="Select only file names including this regular expression.")
     extract_parser.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
-    extract_parser.add_argument('-l', '--level', metavar='LEVEL', default='i',
+    extract_parser.add_argument('-l', '--level', metavar='LOG_LEVEL', default='i',
                                 help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include their spacial positionings in order to restore them when re-inserting.")

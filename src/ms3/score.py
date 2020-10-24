@@ -213,7 +213,7 @@ class Score:
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
-        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), logger_name=f"{self.logger.name}:{key}")
+        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx, logger_name=f"{self.logger.name}:{key}")
         if delete:
             self._mscx.delete_labels(df)
         if len(self._annotations['annotations'].df) == 0:
@@ -418,7 +418,8 @@ class MSCX:
             'voice': None,
             'label_type': None,
             'positioning': True,
-            'decode': False
+            'decode': False,
+            'column_name': 'label',
             }
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
@@ -459,9 +460,9 @@ class MSCX:
 
 
     def delete_labels(self, df):
-        changed = pd.Series([self._parsed.delete_label(mc, staff, voice, onset)
-                               for mc, staff, voice, onset
-                               in reversed(list(df[['mc', 'staff', 'voice', 'onset']].itertuples(name=None, index=False)))],
+        changed = pd.Series([self._parsed.delete_label(mc, staff, voice, mc_onset)
+                               for mc, staff, voice, mc_onset
+                               in reversed(list(df[['mc', 'staff', 'voice', 'mc_onset']].itertuples(name=None, index=False)))],
                             index=df.index)
         changes = changed.sum()
         if changes > 0:
@@ -474,7 +475,7 @@ class MSCX:
 
 
 
-    def add_labels(self, df, label='label', mc='mc', onset='onset', staff='staff', voice='voice', **kwargs):
+    def add_labels(self, df, label='label', mc='mc', mc_onset='mc_onset', staff='staff', voice='voice', **kwargs):
         """
 
 
@@ -482,7 +483,7 @@ class MSCX:
         ----------
         df : :obj:`pandas.DataFrame`
             DataFrame with labels to be added.
-        label, mc, onset, staff, voice : :obj:`str`
+        label, mc, mc_onset, staff, voice : :obj:`str`
             Names of the DataFrame columns for the five required parameters.
         kwargs:
             label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville
@@ -512,7 +513,7 @@ class MSCX:
         missing_add = {k: v for k, v in kwargs.items() if v not in df.columns}
         if len(missing_add) > 0:
             self.logger.warning(f"The following specified columns could not be found:\n{missing_add}.")
-        main_params = ['label', 'mc', 'onset', 'staff', 'voice']
+        main_params = ['label', 'mc', 'mc_onset', 'staff', 'voice']
         l = locals()
         missing_main = {k: l[k] for k in main_params if l[k] not in df.columns}
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"

@@ -51,7 +51,8 @@ class Parse:
             'voice': None,
             'label_type': None,
             'positioning': True,
-            'decode': False
+            'decode': False,
+            'column_name': 'label',
         }
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
@@ -99,7 +100,7 @@ class Parse:
                 else:
                     k, i = labels_id
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
-Use parse_tsv(key='{k}') and specify col={{'label': label_col}}.""")
+Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             else:
                 self.logger.debug(f"Nothing to add to {score_id}. Make sure that it's counterpart has been recognized as tsv_type 'labels'.")
 
@@ -233,7 +234,9 @@ Continuing with {annotation_key}.""")
             if val is not None:
                 labels_cfg[k] = val
         self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
-        self.collect_lists(ids=list(self._labellists.keys()) labels=True)
+        ids = list(self._labellists.keys())
+        if len(ids) > 0:
+            self.collect_lists(ids=ids, labels=True)
 
 
 
@@ -245,6 +248,8 @@ Continuing with {annotation_key}.""")
         Parameters
         ----------
         keys
+        ids : :obj:`Collection`
+            If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
         notes
         rests
         notes_and_rests
@@ -261,9 +266,10 @@ Continuing with {annotation_key}.""")
         None
         """
         if len(self._parsed_mscx) == 0:
-            self.logger.error("No scores have been parsed so far. Use parse_mscx()")
+            self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
             return
         if ids is None:
+            only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
         scores = {id: self._parsed_mscx[id] for id in ids}
         bool_params = list(self._lists.keys())
@@ -410,19 +416,24 @@ Continuing with {annotation_key}.""")
 
 
 
-    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, concat=True):
+    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None, concat=True):
         """ This function does not take into account self.labels_cfg """
-        if len(self._parsed_mscx) == 0:
-            self.logger.error("No scores have been parsed so far. Use parse_mscx()")
+        if len(self._annotations) == 0:
+            self.logger.error("No labels available so far. Add files using add_dir() and parse them using parse().")
             return pd.DataFrame()
         keys = self._treat_key_param(keys)
         label_type = self._treat_label_type_param(label_type)
         self.collect_lists(labels=True, only_new=True)
         l = locals()
-        params = {p: l[p] for p in ['staff', 'voice', 'label_type', 'positioning', 'decode']}
+        params = {p: l[p] for p in self.labels_cfg.keys()}
         ids = [id for id in self._iterids(keys) if id in self._annotations]
+        if len(ids) == 0:
+            self.logger.info(f"No labels match the criteria.")
+            return pd.DataFrame()
         annotation_tables = [self._annotations[id].get_labels(**params, warnings=False) for id in ids]
         idx, names = self.ids2idx(ids)
+        if names is None:
+            names = (None,) * len(idx[0])
         names += tuple(annotation_tables[0].index.names)
         if concat:
             return pd.concat(annotation_tables, keys=idx, names=names)
@@ -433,8 +444,8 @@ Continuing with {annotation_key}.""")
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False, simulate=False):
-        if len(self._parsed_mscx) == 0:
-            self.logger.error("No scores have been parsed so far. Use parse_mscx()")
+        if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
+            self.logger.error("No scores or annotation files have been parsed so far.")
             return {}
         keys = self._treat_key_param(keys)
         bool_params = list(self._lists.keys())
@@ -444,9 +455,8 @@ Continuing with {annotation_key}.""")
         res = {}
         for param, li in self._lists.items():
             if params[param]:
-                for id in self._iterids(keys):
-                    if id in li:
-                        res[id + (param,)] = li[id]
+                for id in (i for i in self._iterids(keys) if i in li):
+                    res[id + (param,)] = li[id]
         return res
 
 
@@ -495,7 +505,7 @@ Load one of the identically named files with a different key using add_dir(key='
         else:
             grouped_ids = group_id_tuples(ids)
             level_names = {k: self._levelnames[k] for k in grouped_ids}
-            if len(set(level_names.keys())) > 1:
+            if len(set(level_names.values())) > 1:
                 self.logger.warning(
                     f"Could not set level names because they differ for the different keys:\n{pretty_dict(level_names, 'LEVEL_NAMES')}")
                 names = None
@@ -527,27 +537,27 @@ Load one of the identically named files with a different key using add_dir(key='
         parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
         parsed_mscx = len(parsed_mscx_ids)
         ext_counts = self.count_extensions(keys, per_key=False)
-        mscx = ext_counts['.mscx']
+
         others = sum(v for k, v in ext_counts.items() if k != '.mscx')
 
         if parsed_mscx > 0:
-
+            mscx = ext_counts['.mscx']
             if parsed_mscx == mscx:
                 info += f"\n\nAll {mscx} MSCX files have been parsed."
             else:
                 info += f"\n\n{parsed_mscx}/{mscx} MSCX files have been parsed."
             annotated = sum(True for id in parsed_mscx_ids if id in self._annotations)
-            info += f"\n{annotated} of them have annotations attached."
+            info += f"\n\n{annotated} of them have annotations attached."
             if annotated > 0:
                 layers = self.count_annotation_layers(keys, which='attached', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
 
             detached = sum(True for id in parsed_mscx_ids if self._parsed_mscx[id].has_detached_annotations)
             if detached > 0:
-                info += f"\n{detached} of them have detached annotations:"
+                info += f"\n\n{detached} of them have detached annotations:"
                 layers = self.count_annotation_layers(keys, which='detached', per_key=True)
                 info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        elif mscx > 0:
+        elif '.mscx' in ext_counts:
             info += f"\n\nNo mscx files have been parsed."
 
         parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
@@ -597,7 +607,6 @@ Load one of the identically named files with a different key using add_dir(key='
         for key, i in ids_to_match:
             ix = self._index[(key, i)]
             if ix in self._matches.index:
-                print(f"index: {self._matches.index}\nix: {ix}")
                 row = self._matches.loc[ix].copy()
             else:
                 row = pd.Series(np.nan, index=lists.keys(), name=ix)
@@ -835,11 +844,11 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         for (key, i, what), li in lists.items():
             self.logger = get_logger(self.fnames[key][i])
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
-            modus = 'would have' if simulate else 'has'
+            modus = 'would ' if simulate else ''
             if new_path in paths:
                 self.logger.warning(f"The {paths[new_path]} at {new_path} {modus} been overwritten with {what}.")
             else:
-                self.logger.info(f"{what} {modus} been stored as {new_path}.")
+                self.logger.info(f"{what} {modus}have been stored as {new_path}.")
             paths[new_path] = what
         self.logger = prev_logger
         if simulate:
@@ -1239,10 +1248,12 @@ Using the first {li} elements, discarding {discarded}""")
             return
         if id in self._parsed_mscx:
             return self._parsed_mscx[id]
+        if id in self._annotations:
+            return self._annotations[id]
         if id in self._parsed_tsv:
             return self._parsed_tsv[id]
         else:
-            self.logger.warning(f"{self.full_paths[id]} has or could not been parsed.")
+            self.logger.warning(f"{self.full_paths[id]} has or could not be parsed.")
 
 
     def __repr__(self):

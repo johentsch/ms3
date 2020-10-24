@@ -261,6 +261,8 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'next': str2inttuple,
         'nominal_duration': safe_frac,
         'mc_offset': safe_frac,
+        'mc_onset': safe_frac,
+        'mn_onset': safe_frac,
         'onset': safe_frac,
         'duration': safe_frac,
         'scalar': safe_frac, }
@@ -282,14 +284,14 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'globalkey': str,
         'gracenote': str,
         'harmonies_id': 'Int64',
-        'keysig': int,
+        'keysig': 'Int64',
         'label': str,
         'label_type': object,
         'leftParen': str,
         'localkey': str,
-        'mc': int,
-        'midi': int,
-        'mn': int,
+        'mc': 'Int64',
+        'midi': 'Int64',
+        'mn': str,
         'offset:x': str,
         'offset:y': str,
         'nashville': 'Int64',
@@ -297,19 +299,19 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'numbering_offset': 'Int64',
         'numeral': str,
         'pedal': str,
-        'playthrough': int,
+        'playthrough': 'Int64',
         'phraseend': str,
         'relativeroot': str,
         'repeats': str,
         'rightParen': str,
         'root': 'Int64',
         'special': str,
-        'staff': int,
+        'staff': 'Int64',
         'tied': 'Int64',
         'timesig': str,
-        'tpc': int,
-        'voice': int,
-        'voices': int,
+        'tpc': 'Int64',
+        'voice': 'Int64',
+        'voices': 'Int64',
         'volta': 'Int64'
     }
 
@@ -327,9 +329,18 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
 
     if stringtype:
         types = {col: 'string' if typ == str else typ for col, typ in types.items()}
-    return pd.read_csv(path, sep=sep, index_col=index_col,
+    df = pd.read_csv(path, sep=sep, index_col=index_col,
                        dtype=types,
                        converters=conv, **kwargs)
+    if 'mn' in df:
+        mn_volta = mn2int(df.mn)
+        df.mn = mn_volta.mn
+        if mn_volta.volta.notna().any():
+            if 'volta' not in df.columns:
+                df['volta'] = pd.Series(pd.NA, index=df.index).astype('Int64')
+            df.volta.fillna(mn_volta.volta, inplace=True)
+    return df
+
 
 
 def make_id_tuples(key, n):
@@ -410,6 +421,21 @@ def midi2octave(midi, fifths=None):
         ]:
             i += 1
     return midi // 12 + i
+
+
+def mn2int(mn_series):
+    """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
+    try:
+        split = mn_series.fillna('').str.extract(r"(?P<mn>\d+)(?P<volta>[a-g])?")
+    except:
+        mn_series = pd.DataFrame(mn_series, columns=['mn', 'volta'])
+        try:
+            return mn_series.astype('Int64')
+        except:
+            return mn_series
+    split.mn = pd.to_numeric(split.mn)
+    split.volta = pd.to_numeric(split.volta.map({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}))
+    return split.astype('Int64')
 
 
 @function_logger
@@ -690,7 +716,10 @@ def update_cfg(cfg_dict, admitted_keys):
 
 @function_logger
 def update_labels_cfg(labels_cfg):
-    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode']
+    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name']
     if 'logger' in labels_cfg:
         del labels_cfg['logger']
-    return update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
+    updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
+    if 'logger' in updated:
+        del updated['logger']
+    return updated

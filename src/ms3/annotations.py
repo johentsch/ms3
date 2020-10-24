@@ -77,10 +77,11 @@ class Annotations:
         self.cols = {
             'mc': 'mc',
             'mn': 'mn',
-            'onset': 'onset',
+            'mc_onset': 'mc_onset',
             'label': 'label',
             'staff': 'staff',
-            'voice': 'voice'
+            'voice': 'voice',
+            'volta': 'volta',
         }
         self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
 
@@ -89,7 +90,7 @@ class Annotations:
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        for col in ['label', 'onset']:
+        for col in ['label', 'mc_onset']:
             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
 Present column names are:\n{self.df.columns.to_list()}."""
         if 'offset' in self.df.columns:
@@ -135,17 +136,17 @@ Possible values are {{1, 2, 3, 4}}.""")
             else:
                 inferred_positions = self.infer_mc_from_mn()
                 if inferred_positions.isna().any().any():
-                    self.logger.error(f"Measure counts and corresponding onsets could not be successfully inferred.")
+                    self.logger.error(f"Measure counts and corresponding mc_onsets could not be successfully inferred.")
                     error = True
                 else:
-                    self.logger.info(f"Measure counts and corresponding onsets successfully inferred.")
+                    self.logger.info(f"Measure counts and corresponding mc_onsets successfully inferred.")
                     df.insert(df.columns.get_loc('mn'), 'mc', inferred_positions['mc'])
-                    df.loc[:, 'onset'] = inferred_positions['onset']
+                    df.loc[:, 'mc_onset'] = inferred_positions['mc_onset']
 
-        if self.cols['onset' ] not in cols:
-            self.logger.info("No 'onset' column found. All labels will be inserted at mc_onset 0.")
+        if self.cols['mc_onset' ] not in cols:
+            self.logger.info("No 'mc_onset' column found. All labels will be inserted at mc_onset 0.")
 
-        position_cols = ['mc', 'onset', 'staff', 'voice']
+        position_cols = ['mc', 'mc_onset', 'staff', 'voice']
         new_pos_cols = [self.cols[c] for c in position_cols]
         if all(c in df.columns for c in position_cols):
             if check_for_clashes and self.mscx_obj.has_annotations:
@@ -187,8 +188,8 @@ Possible values are {{1, 2, 3, 4}}.""")
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True):
-        """ Returns an annotation label .
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None):
+        """ Returns a DataFrame of annotation labels.
 
         Parameters
         ----------
@@ -211,6 +212,8 @@ Possible values are {{1, 2, 3, 4}}.""")
             Set to True to delete the returned labels from this object.
         warnings : :obj:`bool`, optional
             Set to False to suppress warnings about non-existent label_types.
+        column_name : :obj:`str`, optional
+            Can be used to rename the columns holding the labels.
 
         Returns
         -------
@@ -218,9 +221,9 @@ Possible values are {{1, 2, 3, 4}}.""")
         """
         sel = pd.Series(True, index=self.df.index)
         if staff is not None:
-            sel = sel & (self.df.staff == staff)
+            sel = sel & (self.df[self.cols['staff']] == staff)
         if voice is not None:
-            sel = sel & (self.df.voice == voice)
+            sel = sel & (self.df[self.cols['voice']] == voice)
         if label_type is not None and 'label_type' in self.df.columns:
             label_type = self._treat_label_type_param(label_type, warnings=warnings)
             sel = sel & self.df.label_type.isin(label_type)
@@ -232,8 +235,11 @@ Possible values are {{1, 2, 3, 4}}.""")
             res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]
+        label_col = self.cols['label']
         if decode:
-            res = decode_harmonies(res)
+            res = decode_harmonies(res, label_col=label_col)
+        if column_name is not None and column_name != label_col:
+            res = res.rename(columns={label_col: column_name})
         return res
 
 
@@ -290,9 +296,9 @@ Possible values are {{1, 2, 3, 4}}.""")
             return False
 
         mscx = mscx_obj if mscx_obj is not None else self.mscx_obj
-        cols = [self.cols[c] for c in ['mn', 'onset', 'volta'] if c in self.df.columns]
+        cols = [self.cols[c] for c in ['mn', 'mc_onset', 'volta'] if c in self.df.columns]
         inferred_positions = [mscx.infer_mc(**dict(zip(cols, t))) for t in self.df[cols].values]
-        return pd.DataFrame(inferred_positions, index=self.df.index, columns=['mc', 'onset'])
+        return pd.DataFrame(inferred_positions, index=self.df.index, columns=['mc', 'mc_onset'])
 
 
 

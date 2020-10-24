@@ -7315,19 +7315,6 @@ Text: Pietro Metastasio (1689-1782)</text>
           <StaffText>
             <text><font size="7.6"></font><b>Go To Measure 94</b></text>
             </StaffText>
-          <Spanner type="Volta">
-            <Volta>
-              <endHookType>1</endHookType>
-              <beginText>1.</beginText>
-              <endings>1</endings>
-              </Volta>
-            <next>
-              <location>
-                <measures>2</measures>
-                <fractions>-1/1</fractions>
-                </location>
-              </next>
-            </Spanner>
           </voice>
         </Measure>
       <Measure>

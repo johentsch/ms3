@@ -2,9 +2,10 @@
 Changelog
 =========
 
-Version 0.3.1
+Version 0.4.0
 =============
 
+* The standard column 'onset' has been renamed to 'mc_onset' and 'mn_onset' has been added as an additional standard column.
 * Parse TSV files as Annotations objects
 * Parse.attach_labels() for inserting annotations into MuseScore files
 * Prepare detached labels so that they can actually be attached

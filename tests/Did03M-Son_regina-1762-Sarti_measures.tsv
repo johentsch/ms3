@@ -90,7 +90,7 @@ mc	mn	keysig	timesig	act_dur	mc_offset	breaks	repeats	volta	barline	numbering_of
 89	89	2	4/4	1	0							90
 90	90	2	4/4	1	0							91
 91	91	2	4/4	1	0							92
-92	92	2	4/4	1	0			1				93, 94
+92	92	2	4/4	1	0							93, 94
 93	93	2	4/4	1	0		end	1				1
 94	94	2	4/4	1	0	line		2	double			95
 95	95	2	4/4	1	0							96
