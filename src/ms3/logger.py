@@ -31,7 +31,7 @@ class ContextAdapter(logging.LoggerAdapter):
         return message, kwargs
 
 
-def get_logger(name=None, level=None, adapter=ContextAdapter):
+def get_logger(name=None, level=None, adapter=ContextAdapter, logfile=None):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     global CURRENT_LEVEL
     if isinstance(name, logging.LoggerAdapter):
@@ -41,7 +41,7 @@ def get_logger(name=None, level=None, adapter=ContextAdapter):
             level = name.level
         name = name.name
     if name not in logging.root.manager.loggerDict:
-        config_logger(name)
+        config_logger(name, logfile=logfile)
     logger = logging.getLogger(name)
 
     if level is not None:

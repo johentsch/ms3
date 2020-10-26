@@ -6,7 +6,7 @@ import sys, re
 import pandas as pd
 import numpy as np
 
-from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, transform
+from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, transform, sort_tpcs
 from .logger import function_logger
 
 
@@ -103,7 +103,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
                     (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                     (?P<form>(%|o|\+|M|\+M))?
                     (?P<figbass>(7|65|43|42|2|64|6))?
-                    (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                     (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                 )
                 (?P<pedalend>\])?
@@ -167,7 +167,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
                 df = propagate_pedal(df, cols=cols, logger=logger)
             except:
                 logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
-
 
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
@@ -491,7 +490,7 @@ def propagate_keys(df, globalkey='globalkey', localkey='localkey', add_bool=True
     """
     df = df.copy()
     nunique = df[globalkey].nunique()
-    assert nunique > 0, "No global key specified. It might be that this function is being applied in a wrong groupby and gets rows instead of entire frames."
+    assert nunique > 0, "No global key specified."
     if nunique > 1:
         raise NotImplementedError("Several global keys not accepted at the moment.")
 
@@ -731,7 +730,6 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     """
 
     df = df.copy()
-
     ### If the index is not unique, it has to be temporarily replaced
     tmp_index = not df.index.is_unique
     if tmp_index:
@@ -753,6 +751,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     param_cols = {col: cols[col] for col in ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'mc'] if cols[col] is not None}
     param_cols['minor'] = local_minor
     param_tuples = list(df[param_cols.values()].itertuples(index=False, name=None))
+    # print([dict({a: b for a, b in zip(param_cols.keys(), t)},  bass_only = bass_only, merge_tones = not expand, logger = logger) for t in set(param_tuples)])
     result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}
     if expand:
         res = pd.DataFrame([result_dict[t] for t in param_tuples], index=df.index)
@@ -768,9 +767,9 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 
 
-@function_logger
+
 def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=None, key='C', minor=None,
-                  merge_tones=True, bass_only=False, mc=None):
+                  merge_tones=True, bass_only=False, mc=None, logger=None):
     """
     Given the features of a chord label, this function returns the chord tones
     in the order of the inversion, starting from the bass note. The tones are
@@ -848,7 +847,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
 
     if numeral.lower() == '#vii' and not minor:
         logger.warning(
-            f"{'' if mc is None else f'MC {mc}: '}{label} in major context is most probably an annotation error.")
+            f"{'' if mc is None else f'MC {mc}: '}{label} in a major context is most probably an annotation error.")
 
     root_alteration, num_degree = split_sd(numeral, count=True, logger=logger)
 

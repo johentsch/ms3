@@ -15,7 +15,7 @@ def ambitus2oneliner(ambitus):
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
 
 
-def decode_harmonies(df, label_col='label', return_series=False):
+def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
@@ -46,8 +46,10 @@ def decode_harmonies(df, label_col='label', return_series=False):
     if return_series:
         return new_label_col
     if 'label_type' in df.columns:
-        #df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-        drop_cols.append('label_type')
+        if keep_type:
+            df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
+        else:
+            drop_cols.append('label_type')
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -217,7 +219,10 @@ def is_minor_mode(fifths, minor=False):
 
 
 def iterable2str(iterable):
-    return ', '.join(str(s) for s in iterable)
+    try:
+        return ', '.join(str(s) for s in iterable)
+    except:
+        return iterable
 
 
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
