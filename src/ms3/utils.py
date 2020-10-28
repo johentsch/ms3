@@ -7,7 +7,7 @@ from itertools import repeat
 import pandas as pd
 import numpy as np
 
-from .logger import function_logger
+from .logger import function_logger, update_cfg
 
 
 def ambitus2oneliner(ambitus):
@@ -710,14 +710,7 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
-@function_logger
-def update_cfg(cfg_dict, admitted_keys):
-    correct = {k: v for k, v in cfg_dict.items() if k in admitted_keys}
-    incorrect = {k: v for k, v in cfg_dict.items() if k not in admitted_keys}
-    if len(incorrect) > 0:
-        corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
-        logger.warning(f"Unknown config options: {incorrect}{corr}")
-    return correct
+
 
 @function_logger
 def update_labels_cfg(labels_cfg):

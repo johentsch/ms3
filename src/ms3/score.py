@@ -2,15 +2,15 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, update_labels_cfg
+from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
-from .logger import get_logger
+from .logger import LoggedClass
 
 
 
 
-class Score:
+class Score(LoggedClass):
     """ Object representing a score.
 
     Attributes
@@ -79,8 +79,7 @@ class Score:
 
     rn_regex = r"^$"
 
-    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_name='Score', level=None,
-                 parser='bs4'):
+    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={}, parser='bs4'):
         """
 
         Parameters
@@ -94,15 +93,16 @@ class Score:
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
             of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.
-        logger_name : :obj:`str`, optional
-            If you have defined a logger, pass its name. Otherwise, the MSCX filename is used.
-        level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
-            Pass a level name for which (and above which) you want to see log records.
+        logger_cfg : :obj:`dict`, optional
+            The following options are available:
+            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            'file': PATH_TO_LOGFILE to store all log messages under the given path.
         parser : {'bs4'}, optional
             The only XML parser currently implemented is BeautifulSoup 4.
         """
-        self.logger = get_logger(logger_name, level)
-        self.full_paths, self.paths, self.files, self.fnames, self.fexts, self.logger_names = {}, {}, {}, {}, {}, {}
+        super().__init__(subclass='Score', logger_cfg=logger_cfg)
+        self.full_paths, self.paths, self.files, self.fnames, self.fexts = {}, {}, {}, {}, {}
         self._mscx = None
         self._annotations = {}
         self._types_to_infer = []
@@ -181,7 +181,7 @@ class Score:
 
 
 
-    def _parse_mscx(self, mscx_src, read_only=False, parser=None, labels_cfg={}, logger_name=None):
+    def _parse_mscx(self, mscx_src, read_only=False, parser=None, labels_cfg={}):
         """
         This method is called by :meth:`.__init__` to parse the score.
         It doesn't systematically clean up data from previous parse.
@@ -191,8 +191,9 @@ class Score:
         if parser is not None:
             self.parser = parser
         if 'mscx' in self.fnames:
-            ln = self.logger_names['mscx'] if logger_name is None else logger_name
-            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_name=ln)
+            logger_cfg = self.logger_cfg.copy()
+            logger_cfg['name'] = self.logger_names['mscx']
+            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_cfg=logger_cfg)
             if self._mscx.has_annotations:
                 self._annotations['annotations'] = self._mscx._annotations
                 self._annotations['annotations'].infer_types(self.get_infer_regex())
@@ -213,7 +214,9 @@ class Score:
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
-        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx, logger_name=f"{self.logger.name}:{key}")
+        logger_cfg = self.logger_cfg.copy()
+        logger_cfg['name'] += f"{self.logger_names['mscx']}:{key}"
+        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx, logger_cfg=logger_cfg)
         if delete:
             self._mscx.delete_labels(df)
         if len(self._annotations['annotations'].df) == 0:
@@ -287,11 +290,11 @@ Use on of the existing keys or load a new set with the method load_annotations()
         mscx = None if self._mscx is None else self._mscx
         if tsv_path is not None:
             key = self.handle_path(tsv_path, key)
-            logger_name = f"{self.logger_names['mscx']}:{key}"
-            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx, logger_name=logger_name)
+            logger_cfg = self.logger_cfg.copy()
+            logger_cfg['name'] = f"{self.logger_names[key]}"
+            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx, logger_cfg=logger_cfg)
         else:
             anno_obj.mscx_obj = mscx
-            anno_obj.logger = get_logger(f"{self.logger_names['mscx']}:{key}")
             self._annotations[key] = anno_obj
 
 
@@ -309,7 +312,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
         if self._annotations[key].store_tsv(tsv_path, **kwargs):
             new_key = self.handle_path(tsv_path, key=key)
             if key != 'annotations':
-                self._annotations[key].logger = get_logger(self.logger_names[new_key])
+                self._annotations[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
     def __repr__(self):
@@ -360,11 +363,8 @@ Use on of the existing keys or load a new set with the method load_annotations()
         except:
             raise AttributeError(item)
 
-    def __getstate__(self):
-        return self.__dict__
 
-    def __setstate__(self, d):
-        self.__dict__.update(d)
+
 
     # def __setattr__(self, key, value):
     #     assert key != 'annotations', "The key 'annotations' is managed automatically, please pick a different one."
@@ -374,7 +374,7 @@ Use on of the existing keys or load a new set with the method load_annotations()
     #     else:
     #         self._annotations[key] = value
 
-class MSCX:
+class MSCX(LoggedClass):
     """ Object for interacting with the XML structure of a MuseScore 3 file.
 
     Attributes
@@ -387,10 +387,11 @@ class MSCX:
         Which XML parser to use.
     infer_label_types :obj:`bool`, optional
         For label_type 0 (simple string), mark which ones
-    logger_name : :obj:`str`, optional
-        If you have defined a logger, pass its name.
-    level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
-        Pass a level name for which (and above which) you want to see log records.
+    logger_cfg : :obj:`dict`, optional
+        The following options are available:
+        'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+        'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+        'file': PATH_TO_LOGFILE to store all log messages under the given path.
 
     Methods
     -------
@@ -398,8 +399,8 @@ class MSCX:
         Write the internal score representation to a file.
     """
 
-    def __init__(self, mscx_src=None, read_only=False, parser='bs4', labels_cfg={}, logger_name='MSCX', level=None):
-        self.logger = get_logger(logger_name, level=level)
+    def __init__(self, mscx_src=None, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None):
+        super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
         self.mscx_src = mscx_src
         self.read_only = read_only
         self._annotations = None
@@ -444,7 +445,8 @@ class MSCX:
 
         implemented_parsers = ['bs4']
         if self.parser == 'bs4':
-            self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_name=self.logger.name)
+
+            self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
@@ -456,7 +458,9 @@ class MSCX:
         self.infer_mc = self._parsed.infer_mc
 
         if self._parsed.has_annotations:
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
+            logger_cfg = self.logger_cfg.copy()
+            logger_cfg['name'] += ':annotations'
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_cfg=logger_cfg)
 
 
     def delete_labels(self, df):
@@ -537,7 +541,9 @@ class MSCX:
         if changes > 0:
             self.changed = True
             self._parsed.parse_measures()
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_name=self.logger.name)
+            logger_cfg = self.logger_cfg.copy()
+            logger_cfg['name'] += ':annotations'
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, logger_cfg=logger_cfg)
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
         return changes
 
@@ -693,5 +699,7 @@ class MSCX:
         """MuseScore version with which the file was created (read-only)."""
         return self._parsed.version
 
+
     # def __getstate__(self):
+    #     self.logger.logger.handlers = []
     #     return self.__dict__

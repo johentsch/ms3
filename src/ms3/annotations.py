@@ -3,10 +3,10 @@ import sys, re
 import pandas as pd
 
 from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir, update_cfg
-from .logger import get_logger
+from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
-class Annotations:
+class Annotations(LoggedClass):
     """
     Class for storing, converting and manipulating annotation labels.
     """
@@ -67,8 +67,27 @@ class Annotations:
                             """,
                     re.VERBOSE)
 
-    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_name='Annotations', level=None, **kwargs):
-        self.logger = get_logger(logger_name, level)
+    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
+        """
+
+        Parameters
+        ----------
+        tsv_path
+        df
+        cols
+        index_col
+        sep
+        mscx_obj
+        infer_types
+        read_only
+        logger_cfg : :obj:`dict`, optional
+            The following options are available:
+            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        kwargs :
+        """
+        super().__init__(subclass='Annotations', logger_cfg=logger_cfg)
         self.regex_dict = infer_types
         self._expanded = None
         self.changed = False

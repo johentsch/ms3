@@ -15,93 +15,17 @@ also be used as template for Python modules.
 Note: This skeleton file can be safely removed if not needed!
 """
 
-import argparse, os, sys, logging
+import argparse, os
 
 from ms3 import Parse, __version__
 from ms3.utils import resolve_dir
 
 __author__ = "johentsch"
-__copyright__ = "johentsch"
+__copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
 __license__ = "gpl3"
 
-_logger = logging.getLogger(__name__)
 
 
-def fib(n):
-    """Fibonacci example function
-
-    Args:
-      n (int): integer
-
-    Returns:
-      int: n-th Fibonacci number
-    """
-    assert n > 0
-    a, b = 1, 1
-    for i in range(n-1):
-        a, b = b, a+b
-    return a
-
-
-def parse_args(args):
-    """Parse command line parameters
-
-    Args:
-      args ([str]): command line parameters as list of strings
-
-    Returns:
-      :obj:`argparse.Namespace`: command line parameters namespace
-    """
-    parser = argparse.ArgumentParser(
-        description="Just a Fibonacci demonstration")
-    parser.add_argument(
-        "--version",
-        action="version",
-        version="ms3 {ver}".format(ver=__version__))
-    parser.add_argument(
-        dest="n",
-        help="n-th Fibonacci number",
-        type=int,
-        metavar="INT")
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        dest="loglevel",
-        help="set loglevel to INFO",
-        action="store_const",
-        const=logging.INFO)
-    parser.add_argument(
-        "-vv",
-        "--very-verbose",
-        dest="loglevel",
-        help="set loglevel to DEBUG",
-        action="store_const",
-        const=logging.DEBUG)
-    return parser.parse_args(args)
-
-
-def setup_logging(loglevel):
-    """Setup basic logging
-
-    Args:
-      loglevel (int): minimum loglevel for emitting messages
-    """
-    logformat = "[%(asctime)s] %(levelname)s:%(name)s:%(message)s"
-    logging.basicConfig(level=loglevel, stream=sys.stdout,
-                        format=logformat, datefmt="%Y-%m-%d %H:%M:%S")
-
-
-def main(args):
-    """Main entry point allowing external calls
-
-    Args:
-      args ([str]): command line parameter list
-    """
-    args = parse_args(args)
-    setup_logging(args.loglevel)
-    _logger.debug("Starting crazy calculations...")
-    print("The {}-th Fibonacci number is {}".format(args.n, fib(args.n)))
-    _logger.info("Script ends here")
 
 
 def extract(args):
@@ -112,10 +36,11 @@ def extract(args):
     if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
         print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
         return
-    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, level=args.level, simulate=args.test)
+    logger_cfg = {'level': args.level}
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
     p.parse_mscx()
-    params = ['notes', 'rests', 'measures', 'events', 'labels', 'chords', 'expanded']
-    suffixes = {f"{p}_suffix": f"_{p}" if args.suffix is None else args.suffix for p in params if p in args}
+    params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
+    suffixes = {f"{p}_suffix": p if args.suffix is None else args.suffix for p in params if p in args}
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
                   labels_folder=args.labels,
@@ -209,5 +134,4 @@ This setting has no effect on absolute folder paths.""")
 
 
 if __name__ == "__main__":
-    print('YIP')
     run()

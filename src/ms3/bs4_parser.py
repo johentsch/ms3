@@ -8,21 +8,17 @@ import pandas as pd
 import numpy as np
 
 from .bs4_measures import MeasureList
-from .logger import get_logger, function_logger
+from .logger import function_logger, LoggedClass
 from .utils import fifths2name, ordinal_suffix, resolve_dir
 
 
-class _MSCX_bs4:
+class _MSCX_bs4(LoggedClass):
     """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
 
     Attributes
     ----------
     mscx_src : :obj:`str`
         Path to the uncompressed MuseScore 3 file (MSCX) to be parsed.
-    logger_name : :obj:`str`, optional
-        If you have defined a logger, pass its name.
-    level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
-        Pass a level name for which (and above which) you want to see log records.
 
     """
 
@@ -40,8 +36,20 @@ class _MSCX_bs4:
                  "256th": frac(1 / 256),
                  "512th": frac(1 / 512), }
 
-    def __init__(self, mscx_src, read_only=False, logger_name='_MSCX_bs4', level=None):
-        self.logger = get_logger(logger_name, level=level)
+    def __init__(self, mscx_src, read_only=False, logger_cfg={}):
+        """
+
+        Parameters
+        ----------
+        mscx_src
+        read_only
+        logger_cfg : :obj:`dict`, optional
+            The following options are available:
+            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        """
+        super().__init__(subclass='_MSCX_bs4', logger_cfg=logger_cfg)
         self.soup = None
         self.metadata = None
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
@@ -212,10 +220,11 @@ class _MSCX_bs4:
         self.logger.info(f"Score written to {filepath}.")
         return True
 
-    def _make_measure_list(self, section_breaks=True, secure=False, reset_index=True, logger_name=None):
+    def _make_measure_list(self, section_breaks=True, secure=False, reset_index=True):
         """ Regenerate the measure list from the parsed score with advanced options."""
-        ln = self.logger.name if logger_name is None else logger_name
-        return MeasureList(self._measures, section_breaks=section_breaks, secure=secure, reset_index=reset_index, logger_name=ln)
+        logger_cfg = self.logger_cfg.copy()
+        logger_cfg['name'] += ':MeasureList'
+        return MeasureList(self._measures, section_breaks=section_breaks, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
 
@@ -946,9 +955,15 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
         return tag
 
+    # def close_file_handlers(self):
+    #     for h in self.logger.logger.handlers:
+    #         if h.__class__ == logging.FileHandler:
+    #             h.close()
+
 
     def __getstate__(self):
         """When pickling, make object read-only, i.e. delete the BeautifulSoup object and all references to tags."""
+        super().__getstate__()
         self.soup = None
         self.tags = {}
         self.measure_nodes = {k: None for k in self.measure_nodes.keys()}

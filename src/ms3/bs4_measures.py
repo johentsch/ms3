@@ -2,9 +2,9 @@ import pandas as pd
 import numpy as np
 from fractions import Fraction as frac
 
-from .logger import get_logger, function_logger
+from .logger import get_logger, function_logger, LoggedClass
 
-class MeasureList:
+class MeasureList(LoggedClass):
     """ Turns a _MSCX_bs4._measures DataFrame into a measure list and performs a couple of consistency checks on the score.
 
     Attributes
@@ -20,10 +20,6 @@ class MeasureList:
         Set to True if you want to be warned about additional measure information from lower staves that is not taken into account.
     reset_index : :obj:`bool`, default True
         By default, the original index of `df` is replaced. Pass False to keep original index values.
-    logger_name : :obj:`str`, optional
-        If you have defined a logger, pass its name.
-    level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
-        Pass a level name for which (and above which) you want to see log records.
 
     cols : :obj:`dict`
         Dictionary of the relevant columns in `df` as present after the parse.
@@ -34,8 +30,22 @@ class MeasureList:
 
     """
 
-    def __init__(self, df, section_breaks=True, secure=False, reset_index=True, logger_name='MeasureList', level=None):
-        self.logger = get_logger(logger_name, level=level)
+    def __init__(self, df, section_breaks=True, secure=False, reset_index=True, logger_cfg={}):
+        """
+
+        Parameters
+        ----------
+        df
+        section_breaks
+        secure
+        reset_index
+        logger_cfg : :obj:`dict`, optional
+            The following options are available:
+            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        """
+        super().__init__(subclass='MeasureList', logger_cfg=logger_cfg)
         self.df = df
         self.ml = pd.DataFrame()
         self.section_breaks = section_breaks
@@ -61,9 +71,9 @@ class MeasureList:
 
 
 
-    def make_ml(self, section_breaks=True, secure=False, reset_index=True, logger_name=None, level=None):
-        if logger_name is not None:
-            self.logger = get_logger(logger_name, level=level)
+    def make_ml(self, section_breaks=True, secure=False, reset_index=True, logger_cfg={}):
+        if logger_cfg != {}:
+            self.update_logger_cfg(logger_cfg=logger_cfg)
         self.section_breaks = section_breaks
         self.secure = secure
         self.reset_index = reset_index
