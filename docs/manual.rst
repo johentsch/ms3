@@ -65,21 +65,7 @@ Parsing a single score
 
 .. rst-class:: bignums
 
-1. Locate the `MuseScore 3 <https://musescore.org/en/download>`__ score you want to parse.
-
-    Make sure it is uncompressed. i.e. it has the extension ``.mscx`` and not ``.mscz``.
-
-    .. tip::
-
-        MSCZ files are ZIP files containing the uncompressed MSCX. A later version of ms3 will be able to deal with MSCZ, too.
-
-
-    In the examples, we parse the annotated first page of Giovanni
-    Battista Pergolesi's influential *Stabat Mater*. The file is called ``stabat.mscx`` and can be downloaded from
-    `here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__ (open link and key ``Ctrl + S`` to save the file
-    or right-click on the link to ``Save link as...``).
-
-2. Import the library.
+1. Import the library.
 
     To parse a single score, we will use the class ``ms3.Score``. We could import the whole library:
 
@@ -94,6 +80,21 @@ Parsing a single score
 
         >>> from ms3 import Score
         >>> s = Score()
+
+
+2. Locate the `MuseScore 3 <https://musescore.org/en/download>`__ score you want to parse.
+
+    Make sure it is uncompressed. i.e. it has the extension ``.mscx`` and not ``.mscz``.
+
+    .. tip::
+
+        MSCZ files are ZIP files containing the uncompressed MSCX. A later version of ms3 will be able to deal with MSCZ, too.
+
+
+    In the examples, we parse the annotated first page of Giovanni
+    Battista Pergolesi's influential *Stabat Mater*. The file is called ``stabat.mscx`` and can be downloaded from
+    `here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__ (open link and key ``Ctrl + S`` to save the file
+    or right-click on the link to ``Save link as...``).
 
 3. Create a ``ms3.Score`` object.
 
@@ -126,10 +127,262 @@ Parsing a single score
 
 
 Parsing options
----------------
+^^^^^^^^^^^^^^^
 
 .. automethod:: ms3.score.Score.__init__
     :noindex:
+
+Parsing multiple scores
+-----------------------
+
+.. rst-class:: bignums
+
+1. Import the library.
+
+    To parse multiple scores, we will use the class ``ms3.Parse``. We could import the whole library:
+
+    .. code-block:: python
+
+        >>> import ms3
+        >>> p = ms3.Parse()
+
+    or simply import the class:
+
+    .. code-block:: python
+
+        >>> from ms3 import Parse
+        >>> p = Parse()
+
+
+2. Locate the folder containing MuseScore files.
+
+    In this example, we are going to parse all files included in ms3's
+    `Git repo <https://github.com/johentsch/ms3>`__ which has been
+    `cloned <https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone>`__
+    into the home directory and therefore has the path ``~/ms3``.
+
+3. Create a ``ms3.Parse`` object
+
+    The object is created by calling it with the directory to scan, and bound
+    to the variable ``p``. By default, scores are grouped by the subdirectories
+    they are in and one key is automatically created for each of them to access
+    the files separately.
+
+    .. code-block:: python
+
+        >>> from ms3 import Parse
+        >>> p = Parse('~/ms3')
+        >>> p
+        10 files.
+        KEY       -> EXTENSIONS
+        -----------------------
+        docs      -> {'.mscx': 4}
+        tests/MS3 -> {'.mscx': 6}
+
+        No mscx files have been parsed.
+
+    As long as you always want to perform actions on all files, it may be convenient
+    to assign a simple key. This might be also useful if you want to add several
+    directories to the object using ``p.add_dir()``:
+
+    .. code-block:: python
+
+        >>> p = Parse('~/ms3', key='test')
+        >>> p.add_dir('~/other_folder', key='other')
+        >>> p
+        237 files.
+        KEY   -> EXTENSIONS
+        -------------------
+        test  -> {'.mscx': 10}
+        other -> {'.mscx': 227}
+
+        No mscx files have been parsed.
+
+    Note that the same 10 files that were distributed over two keys in the previous
+    example are now grouped under the key 'test'.
+
+4. Parse the scores.
+
+    In order to simply parse all registered MuseScore files, call ``p.parse_mscx()``.
+    Instead, you can pass the argument ``key`` to parse only one (or several)
+    selected group(s) to save time. The argument ``level`` controls how many
+    log messages you see; here, it is set to 'critical' or 'c' to suppress all
+    warnings:
+
+    .. code-block:: python
+
+        >>> p.parse_mscx(keys='test', level='c')
+        >>> p
+        KEY   -> EXTENSIONS
+        -------------------
+        test  -> {'.mscx': 10}
+        other -> {'.mscx': 227}
+
+        10/237 MSCX files have been parsed.
+        7 of them have annotations attached.
+        KEY  -> ANNOTATION LAYERS
+        -------------------------
+        test -> staff  voice  label_type
+             -> 2      1      dcml          167
+             -> 3      1      dcml          26
+             ->        2      dcml          48
+             -> 1      1      0             7
+             ->               3             166
+             ->               dcml          568
+
+    As we can see, only the 10 files with the key 'test' were parsed and the
+    table shows an overview of the counts of the included label types in the
+    different notational layers (i.e. staff & voice). For example, the 7 files
+    that include labels, have in their respective upper layers (staff 1, voice 1),
+    568 DCML harmony labels, 166 absolute chord labels (type 3) and 7 random
+    strings (type 0) overall.
+
+
+
+Extracting score information
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Each of the :ref:`previously discussed DataFrames<tabular_info>` can be automatically stored for every score. To select
+one or several aspects from ``[notes, measures, rests, notes_and_rests, events, labels, chords, expanded]``, it is enough
+to pass the respective ``_folder`` parameter to :py:meth:`~ms3.parse.Parsed.store_lists` distinguishing where to store
+the TSV files. Additionally, the method accepts one ``_suffix`` parameter per aspect, i.e. a slug added to the respective
+filenames. If the parameter ``simulate=True`` is passed, no files are written but the file paths to be created are returned.
+
+In this variant, all aspects are stored each in individual folders but with identical filenames:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3/docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',
+                        rests_folder='./rests',
+                        notes_and_rests_folder='./notes_and_rests',
+                        simulate=True
+                        )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/docs/rests/cujus.tsv',
+     '~/ms3/docs/notes_and_rests/cujus.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/docs/rests/o_quam.tsv',
+     '~/ms3/docs/notes_and_rests/o_quam.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/docs/rests/quae.tsv',
+     '~/ms3/docs/notes_and_rests/quae.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/docs/rests/stabat.tsv',
+     '~/ms3/docs/notes_and_rests/stabat.tsv']
+
+
+In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of ``~/ms3``:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3', folder_re='docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',
+                        measures_folder='../measures',
+                        rests_folder='rests',
+                        labels_folder='~/labels',
+                        expanded_folder='~/labels', expanded_suffix='_exp',
+                        simulate = True
+                        )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/rests/docs/cujus.tsv',
+     '~/ms3/measures/cujus.tsv',
+     '~/labels/cujus.tsv',
+     '~/labels/cujus_exp.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/rests/docs/o_quam.tsv',
+     '~/ms3/measures/o_quam.tsv',
+     '~/labels/o_quam.tsv',
+     '~/labels/o_quam_exp.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/rests/docs/quae.tsv',
+     '~/ms3/measures/quae.tsv',
+     '~/labels/quae.tsv',
+     '~/labels/quae_exp.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/rests/docs/stabat.tsv',
+     '~/ms3/measures/stabat.tsv',
+     '~/labels/stabat.tsv',
+     '~/labels/stabat_exp.tsv']
+
+The rules for specifying the folders are as follows:
+
+* absolute folder (e.g. ``~/labels``): Store all files in this particular folder without creating subfolders.
+* relative folder starting with ``./`` or ``../`` means that the file is to be placed relative to the location of the
+  original MSCX file
+* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``) creates the folder under the scan folder and
+  places the files into a (newly created) relative folder structure below.
+
+To see examples for the three possibilities, see the following section.
+
+.. _specifying_folders:
+
+Specifying folders
+^^^^^^^^^^^^^^^^^^
+
+Consider a two-level folder structure contained in the root directory ``.``
+which is the one passed to :obj:`Parse`:
+
+.. code-block:: console
+
+  .
+  ├── docs
+  │   ├── cujus.mscx
+  │   ├── o_quam.mscx
+  │   ├── quae.mscx
+  │   └── stabat.mscx
+  └── tests
+      └── MS3
+          ├── 05_symph_fant.mscx
+          ├── 76CASM34A33UM.mscx
+          ├── BWV_0815.mscx
+          ├── D973deutscher01.mscx
+          ├── Did03M-Son_regina-1762-Sarti.mscx
+          └── K281-3.mscx
+
+The first level contains the subdirectories `docs` (4 files) and `tests`
+(6 files in the subdirectory `MS3`). Now we look at the three different ways to specify folders for storing notes and
+measures.
+
+Absolute Folder
+"""""""""""""""
+
+When we specify absolute paths, all files are stored in the specified directories.
+In this example, the measures and notes are stored in the two specified subfolders
+of the home directory `~`:
+
+.. code-block:: python
+
+  >>> p.store_lists(notes_folder='~/notes', measures_folder='~/measures')
+
+.. code-block:: console
+
+  ~
+  ├── measures
+  │   ├── 05_symph_fant.tsv
+  │   ├── 76CASM34A33UM.tsv
+  │   ├── BWV_0815.tsv
+  │   ├── cujus.tsv
+  │   ├── D973deutscher01.tsv
+  │   ├── Did03M-Son_regina-1762-Sarti.tsv
+  │   ├── K281-3.tsv
+  │   ├── o_quam.tsv
+  │   ├── quae.tsv
+  │   └── stabat.tsv
+  └── notes
+      ├── 05_symph_fant.tsv
+      ├── 76CASM34A33UM.tsv
+      ├── BWV_0815.tsv
+      ├── cujus.tsv
+      ├── D973deutscher01.tsv
+      ├── Did03M-Son_regina-1762-Sarti.tsv
+      ├── K281-3.tsv
+      ├── o_quam.tsv
+      ├── quae.tsv
+      └── stabat.tsv
 
 
 

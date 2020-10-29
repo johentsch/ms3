@@ -336,7 +336,7 @@ Parsing
 	    MC 94, the 1st measure of a 2nd volta, should have MN 93, not MN 94.
 
 Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
-:py:class:`~ms3.score.Score` objects (:ref:`read_only` mode) are stored in the dictionary
+:py:class:`~ms3.score.Score` objects (:ref:`read_only`) are stored in the dictionary
 :py:attr:`~ms3.parse.Parse._parsed`, the state of which can be viewed like this:
 
 .. code-block:: python
@@ -392,7 +392,7 @@ In this variant, all aspects are stored each in individual folders but with iden
      '~/ms3/docs/notes_and_rests/stabat.tsv']
 
 
-In this variant, the different ways of specifying folder are exemplified. To demonstrate all subtleties we parse the
+In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
 same four files but this time from the perspective of ``~/ms3``:
 
 .. code-block:: python
@@ -434,3 +434,5 @@ The rules for specifying the folders are as follows:
   original MSCX file
 * relative folder not starting with ``./`` or ``../`` (e.g. ``rests``) creates the folder under the scan folder and
   places the files into a (newly created) relative folder structure below.
+
+To see examples for the three possibilities, see :ref:`specifying_folders`.
