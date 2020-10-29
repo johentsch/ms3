@@ -218,11 +218,11 @@ class _MSCX_bs4(LoggedClass):
         self.logger.info(f"Score written to {filepath}.")
         return True
 
-    def _make_measure_list(self, section_breaks=True, secure=False, reset_index=True):
+    def _make_measure_list(self, sections=True, secure=False, reset_index=True):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
-        return MeasureList(self._measures, sections=section_breaks, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
+        return MeasureList(self._measures, sections=sections, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
 

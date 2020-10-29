@@ -30,7 +30,7 @@ class MeasureList(LoggedClass):
 
     """
 
-    def __init__(self, df, sections=True, secure=False, reset_index=True, logger_cfg={}):
+    def __init__(self, df, sections=True, secure=False, reset_index=True, columns={}, logger_cfg={}):
         """
 
         Parameters
@@ -59,10 +59,14 @@ class MeasureList(LoggedClass):
                      'breaks': 'LayoutBreak/subtype',
                      'dont_count': 'irregular',
                      'endRepeat': 'endRepeat',
+                     'jump_bwd': 'Jump/jumpTo',
+                     'jump_fwd': 'Jump/continueAt',
                      'keysig_col': 'voice/KeySig/accidental',
                      'len_col': 'Measure:len',
+                     'markers': 'Marker/label',
                      'mc': 'mc',
                      'numbering_offset': 'noOffset',
+                     'play_until': 'Jump/playUntil',
                      'sigN_col': 'voice/TimeSig/sigN',
                      'sigD_col': 'voice/TimeSig/sigD',
                      'staff': 'staff',
@@ -70,6 +74,13 @@ class MeasureList(LoggedClass):
                      'volta_start': 'voice/Spanner/Volta/endings',
                      'volta_length': 'voice/Spanner/next/location/measures',
                      'volta_frac': 'voice/Spanner/next/location/fractions'}
+        col_names = list(self.cols.keys())
+        if any(True for c in columns if c not in col_names):
+            wrong = [c for c in columns if c not in col_names]
+            plural_s = 's' if  len(wrong) > 1 else ''
+            logger.warning(f"Wrong column name{plural_s} passed: {wrong}. Only {col_names} permitted.")
+            columns = {k: v for k, v in columns.items() if k in col_names}
+        self.cols.update(columns)
         self.make_ml()
 
 
@@ -82,10 +93,12 @@ class MeasureList(LoggedClass):
         self.reset_index = reset_index
 
         self.ml = self.get_unique_measure_list()
-        for col in [self.cols[col] for col in ['barline', 'breaks', 'dont_count', 'endRepeat', 'len_col', 'numbering_offset', 'startRepeat', 'volta_start', 'volta_length']]:
+        info_cols = ['barline', 'breaks', 'dont_count', 'endRepeat', 'jump_bwd', 'jump_fwd', 'len_col', 'markers', 'numbering_offset',
+                   'play_until', 'startRepeat', 'volta_start', 'volta_length']
+        for col in [self.cols[col] for col in info_cols]:
             if not col in self.ml.columns:
                 self.ml[col] = np.nan
-        self.ml.rename(columns={self.cols['breaks']: 'breaks'}, inplace=True)
+        self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
         def get_cols(l):
             return {col: self.cols[col] for col in l}
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
@@ -99,7 +112,7 @@ class MeasureList(LoggedClass):
             make_actdur_col: get_cols(['len_col']),
             make_repeat_col: get_cols(['startRepeat', 'endRepeat']),
             make_volta_col: {'volta_structure': self.volta_structure},
-            make_next_col: {'mc_col': self.cols['mc'], 'volta_structure': self.volta_structure, 'breaks': 'breaks',
+            make_next_col: {'volta_structure': self.volta_structure,
                             'logger': self.logger, 'sections': self.sections},
             make_offset_col: {'mc_col': self.cols['mc'], 'section_breaks': 'breaks', 'logger': self.logger},
         }
@@ -109,9 +122,14 @@ class MeasureList(LoggedClass):
             self.ml.reset_index(drop=True, inplace=True)
         rn = {self.cols[col]: col for col in ['barline', 'dont_count', 'numbering_offset']}
         self.ml.rename(columns=rn, inplace=True)
-        self.ml = self.ml[['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'breaks',
-                           'repeats', 'volta', 'barline', 'numbering_offset', 'dont_count',
-                           'next']]
+        ml_cols = ['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta', 'numbering_offset', 'dont_count',
+                   'barline', 'breaks', 'repeats']
+        remove_if_empty = ['markers', 'jump_bwd', 'jump_fwd', 'play_until']
+        if self.ml[remove_if_empty].isna().all().all():
+            ml_cols += ['next']
+        else:
+            ml_cols += remove_if_empty + ['next']
+        self.ml = self.ml[ml_cols]
         self.ml[['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
         self.check_measure_numbers()
 
@@ -176,16 +194,81 @@ class MeasureList(LoggedClass):
                 f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}")
 
 
+@function_logger
+def make_next_col(df, volta_structure={}, sections=True, columns={}, name='next'):
+    """ Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Raw measure list.
+    volta_structure : :obj:`dict`, optional
+        This parameter can be computed by get_volta_structure(). It is empty if
+        there are no voltas in the piece.
+    sections : :obj:`bool`, optional
+        By default, pieces containing section breaks (where counting MNs restarts) receive two more columns in the measures
+        list, namely ``section`` and ``ambiguous_mn`` to grant access to MNs as shown in MuseScore. Pass False to not
+        add such columns.
+    """
+    if sections and (df['breaks'].fillna('') == 'section').sum() == 0:
+        sections = False
+
+    # col_names = ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until', 'repeats', 'volta']
+    col_names = ['mc', 'repeats', 'breaks']
+    sel = df[col_names[1:]].notna().any(axis=1)
+
+    ncm = NextColumnMaker(df, volta_structure, sections=sections, logger_cfg={'name': logger.name})
+    for mc, repeats, breaks in df.loc[sel, col_names].itertuples(index=False):
+        ncm.treat_input(mc, repeats, breaks == 'section')
+
+    for mc, has_repeat in ncm.check_volta_repeats.items():
+        if not has_repeat:
+            logger.warning(f"MC {mc} is missing an endRepeat.")
+
+    try:
+        nxt_col = df['mc'].map(ncm.next).map(tuple)
+    except:
+        print(df['mc'])
+        print(ncm.next)
+        raise
+    return nxt_col.rename(name)
+
 
 class NextColumnMaker(LoggedClass):
 
-    def __init__(self, mc, volta_structure, logger_cfg={}):
+    def __init__(self, df, volta_structure, sections=True, logger_cfg={}):
         super().__init__(subclass='NextColumnMaker', logger_cfg=logger_cfg)
-        self.mc = mc  # Series
+        self.sections = sections
+        self.mc = df.mc  # Series
         if self.mc.isna().any():
-            self.logger.warning(f"MC column contains NaN")
+            self.logger.warning(f"MC column contains NaN which will lead to an incorrect 'next' column.")
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
+        if 'fine' in df.markers.values:
+            fines = df.markers == 'fine'
+            last_row = df.iloc[-1]
+            if fines.sum() > 1:
+                self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")
+            elif last_row.repeats != 'end' and pd.isnull(last_row.jump_bwd):
+                self.logger.warning(
+                    f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.")
+            else:
+                fine_mc = df[fines].iloc[0].mc
+                volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
+                if fine_mc in volta_mcs:
+                    self.next[fine_mc] = [-1]
+                else:
+                    self.next[fine_mc].append(-1)
+                self.next[last_row.mc] = []
+                self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
+
+        if df.jump_bwd.notna().any():
+            jumps = dict(df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd']].values)
+            for mc, j in jumps.items():
+                if j == 'start':
+                    self.next[mc] = [1]
+                    
+        self.repeats = dict(df[['mc', 'repeats']].values)
         self.start = None
         self.potential_start = None
         self.potential_ending = None
@@ -195,16 +278,34 @@ class NextColumnMaker(LoggedClass):
             firsts = []
             lasts = []
             last_volta = max(group)
+            mc_after_voltas = max(group[last_volta]) + 1
+            if mc_after_voltas not in self.next:
+                mc_after_voltas = None
             for volta, mcs in group.items():
-                # every volta except the last needs a repeat sign and will have the
-                # `next` value replaced by the startRepeat MC
+                # every volta except the last needs will have the `next` value replaced either by the startRepeat MC or
+                # by the first MC after the last volta
                 if volta < last_volta:
                     lasts.append(mcs[-1])
                 # the bar before the first volta will have first bar of every volta as `next`
                 firsts.append(mcs[0])
             self.next[first_mc - 1] = firsts
-            self.check_volta_repeats.update({l: False for l in lasts})
-            self.wasp_nest.update({l: lasts for l in lasts})
+            # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
+            # and they are set to True if
+            lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
+            for l in lasts:
+                if not pd.isnull(self.repeats[l]):
+                    if self.repeats[l] == 'end':
+                        self.check_volta_repeats[l] = False
+                        self.wasp_nest[l] = lasts_with_repeat
+                    else:
+                        self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
+                elif mc_after_voltas is None:
+                    self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign nor is there a MC after the volta group where to continue.")
+                else:
+                    self.next[l] = [mc_after_voltas]
+
+
+
 
     def start_section(self, mc):
         if self.start is not None:
@@ -434,45 +535,7 @@ def make_mn_col(df, dont_count, numbering_offset, name='mn'):
     return mn.rename(name)
 
 
-@function_logger
-def make_next_col(df, mc_col='mc', repeats='repeats', breaks='breaks', volta_structure={}, sections=True, name='next'):
-    """ Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        Raw measure list.
-    mc_col, repeats, breaks : :obj:`str`, optional
-        Column names.
-    volta_structure : :obj:`dict`, optional
-        This parameter can be computed by get_volta_structure(). It is empty if
-        there are no voltas in the piece.
-    sections : :obj:`bool`, optional
-        By default, pieces containing section breaks (where counting MNs restarts) receive two more columns in the measures
-        list, namely ``section`` and ``ambiguous_mn`` to grant access to MNs as shown in MuseScore. Pass False to not
-        add such columns.
-    """
-    if len(df[df[breaks].fillna('') == 'section']) == 0:
-        sections = False
-    cols = [mc_col, repeats, breaks]
-    sel = df[repeats].notna() | df[breaks].notna()
-
-    ncm = NextColumnMaker(df[mc_col], volta_structure, logger_cfg={'name': logger.name})
-    for t in df.loc[sel, cols].itertuples(index=False):
-        if breaks is None:
-            mc, repeat = t
-            ncm.treat_input(mc, repeat)
-        else:
-            mc, repeat, section_break = t
-            ncm.treat_input(mc, repeat, section_break == 'section')
-
-    for mc, has_repeat in ncm.check_volta_repeats.items():
-        if not has_repeat:
-            logger.warning(f"MC {mc} is missing an endRepeat.")
-
-    nxt_col = df[mc_col].map(ncm.next).map(tuple)
-
-    return nxt_col.rename(name)
 
 
 
