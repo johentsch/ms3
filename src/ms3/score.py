@@ -652,7 +652,7 @@ class MSCX(LoggedClass):
 
     @property
     def events(self):
-        return self._parsed._events
+        return self._parsed.events
 
     @property
     def expanded(self):

@@ -197,13 +197,11 @@ class _MSCX_bs4(LoggedClass):
                         current_position += event['duration']
 
                 measure_list.append(measure_info)
-        col_order = ['mc', 'mc_onset', 'event', 'duration', 'staff', 'voice', 'chord_id', 'gracenote', 'scalar', 'tpc',
-                     'pitch']
-        self._measures = sort_cols(pd.DataFrame(measure_list), col_order)
-        self._events = sort_cols(pd.DataFrame(event_list), col_order)
+        self._measures = sort_cols(pd.DataFrame(measure_list))
+        self._events = sort_cols(pd.DataFrame(event_list))
         if 'chord_id' in self._events.columns:
             self._events.chord_id = self._events.chord_id.astype('Int64')
-        self._notes = sort_cols(pd.DataFrame(note_list), col_order)
+        self._notes = sort_cols(pd.DataFrame(note_list))
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
         elif 'Harmony' in self._events.event.values:
@@ -224,7 +222,7 @@ class _MSCX_bs4(LoggedClass):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
-        return MeasureList(self._measures, section_breaks=section_breaks, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
+        return MeasureList(self._measures, sections=section_breaks, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
 
@@ -240,6 +238,10 @@ class _MSCX_bs4(LoggedClass):
         if len(self._cl) == 0:
             self.make_standard_chordlist()
         return self._cl
+
+    @property
+    def events(self):
+        return sort_cols(self.add_standard_cols(self._events))
 
     @property
     def measures(self):
@@ -274,6 +276,13 @@ class _MSCX_bs4(LoggedClass):
         if len(self._nrl) == 0:
             nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
             self._nrl = sort_note_list(nr.reset_index(drop=True))
+        return self._nrl
+
+    @property
+    def nrl(self):
+        """Like property `notes_and_rests` but without recomputing."""
+        if len(self._nrl) == 0:
+            return self.notes_and_rests
         return self._nrl
 
     @property
@@ -553,7 +562,11 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
             if m is not None:
                 data['annotated_key'] = m.group(1)
-        staff_groups = self.nl.groupby('staff').midi
+        try:
+            staff_groups = self.nl.groupby('staff').midi
+        except:
+            print(f"Note list columns: {self.nl.columns}")
+            raise
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
                         for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
@@ -579,7 +592,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return str(self.soup.find('programVersion').string)
 
     def add_standard_cols(self, df):
-        df =  df.merge(self.ml[['mc', 'mn', 'timesig', 'mc_offset', 'volta']], on='mc', how='left')
+        add_cols = ['mc'] + [c for c in ['mn', 'timesig', 'mc_offset', 'volta'] if c not in df.columns]
+        df =  df.merge(self.ml[add_cols], on='mc', how='left')
         df['mn_onset'] =  df.mc_onset + df.mc_offset
         return df[[col for col in df.columns if not col == 'mc_offset']]
 
@@ -1169,7 +1183,9 @@ def recurse_node(node, prepend=None, exclude_children=None):
 
 def sort_cols(df, first_cols=None):
     if first_cols is None:
-        first_cols = []
+        first_cols = [
+            'mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration',
+            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
     cols = df.columns
     column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
     return df[column_order]
