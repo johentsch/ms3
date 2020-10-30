@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 import pandas as pd
 import numpy as np
 from fractions import Fraction as frac
@@ -99,6 +101,7 @@ class MeasureList(LoggedClass):
             if not col in self.ml.columns:
                 self.ml[col] = np.nan
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
+        self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
         def get_cols(l):
             return {col: self.cols[col] for col in l}
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
@@ -243,10 +246,11 @@ class NextColumnMaker(LoggedClass):
         if self.mc.isna().any():
             self.logger.warning(f"MC column contains NaN which will lead to an incorrect 'next' column.")
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
+        last_row = df.iloc[-1]
+        end_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
-        if 'fine' in df.markers.values:
-            fines = df.markers == 'fine'
-            last_row = df.iloc[-1]
+        fines = df.markers.str.contains('fine').fillna(False)
+        if fines.any():
             if fines.sum() > 1:
                 self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")
             elif last_row.repeats != 'end' and pd.isnull(last_row.jump_bwd):
@@ -259,15 +263,70 @@ class NextColumnMaker(LoggedClass):
                     self.next[fine_mc] = [-1]
                 else:
                     self.next[fine_mc].append(-1)
+                end_mc = fine_mc
                 self.next[last_row.mc] = []
                 self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
 
         if df.jump_bwd.notna().any():
-            jumps = dict(df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd']].values)
-            for mc, j in jumps.items():
-                if j == 'start':
-                    self.next[mc] = [1]
-                    
+            #jumps = dict(map(lambda row: (row[0], tuple(row[1:])), df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']].values))
+            markers = defaultdict(list)
+            for t in df.loc[df.markers.notna(), ['mc', 'markers']].itertuples(index=False):
+                for marker in t.markers.split(' & '):
+                    markers[marker].append(t.mc)
+            # markers = {marker: mcs.to_list() for marker, mcs in df.groupby('markers').mc}
+
+            def jump2marker(from_mc, marker, untill=None):
+
+                def get_marker_mc(m, untilll=False):
+                    mcs = markers[m]
+                    if len(mcs) > 1:
+                        if untilll:
+                            self.logger.warning(
+f"After jumping from MC {mc} to {marker}, the music is supposed to play until label {m} but there are {len(mcs)} of them: {mcs}. Picking the first one.")
+                        else:
+                            self.logger.warning(
+                            f"MC {mc} is supposed to jump to label {m} but there are {len(mcs)} of them: {mcs}. Picking the first one.")
+                    return mcs[0]
+
+                if marker == 'start':
+                    jump_to_mc = 1
+                elif marker in markers:
+                    jump_to_mc = get_marker_mc(marker)
+                else:
+                    self.logger.warning(
+                        f"MC {from_mc} is supposed to jump to label {marker} but there is no corresponding marker in the score. Ignoring.")
+                    return None, None
+
+                if pd.isnull(untill):
+                    end_of_jump_mc = None
+                elif untill == 'end':
+                    end_of_jump_mc = end_mc
+                elif untill in markers:
+                    end_of_jump_mc = get_marker_mc(untill, True)
+                else:
+                    end_of_jump_mc = None
+                    self.logger.warning(
+                        f"After jumping from MC {from_mc} to {marker}, the music is supposed to play until label {untill} but there is no corresponding marker in the score. Ignoring.")
+                return jump_to_mc, end_of_jump_mc
+
+            bwd_jumps = df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']] #.copy()
+            #bwd_jumps.jump_fwd = bwd_jumps.jump_fwd.replace({'/': None})
+            for mc, jumpb, jumpf, until in bwd_jumps.itertuples(name=None, index=False):
+                jump_to_mc, end_of_jump_mc = jump2marker(mc, jumpb, until)
+                self.next[mc] = [jump_to_mc]
+                self.logger.debug(f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                if not pd.isnull(jumpf):
+                    if end_of_jump_mc is None:
+                        if jumpf in markers:
+                            reason = f"{until} was not found in the score."
+                        else:
+                            reason = "neither of them was found in the score."
+                        self.logger.warning(f"The jump from MC {mc} to {self.next[mc][0]} is supposed to jump forward from {until} to {jumpf}, but {reason}")
+                    else:
+                        to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
+                        self.next[jump_to_mc].append(to_mc)
+                        self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+                
         self.repeats = dict(df[['mc', 'repeats']].values)
         self.start = None
         self.potential_start = None
@@ -288,7 +347,7 @@ class NextColumnMaker(LoggedClass):
                     lasts.append(mcs[-1])
                 # the bar before the first volta will have first bar of every volta as `next`
                 firsts.append(mcs[0])
-            self.next[first_mc - 1] = firsts
+            self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
             # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
             # and they are set to True if
             lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
@@ -300,7 +359,8 @@ class NextColumnMaker(LoggedClass):
                     else:
                         self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
                 elif mc_after_voltas is None:
-                    self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign nor is there a MC after the volta group where to continue.")
+                    if l not in bwd_jumps.mc.values:
+                        self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
 

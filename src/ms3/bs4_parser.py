@@ -331,6 +331,11 @@ class _MSCX_bs4(LoggedClass):
         cols = {'midi': 'Note/pitch',
                 'tpc': 'Note/tpc',
                 }
+        nl_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
+                   'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id']
+        if len(self._nl.index) == 0:
+            self._nl = pd.DataFrame(columns=nl_cols)
+            return
         self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
         self._nl = self._nl.astype({'midi': int, 'tpc': int})
@@ -339,8 +344,7 @@ class _MSCX_bs4(LoggedClass):
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
         self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
 
-        final_cols = [col for col in ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
-                                'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id'] if col in self._nl.columns]
+        final_cols = [col for col in nl_cols if col in self._nl.columns]
         self._nl = sort_note_list(self._nl[final_cols])
 
 
@@ -550,6 +554,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
+        data['musescore'] = self.version
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
         data['last_mn'] = int(last_measure.mn)
@@ -562,11 +567,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
             if m is not None:
                 data['annotated_key'] = m.group(1)
-        try:
-            staff_groups = self.nl.groupby('staff').midi
-        except:
-            print(f"Note list columns: {self.nl.columns}")
-            raise
+        if len(self.nl.index) == 0:
+            return data
+        staff_groups = self.nl.groupby('staff').midi
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
                         for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
@@ -584,7 +587,6 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                             'max_midi': max_midi,
                             'max_name': mana[mami.index(max_midi)],
                           }
-        data['musescore'] = self.version
         return data
 
     @property

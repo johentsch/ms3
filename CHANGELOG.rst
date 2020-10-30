@@ -10,6 +10,7 @@ Version 0.4.0
 * Parse.attach_labels() for inserting annotations into MuseScore files
 * Prepare detached labels so that they can actually be attached
 * Install "ms3 extract" command to the system
+* Including da capo, dal segno, fine, and coda for calculating 'next' column in measures tables (for correct unfolding of repeats)
 * Simulate parsing and table extraction
 * Passing labels_cfg to Score/Parse to control the format of annotation lists
 * Easy access to individual parsed files through Parse[ID] or Parse[ix]
