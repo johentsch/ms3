@@ -459,7 +459,7 @@ def changes2list(changes, sort=True):
     [('+#7', '+', '#', '7'),
      ('b5',  '',  'b', '5')]
     """
-    res = [t for t in re.findall("((\+)?(#+|b+)?(1\d|\d))", changes)]
+    res = [t for t in re.findall(r"((\+)?(#+|b+)?(1\d|\d))", changes)]
     return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
 
 
@@ -1004,7 +1004,7 @@ def split_sd(sd, count=False):
     count : :obj:`bool`, optional
         Pass True to get the accidentals as integer rather than as string.
     """
-    m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
+    m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
         logger.error(sd + " is not a valid scale degree.")
         return None, None

@@ -7319,13 +7319,6 @@ Text: Pietro Metastasio (1689-1782)</text>
         </Measure>
       <Measure>
         <endRepeat>2</endRepeat>
-        <Jump>
-          <style>Repeat Text Right</style>
-          <text>D.S.</text>
-          <jumpTo>segno</jumpTo>
-          <playUntil>end</playUntil>
-          <continueAt></continueAt>
-          </Jump>
         <voice>
           <Harmony>
             <name>I\\</name>

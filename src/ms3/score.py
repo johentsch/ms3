@@ -593,11 +593,14 @@ class MSCX(LoggedClass):
         ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
 
         for w, s in zip(what, suffix):
-            new_name = f"{fname}{s}{ext}"
-            full_path = os.path.join(folder, new_name)
             df = self.__getattribute__(w)
-            no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
-            self.logger.info(f"{w} written to {full_path}")
+            if len(df.index) > 0:
+                new_name = f"{fname}{s}{ext}"
+                full_path = os.path.join(folder, new_name)
+                no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
+                self.logger.info(f"{w} written to {full_path}")
+            else:
+                self.logger.debug(f"{w} empty, no file written.")
 
 
 

@@ -456,6 +456,22 @@ def name2tpc(nn):
     return step_tpc + 7 * accidentals
 
 
+def next2sequence(nxt):
+    """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
+    Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
+    """
+    mc = nxt.index[0]
+    result = []
+    nxt = nxt.to_dict()
+    while mc != -1:
+        result.append(mc)
+        new_mc, *rest = nxt[mc]
+        if len(rest) > 0:
+            nxt[mc] = rest
+        mc = new_mc
+    return result
+
+
 @function_logger
 def no_collections_no_booleans(df):
     """

@@ -101,7 +101,8 @@ class MeasureList(LoggedClass):
             if not col in self.ml.columns:
                 self.ml[col] = np.nan
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
-        self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
+        if self.ml.jump_fwd.notna().any():
+            self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
         def get_cols(l):
             return {col: self.cols[col] for col in l}
         volta_cols = get_cols(['mc', 'volta_start', 'volta_length'])
@@ -249,7 +250,7 @@ class NextColumnMaker(LoggedClass):
         last_row = df.iloc[-1]
         end_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
-        fines = df.markers.str.contains('fine').fillna(False)
+        fines = df.markers.fillna('').str.contains('fine')
         if fines.any():
             if fines.sum() > 1:
                 self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")

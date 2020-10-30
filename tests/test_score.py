@@ -10,7 +10,7 @@ import tempfile
 import pandas as pd
 
 import ms3
-from ms3.utils import load_tsv
+from ms3.utils import decode_harmonies, load_tsv
 
 @pytest.fixture(
     params=['Did03M-Son_regina-1762-Sarti.mscx', 'D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx', '76CASM34A33UM.mscx'],
@@ -58,6 +58,16 @@ class TestParser:
             after = tmp_file.read()
             assert_all_lines_equal(before, after, original=original_mscx, tmp_file=tmp_file)
 
+    def test_expanded_labels(self, score_object):
+        if score_object.mscx.has_annotations:
+            fname = score_object.fnames['mscx']
+            fpath = os.path.join(score_object.paths['mscx'], '..')
+            new_path = os.path.join(fpath, fname + '_labels.tsv')
+            old_path = os.path.join(fpath, 'harmonies', fname + '.tsv')
+            new_expanded = load_tsv(new_path)
+            old_expanded = load_tsv(old_path)
+            assert_dfs_equal(old_expanded, decode_harmonies(new_expanded))
+
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']
         fpath = os.path.join(score_object.paths['mscx'], '..')
@@ -103,13 +113,23 @@ def assert_all_lines_equal(before, after, original, tmp_file):
 
 def assert_dfs_equal(old, new, exclude=[]):
     old_l, new_l = len(old), len(new)
-    l = min(old_l, new_l)
+    greater_length = max(old_l, new_l)
     if old_l != new_l:
         print(f"Old length: {old_l}, new length: {new_l}")
+        old_is_shorter = new_l == greater_length
+        shorter = old if old_is_shorter else new
+        missing_rows = abs(old_l - new_l)
+        shorter_cols = shorter.columns
+        patch = pd.DataFrame([['missing row'] * len(shorter_cols)] * missing_rows, columns=shorter_cols)
+        shorter = pd.concat([shorter, patch], ignore_index=True)
+        if old_is_shorter:
+            old = shorter
+        else:
+            new = shorter
     old.index.rename('old_ix', inplace=True)
     new.index.rename('new_ix', inplace=True)
     cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
-    nan_eq = lambda a, b: (a == b) | pd.isna(a) & pd.isna(b)
+    nan_eq = lambda a, b: (a == b) | pd.isnull(a) & pd.isnull(b)
     diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
     old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
     new_bool = pd.DataFrame.from_dict({ix: bool_series for _, ix, bool_series in diff}, orient='index')
@@ -124,7 +144,7 @@ def assert_dfs_equal(old, new, exclude=[]):
                                        axis=1,
                                        keys=['old', 'new'])
                 comp_str.append(
-                    f"{n_diffs}/{l} ({n_diffs / l * 100:.2f} %) rows are different for {col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n")
+                    f"{n_diffs}/{greater_length} ({n_diffs / greater_length * 100:.2f} %) rows are different for {col}{' (showing first 20)' if n_diffs > 20 else ''}:\n{comparison}\n")
         return '\n'.join(comp_str)
     assert diffs_per_col.sum() == 0, show_diff()
 

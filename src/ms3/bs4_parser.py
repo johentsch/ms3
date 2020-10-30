@@ -333,7 +333,7 @@ class _MSCX_bs4(LoggedClass):
                 }
         nl_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
                    'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id']
-        if len(self._nl.index) == 0:
+        if len(self._notes.index) == 0:
             self._nl = pd.DataFrame(columns=nl_cols)
             return
         self._nl = self.add_standard_cols(self._notes)
