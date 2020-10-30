@@ -2,6 +2,20 @@
 Changelog
 =========
 
+Version 0.4.0
+=============
+
+* The standard column 'onset' has been renamed to 'mc_onset' and 'mn_onset' has been added as an additional standard column.
+* Parse TSV files as Annotations objects
+* Parse.attach_labels() for inserting annotations into MuseScore files
+* Prepare detached labels so that they can actually be attached
+* Install "ms3 extract" command to the system
+* Including da capo, dal segno, fine, and coda for calculating 'next' column in measures tables (for correct unfolding of repeats)
+* Simulate parsing and table extraction
+* Passing labels_cfg to Score/Parse to control the format of annotation lists
+* Easy access to individual parsed files through Parse[ID] or Parse[ix]
+* parse annotation files with diverging column names
+
 Version 0.3.0
 =============
 
@@ -10,9 +24,10 @@ Version 0.3.0
 * Parse.metadata() to return a DataFrame with all parsed pieces' metadata
 * Parse.get_labels() to retrieve labels of a particular kind
 * Parse.info() has improved the information that objects return about themselves
-* Parse['key'] for a quick overview of the files of a given key
+* Parse.key for a quick overview of the files of a given key
 * Parse can be used with a custom index instead of IDs [an ID is an (key, i) tuple]
 * Score.store_list() for easily storing TSVs
+* renamed Score.output_mscx() to store_mscx() for consistency.
 * improved expansion of DCML harmony labels
 
 Version 0.2.0

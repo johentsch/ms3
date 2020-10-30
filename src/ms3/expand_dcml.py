@@ -6,7 +6,7 @@ import sys, re
 import pandas as pd
 import numpy as np
 
-from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, transform
+from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, transform, sort_tpcs
 from .logger import function_logger
 
 
@@ -103,7 +103,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
                     (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                     (?P<form>(%|o|\+|M|\+M))?
                     (?P<figbass>(7|65|43|42|2|64|6))?
-                    (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                     (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                 )
                 (?P<pedalend>\])?
@@ -118,7 +118,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.reset_index(drop=True, inplace=True)
 
 
-    for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey']:
+    for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey', 'phraseend']:
         if not col in cols:
             cols[col] = col
     global_minor = f"{cols['globalkey']}_is_minor"
@@ -134,7 +134,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         else:
             logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
-    import logging
+
 
 
     ### Do the actual expansion
@@ -143,6 +143,15 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     df['chord_type'] = transform(df, features2type, [cols[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
     df = replace_special(df, regex=regex, merge=True, cols=cols, logger=logger)
 
+    ### Check phrase annotations
+    p_col = df[cols['phraseend']]
+    opening = p_col.fillna('').str.count('{')
+    closing = p_col.fillna('').str.count('}')
+    if opening.sum() != closing.sum():
+        o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
+        c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
+        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
+        self.logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
 
     if propagate or chord_tones:
         if not propagate:
@@ -153,11 +162,11 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         except:
             logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}")
 
-        try:
-            df = propagate_pedal(df, cols=cols, logger=logger)
-        except:
-            logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
-
+        if propagate:
+            try:
+                df = propagate_pedal(df, cols=cols, logger=logger)
+            except:
+                logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
 
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
@@ -450,7 +459,7 @@ def changes2list(changes, sort=True):
     [('+#7', '+', '#', '7'),
      ('b5',  '',  'b', '5')]
     """
-    res = [t for t in re.findall("((\+)?(#+|b+)?(1\d|\d))", changes)]
+    res = [t for t in re.findall(r"((\+)?(#+|b+)?(1\d|\d))", changes)]
     return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
 
 
@@ -481,7 +490,7 @@ def propagate_keys(df, globalkey='globalkey', localkey='localkey', add_bool=True
     """
     df = df.copy()
     nunique = df[globalkey].nunique()
-    assert nunique > 0, "No global key specified. It might be that this function is being applied in a wrong groupby and gets rows instead of entire frames."
+    assert nunique > 0, "No global key specified."
     if nunique > 1:
         raise NotImplementedError("Several global keys not accepted at the moment.")
 
@@ -563,8 +572,7 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
     n_b, n_e = len(beginnings), len(endings)
 
     def make_comparison():
-        return pd.concat([beginnings.reset_index(drop=True), endings.reset_index(drop=True)], axis=1).astype(
-            {'mc': 'Int64'})
+        return pd.concat([beginnings.reset_index(drop=True), endings.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
 
     assert n_b == n_e, f"{n_b} organ points started, {n_e} ended:\n{make_comparison()}"
     if relative:
@@ -722,7 +730,6 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     """
 
     df = df.copy()
-
     ### If the index is not unique, it has to be temporarily replaced
     tmp_index = not df.index.is_unique
     if tmp_index:
@@ -744,6 +751,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     param_cols = {col: cols[col] for col in ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'mc'] if cols[col] is not None}
     param_cols['minor'] = local_minor
     param_tuples = list(df[param_cols.values()].itertuples(index=False, name=None))
+    # print([dict({a: b for a, b in zip(param_cols.keys(), t)},  bass_only = bass_only, merge_tones = not expand, logger = logger) for t in set(param_tuples)])
     result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}
     if expand:
         res = pd.DataFrame([result_dict[t] for t in param_tuples], index=df.index)
@@ -759,9 +767,9 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 
 
-@function_logger
+
 def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=None, key='C', minor=None,
-                  merge_tones=True, bass_only=False, mc=None):
+                  merge_tones=True, bass_only=False, mc=None, logger=None):
     """
     Given the features of a chord label, this function returns the chord tones
     in the order of the inversion, starting from the bass note. The tones are
@@ -839,7 +847,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
 
     if numeral.lower() == '#vii' and not minor:
         logger.warning(
-            f"{'' if mc is None else f'MC {mc}: '}{label} in major context is most probably an annotation error.")
+            f"{'' if mc is None else f'MC {mc}: '}{label} in a major context is most probably an annotation error.")
 
     root_alteration, num_degree = split_sd(numeral, count=True, logger=logger)
 
@@ -996,7 +1004,7 @@ def split_sd(sd, count=False):
     count : :obj:`bool`, optional
         Pass True to get the accidentals as integer rather than as string.
     """
-    m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
+    m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
         logger.error(sd + " is not a valid scale degree.")
         return None, None
