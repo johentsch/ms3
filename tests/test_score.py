@@ -32,10 +32,11 @@ class TestBasic:
 
 class TestParser:
 
+    test_folder, _ = os.path.split(os.path.realpath(__file__))
 
     def test_parse_and_write_back(self, score_object):
         original_mscx = score_object.full_paths['mscx']
-        tmp_file = tempfile.NamedTemporaryFile(mode='r')
+        tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=self.test_folder)
         if score_object.mscx.has_annotations:
             score_object.detach_labels('labels')
             score_object.attach_labels('labels')
@@ -52,7 +53,7 @@ class TestParser:
             score_object.load_annotations(fname, key='tsv')
             score_object.detach_labels('labels')
             score_object.attach_labels('tsv')
-            tmp_file = tempfile.NamedTemporaryFile(mode='r')
+            tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.tsv', dir=self.test_folder)
             score_object.store_mscx(tmp_file.name)
             original_mscx = score_object.full_paths['mscx']
             before = open(original_mscx).read()

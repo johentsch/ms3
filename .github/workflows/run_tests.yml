@@ -3,10 +3,10 @@ name: run_tests
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - master
 
 jobs:
   build:
@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: [3.6, 3.7, 3.8]
-        os: [ubuntu-latest, macOS-latest, windows-latest]
+        os: [ubuntu-latest, macOS-latest]
 
     steps:
       - name: Clone repo
@@ -27,8 +27,7 @@ jobs:
       - name: Install library
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[d]"
+          python -m pip install -e ".[testing]"
       - name: Run pytest
         run: |
-          python -m pytest --cov=pitchtypes --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
-          bash <(curl -s https://codecov.io/bash -t 56557496-4b66-488c-a161-abeb7829823c)
+          python -m pytest --cov=ms3 --cov-report=xml --cov-report=html --junitxml=junit/test-results.xml
