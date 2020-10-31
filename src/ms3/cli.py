@@ -82,6 +82,20 @@ def check_dir(d):
     return resolve_dir(d)
 
 
+def convert(args):
+    dir, target = os.path.realpath(args.dir), os.path.realpath(args.target)
+    assert target[:len(
+        dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
+    convert_folder(dir, target,
+                   extensions=args.extensions,
+                   target_extension=args.format,
+                   regex=args.regex,
+                   suffix=args.suffix,
+                   recursive=not args.non_recursive,
+                   MS=args.musescore,
+                   overwrite=args.overwrite,
+                   parallel=args.parallel)
+
 def run():
     """Entry point for console_scripts
     """
@@ -133,6 +147,35 @@ This setting has no effect on absolute folder paths.""")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
                               default=os.getcwd(),
                               help='Folder that will be scanned for MuseScore files (.mscx).')
+
+    convert_parser = subparsers.add_parser('convert',
+                                           help="Use your local install of MuseScore to convert MuseScore files.")
+    convert_parser = argparse.ArgumentParser(description="""Tries to convert all files in DIR that have given extension(s) using a MuseScore executable.
+
+    By default, this is done recursively on subfolders and the folder structure is mirrored in TARGET_DIR,
+    assuming that the standard use case is conversion from an older to a newer MuseScore version.""",
+                                             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
+                                help='path to folder with files to convert; can be relative to the folder where the script is located.')
+    convert_parser.add_argument('target', metavar='TARGET_DIR', nargs='?', type=check_dir, default=os.getcwd(),
+                                help='path to folder for converted files.')
+    convert_parser.add_argument('-e', '--extensions', nargs='+', default=['mscx', 'mscz'],
+                                help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
+    convert_parser.add_argument('-f', '--format', default='mscx',
+                                help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
+    convert_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
+    To use standard paths on commercial systems, try -m win, or -m mac.""")
+    convert_parser.add_argument('-r', '--regex', default=r'.*',
+                                help="Convert only files containing this regular expression (or a simple search string).")
+    extract_parser.add_argument('--nonrecursive', action='store_false',
+                                help="Don't scan folders recursively, i.e. parse only files in DIR.")
+    convert_parser.add_argument('-o', '--overwrite', action='store_true',
+                                help="Set true if existing files are to be overwritten.")
+    convert_parser.add_argument('-p', '--parallel', action='store_true',
+                                help="Use all available CPU cores in parallel to speed up batch jobs.")
+    convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
+    convert_parser.set_defaults(func=convert)
+
     args = parser.parse_args()
     if 'func' in args:
         args.func(args)
