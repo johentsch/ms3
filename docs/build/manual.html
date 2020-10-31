@@ -1,0 +1,265 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manual &#8212; ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</title>
+    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Quick Reference" href="quick.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="quick.html" title="Quick Reference"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="manual">
+<h1>Manual<a class="headerlink" href="#manual" title="Permalink to this headline">¶</a></h1>
+<p>This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
+interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
+<div class="section" id="parsing-a-single-score">
+<h2>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h2>
+<ol class="bignums arabic">
+<li><p>Locate the <a class="reference external" href="https://musescore.org/en/download">MuseScore 3</a> score you want to parse.</p>
+<blockquote>
+<div><p>Make sure it is uncompressed. i.e. it has the extension <code class="docutils literal notranslate"><span class="pre">.mscx</span></code> and not <code class="docutils literal notranslate"><span class="pre">.mscz</span></code>.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>MSCZ files are ZIP files containing the uncompressed MSCX. A later version of ms3 will be able to deal with MSCZ, too.</p>
+</div>
+<p>In the examples, we parse the annotated first page of Giovanni
+Battista Pergolesi’s influential <em>Stabat Mater</em>. The file is called <code class="docutils literal notranslate"><span class="pre">stabat.mscx</span></code> and can be downloaded from
+<a class="reference external" href="https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx">here</a> (open link and key <code class="docutils literal notranslate"><span class="pre">Ctrl</span> <span class="pre">+</span> <span class="pre">S</span></code> to save the file
+or right-click on the link to <code class="docutils literal notranslate"><span class="pre">Save</span> <span class="pre">link</span> <span class="pre">as...</span></code>).</p>
+</div></blockquote>
+</li>
+<li><p>Import the library.</p>
+<blockquote>
+<div><p>To parse a single score, we will use the class <code class="docutils literal notranslate"><span class="pre">ms3.Score</span></code>. We could import the whole library:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">ms3</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Score</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>or simply import the class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">Score</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Create a <code class="docutils literal notranslate"><span class="pre">ms3.Score</span></code> object.</p>
+<blockquote>
+<div><p>In the example, the MuseScore 3 file is located at <code class="docutils literal notranslate"><span class="pre">~/ms3/docs/stabat.mscx</span></code> so we can simply create the object
+and bind it to the variable <code class="docutils literal notranslate"><span class="pre">s</span></code> like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs/stabat.mscx&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Inspect the object.</p>
+<blockquote>
+<div><p>To have a look at the created object we can simply evoke its variable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
+<span class="go">MuseScore file</span>
+<span class="go">--------------</span>
+
+<span class="go">~/ms3/docs/stabat.mscx</span>
+
+<span class="go">Attached annotations</span>
+<span class="go">--------------------</span>
+
+<span class="go">48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      2      dcml          48</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ol>
+<div class="section" id="parsing-options">
+<h3>Parsing options<a class="headerlink" href="#parsing-options" title="Permalink to this headline">¶</a></h3>
+<dl class="py method">
+<dt>
+<code class="sig-prename descclassname">Score.</code><code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Score'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.__init__"><span class="viewcode-link">[source]</span></a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mscx_src</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Path to the MuseScore file to be parsed.</p></li>
+<li><p><strong>infer_label_types</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#list" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#dict" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – Determine which label types are determined automatically. Defaults to [‘dcml’].
+Pass <code class="docutils literal notranslate"><span class="pre">[]</span></code> to infer only main types 0 - 3.
+Pass <a href="#id1"><span class="problematic" id="id2">``</span></a>{‘type_name’: r”^(regular)(Expression)$”} to call <code class="xref py py-meth docutils literal notranslate"><span class="pre">ms3.Score.new_type()</span></code>.</p></li>
+<li><p><strong>read_only</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+of the score, such as adding and deleting labels. Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if you’re only extracting information.</p></li>
+<li><p><strong>logger_name</strong> (<a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you have defined a logger, pass its name. Otherwise, the MSCX filename is used.</p></li>
+<li><p><strong>level</strong> (<em>{'W'</em><em>, </em><em>'D'</em><em>, </em><em>'I'</em><em>, </em><em>'E'</em><em>, </em><em>'C'</em><em>, </em><em>'WARNING'</em><em>, </em><em>'DEBUG'</em><em>, </em><em>'INFO'</em><em>, </em><em>'ERROR'</em><em>, </em><em>'CRITICAL'}</em><em>, </em><em>optional</em>) – Pass a level name for which (and above which) you want to see log records.</p></li>
+<li><p><strong>parser</strong> (<em>{'bs4'}</em><em>, </em><em>optional</em>) – The only XML parser currently implemented is BeautifulSoup 4.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#parsing-options">Parsing options</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="quick.html"
+                          title="Previous page">&larr; Quick Reference</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="license.html"
+                          title="Next page">&rarr; License</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/manual.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="quick.html" title="Quick Reference"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 0.1.2.post0.dev2+g9d887e1.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

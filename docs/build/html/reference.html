@@ -1,0 +1,1060 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Developers’ Reference &#8212; ms3  documentation</title>
+    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="License" href="license.html" />
+    <link rel="prev" title="Manual" href="manual.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3  documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="developers-reference">
+<h1>Developers’ Reference<a class="headerlink" href="#developers-reference" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="module-ms3.score">
+<span id="the-score-module"></span><h2>The score module<a class="headerlink" href="#module-ms3.score" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.score.Score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Score'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object representing a score.</p>
+<dl class="py attribute">
+<dt id="ms3.score.Score.infer_label_types">
+<code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#ms3.score.Score.infer_label_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changing this value results in a call to <code class="xref py py-meth docutils literal notranslate"><span class="pre">infer_types()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.logger">
+<code class="sig-name descname">logger</code><a class="headerlink" href="#ms3.score.Score.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current logger that the object is using.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/logging.html#logging.Logger" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.Logger</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/logging.html#logging.LoggerAdapter" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.LoggerAdapter</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.Score.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The only XML parser currently implemented is BeautifulSoup 4.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘bs4’}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">paths, files, fnames, fexts, logger_names</code></dt>
+<dd><p>Dictionaries for keeping track of file information handled by <a class="reference internal" href="#ms3.score.Score.handle_path" title="ms3.score.Score.handle_path"><code class="xref py py-meth docutils literal notranslate"><span class="pre">handle_path()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.handle_path">
+<code class="sig-name descname">handle_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.handle_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.handle_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Puts the path into <cite>paths, files, fnames, fexts</cite> dicts with the given key.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.mscx">
+<em class="property">property </em><code class="sig-name descname">mscx</code><a class="headerlink" href="#ms3.score.Score.mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the <cite>MSCX</cite> object with the parsed score.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.score.MSCX">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'MSCX'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Object for interacting with the XML structure of a MuseScore 3 file.</p>
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore 3 file to parse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX._parsed">
+<code class="sig-name descname">_parsed</code><a class="headerlink" href="#ms3.score.MSCX._parsed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds the MSCX score parsed by the selected parser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.MSCX.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which XML parser to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">infer_label_types :obj:`bool`, optional</code></dt>
+<dd><p>For label_type 0 (simple string), mark which ones</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.logger_name">
+<code class="sig-name descname">logger_name</code><a class="headerlink" href="#ms3.score.MSCX.logger_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>If you have defined a logger, pass its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.level">
+<code class="sig-name descname">level</code><a class="headerlink" href="#ms3.score.MSCX.level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a level name for which (and above which) you want to see log records.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘W’, ‘D’, ‘I’, ‘E’, ‘C’, ‘WARNING’, ‘DEBUG’, ‘INFO’, ‘ERROR’, ‘CRITICAL’}, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.output_mscx">
+<code class="sig-name descname">output_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ms3.score.MSCX.output_mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the internal score representation to a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.add_labels">
+<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">label</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">onset</span><span class="o">=</span><span class="default_value">'onset'</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">'staff'</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">'voice'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.add_labels" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame with labels to be added.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>kwargs</strong> – <dl class="simple">
+<dt>label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville</dt><dd><p>For these parameters, the standard column names are used automatically if the columns are present.
+If the column names have changed, pass them as kwargs, e.g. <code class="docutils literal notranslate"><span class="pre">base='name_of_the_base_column'</span></code></p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/constants.html#None" title="(in Python v3.8)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.store_list">
+<code class="sig-name descname">store_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">what</span><span class="o">=</span><span class="default_value">'all'</span></em>, <em class="sig-param"><span class="n">folder</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">suffix</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.store_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.store_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store one or several several lists as TSV files(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>what</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code>, optional) – Defaults to ‘all’ but could instead be one or several strings out of {‘notes’, ‘rests’, ‘notes_and_rests’, ‘measures’, ‘events’, ‘labels’, ‘chords’, ‘expanded’}</p></li>
+<li><p><strong>folder</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Where to store. Defaults to the directory of the parsed MSCX file.</p></li>
+<li><p><strong>suffix</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code>, optional) – Suffix appended to the file name of the parsed MSCX file to create a new file name.
+Defaults to None, meaning that standard suffixes based on <code class="docutils literal notranslate"><span class="pre">what</span></code> are attached.
+Number of suffixes needs to be equal to the number of <code class="docutils literal notranslate"><span class="pre">what</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Keyword arguments for <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.to_csv.html#pandas.DataFrame.to_csv" title="(in pandas v1.1.3)"><code class="xref py py-meth docutils literal notranslate"><span class="pre">pandas.DataFrame.to_csv()</span></code></a>. Defaults to <code class="docutils literal notranslate"><span class="pre">{'sep':</span> <span class="pre">'</span>&#160;&#160; <span class="pre">',</span> <span class="pre">'index':</span> <span class="pre">False}</span></code>.
+If ‘sep’ is changed to a different separator, the file extension(s) will be changed to ‘.csv’ rather than ‘.tsv’.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/constants.html#None" title="(in Python v3.8)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.version">
+<em class="property">property </em><code class="sig-name descname">version</code><a class="headerlink" href="#ms3.score.MSCX.version" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore version with which the file was created (read-only).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.annotations">
+<span id="the-annotations-module"></span><h2>The annotations module<a class="headerlink" href="#module-ms3.annotations" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.annotations.Annotations">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.annotations.</code><code class="sig-name descname">Annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tsv_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">df</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index_col</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sep</span><span class="o">=</span><span class="default_value">'\t'</span></em>, <em class="sig-param"><span class="n">infer_types</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Annotations'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class for storing, converting and manipulating annotation labels.</p>
+<dl class="py method">
+<dt id="ms3.annotations.Annotations.label_types">
+<em class="property">property </em><code class="sig-name descname">label_types</code><a class="headerlink" href="#ms3.annotations.Annotations.label_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the counts of the label_types as dict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.annotations.Annotations.get_labels">
+<code class="sig-name descname">get_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">drop</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">warnings</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.get_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.get_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an annotation label .</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, optional) – Select harmonies from a given staff only. Pass <cite>staff=1</cite> for the upper staff.</p></li>
+<li><p><strong>label_type</strong> (<em>{0</em><em>, </em><em>1</em><em>, </em><em>2</em><em>, </em><em>3</em><em>, </em><em>'dcml'</em><em>, </em><em>..}</em><em>, </em><em>optional</em>) – <dl class="simple">
+<dt>If MuseScore’s harmony feature has been used, you can filter harmony types by passing</dt><dd><p>0 for unrecognized strings
+1 for Roman Numeral Analysis
+2 for Nashville Numbers
+3 for encoded absolute chords
+‘dcml’ for labels from the DCML harmonic annotation standard
+… self-defined types that have been added to self.regex_dict through the use of self.infer_types()</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>positioning</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if you want to include information about how labels have been manually positioned.</p></li>
+<li><p><strong>decode</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if you don’t want to keep labels in their original form as encoded by MuseScore (with root and
+bass as TPC (tonal pitch class) where C = 14).</p></li>
+<li><p><strong>drop</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True to delete the returned labels from this object.</p></li>
+<li><p><strong>warnings</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False to suppress warnings about non-existent label_types.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.annotations.Annotations.expand_dcml">
+<code class="sig-name descname">expand_dcml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">drop_others</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">warn_about_others</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.expand_dcml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.expand_dcml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expands all labels where the label_type has been inferred as ‘dcml’ and stores the DataFrame in self._expanded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>drop_others</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False if you want to keep labels in the expanded DataFrame which have not label_type ‘dcml’.</p></li>
+<li><p><strong>warn_about_others</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False to suppress warnings about labels that have not label_type ‘dcml’.
+Is automatically set to False if <code class="docutils literal notranslate"><span class="pre">drop_others</span></code> is set to False.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Expanded DCML labels</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="the-parse-module">
+<h2>The parse module<a class="headerlink" href="#the-parse-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ms3.expand_dcml">
+<span id="the-expand-dcml-module"></span><h2>The expand_dcml module<a class="headerlink" href="#module-ms3.expand_dcml" title="Permalink to this headline">¶</a></h2>
+<p>This is the same code as in the corpora repo as copied on September 24, 2020
+and then adapted.</p>
+<dl class="py class">
+<dt id="ms3.expand_dcml.SliceMaker">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">SliceMaker</code><a class="reference internal" href="_modules/ms3/expand_dcml.html#SliceMaker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.SliceMaker" title="Permalink to this definition">¶</a></dt>
+<dd><p>This class serves for storing slice notation such as <code class="docutils literal notranslate"><span class="pre">:3</span></code> as a variable or
+passing it as function argument.</p>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">SM</span> <span class="o">=</span> <span class="n">SliceMaker</span><span class="p">()</span>
+<span class="n">some_function</span><span class="p">(</span> <span class="n">slice_this</span><span class="p">,</span> <span class="n">SM</span><span class="p">[</span><span class="mi">3</span><span class="p">:</span><span class="mi">8</span><span class="p">]</span> <span class="p">)</span>
+
+<span class="n">select_all</span> <span class="o">=</span> <span class="n">SM</span><span class="p">[:]</span>
+<span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">select_all</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.expand_labels">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">expand_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">column</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">regex</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">dropna</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">propagate</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">relative_to_global</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">chord_tones</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">absolute</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">all_in_c</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#expand_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.expand_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split harmony labels complying with the DCML syntax into columns holding their various features
+and allows for additional computations and transformations.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.compute_chord_tones" title="ms3.expand_dcml.compute_chord_tones"><code class="xref py py-func docutils literal notranslate"><span class="pre">compute_chord_tones()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.features2type" title="ms3.expand_dcml.features2type"><code class="xref py py-func docutils literal notranslate"><span class="pre">features2type()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.labels2global_tonic" title="ms3.expand_dcml.labels2global_tonic"><code class="xref py py-func docutils literal notranslate"><span class="pre">labels2global_tonic()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.propagate_keys" title="ms3.expand_dcml.propagate_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_keys()</span></code></a>,
+<a class="reference internal" href="#ms3.expand_dcml.propagate_pedal" title="ms3.expand_dcml.propagate_pedal"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_pedal()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.replace_special" title="ms3.expand_dcml.replace_special"><code class="xref py py-func docutils literal notranslate"><span class="pre">replace_special()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.rn2tpc" title="ms3.expand_dcml.rn2tpc"><code class="xref py py-func docutils literal notranslate"><span class="pre">rn2tpc()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.split_alternatives" title="ms3.expand_dcml.split_alternatives"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_alternatives()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.split_labels" title="ms3.expand_dcml.split_labels"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_labels()</span></code></a>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">transform()</span></code>, <a class="reference internal" href="#ms3.expand_dcml.transpose" title="ms3.expand_dcml.transpose"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpose()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe where one column contains DCML chord labels.</p></li>
+<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Name of the column that holds the harmony labels.</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regular expression used to split the labels. It needs to have named groups.
+The group names are used as column names unless replaced by <cite>cols</cite>.</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – Dictionary to map the regex’s group names to deviating column names of your choice.</p></li>
+<li><p><strong>dropna</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to drop rows where <cite>column</cite> is NaN/&lt;NA&gt;</p></li>
+<li><p><strong>propagate</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, information about global and local keys and about pedal points is spread throughout
+the DataFrame. Pass False if you only want to split the labels into their features. This ignores
+all following parameters because their expansions depend on information about keys.</p></li>
+<li><p><strong>relative_to_global</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want all labels expressed with respect to the global key.
+This levels and eliminates the features <cite>localkey</cite> and <cite>relativeroot</cite>.</p></li>
+<li><p><strong>chord_tones</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to add four columns that contain information about each label’s
+chord, added, root, and bass tones. The pitches are expressed as intervals
+relative to the respective chord’s local key or, if <cite>relative_to_global=True</cite>,
+to the globalkey. The intervals are represented as integers that represent
+stacks of fifths over the tonic, such that 0 = tonic, 1 = dominant, -1 = subdominant,
+2 = supertonic etc.</p></li>
+<li><p><strong>absolute</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to transpose the relative <cite>chord_tones</cite> to the global
+key, which makes them absolute so they can be expressed as actual note names.
+This implies prior conversion of the chord_tones (but not of the labels) to
+the global tonic.</p></li>
+<li><p><strong>all_in_c</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True to transpose <cite>chord_tones</cite> to C major/minor. This performs the same
+transposition of chord tones as <cite>relative_to_global</cite> but without transposing
+the labels, too. This option clashes with <cite>absolute=True</cite>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Original DataFrame plus additional columns with split features.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.transpose">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">transpose</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">e</span></em>, <em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.transpose" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add <cite>n</cite> to all elements <cite>e</cite> recursively.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.split_alternatives">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">split_alternatives</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">column</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#split_alternatives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.split_alternatives" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits labels that come with an alternative separated by ‘-‘ and adds
+a new column. Only one alternative is taken into account. <cite>df</cite> is
+mutated inplace.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe where one column contains DCML chord labels.</p></li>
+<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Name of the column that holds the harmony labels.</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate <code class="docutils literal notranslate"><span class="pre">df</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-example admonition">
+<p class="admonition-title">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;labels.csv&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">split_alternatives</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.split_labels">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">split_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">column</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">dropna</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#split_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.split_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split harmony labels complying with the DCML syntax into columns holding their various features.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe where one column contains DCML chord labels.</p></li>
+<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Name of the column that holds the harmony labels.</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regular expression used to split the labels. It needs to have named groups.
+The group names are used as column names unless replaced by <cite>cols</cite>.</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>) – Dictionary to map the regex’s group names to deviating column names.</p></li>
+<li><p><strong>dropna</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to drop rows where <code class="docutils literal notranslate"><span class="pre">column</span></code> is NaN/&lt;NA&gt;</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate <code class="docutils literal notranslate"><span class="pre">df</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.features2type">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">features2type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">numeral</span></em>, <em class="sig-param"><span class="n">form</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">figbass</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#features2type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.features2type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns a combination of the three chord features into a chord type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p><strong>‘M’</strong> (<em>Major triad</em>)</p></li>
+<li><p><strong>’m’</strong> (<em>Minor triad</em>)</p></li>
+<li><p><strong>’o’</strong> (<em>Diminished triad</em>)</p></li>
+<li><p><strong>’+’</strong> (<em>Augmented triad</em>)</p></li>
+<li><p><strong>’mm7’</strong> (<em>Minor seventh chord</em>)</p></li>
+<li><p><strong>’Mm7’</strong> (<em>Dominant seventh chord</em>)</p></li>
+<li><p><strong>’MM7’</strong> (<em>Major seventh chord</em>)</p></li>
+<li><p><strong>’mM7’</strong> (<em>Minor major seventh chord</em>)</p></li>
+<li><p><strong>’o7’</strong> (<em>Diminished seventh chord</em>)</p></li>
+<li><p><strong>’%7’</strong> (<em>Half-diminished seventh chord</em>)</p></li>
+<li><p><strong>’+7’</strong> (<em>Augmented (minor) seventh chord</em>)</p></li>
+<li><p><strong>’+M7’</strong> (<em>Augmented major seventh chord</em>)</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.replace_special">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">replace_special</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="n">merge</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">special_map</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#replace_special"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.replace_special" title="Permalink to this definition">¶</a></dt>
+<dd><div class="line-block">
+<div class="line">Move special symbols in the <cite>numeral</cite> column to a separate column and replace them by the explicit chords they stand for.</div>
+<div class="line">In particular, this function replaces the symbols <cite>It</cite>, <cite>Ger</cite>, and <cite>Fr</cite>.</div>
+</div>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.merge_changes" title="ms3.expand_dcml.merge_changes"><code class="xref py py-func docutils literal notranslate"><span class="pre">merge_changes()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe containing DCML chord labels that have been split by split_labels().</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regular expression used to split the labels replacing the special symbols.It needs to have named groups.
+The group names are used as column names unless replaced by <cite>cols</cite>.</p></li>
+<li><p><strong>merge</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – False: By default, existing values, except <cite>figbass</cite>, are overwritten.
+True: Merge existing with new values (for <cite>changes</cite> and <cite>relativeroot</cite>).</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – <p>The special symbols appear in the column <cite>numeral</cite> and are moved to the column <cite>special</cite>.
+In case the column names for <code class="docutils literal notranslate"><span class="pre">['numeral','form',</span> <span class="pre">'figbass',</span> <span class="pre">'changes',</span> <span class="pre">'relativeroot',</span> <span class="pre">'special']</span></code> deviate, pass a dict, such as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;numeral&#39;</span><span class="p">:</span>         <span class="s1">&#39;numeral_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;form&#39;</span><span class="p">:</span>            <span class="s1">&#39;form_col_name</span>
+ <span class="s1">&#39;figbass&#39;</span><span class="p">:</span>         <span class="s1">&#39;figbass_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;changes&#39;</span><span class="p">:</span>         <span class="s1">&#39;changes_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;relativeroot&#39;</span><span class="p">:</span>    <span class="s1">&#39;relativeroot_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;special&#39;</span><span class="p">:</span>         <span class="s1">&#39;special_col_name&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>special_map</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – In case you want to add or alter special symbols to be replaced, pass a replacement map, e.g.
+{‘N’: ‘bII6’}. The column ‘figbass’ is only altered if it’s None to allow for inversions of special chords.</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate <code class="docutils literal notranslate"><span class="pre">df</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.merge_changes">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">merge_changes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">left</span></em>, <em class="sig-param"><span class="n">right</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#merge_changes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.merge_changes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merge two <cite>changes</cite> into one, e.g. <cite>b3</cite> and <cite>+#7</cite> to <cite>+#7b3</cite>.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.changes2list" title="ms3.expand_dcml.changes2list"><code class="xref py py-func docutils literal notranslate"><span class="pre">changes2list()</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.changes2list">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">changes2list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">changes</span></em>, <em class="sig-param"><span class="n">sort</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#changes2list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.changes2list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits a string of changes into a list of 4-tuples.</p>
+<div class="admonition-example admonition">
+<p class="admonition-title">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">changes2list</span><span class="p">(</span><span class="s1">&#39;+#7b5&#39;</span><span class="p">)</span>
+<span class="go">[(&#39;+#7&#39;, &#39;+&#39;, &#39;#&#39;, &#39;7&#39;),</span>
+<span class="go"> (&#39;b5&#39;,  &#39;&#39;,  &#39;b&#39;, &#39;5&#39;)]</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.propagate_keys">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">propagate_keys</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">globalkey</span><span class="o">=</span><span class="default_value">'globalkey'</span></em>, <em class="sig-param"><span class="n">localkey</span><span class="o">=</span><span class="default_value">'localkey'</span></em>, <em class="sig-param"><span class="n">add_bool</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#propagate_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.propagate_keys" title="Permalink to this definition">¶</a></dt>
+<dd><div class="line-block">
+<div class="line">Propagate information about global keys and local keys throughout the dataframe.</div>
+<div class="line">Pass split harmonies for one piece at a time. For concatenated pieces, use apply().</div>
+</div>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.series_is_minor" title="ms3.expand_dcml.series_is_minor"><code class="xref py py-func docutils literal notranslate"><span class="pre">series_is_minor()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe containing DCML chord labels that have been split by split_labels().</p></li>
+<li><p><strong>globalkey</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – In case you renamed the columns, pass column names.</p></li>
+<li><p><strong>localkey</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – In case you renamed the columns, pass column names.</p></li>
+<li><p><strong>add_bool</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to add two boolean columns which are true if the respective key is
+a minor key.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.series_is_minor">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">series_is_minor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">S</span></em>, <em class="sig-param"><span class="n">is_name</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#series_is_minor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.series_is_minor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns boolean Series where every value in <code class="docutils literal notranslate"><span class="pre">S</span></code> representing a minor key/chord is True.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.propagate_pedal">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">propagate_pedal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">relative</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">drop_pedalend</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#propagate_pedal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.propagate_pedal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Propagate the pedal note for all chords within square brackets.
+By default, the note is expressed in relation to each label’s localkey.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.rel2abs_key" title="ms3.expand_dcml.rel2abs_key"><code class="xref py py-func docutils literal notranslate"><span class="pre">rel2abs_key()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.abs2rel_key" title="ms3.expand_dcml.abs2rel_key"><code class="xref py py-func docutils literal notranslate"><span class="pre">abs2rel_key()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe containing DCML chord labels that have been split by split_labels()
+and where the keys have been propagated using propagate_keys().</p></li>
+<li><p><strong>relative</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass False if you want the pedal note to stay the same even if the localkey changes.</p></li>
+<li><p><strong>drop_pedalend</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass False if you don’t want the column with the ending brackets to be dropped.</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – <p>In case the column names for <code class="docutils literal notranslate"><span class="pre">['pedal','pedalend',</span> <span class="pre">'globalkey',</span> <span class="pre">'localkey']</span></code> deviate, pass a dict, such as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;pedal&#39;</span><span class="p">:</span>       <span class="s1">&#39;pedal_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;pedalend&#39;</span><span class="p">:</span>    <span class="s1">&#39;pedalend_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;globalkey&#39;</span><span class="p">:</span>   <span class="s1">&#39;globalkey_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;localkey&#39;</span><span class="p">:</span>    <span class="s1">&#39;localkey_col_name&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.abs2rel_key">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">abs2rel_key</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">absolute</span></em>, <em class="sig-param"><span class="n">localkey</span></em>, <em class="sig-param"><span class="n">global_minor</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#abs2rel_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.abs2rel_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expresses a Roman numeral as scale degree relative to a given localkey.
+The result changes depending on whether Roman numeral and localkey are
+interpreted within a global major or minor key.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.split_sd" title="ms3.expand_dcml.split_sd"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_sd()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>absolute</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Relative key expressed as Roman scale degree of the local key.</p></li>
+<li><p><strong>localkey</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – The local key in terms of which <cite>absolute</cite> will be expressed.</p></li>
+<li><p><strong>global_minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a><em>, </em><em>optional</em>) – Has to be set to True if <cite>absolute</cite> and <cite>localkey</cite> are scale degrees of a global minor key.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<p>In a minor context, the key of II would appear within the key of vii as #III.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;bvi&#39;       # F minor expressed with respect to A major</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;vi&#39;        # F minor expressed with respect to A minor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;vi&#39;        # F minor expressed with respect to Ab major</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;#vi&#39;       # F minor expressed with respect to Ab minor</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;III&#39;       # A major expressed with respect to F major</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;#III&#39;       # A major expressed with respect to F minor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;bIII&#39;       # Ab major expressed with respect to F major</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">abs2rel_key</span><span class="p">(</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;iv&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;III&#39;       # Ab major expressed with respect to F minor</span>
+</pre></div>
+</div>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.compute_chord_tones">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">compute_chord_tones</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">bass_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">expand</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#compute_chord_tones"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.compute_chord_tones" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the chord tones for DCML harmony labels. They are returned as lists
+of tonal pitch classes in close position, starting with the bass note. The
+tonal pitch classes represent intervals relative to the local tonic:</p>
+<p>-2: Second below tonic
+-1: fifth below tonic
+0: tonic
+1: fifth above tonic
+2: second above tonic, etc.</p>
+<p>The labels need to have undergone <a class="reference internal" href="#ms3.expand_dcml.split_labels" title="ms3.expand_dcml.split_labels"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_labels()</span></code></a> and <a class="reference internal" href="#ms3.expand_dcml.propagate_keys" title="ms3.expand_dcml.propagate_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_keys()</span></code></a>.
+Pedal points are not taken into account.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.features2tpcs" title="ms3.expand_dcml.features2tpcs"><code class="xref py py-func docutils literal notranslate"><span class="pre">features2tpcs()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe containing DCML chord labels that have been split by split_labels()
+and where the keys have been propagated using propagate_keys(add_bool=True).</p></li>
+<li><p><strong>bass_only</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you need only the bass note.</p></li>
+<li><p><strong>expand</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you need chord tones and added tones in separate columns.</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – <p>In case the column names for <code class="docutils literal notranslate"><span class="pre">['mc',</span> <span class="pre">'numeral',</span> <span class="pre">'form',</span> <span class="pre">'figbass',</span> <span class="pre">'changes',</span> <span class="pre">'relativeroot',</span> <span class="pre">'localkey',</span> <span class="pre">'globalkey']</span></code> deviate, pass a dict, such as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;mc&#39;</span><span class="p">:</span>              <span class="s1">&#39;mc&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;numeral&#39;</span><span class="p">:</span>         <span class="s1">&#39;numeral_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;form&#39;</span><span class="p">:</span>            <span class="s1">&#39;form_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;figbass&#39;</span><span class="p">:</span>         <span class="s1">&#39;figbass_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;changes&#39;</span><span class="p">:</span>         <span class="s1">&#39;changes_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;relativeroot&#39;</span><span class="p">:</span>    <span class="s1">&#39;relativeroot_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;localkey&#39;</span><span class="p">:</span>        <span class="s1">&#39;localkey_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;globalkey&#39;</span><span class="p">:</span>       <span class="s1">&#39;globalkey_col_name&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>You may also deactivate columns by setting them to None, e.g. {‘changes’: None}</p>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>For every row of <cite>df</cite> one tuple with chord tones, expressed as tonal pitch classes.
+If <cite>expand</cite> is True, the function returns a DataFrame with four columns:
+Two with tuples for chord tones and added tones, one with the chord root,
+and one with the bass note.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.Series</span></code></a> or <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.features2tpcs">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">features2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">numeral</span></em>, <em class="sig-param"><span class="n">form</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">figbass</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">changes</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">relativeroot</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'C'</span></em>, <em class="sig-param"><span class="n">minor</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">merge_tones</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">bass_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#features2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.features2tpcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the features of a chord label, this function returns the chord tones
+in the order of the inversion, starting from the bass note. The tones are
+expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.changes2list" title="ms3.expand_dcml.changes2list"><code class="xref py py-func docutils literal notranslate"><span class="pre">changes2list()</span></code></a>, <code class="xref py py-func docutils literal notranslate"><span class="pre">name2tpc()</span></code>, <a class="reference internal" href="#ms3.expand_dcml.resolve_relative_keys" title="ms3.expand_dcml.resolve_relative_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_relative_keys()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.rn2tpc" title="ms3.expand_dcml.rn2tpc"><code class="xref py py-func docutils literal notranslate"><span class="pre">rn2tpc()</span></code></a>,
+<code class="xref py py-func docutils literal notranslate"><span class="pre">sort_tpcs()</span></code>, <a class="reference internal" href="#ms3.expand_dcml.str_is_minor" title="ms3.expand_dcml.str_is_minor"><code class="xref py py-func docutils literal notranslate"><span class="pre">str_is_minor()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>numeral</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Roman numeral of the chord’s root</p></li>
+<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id1"><span class="problematic" id="id2">`</span></a>form`is None).
+‘%’ and ‘M’ can only occur as tetrads, not as triads.</p></li>
+<li><p><strong>figbass</strong> (<em>{None</em><em>, </em><em>'6'</em><em>, </em><em>'64'</em><em>, </em><em>'7'</em><em>, </em><em>'65'</em><em>, </em><em>'43'</em><em>, </em><em>'2'}</em><em>, </em><em>optional</em>) – Indicates chord’s inversion. Pass None for triad root position.</p></li>
+<li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Added steps such as ‘+6’ or suspensions such as ‘4’ or any combination such as (9+64).
+Numbers need to be in descending order.</p></li>
+<li><p><strong>relativeroot</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Pass a Roman scale degree if <cite>numeral</cite> is to be applied to a different scale
+degree of the local key, as in ‘V65/V’</p></li>
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, optional) – The local key expressed as the root’s note name or a tonal pitch class.
+If it is a name and <cite>minor</cite> is <cite>None</cite>, uppercase means major and lowercase minor.
+If it is a tonal pitch class, <cite>minor</cite> needs to be specified.</p></li>
+<li><p><strong>minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True for minor and False for major. Can be omitted if <cite>key</cite> is a note name.
+This affects calculation of chords related to III, VI and VII.</p></li>
+<li><p><strong>merge_tones</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass False if you want the function to return two tuples, one with (potentially suspended)
+chord tones and one with added notes.</p></li>
+<li><p><strong>bass_only</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Return only the bass note instead of all chord tones.</p></li>
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a>) – Pass measure count to display it in warnings.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.str_is_minor">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">str_is_minor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tone</span></em>, <em class="sig-param"><span class="n">is_name</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#str_is_minor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.str_is_minor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if <code class="docutils literal notranslate"><span class="pre">tone</span></code> represents a minor key or chord.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.rn2tpc">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">rn2tpc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rn</span></em>, <em class="sig-param"><span class="n">global_minor</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#rn2tpc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.rn2tpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.split_sd" title="ms3.expand_dcml.split_sd"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_sd()</span></code></a></p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.split_sd">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">split_sd</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sd</span></em>, <em class="sig-param"><span class="n">count</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#split_sd"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.split_sd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits a scale degree such as ‘bbVI’ or ‘b6’ into accidentals and numeral.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sd</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Scale degree.</p></li>
+<li><p><strong>count</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True to get the accidentals as integer rather than as string.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.labels2global_tonic">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">labels2global_tonic</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#labels2global_tonic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.labels2global_tonic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transposes all numerals to their position in the global major or minor scale.
+This eliminates localkeys and relativeroots. The resulting chords are defined
+by [<cite>numeral</cite>, <cite>figbass</cite>, <cite>changes</cite>, <cite>globalkey_is_minor</cite>] (and <cite>pedal</cite>).</p>
+<p>Uses: <code class="xref py py-func docutils literal notranslate"><span class="pre">transform()</span></code>, <code class="xref py py-func docutils literal notranslate"><span class="pre">rel2abs_key^,</span> <span class="pre">:py:func:`resolve_relative_keys()</span></code> -&gt; <a class="reference internal" href="#ms3.expand_dcml.str_is_minor" title="ms3.expand_dcml.str_is_minor"><code class="xref py py-func docutils literal notranslate"><span class="pre">str_is_minor()</span></code></a>
+<a class="reference internal" href="#ms3.expand_dcml.transpose_changes" title="ms3.expand_dcml.transpose_changes"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpose_changes()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.series_is_minor" title="ms3.expand_dcml.series_is_minor"><code class="xref py py-func docutils literal notranslate"><span class="pre">series_is_minor()</span></code></a>,</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe containing DCML chord labels that have been split by split_labels()
+and where the keys have been propagated using propagate_keys(add_bool=True).</p></li>
+<li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – <p>In case the column names for <code class="docutils literal notranslate"><span class="pre">['numeral',</span> <span class="pre">'form',</span> <span class="pre">'figbass',</span> <span class="pre">'changes',</span> <span class="pre">'relativeroot',</span> <span class="pre">'localkey',</span> <span class="pre">'globalkey']</span></code> deviate, pass a dict, such as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;chord&#39;</span><span class="p">:</span>           <span class="s1">&#39;chord_col_name&#39;</span>
+ <span class="s1">&#39;pedal&#39;</span><span class="p">:</span>           <span class="s1">&#39;pedal_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;numeral&#39;</span><span class="p">:</span>         <span class="s1">&#39;numeral_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;form&#39;</span><span class="p">:</span>            <span class="s1">&#39;form_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;figbass&#39;</span><span class="p">:</span>         <span class="s1">&#39;figbass_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;changes&#39;</span><span class="p">:</span>         <span class="s1">&#39;changes_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;relativeroot&#39;</span><span class="p">:</span>    <span class="s1">&#39;relativeroot_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;localkey&#39;</span><span class="p">:</span>        <span class="s1">&#39;localkey_col_name&#39;</span><span class="p">,</span>
+ <span class="s1">&#39;globalkey&#39;</span><span class="p">:</span>       <span class="s1">&#39;globalkey_col_name&#39;</span><span class="p">}}</span>
+</pre></div>
+</div>
+</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate the input.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>If <cite>inplace=False</cite>, the relevant features of the transposed chords are returned.
+Otherwise, the original DataFrame is mutated.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.rel2abs_key">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">rel2abs_key</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rel</span></em>, <em class="sig-param"><span class="n">localkey</span></em>, <em class="sig-param"><span class="n">global_minor</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#rel2abs_key"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.rel2abs_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expresses a Roman numeral that is expressed relative to a localkey
+as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
+the result changes depending on whether the global key is major or minor.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.split_sd" title="ms3.expand_dcml.split_sd"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_sd()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rel</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Relative key or chord expressed as Roman scale degree of the local key.</p></li>
+<li><p><strong>localkey</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – The local key to which <cite>rel</cite> is relative.</p></li>
+<li><p><strong>global_minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><em>bool</em></a><em>, </em><em>optional</em>) – Has to be set to True if <cite>localkey</cite> is a scale degree of a global minor key.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition-examples admonition">
+<p class="admonition-title">Examples</p>
+<p>If the label viio6/VI appears in the context of the local key VI or vi,
+viio6 the absolute key to which viio6 applies depends on the global key.
+The comments express the examples in relation to global C major or C minor.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;#iv&#39;       # vi of A major = F# minor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">&#39;iv&#39;        # vi of A minor = F minor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;iv&#39;        # vi of Ab major = F minor</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rel2abs_key</span><span class="p">(</span><span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="s1">&#39;vi&#39;</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">&#39;biv&#39;       # vi of Ab minor = Fb minor</span>
+</pre></div>
+</div>
+<p>The same examples hold if you’re expressing in terms of the global key
+the root of a VI-chord within the local keys VI or vi.</p>
+</div>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.resolve_relative_keys">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">resolve_relative_keys</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">relativeroot</span></em>, <em class="sig-param"><span class="n">minor</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#resolve_relative_keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.resolve_relative_keys" title="Permalink to this definition">¶</a></dt>
+<dd><p>Resolve nested relative keys, e.g. ‘V/V/V’ =&gt; ‘VI’.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.rel2abs_key" title="ms3.expand_dcml.rel2abs_key"><code class="xref py py-func docutils literal notranslate"><span class="pre">rel2abs_key()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.str_is_minor" title="ms3.expand_dcml.str_is_minor"><code class="xref py py-func docutils literal notranslate"><span class="pre">str_is_minor()</span></code></a></p>
+<dl>
+<dt>relativeroot<span class="classifier"><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>One or several relative keys, e.g. iv/v/VI (fourth scale degree of the fifth scale degree of the sixth scale degree)</p>
+</dd>
+<dt>minor<span class="classifier"><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional</span></dt><dd><p>Pass True if the last of the relative keys is to be interpreted within a minor context.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.transpose_changes">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">transpose_changes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">changes</span></em>, <em class="sig-param"><span class="n">old_num</span></em>, <em class="sig-param"><span class="n">new_num</span></em>, <em class="sig-param"><span class="n">old_minor</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">new_minor</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#transpose_changes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.transpose_changes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Since the interval sizes expressed by the changes of the DCML harmony syntax
+depend on the numeral’s position in the scale, these may change if the numeral
+is transposed. This function expresses the same changes for the new position.
+Chord tone alterations (of 3 and 5) stay untouched.</p>
+<p>Uses: <a class="reference internal" href="#ms3.expand_dcml.changes2tpc" title="ms3.expand_dcml.changes2tpc"><code class="xref py py-func docutils literal notranslate"><span class="pre">changes2tpc()</span></code></a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – A string of changes following the DCML harmony standard.</p></li>
+<li><p><strong>old_num</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>:) – Old numeral, new numeral.</p></li>
+<li><p><strong>new_num</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>:) – Old numeral, new numeral.</p></li>
+<li><p><strong>old_minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – For each numeral, pass True if it occurs in a minor context.</p></li>
+<li><p><strong>new_minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – For each numeral, pass True if it occurs in a minor context.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.transform_columns">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">transform_columns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">columns</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">param2col</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#transform_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.transform_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper function to use transform() on df[columns], leaving the other columns untouched.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame where columns (or column combinations) work as function arguments.</p></li>
+<li><p><strong>func</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#callable" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">callable</span></code></a>) – Function you want to apply to all elements in <cite>columns</cite>.</p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a>) – Columns to which you want to apply <cite>func</cite>.</p></li>
+<li><p><strong>param2col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a>, optional) – Mapping from parameter names of <cite>func</cite> to column names.
+If you pass a list of column names, the columns’ values are passed as positional arguments.
+Pass None if you want to use all columns as positional arguments.</p></li>
+<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate <cite>df</cite> rather than getting an altered copy.</p></li>
+<li><p><strong>**kwargs</strong> (<em>keyword arguments for transform</em><em>(</em><em>)</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.transform_note_columns">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">transform_note_columns</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">to</span></em>, <em class="sig-param"><span class="n">note_cols</span><span class="o">=</span><span class="default_value">['chord_tones', 'added_tones', 'bass_note', 'root']</span></em>, <em class="sig-param"><span class="n">minor_col</span><span class="o">=</span><span class="default_value">'localkey_is_minor'</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#transform_note_columns"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.transform_note_columns" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns columns with line-of-fifth tonal pitch classes into another representation.</p>
+<p>Uses: transform_columns()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame where columns (or column combinations) work as function arguments.</p></li>
+<li><p><strong>to</strong> (<em>{'name'</em><em>, </em><em>'iv'</em><em>, </em><em>'pc'</em><em>, </em><em>'sd'</em><em>, </em><em>'rn'}</em>) – <p>The tone representation that you want to get from the <cite>note_cols</cite>.</p>
+<ul>
+<li><dl class="simple">
+<dt>’name’: Note names. Should only be used if the stacked fifths actually represent</dt><dd><p>absolute tonal pitch classes rather than intervals over the local tonic.
+In other words, make sure to use ‘name’ only if 0 means C rather than I.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’iv’:   Intervals such that 0 = ‘P1’, 1 = ‘P5’, 4 = ‘M3’, -3 = ‘m3’, 6 = ‘A4’,</dt><dd><p>-6 = ‘D5’ etc.</p>
+</dd>
+</dl>
+</li>
+<li><p>’pc’:   (Relative) chromatic pitch class, or distance from tonic in semitones.</p></li>
+<li><dl class="simple">
+<dt>’sd’:   Scale degrees such that 0 = ‘1’, -1 = ‘4’, -2 = ‘b7’ in major, ‘7’ in minor etc.</dt><dd><p>This representation requires a boolean column <cite>minor_col</cite> which is
+True in those rows where the stacks of fifths occur in a local minor
+context and False for the others. Alternatively, if all pitches are
+in the same mode or you simply want to express them as degrees of
+particular mode, you can pass the boolean keyword argument <cite>minor</cite>.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>’rn’:   Roman numerals such that 0 = ‘I’, -2 = ‘bVII’ in major, ‘VII’ in minor etc.</dt><dd><p>Requires boolean ‘minor’ values, see ‘sd’.</p>
+</dd>
+</dl>
+</li>
+</ul>
+</p></li>
+<li><p><strong>note_cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a>, optional) – List of columns that hold integers or collections of integers that represent
+stacks of fifth (0 = tonal center, 1 = fifth above, -1 = fourth above, etc).</p></li>
+<li><p><strong>minor_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If <cite>to</cite> is ‘sd’ or ‘rn’, specify a boolean column where the value is
+True in those rows where the stacks of fifths occur in a local minor
+context and False for the others.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.changes2tpc">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">changes2tpc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">changes</span></em>, <em class="sig-param"><span class="n">numeral</span></em>, <em class="sig-param"><span class="n">minor</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">root_alterations</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#changes2tpc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.changes2tpc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given a numeral and changes, computes the intervals that the changes represent.
+Changes do not express absolute intervals but instead depend on the numeral and the mode.</p>
+<p>Uses: split_sd(), changes2list()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – A string of changes following the DCML harmony standard.</p></li>
+<li><p><strong>numeral</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Roman numeral. If it is preceded by accidentals, it depends on the parameter
+<cite>root_alterations</cite> whether these are taken into account.</p></li>
+<li><p><strong>minor</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to true if the <cite>numeral</cite> occurs in a minor context.</p></li>
+<li><p><strong>root_alterations</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if accidentals of the root should change the result.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.expand_dcml.chord2tpcs">
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">chord2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chord</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#chord2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.chord2tpcs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a chord label into its features and apply features2tpcs().</p>
+<p>Uses: features2tpcs()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chord</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Chord label that can be split into the features [‘numeral’, ‘form’, ‘figbass’, ‘changes’, ‘relativeroot’].</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regex with named groups for the five features.</p></li>
+<li><p><strong>**kwargs</strong> – arguments for features2tpcs (pass MC to show it in warnings!)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Developers' Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.score">The score module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The annotations module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-parse-module">The parse module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-ms3.expand_dcml">The expand_dcml module</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="manual.html"
+                          title="Previous page">&larr; Manual</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="license.html"
+                          title="Next page">&rarr; License</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/reference.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="license.html" title="License"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3  documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

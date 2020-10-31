@@ -1,0 +1,749 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3.bs4_measures &#8212; ms3 0.1.2 documentation</title>
+    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.bs4_measures</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ms3.bs4_measures</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
+
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">get_logger</span><span class="p">,</span> <span class="n">function_logger</span>
+
+<div class="viewcode-block" id="MeasureList"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList">[docs]</a><span class="k">class</span> <span class="nc">MeasureList</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; Turns a _MSCX_bs4._measures DataFrame into a measure list and performs a couple of consistency checks on the score.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pandas.DataFrame`</span>
+<span class="sd">        The input DataFrame from _MSCX_bs4.raw_measures</span>
+<span class="sd">    section_breaks : :obj:`bool`, default True</span>
+<span class="sd">        By default, section breaks allow for several anacrusis measures within the piece (relevant for `mc_offset` column)</span>
+<span class="sd">        and make it possible to omit a repeat sign in the following bar (relevant for `next` column).</span>
+<span class="sd">        Set to False if you want to ignore section breaks.</span>
+<span class="sd">    secure : :obj:`bool`, default False</span>
+<span class="sd">        By default, measure information from lower staves is considered to contain only redundant information.</span>
+<span class="sd">        Set to True if you want to be warned about additional measure information from lower staves that is not taken into account.</span>
+<span class="sd">    reset_index : :obj:`bool`, default True</span>
+<span class="sd">        By default, the original index of `df` is replaced. Pass False to keep original index values.</span>
+<span class="sd">    logger_name : :obj:`str`, optional</span>
+<span class="sd">        If you have defined a logger, pass its name.</span>
+<span class="sd">    level : {&#39;W&#39;, &#39;D&#39;, &#39;I&#39;, &#39;E&#39;, &#39;C&#39;, &#39;WARNING&#39;, &#39;DEBUG&#39;, &#39;INFO&#39;, &#39;ERROR&#39;, &#39;CRITICAL&#39;}, optional</span>
+<span class="sd">        Pass a level name for which (and above which) you want to see log records.</span>
+
+<span class="sd">    cols : :obj:`dict`</span>
+<span class="sd">        Dictionary of the relevant columns in `df` as present after the parse.</span>
+<span class="sd">    ml : :obj:`pandas.DataFrame`</span>
+<span class="sd">        The measure list in the making; the final result.</span>
+<span class="sd">    volta_structure : :obj:`dict`</span>
+<span class="sd">        Keys are first MCs of volta groups, values are dictionaries of {volta_no: [mc1, mc2 ...]}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">secure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reset_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="s1">&#39;MeasureList&#39;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">df</span> <span class="o">=</span> <span class="n">df</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">section_breaks</span> <span class="o">=</span> <span class="n">section_breaks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secure</span> <span class="o">=</span> <span class="n">secure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_index</span> <span class="o">=</span> <span class="n">reset_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volta_structure</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cols</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;barline&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/BarLine/subtype&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;breaks&#39;</span><span class="p">:</span> <span class="s1">&#39;LayoutBreak/subtype&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;dont_count&#39;</span><span class="p">:</span> <span class="s1">&#39;irregular&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;endRepeat&#39;</span><span class="p">:</span> <span class="s1">&#39;endRepeat&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;keysig_col&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/KeySig/accidental&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;len_col&#39;</span><span class="p">:</span> <span class="s1">&#39;Measure:len&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="s1">&#39;mc&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;numbering_offset&#39;</span><span class="p">:</span> <span class="s1">&#39;noOffset&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;sigN_col&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/TimeSig/sigN&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;sigD_col&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/TimeSig/sigD&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;staff&#39;</span><span class="p">:</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;startRepeat&#39;</span><span class="p">:</span> <span class="s1">&#39;startRepeat&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;volta_start&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/Spanner/Volta/endings&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;volta_length&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/Spanner/next/location/measures&#39;</span><span class="p">,</span>
+                     <span class="s1">&#39;volta_frac&#39;</span><span class="p">:</span> <span class="s1">&#39;voice/Spanner/next/location/fractions&#39;</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_ml</span><span class="p">()</span>
+
+
+
+<div class="viewcode-block" id="MeasureList.make_ml"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.make_ml">[docs]</a>    <span class="k">def</span> <span class="nf">make_ml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">secure</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">reset_index</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">logger_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">section_breaks</span> <span class="o">=</span> <span class="n">section_breaks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">secure</span> <span class="o">=</span> <span class="n">secure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_index</span> <span class="o">=</span> <span class="n">reset_index</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_unique_measure_list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;barline&#39;</span><span class="p">,</span> <span class="s1">&#39;breaks&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="s1">&#39;endRepeat&#39;</span><span class="p">,</span> <span class="s1">&#39;len_col&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;startRepeat&#39;</span><span class="p">,</span> <span class="s1">&#39;volta_start&#39;</span><span class="p">,</span> <span class="s1">&#39;volta_length&#39;</span><span class="p">]]:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;breaks&#39;</span><span class="p">]:</span> <span class="s1">&#39;breaks&#39;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="s1">&#39;breaks&#39;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">section_breaks</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">get_cols</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">l</span><span class="p">}</span>
+        <span class="n">volta_cols</span> <span class="o">=</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;volta_start&#39;</span><span class="p">,</span> <span class="s1">&#39;volta_length&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;volta_frac&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">volta_cols</span><span class="p">[</span><span class="s1">&#39;frac_col&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;volta_frac&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">volta_structure</span> <span class="o">=</span> <span class="n">get_volta_structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">,</span> <span class="o">**</span><span class="n">volta_cols</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">func_params</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">make_mn_col</span><span class="p">:</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">]),</span>
+            <span class="n">make_keysig_col</span><span class="p">:</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;keysig_col&#39;</span><span class="p">]),</span>
+            <span class="n">make_timesig_col</span><span class="p">:</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;sigN_col&#39;</span><span class="p">,</span> <span class="s1">&#39;sigD_col&#39;</span><span class="p">]),</span>
+            <span class="n">make_actdur_col</span><span class="p">:</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;len_col&#39;</span><span class="p">]),</span>
+            <span class="n">make_repeat_col</span><span class="p">:</span> <span class="n">get_cols</span><span class="p">([</span><span class="s1">&#39;startRepeat&#39;</span><span class="p">,</span> <span class="s1">&#39;endRepeat&#39;</span><span class="p">]),</span>
+            <span class="n">make_volta_col</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;volta_structure&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">volta_structure</span><span class="p">},</span>
+            <span class="n">make_next_col</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;mc_col&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">],</span> <span class="s1">&#39;volta_structure&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">volta_structure</span><span class="p">,</span> <span class="s1">&#39;section_breaks&#39;</span><span class="p">:</span> <span class="n">sections</span><span class="p">,</span>
+                            <span class="s1">&#39;logger&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">},</span>
+            <span class="n">make_offset_col</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;mc_col&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">],</span> <span class="s1">&#39;section_breaks&#39;</span><span class="p">:</span> <span class="n">sections</span><span class="p">,</span> <span class="s1">&#39;logger&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">},</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">func</span><span class="p">,</span> <span class="n">params</span> <span class="ow">in</span> <span class="n">func_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_col</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">params</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reset_index</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">rn</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]:</span> <span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;barline&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">]}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rn</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;breaks&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;repeats&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">,</span> <span class="s1">&#39;barline&#39;</span><span class="p">,</span> <span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">,</span>
+                           <span class="s1">&#39;next&#39;</span><span class="p">]]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;dont_count&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_measure_numbers</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="MeasureList.add_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.add_col">[docs]</a>    <span class="k">def</span> <span class="nf">add_col</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Inserts or appends a column created by `func(df, **kwargs)`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_col</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">new_col</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_col</span></div>
+
+
+<div class="viewcode-block" id="MeasureList.get_unique_measure_list"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.get_unique_measure_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_unique_measure_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Keep only the measure information from the first staff.</span>
+<span class="sd">        Uses: keep_one_row_each()</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        mc_col, staff_col : :obj:`str`, optional</span>
+<span class="sd">            DataFrame columns where MC and staff can be found. Staff is to be dropped.</span>
+<span class="sd">        secure : :obj:`bool`</span>
+<span class="sd">            If the dropped rows contain additional information, set `secure` to True to</span>
+<span class="sd">            be informed about the information being lost by the function keep_one_row_each().</span>
+<span class="sd">        **kwargs: Additional parameter passed on to keep_one_row_each(). Ignored if `secure=False`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">secure</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">keep_one_row_each</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="p">,</span> <span class="n">compress_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">],</span> <span class="n">differentiating_col</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">],</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MeasureList.check_measure_numbers"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.MeasureList.check_measure_numbers">[docs]</a>    <span class="k">def</span> <span class="nf">check_measure_numbers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">mn_col</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">mc_offset</span><span class="o">=</span><span class="s1">&#39;mc_offset&#39;</span><span class="p">,</span>
+                              <span class="n">dont_count</span><span class="o">=</span><span class="s1">&#39;dont_count&#39;</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="o">=</span><span class="s1">&#39;numbering_offset&#39;</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">ordinal</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;1st&#39;</span>
+            <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;2nd&#39;</span>
+            <span class="k">elif</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="k">return</span> <span class="s1">&#39;3rd&#39;</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">th&#39;</span>
+        <span class="n">mc2mn</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">mn_col</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+        <span class="c1"># Check measure numbers in voltas</span>
+        <span class="k">for</span> <span class="n">volta_group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">volta_structure</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">volta_group</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">mn</span> <span class="o">=</span> <span class="n">mc2mn</span><span class="p">[</span><span class="n">m</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">mc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">start</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+                    <span class="n">current_mn</span> <span class="o">=</span> <span class="n">mc2mn</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">current_mn</span> <span class="o">!=</span> <span class="n">mn</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">, the </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="si">}</span><span class="s2"> measure of a </span><span class="si">{</span><span class="n">ordinal</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="si">}</span><span class="s2"> volta, should have MN </span><span class="si">{</span><span class="n">mn</span><span class="si">}</span><span class="s2">, not MN </span><span class="si">{</span><span class="n">current_mn</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Check measure numbers for split measures</span>
+        <span class="n">error_mask</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">mc_offset</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">dont_count</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">numbering_offset</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span>
+        <span class="n">n_errors</span> <span class="o">=</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">n_errors</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mcs</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">error_mask</span><span class="p">,</span> <span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span>
+            <span class="n">context_mask</span> <span class="o">=</span> <span class="n">error_mask</span> <span class="o">|</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span> <span class="o">|</span> <span class="n">error_mask</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">context_mask</span><span class="p">,</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">mn_col</span><span class="p">,</span> <span class="n">act_dur</span><span class="p">,</span> <span class="n">mc_offset</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">]]</span>
+            <span class="n">plural</span> <span class="o">=</span> <span class="n">n_errors</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;MC</span><span class="si">{</span><span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">mcs</span><span class="si">}</span><span class="s2"> seem</span><span class="si">{</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="si">}</span><span class="s2"> to be offset from the MN&#39;s beginning but ha</span><span class="si">{</span><span class="s1">&#39;ve&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;s&#39;</span><span class="si">}</span><span class="s2"> not been excluded from barcount. Context:</span><span class="se">\n</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+
+
+
+<div class="viewcode-block" id="NextColumnMaker"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.NextColumnMaker">[docs]</a><span class="k">class</span> <span class="nc">NextColumnMaker</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">volta_structure</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="n">logger</span><span class="p">)</span> <span class="k">if</span> <span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mc</span> <span class="o">=</span> <span class="n">mc</span>  <span class="c1"># Series</span>
+        <span class="n">nxt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">else</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">next</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">nx</span> <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">nx</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mc</span><span class="p">,</span> <span class="n">nxt</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_volta_repeats</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">wasp_nest</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">first_mc</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">volta_structure</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">firsts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">lasts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">last_volta</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">group</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">volta</span><span class="p">,</span> <span class="n">mcs</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># every volta except the last needs a repeat sign and will have the</span>
+                <span class="c1"># `next` value replaced by the startRepeat MC</span>
+                <span class="k">if</span> <span class="n">volta</span> <span class="o">&lt;</span> <span class="n">last_volta</span><span class="p">:</span>
+                    <span class="n">lasts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="c1"># the bar before the first volta will have first bar of every volta as `next`</span>
+                <span class="n">firsts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mcs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">first_mc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">firsts</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_volta_repeats</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">l</span><span class="p">:</span> <span class="kc">False</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lasts</span><span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wasp_nest</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">l</span><span class="p">:</span> <span class="n">lasts</span> <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">lasts</span><span class="p">})</span>
+
+<div class="viewcode-block" id="NextColumnMaker.start_section"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.NextColumnMaker.start_section">[docs]</a>    <span class="k">def</span> <span class="nf">start_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;The startRepeat in MC </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">}</span><span class="s2"> is missing its endRepeat.</span>
+<span class="s2">    For correction, MC </span><span class="si">{</span><span class="n">mc</span> <span class="o">-</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> is interpreted as such because it precedes the next startRepeat.&quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_section</span><span class="p">(</span><span class="n">mc</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ending</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;The startRepeat in MC </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="si">}</span><span class="s2"> is missing its endRepeat.</span>
+<span class="s2">    For correction, MC </span><span class="si">{</span><span class="n">ending</span><span class="si">}</span><span class="s2"> is interpreted as such because it </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">end_section</span><span class="p">(</span><span class="n">ending</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="n">mc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="NextColumnMaker.end_section"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.NextColumnMaker.end_section">[docs]</a>    <span class="k">def</span> <span class="nf">end_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">start</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span>
+            <span class="k">if</span> <span class="n">reason</span> <span class="o">==</span> <span class="s1">&#39;firstMeasure&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> has been inferred as startRepeat for the endRepeat in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> because it is the first bar of the piece.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;The endRepeat in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> is missing its startRepeat.</span>
+<span class="s2">    For correction, MC </span><span class="si">{</span><span class="n">start</span><span class="si">}</span><span class="s2"> is interpreted as such because it </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span>
+                <span class="k">if</span> <span class="s2">&quot;section break&quot;</span> <span class="ow">in</span> <span class="n">msg</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">mc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_volta_repeats</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">check_volta_repeats</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">mc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">wasp_nest</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;No starting point for the repeatEnd in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> could be determined. It is being ignored.&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">volta_endings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">wasp_nest</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">volta_endings</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">e</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">]</span>
+                        <span class="k">del</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">wasp_nest</span><span class="p">[</span><span class="n">e</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">elif</span> <span class="n">start</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No starting point for the repeatEnd in MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> could be determined. It is being ignored.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">start</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">next</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">pot_mc</span><span class="p">,</span> <span class="n">reason</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span>
+                <span class="k">if</span> <span class="n">pot_mc</span> <span class="o">==</span> <span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">pot_mc</span><span class="p">,</span> <span class="n">reason</span> <span class="o">+</span> <span class="s1">&#39; and the previous endRepeat&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;is the first bar after the previous endRepeat&#39;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;is the first bar after the previous endRepeat&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="NextColumnMaker.treat_input"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.NextColumnMaker.treat_input">[docs]</a>    <span class="k">def</span> <span class="nf">treat_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">section_break</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">section_break</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="s1">&#39;precedes a section break&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;follows a section break&#39;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">repeat</span> <span class="o">==</span> <span class="s1">&#39;firstMeasure&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">potential_start</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="s1">&#39;firstMeasure&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">repeat</span> <span class="o">==</span> <span class="s1">&#39;start&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_section</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">repeat</span> <span class="o">==</span> <span class="s1">&#39;startend&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_section</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_section</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">repeat</span> <span class="o">==</span> <span class="s1">&#39;end&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">end_section</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">repeat</span> <span class="o">==</span> <span class="s1">&#39;lastMeasure&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">potential_ending</span> <span class="o">=</span> <span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="s1">&#39;is the last bar of the piece.&#39;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start_section</span><span class="p">(</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="get_volta_structure"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.get_volta_structure">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">get_volta_structure</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">volta_start</span><span class="p">,</span> <span class="n">volta_length</span><span class="p">,</span> <span class="n">frac_col</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Uses: treat_group()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc</span><span class="p">,</span> <span class="n">volta_start</span><span class="p">,</span> <span class="n">volta_length</span><span class="p">]</span>
+    <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">volta_start</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+    <span class="n">voltas</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">voltas</span><span class="p">[</span><span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()]</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The volta in MC </span><span class="si">{</span><span class="n">rows</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2"> has no length: A standard length of 1 is supposed.&quot;</span><span class="p">)</span>
+        <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span> <span class="o">=</span> <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">voltas</span> <span class="o">=</span> <span class="n">voltas</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">voltas</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">frac_col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">voltas</span><span class="p">[</span><span class="n">volta_length</span><span class="p">]</span> <span class="o">+=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">frac_col</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+    <span class="n">voltas</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">voltas</span><span class="p">[</span><span class="n">volta_start</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;group&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">voltas</span><span class="o">.</span><span class="n">group</span> <span class="o">=</span> <span class="n">voltas</span><span class="o">.</span><span class="n">group</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="p">{</span><span class="n">v</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">v</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">to_numpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">voltas</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;group&#39;</span><span class="p">)}</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">treat_group</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Inferred volta structure: </span><span class="si">{</span><span class="n">res</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+
+<div class="viewcode-block" id="keep_one_row_each"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.keep_one_row_each">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">keep_one_row_each</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">compress_col</span><span class="p">,</span> <span class="n">differentiating_col</span><span class="p">,</span> <span class="n">differentiating_val</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fillna</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                      <span class="n">drop_differentiating</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Eliminates duplicates in `compress_col` but warns about values within the</span>
+<span class="sd">        dropped rows which diverge from those of the remaining rows. The `differentiating_col`</span>
+<span class="sd">        serves to identify places where information gets lost during the process.</span>
+
+<span class="sd">    The result of this function is the same as `df.drop_duplicates(subset=[compress_col])`</span>
+<span class="sd">    if `differentiating_val` is None, and `df[df[compress_col] == differentiating_val]` otherwise</span>
+<span class="sd">    but with the difference that only adjacent duplicates are eliminated.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    compress_col : :obj:`str`</span>
+<span class="sd">        Column with duplicates (e.g. measure counts).</span>
+<span class="sd">    differentiating_col : :obj:`str`</span>
+<span class="sd">        Column that differentiates duplicates (e.g. staff IDs).</span>
+<span class="sd">    differentiating_val : value, optional</span>
+<span class="sd">        If you want to keep rows with a certain `differentiating_col` value, pass that value (e.g. a certain staff).</span>
+<span class="sd">        Otherwise, the first row of every `compress_col` value is kept.</span>
+<span class="sd">    ignore_columns : :obj:`Iterable`, optional</span>
+<span class="sd">        These columns are not checked.</span>
+<span class="sd">    fillna : :obj:`bool`, optional</span>
+<span class="sd">        By default, missing values of kept rows are filled if the dropped rows contain</span>
+<span class="sd">        one unique value in that particular column. Pass False to keep rows as they are.</span>
+<span class="sd">    drop_differentiating : :obj:`bool`, optional</span>
+<span class="sd">        By default, the column that differentiates the `compress_col` is dropped.</span>
+<span class="sd">        Pass False to prevent that.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">ignore_columns</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">ignore_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">differentiating_col</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ignore_columns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">differentiating_col</span><span class="p">)</span>
+    <span class="n">consider_for_notna</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">ignore_columns</span> <span class="o">+</span> <span class="p">[</span><span class="n">compress_col</span><span class="p">]]</span>
+    <span class="n">consider_for_duplicated</span> <span class="o">=</span> <span class="n">consider_for_notna</span> <span class="o">+</span> <span class="p">[</span><span class="n">compress_col</span><span class="p">]</span>
+    <span class="n">empty_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">consider_for_duplicated</span><span class="p">]</span><span class="o">.</span><span class="n">isnull</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">differentiating_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">keep_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">differentiating_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">differentiating_val</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">keep_rows</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">compress_col</span><span class="p">]</span> <span class="o">!=</span> <span class="n">df</span><span class="p">[</span><span class="n">compress_col</span><span class="p">]</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span>
+    <span class="n">drop_rows</span> <span class="o">=</span> <span class="o">~</span><span class="n">keep_rows</span> <span class="o">&amp;</span> <span class="n">empty_rows</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">drop_rows</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">compress</span><span class="p">(</span><span class="n">df</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">differentiating_val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">keep_row</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[[</span><span class="mi">0</span><span class="p">]]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="n">remaining</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">consider_for_duplicated</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">keep</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">differentiating_col</span><span class="p">]</span> <span class="o">==</span> <span class="n">differentiating_val</span>
+            <span class="n">keep_row</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">keep</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">keep_row</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;The column designated by `differentiating_col` needs to be unique.&quot;</span>
+            <span class="n">remaining</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">keep</span><span class="p">]</span><span class="o">.</span><span class="n">drop_duplicates</span><span class="p">(</span><span class="n">subset</span><span class="o">=</span><span class="n">consider_for_duplicated</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">remaining</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">keep_row</span>
+        <span class="n">which</span> <span class="o">=</span> <span class="n">keep_row</span><span class="p">[</span><span class="n">compress_col</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="n">col_name</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">keep_row</span><span class="p">[</span><span class="n">consider_for_notna</span><span class="p">]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+                                        <span class="n">remaining</span><span class="p">[</span><span class="n">consider_for_notna</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                <span class="k">continue</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">col</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">val</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">new_val</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="ow">and</span> <span class="n">fillna</span><span class="p">:</span>
+                    <span class="n">keep_row</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_val</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">compress_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">which</span><span class="si">}</span><span class="s2">: The missing value in &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39; was replaced by &#39;</span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">&#39;, present in </span><span class="si">{</span><span class="n">differentiating_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remaining</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">remaining</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_val</span><span class="p">,</span> <span class="n">differentiating_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">compress_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">which</span><span class="si">}</span><span class="s2">: The value &#39;</span><span class="si">{</span><span class="n">new_val</span><span class="si">}</span><span class="s2">&#39; in &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39; of </span><span class="si">{</span><span class="n">differentiating_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remaining</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">remaining</span><span class="p">[</span><span class="n">col_name</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_val</span><span class="p">,</span> <span class="n">differentiating_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2"> is lost.&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">compress_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">which</span><span class="si">}</span><span class="s2">: The values </span><span class="si">{</span><span class="n">vals</span><span class="si">}</span><span class="s2"> in &#39;</span><span class="si">{</span><span class="n">col_name</span><span class="si">}</span><span class="s2">&#39; of </span><span class="si">{</span><span class="n">differentiating_col</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">remaining</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">col</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span> <span class="n">differentiating_col</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="si">}</span><span class="s2"> are lost.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">keep_row</span>
+
+    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">compress_col</span><span class="p">,</span> <span class="n">group_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">compress</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">differentiating_col</span><span class="p">)</span> <span class="k">if</span> <span class="n">drop_differentiating</span> <span class="k">else</span> <span class="n">result</span></div>
+
+
+<div class="viewcode-block" id="make_actdur_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_actdur_col">[docs]</a><span class="k">def</span> <span class="nf">make_actdur_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">len_col</span><span class="p">,</span> <span class="n">timesig_col</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">):</span>
+    <span class="n">actdur</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">len_col</span><span class="p">]</span>
+    <span class="n">actdur</span> <span class="o">=</span> <span class="n">actdur</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">timesig_col</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">actdur</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="make_keysig_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_keysig_col">[docs]</a><span class="k">def</span> <span class="nf">make_keysig_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">keysig_col</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;keysig&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">keysig_col</span> <span class="ow">in</span> <span class="n">df</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">keysig_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_mn_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_mn_col">[docs]</a><span class="k">def</span> <span class="nf">make_mn_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">dont_count</span><span class="p">,</span> <span class="n">numbering_offset</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mn&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compute measure numbers where one or two columns can influence the counting.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pd.DataFrame`</span>
+<span class="sd">        If no other parameters are given, every row is counted, starting from 1.</span>
+<span class="sd">    dont_count : :obj:`str`, optional</span>
+<span class="sd">        This column has notna() for measures where the option &quot;Exclude from bar count&quot; is activated, NaN otherwise.</span>
+<span class="sd">    numbering_offset : :obj:`str`, optional</span>
+<span class="sd">        This column has values of the MuseScore option &quot;Add to bar number&quot;, which adds</span>
+<span class="sd">        notna() values to this and all subsequent measures.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dont_count</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">mn</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">excluded</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">dont_count</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">mn</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">excluded</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">numbering_offset</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">numbering_offset</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">offset</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+            <span class="n">mn</span> <span class="o">+=</span> <span class="n">offset</span>
+    <span class="k">return</span> <span class="n">mn</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_next_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_next_col">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">make_next_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">repeats</span><span class="o">=</span><span class="s1">&#39;repeats&#39;</span><span class="p">,</span> <span class="n">volta_structure</span><span class="o">=</span><span class="p">{},</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Uses a `NextColumnMaker` object to create a column with all MCs that can follow each MC (e.g. due to repetitions).</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pandas.DataFrame`</span>
+<span class="sd">        Raw measure list.</span>
+<span class="sd">    mc_col, repeats : :obj:`str`, optional</span>
+<span class="sd">        Column names.</span>
+<span class="sd">    volta_structure : :obj:`dict`, optional</span>
+<span class="sd">        This parameter can be computed by get_volta_structure(). It is empty if</span>
+<span class="sd">        there are no voltas in the piece.</span>
+<span class="sd">    section_breaks : :obj:`str`, optional</span>
+<span class="sd">        If you pass the name of a column, the string &#39;section&#39; is taken into account</span>
+<span class="sd">        as ending a section and therefore potentially ending a repeated part even when</span>
+<span class="sd">        the repeat sign is missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">section_breaks</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">repeats</span><span class="p">]</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">repeats</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">repeats</span><span class="p">,</span> <span class="n">section_breaks</span><span class="p">]</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">repeats</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">|</span> <span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+
+    <span class="n">ncm</span> <span class="o">=</span> <span class="n">NextColumnMaker</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">mc_col</span><span class="p">],</span> <span class="n">volta_structure</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">ncm</span><span class="o">.</span><span class="n">treat_input</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">section_break</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">ncm</span><span class="o">.</span><span class="n">treat_input</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">section_break</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">mc</span><span class="p">,</span> <span class="n">has_repeat</span> <span class="ow">in</span> <span class="n">ncm</span><span class="o">.</span><span class="n">check_volta_repeats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">has_repeat</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> is missing an endRepeat.&quot;</span><span class="p">)</span>
+
+    <span class="n">nxt_col</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">ncm</span><span class="o">.</span><span class="n">next</span><span class="p">)</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nxt_col</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+
+
+<div class="viewcode-block" id="make_offset_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_offset_col">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">make_offset_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_col</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">timesig</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="n">act_dur</span><span class="o">=</span><span class="s1">&#39;act_dur&#39;</span><span class="p">,</span> <span class="n">next_col</span><span class="o">=</span><span class="s1">&#39;next&#39;</span><span class="p">,</span> <span class="n">section_breaks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mc_offset&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; If one MN is composed of two MCs, the resulting column indicates the second MC&#39;s offset from the MN&#39;s beginning.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    mc_col, timesig, act_dur, next_col : :obj:`str`, optional</span>
+<span class="sd">        Names of the required columns.</span>
+<span class="sd">    section_breaks : :obj:`str`, optional</span>
+<span class="sd">        If you pass the name of a column, the string &#39;section&#39; is taken into account</span>
+<span class="sd">        as ending a section and therefore potentially ending a repeated part even when</span>
+<span class="sd">        the repeat sign is missing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">nom_dur</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">timesig</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+    <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="s1">&#39;act_dur&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">nom_dur</span>
+    <span class="k">if</span> <span class="n">sel</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">section_breaks</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">next_col</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">section_breaks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section_breaks</span><span class="p">)</span>
+        <span class="n">last_mc</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">section_breaks</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">mc</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">m</span> <span class="o">&lt;=</span> <span class="n">last_mc</span><span class="p">}</span>
+        <span class="c1"># offset == 0 is a neutral value but the presence of mc in offsets indicates that it could potentially be an</span>
+        <span class="c1"># (incomplete) pickup measure which can be offset even if the previous measure is complete</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">offsets</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">nom_durs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">df</span><span class="p">[[</span><span class="n">mc_col</span><span class="p">]]</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">nom_dur</span><span class="p">)</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+    <span class="n">act_durs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">df</span><span class="p">[[</span><span class="n">mc_col</span><span class="p">,</span> <span class="n">act_dur</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">missing</span><span class="p">(</span><span class="n">mc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nom_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">-</span> <span class="n">act_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">add_offset</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">val</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">val</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">val</span> <span class="o">=</span> <span class="n">missing</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+        <span class="n">offsets</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+
+
+    <span class="n">irregular</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="n">cols</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">irregular</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Check whether first MC is an anacrusis and mark accordingly</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">irregular</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">irregular</span><span class="p">[</span><span class="n">mc_col</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">missing</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">act_durs</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">nom_durs</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">add_offset</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># regular divided measure, no anacrusis</span>
+                <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># is anacrusis</span>
+            <span class="n">add_offset</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">irregular</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">section_breaks</span><span class="p">:</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">sec</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="k">if</span> <span class="n">sec</span> <span class="o">==</span> <span class="s1">&#39;section&#39;</span><span class="p">:</span>
+                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;=</span> <span class="n">mc</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nxt</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> ends a section with an incomplete measure.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mc</span><span class="p">,</span> <span class="n">nx</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="n">nxt</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">nx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">mc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">offsets</span><span class="p">:</span>
+            <span class="n">completions</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="n">act_durs</span><span class="p">[</span><span class="n">m</span><span class="p">]</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">nxt</span> <span class="k">if</span> <span class="n">m</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">}</span>
+            <span class="n">expected</span> <span class="o">=</span> <span class="n">missing</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">completions</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">c</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">errors</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The incomplete MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> (timesig </span><span class="si">{</span><span class="n">nom_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="si">}</span><span class="s2">, act_dur </span><span class="si">{</span><span class="n">act_durs</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="si">}</span><span class="s2">) is completed by </span><span class="si">{</span><span class="n">errors</span><span class="si">}</span><span class="s2"> incorrect duration</span><span class="si">{</span><span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">errors</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2"> (expected: </span><span class="si">{</span><span class="n">expected</span><span class="si">}</span><span class="s2">):</span><span class="se">\n</span><span class="si">{</span><span class="n">completions</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">compl</span> <span class="ow">in</span> <span class="n">completions</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">add_offset</span><span class="p">(</span><span class="n">compl</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">offsets</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">add_offset</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
+    <span class="n">mc2ix</span> <span class="o">=</span> <span class="p">{</span><span class="n">m</span><span class="p">:</span> <span class="n">ix</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()}</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc2ix</span><span class="p">[</span><span class="n">m</span><span class="p">]:</span> <span class="n">offset</span> <span class="k">for</span> <span class="n">m</span><span class="p">,</span> <span class="n">offset</span> <span class="ow">in</span> <span class="n">offsets</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_repeat_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_repeat_col">[docs]</a><span class="k">def</span> <span class="nf">make_repeat_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">startRepeat</span><span class="p">,</span> <span class="n">endRepeat</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;repeats&#39;</span><span class="p">):</span>
+    <span class="n">repeats</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">startRepeat</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">ends</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">endRepeat</span><span class="p">]</span>
+    <span class="n">sel</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">start</span><span class="o">=</span><span class="n">repeats</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">ends</span><span class="o">.</span><span class="n">isna</span><span class="p">(),</span>
+        <span class="n">startend</span><span class="o">=</span><span class="n">repeats</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">ends</span><span class="o">.</span><span class="n">notna</span><span class="p">(),</span>
+        <span class="n">end</span><span class="o">=</span><span class="n">repeats</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">ends</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">for</span> <span class="n">case</span><span class="p">,</span> <span class="n">arr</span> <span class="ow">in</span> <span class="n">sel</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">repeats</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">arr</span><span class="p">]</span> <span class="o">=</span> <span class="n">case</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">repeats</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="n">repeats</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;firstMeasure&#39;</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">repeats</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+        <span class="n">repeats</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;lastMeasure&#39;</span>
+    <span class="k">return</span> <span class="n">repeats</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_timesig_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_timesig_col">[docs]</a><span class="k">def</span> <span class="nf">make_timesig_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">sigN_col</span><span class="p">,</span> <span class="n">sigD_col</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;timesig&#39;</span><span class="p">):</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">sigN_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">to_numeric</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">sigD_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">d</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="make_volta_col"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.make_volta_col">[docs]</a><span class="k">def</span> <span class="nf">make_volta_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">volta_structure</span><span class="p">,</span> <span class="n">mc</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;volta&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Create the input for `volta_structure` using get_volta_structure()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mc2volta</span> <span class="o">=</span> <span class="p">{</span><span class="n">mc</span><span class="p">:</span> <span class="n">volta</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">volta_structure</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">for</span> <span class="n">volta</span><span class="p">,</span> <span class="n">mcs</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">mcs</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">df</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">mc2volta</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="treat_group"><a class="viewcode-back" href="../../api/ms3.html#ms3.bs4_measures.treat_group">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">treat_group</span><span class="p">(</span><span class="n">mc</span><span class="p">,</span> <span class="n">group</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Helper function for make_volta_col()</span>
+<span class="sd">        Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])</span>
+<span class="sd">        where columns are (MC, volta number, volta length).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mcs</span><span class="p">,</span> <span class="n">numbers</span><span class="p">,</span> <span class="n">lengths</span> <span class="o">=</span> <span class="n">group</span><span class="o">.</span><span class="n">T</span>
+    <span class="c1"># check volta numbers</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">numbers</span> <span class="o">!=</span> <span class="n">expected</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Volta group of MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> should have voltas </span><span class="si">{</span><span class="n">expected</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2"> but has </span><span class="si">{</span><span class="n">numbers</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="c1"># check volta lengths</span>
+    <span class="n">frst</span> <span class="o">=</span> <span class="n">lengths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">lengths</span> <span class="o">!=</span> <span class="n">frst</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Volta group of MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> contains voltas with different lengths: </span><span class="si">{</span><span class="n">lengths</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span><span class="si">}</span><span class="s2"> Check for correct computation of MNs.&quot;</span><span class="p">)</span>
+    <span class="c1"># check for overlaps and holes</span>
+    <span class="n">boundaries</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mcs</span><span class="p">,</span> <span class="n">mcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">group</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">correct</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">fro</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">fro</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span> <span class="ow">in</span>
+               <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">boundaries</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)}</span>
+    <span class="n">in_score</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">in_score</span> <span class="o">!=</span> <span class="n">correct</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;The incorrect structure </span><span class="si">{</span><span class="n">in_score</span><span class="si">}</span><span class="s2"> of the volta groupa of MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2"> has been corrected to </span><span class="si">{</span><span class="n">correct</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">correct</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.bs4_measures</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

@@ -1,0 +1,85 @@
+ms3 package
+===========
+
+Submodules
+----------
+
+ms3.annotations module
+----------------------
+
+.. automodule:: ms3.annotations
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.bs4\_measures module
+------------------------
+
+.. automodule:: ms3.bs4_measures
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.bs4\_parser module
+----------------------
+
+.. automodule:: ms3.bs4_parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.expand\_dcml module
+-----------------------
+
+.. automodule:: ms3.expand_dcml
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.logger module
+-----------------
+
+.. automodule:: ms3.logger
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.parse module
+----------------
+
+.. automodule:: ms3.parse
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.score module
+----------------
+
+.. automodule:: ms3.score
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.skeleton module
+-------------------
+
+.. automodule:: ms3.skeleton
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+ms3.utils module
+----------------
+
+.. automodule:: ms3.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: ms3
+   :members:
+   :undoc-members:
+   :show-inheritance:
