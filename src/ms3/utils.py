@@ -7,7 +7,7 @@ from itertools import repeat
 import pandas as pd
 import numpy as np
 
-from .logger import function_logger
+from .logger import function_logger, update_cfg
 
 
 def ambitus2oneliner(ambitus):
@@ -15,12 +15,12 @@ def ambitus2oneliner(ambitus):
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
 
 
-def decode_harmonies(df, return_series=False):
+def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
         sel = df.nashville.notna()
-        df.loc[sel, 'label'] = df.loc[sel, 'nashville'] + df.loc[sel, 'label'].replace('/', '')
+        df.loc[sel, label_col] = df.loc[sel, 'nashville'] + df.loc[sel, label_col].replace('/', '')
         drop_cols.append('nashville')
     if 'leftParen' in df.columns:
         df.leftParen.replace('/', '(', inplace=True)
@@ -33,7 +33,7 @@ def decode_harmonies(df, return_series=False):
         if 'rootCase' in df.columns:
             drop_cols.append('rootCase')
         # TODO: use rootCase
-    compose_label.append('label')
+    compose_label.append(label_col)
     if 'base' in df.columns:
         df.base = '/' + fifths2name(df.base, ms=True)
         compose_label.append('base')
@@ -42,12 +42,15 @@ def decode_harmonies(df, return_series=False):
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
-    label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+    new_label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
     if return_series:
-        return label_col
+        return new_label_col
     if 'label_type' in df.columns:
-        df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-    df.label = label_col
+        if keep_type:
+            df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
+        else:
+            drop_cols.append('label_type')
+    df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
 
@@ -198,6 +201,15 @@ def group_id_tuples(l):
     return dict(d)
 
 
+@function_logger
+def is_any_row_equal(df1, df2):
+    """ Returns True if any two rows of the two DataFrames contain the same value tuples. """
+    assert len(df1.columns) == len(df2.columns), "Pass the same number of columns for both DataFrames"
+    v1 = set(df1.itertuples(index=False, name=None))
+    v2 = set(df2.itertuples(index=False, name=None))
+    return v1.intersection(v2)
+
+
 def is_minor_mode(fifths, minor=False):
     """ Returns True if the scale degree `fifths` naturally has a minor third in the scale.
     """
@@ -207,7 +219,10 @@ def is_minor_mode(fifths, minor=False):
 
 
 def iterable2str(iterable):
-    return ', '.join(str(s) for s in iterable)
+    try:
+        return ', '.join(str(s) for s in iterable)
+    except:
+        return iterable
 
 
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
@@ -236,18 +251,26 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         except:
             return s
 
+    def safe_frac(s):
+        try:
+            return frac(s)
+        except:
+            return s
+
     CONVERTERS = {
         'added_tones': str2inttuple,
-        'act_dur': frac,
+        'act_dur': safe_frac,
         'chord_tones': str2inttuple,
         'globalkey_is_minor': int2bool,
         'localkey_is_minor': int2bool,
         'next': str2inttuple,
-        'nominal_duration': frac,
-        'mc_offset': frac,
-        'onset': frac,
-        'duration': frac,
-        'scalar': frac, }
+        'nominal_duration': safe_frac,
+        'mc_offset': safe_frac,
+        'mc_onset': safe_frac,
+        'mn_onset': safe_frac,
+        'onset': safe_frac,
+        'duration': safe_frac,
+        'scalar': safe_frac, }
 
     DTYPES = {
         'alt_label': str,
@@ -266,14 +289,14 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'globalkey': str,
         'gracenote': str,
         'harmonies_id': 'Int64',
-        'keysig': int,
+        'keysig': 'Int64',
         'label': str,
         'label_type': object,
         'leftParen': str,
         'localkey': str,
-        'mc': int,
-        'midi': int,
-        'mn': int,
+        'mc': 'Int64',
+        'midi': 'Int64',
+        'mn': str,
         'offset:x': str,
         'offset:y': str,
         'nashville': 'Int64',
@@ -281,19 +304,19 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'numbering_offset': 'Int64',
         'numeral': str,
         'pedal': str,
-        'playthrough': int,
+        'playthrough': 'Int64',
         'phraseend': str,
         'relativeroot': str,
         'repeats': str,
         'rightParen': str,
         'root': 'Int64',
         'special': str,
-        'staff': int,
+        'staff': 'Int64',
         'tied': 'Int64',
         'timesig': str,
-        'tpc': int,
-        'voice': int,
-        'voices': int,
+        'tpc': 'Int64',
+        'voice': 'Int64',
+        'voices': 'Int64',
         'volta': 'Int64'
     }
 
@@ -311,9 +334,18 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
 
     if stringtype:
         types = {col: 'string' if typ == str else typ for col, typ in types.items()}
-    return pd.read_csv(path, sep=sep, index_col=index_col,
+    df = pd.read_csv(path, sep=sep, index_col=index_col,
                        dtype=types,
                        converters=conv, **kwargs)
+    if 'mn' in df:
+        mn_volta = mn2int(df.mn)
+        df.mn = mn_volta.mn
+        if mn_volta.volta.notna().any():
+            if 'volta' not in df.columns:
+                df['volta'] = pd.Series(pd.NA, index=df.index).astype('Int64')
+            df.volta.fillna(mn_volta.volta, inplace=True)
+    return df
+
 
 
 def make_id_tuples(key, n):
@@ -396,6 +428,21 @@ def midi2octave(midi, fifths=None):
     return midi // 12 + i
 
 
+def mn2int(mn_series):
+    """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
+    try:
+        split = mn_series.fillna('').str.extract(r"(?P<mn>\d+)(?P<volta>[a-g])?")
+    except:
+        mn_series = pd.DataFrame(mn_series, columns=['mn', 'volta'])
+        try:
+            return mn_series.astype('Int64')
+        except:
+            return mn_series
+    split.mn = pd.to_numeric(split.mn)
+    split.volta = pd.to_numeric(split.volta.map({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}))
+    return split.astype('Int64')
+
+
 @function_logger
 def name2tpc(nn):
     """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
@@ -407,6 +454,22 @@ def name2tpc(nn):
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
     step_tpc = name_tpcs[note_name.upper()]
     return step_tpc + 7 * accidentals
+
+
+def next2sequence(nxt):
+    """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
+    Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
+    """
+    mc = nxt.index[0]
+    result = []
+    nxt = nxt.to_dict()
+    while mc != -1:
+        result.append(mc)
+        new_mc, *rest = nxt[mc]
+        if len(rest) > 0:
+            nxt[mc] = rest
+        mc = new_mc
+    return result
 
 
 @function_logger
@@ -504,7 +567,7 @@ def resolve_dir(dir):
     return os.path.abspath(dir)
 
 
-def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", recursive=True):
+def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
     """ Get a list of files.
 
     Parameters
@@ -530,7 +593,7 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|__)", 
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)
-        if recursive and re.search(exclude_re, current_folder) is None:
+        if recursive and check_regex('', current_folder):
             dirs[:] = [d for d in sorted(dirs)]
         else:
             dirs[:] = []
@@ -584,6 +647,16 @@ def split_note_name(nn, count=False):
         accidentals = accidentals.count('#') - accidentals.count('b')
     return accidentals, note_name
 
+
+def chunkstring(string, length=80):
+    """ Generate chunks of a given length """
+    string = str(string)
+    return (string[0 + i:length + i] for i in range(0, len(string), length))
+
+
+def string2lines(string, length=80):
+    """ Use chunkstring() and make chunks into lines. """
+    return '\n'.join(chunkstring(string, length))
 
 
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
@@ -651,3 +724,16 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
     res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
+
+
+
+
+@function_logger
+def update_labels_cfg(labels_cfg):
+    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name']
+    if 'logger' in labels_cfg:
+        del labels_cfg['logger']
+    updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
+    if 'logger' in updated:
+        del updated['logger']
+    return updated
