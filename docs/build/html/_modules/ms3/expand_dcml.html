@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.expand_dcml &#8212; ms3  documentation</title>
+    <title>ms3.expand_dcml &#8212; ms3 0.4.0 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3  documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.0 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 
@@ -72,7 +72,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2tpc</span><span class="p">,</span> <span class="n">transform</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2tpc</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">sort_tpcs</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
 
 
@@ -169,7 +169,7 @@
 <span class="s2">                    (?P&lt;numeral&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))</span>
 <span class="s2">                    (?P&lt;form&gt;(%|o|\+|M|\+M))?</span>
 <span class="s2">                    (?P&lt;figbass&gt;(7|65|43|42|2|64|6))?</span>
-<span class="s2">                    (\((?P&lt;changes&gt;((\+|-|\^)?(b*|\#*)\d)+)\))?</span>
+<span class="s2">                    (\((?P&lt;changes&gt;((\+|-|\^|v)?(b*|\#*)\d)+)\))?</span>
 <span class="s2">                    (/(?P&lt;relativeroot&gt;((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?</span>
 <span class="s2">                )</span>
 <span class="s2">                (?P&lt;pedalend&gt;\])?</span>
@@ -184,7 +184,7 @@
         <span class="n">df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">,</span> <span class="s1">&#39;localkey&#39;</span><span class="p">,</span> <span class="s1">&#39;globalkey&#39;</span><span class="p">]:</span>
+    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">,</span> <span class="s1">&#39;localkey&#39;</span><span class="p">,</span> <span class="s1">&#39;globalkey&#39;</span><span class="p">,</span> <span class="s1">&#39;phraseend&#39;</span><span class="p">]:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
             <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
     <span class="n">global_minor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;globalkey&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">_is_minor&quot;</span>
@@ -200,7 +200,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Immediate repetition of labels:</span><span class="se">\n</span><span class="si">{</span><span class="n">not_nan</span><span class="p">[</span><span class="n">immediate_repetitions</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-    <span class="kn">import</span> <span class="nn">logging</span>
+
 
 
     <span class="c1">### Do the actual expansion</span>
@@ -209,6 +209,15 @@
     <span class="n">df</span><span class="p">[</span><span class="s1">&#39;chord_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">features2type</span><span class="p">,</span> <span class="p">[</span><span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">]],</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">replace_special</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="n">regex</span><span class="p">,</span> <span class="n">merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
 
+    <span class="c1">### Check phrase annotations</span>
+    <span class="n">p_col</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;phraseend&#39;</span><span class="p">]]</span>
+    <span class="n">opening</span> <span class="o">=</span> <span class="n">p_col</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="p">)</span>
+    <span class="n">closing</span> <span class="o">=</span> <span class="n">p_col</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;}&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">opening</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="n">closing</span><span class="o">.</span><span class="n">sum</span><span class="p">():</span>
+        <span class="n">o</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">opening</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">cols</span><span class="p">[</span><span class="s1">&#39;phraseend&#39;</span><span class="p">]]]</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">closing</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">cols</span><span class="p">[</span><span class="s1">&#39;phraseend&#39;</span><span class="p">]]]</span>
+        <span class="n">compare</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">c</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Phrse beginning and endings don&#39;t match:</span><span class="se">\n</span><span class="si">{</span><span class="n">compare</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">propagate</span> <span class="ow">or</span> <span class="n">chord_tones</span><span class="p">:</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">propagate</span><span class="p">:</span>
@@ -219,11 +228,11 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;propagate_keys() failed with</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">df</span> <span class="o">=</span> <span class="n">propagate_pedal</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;propagate_pedal() failed with</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
+        <span class="k">if</span> <span class="n">propagate</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">df</span> <span class="o">=</span> <span class="n">propagate_pedal</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;propagate_pedal() failed with</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">chord_tones</span><span class="p">:</span>
             <span class="n">ct</span> <span class="o">=</span> <span class="n">compute_chord_tones</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
@@ -516,7 +525,7 @@
 <span class="sd">    [(&#39;+#7&#39;, &#39;+&#39;, &#39;#&#39;, &#39;7&#39;),</span>
 <span class="sd">     (&#39;b5&#39;,  &#39;&#39;,  &#39;b&#39;, &#39;5&#39;)]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;((\+)?(#+|b+)?(1\d|\d))&quot;</span><span class="p">,</span> <span class="n">changes</span><span class="p">)]</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;((\+)?(#+|b+)?(1\d|\d))&quot;</span><span class="p">,</span> <span class="n">changes</span><span class="p">)]</span>
     <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">sort</span> <span class="k">else</span> <span class="n">res</span></div>
 
 
@@ -547,7 +556,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">nunique</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">globalkey</span><span class="p">]</span><span class="o">.</span><span class="n">nunique</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="n">nunique</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;No global key specified. It might be that this function is being applied in a wrong groupby and gets rows instead of entire frames.&quot;</span>
+    <span class="k">assert</span> <span class="n">nunique</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;No global key specified.&quot;</span>
     <span class="k">if</span> <span class="n">nunique</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Several global keys not accepted at the moment.&quot;</span><span class="p">)</span>
 
@@ -629,8 +638,7 @@
     <span class="n">n_b</span><span class="p">,</span> <span class="n">n_e</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">beginnings</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">endings</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">make_comparison</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">beginnings</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">endings</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
-            <span class="p">{</span><span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">beginnings</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">endings</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">})</span>
 
     <span class="k">assert</span> <span class="n">n_b</span> <span class="o">==</span> <span class="n">n_e</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_b</span><span class="si">}</span><span class="s2"> organ points started, </span><span class="si">{</span><span class="n">n_e</span><span class="si">}</span><span class="s2"> ended:</span><span class="se">\n</span><span class="si">{</span><span class="n">make_comparison</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">if</span> <span class="n">relative</span><span class="p">:</span>
@@ -788,7 +796,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
     <span class="c1">### If the index is not unique, it has to be temporarily replaced</span>
     <span class="n">tmp_index</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span>
     <span class="k">if</span> <span class="n">tmp_index</span><span class="p">:</span>
@@ -810,6 +817,7 @@
     <span class="n">param_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">,</span> <span class="s1">&#39;changes&#39;</span><span class="p">,</span> <span class="s1">&#39;relativeroot&#39;</span><span class="p">,</span> <span class="s1">&#39;mc&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
     <span class="n">param_cols</span><span class="p">[</span><span class="s1">&#39;minor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">local_minor</span>
     <span class="n">param_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">param_cols</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+    <span class="c1"># print([dict({a: b for a, b in zip(param_cols.keys(), t)},  bass_only = bass_only, merge_tones = not expand, logger = logger) for t in set(param_tuples)])</span>
     <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">features2tpcs</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="p">:</span><span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">param_cols</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">t</span><span class="p">)},</span> <span class="n">bass_only</span><span class="o">=</span><span class="n">bass_only</span><span class="p">,</span> <span class="n">merge_tones</span><span class="o">=</span><span class="ow">not</span> <span class="n">expand</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">param_tuples</span><span class="p">)}</span>
     <span class="k">if</span> <span class="n">expand</span><span class="p">:</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">param_tuples</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
@@ -825,9 +833,9 @@
 
 
 
-<div class="viewcode-block" id="features2tpcs"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.features2tpcs">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">features2tpcs</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figbass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">relativeroot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">merge_tones</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+
+<div class="viewcode-block" id="features2tpcs"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.features2tpcs">[docs]</a><span class="k">def</span> <span class="nf">features2tpcs</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figbass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">relativeroot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">merge_tones</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Given the features of a chord label, this function returns the chord tones</span>
 <span class="sd">    in the order of the inversion, starting from the bass note. The tones are</span>
@@ -905,7 +913,7 @@
 
     <span class="k">if</span> <span class="n">numeral</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;#vii&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">minor</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">mc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s1">: &#39;</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> in major context is most probably an annotation error.&quot;</span><span class="p">)</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">mc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s1">: &#39;</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> in a major context is most probably an annotation error.&quot;</span><span class="p">)</span>
 
     <span class="n">root_alteration</span><span class="p">,</span> <span class="n">num_degree</span> <span class="o">=</span> <span class="n">split_sd</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
 
@@ -1062,7 +1070,7 @@
 <span class="sd">    count : :obj:`bool`, optional</span>
 <span class="sd">        Pass True to get the accidentals as integer rather than as string.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">sd</span><span class="p">))</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">sd</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">sd</span> <span class="o">+</span> <span class="s2">&quot; is not a valid scale degree.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
@@ -1549,7 +1557,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3  documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.0 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 
