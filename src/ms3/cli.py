@@ -43,11 +43,11 @@ def extract(args):
         l_suff = len(args.suffix)
         params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
         if l_suff == 0:
-            suffixes = {f"{p}_suffix": f"_{p}" for p in params if p in args}
+            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
         elif l_suff == 1:
-            suffixes = {f"{p}_suffix": args.suffix[0] for p in params if p in args}
+            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
         else:
-            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params) if p in args}
+            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
     else:
         suffixes = {}
     p.store_lists(root_dir=args.out,
@@ -112,7 +112,7 @@ Run with parameter -t to see all file names.
     extract_parser.add_argument('-C', '--chords', metavar='folder', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
     extract_parser.add_argument('-X', '--expanded', metavar='folder', help="Folder where to store TSV files with expanded DCML labels.")
 
-    extract_parser.add_argument('-s', '--suffix', nargs='?', default='', const=None, metavar='SUFFIX',
+    extract_parser.add_argument('-s', '--suffix', nargs='*', default='', const=None, metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
     extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
                                 help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
