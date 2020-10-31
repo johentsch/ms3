@@ -226,10 +226,13 @@ Continuing with {annotation_key}.""")
         for id in ids:
             if id in self._parsed_mscx:
                 score = self._parsed_mscx[id]
-                if 'annotations' in score._annotations:
-                    updated[id] = score.annotations
-                elif id in self._annotations:
-                    del (self._annotations[id])
+                if score is not None:
+                    if 'annotations' in score._annotations:
+                        updated[id] = score.annotations
+                    elif id in self._annotations:
+                        del (self._annotations[id])
+                else:
+                    del (self._parsed_mscx[id])
         self._annotations.update(updated)
 
 
@@ -708,15 +711,16 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
 
         if only_new:
-            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if
+            paths = [(key, i) for key, i in self._iterids(keys) if
                      self.fexts[key][i] == '.mscx' and (key, i) not in self._parsed_mscx]
         else:
-            paths = [(key, i, self.full_paths[key][i]) for key, i in self._iterids(keys) if
+            paths = [(key, i) for key, i in self._iterids(keys) if
                      self.fexts[key][i] == '.mscx']
 
         if level is None:
             level = self.logger.logger.level
         cfg = {'level': level}
+        ### If log files are going to be created, compute their paths and configure loggers for individual parses
         if self.logger_cfg['file'] is not None or self.logger_cfg['path'] is not None:
             file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
             path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
@@ -742,49 +746,73 @@ Load one of the identically named files with a different key using add_dir(key='
                     if path is None:
                         configs = [dict(cfg, file=os.path.abspath(
                                                     os.path.join(self.paths[k][i], file_path, f"{self.fnames[k][i]}.log")
-                                                  )) for k, i, _ in paths]
+                                                  )) for k, i in paths]
                     else:
                         configs = [dict(cfg, file=os.path.abspath(
                                                     os.path.join(path, self.rel_paths[k][i], file_path, f"{self.fnames[k][i]}.log")
-                                                  )) for k, i, _ in paths]
+                                                  )) for k, i in paths]
                 else:
                     if path is None:
                         configs = [dict(cfg, file=os.path.abspath(
                                                     os.path.join(self.paths[k][i], file_path, file_name)
-                                                  )) for k, i, _ in paths]
+                                                  )) for k, i in paths]
                     else:
                         configs = [dict(cfg, file=os.path.abspath(
                                                     os.path.join(path, self.rel_paths[k][i], file_path, file_name)
-                                                  )) for k, i, _ in paths]
+                                                  )) for k, i in paths]
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
                                             os.path.join(path, f"{self.fnames[k][i]}.log")
-                                          )) for k, i, _ in paths]
+                                          )) for k, i in paths]
             else:
                 configs = [cfg for i in range(len(paths))]
         else:
             configs = [cfg for i in range(len(paths))]
 
-
+        ### collect argument tuples for calling self._parse
         parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(paths, configs)]
+        target = len(parse_this)
+        successful = 0
+        modus = 'would ' if self.simulate else ''
         try:
             ids = [t[:2] for t in parse_this]
             if self.simulate:
                 logger_cfg = {'level': level}
-                for key, i, path, _, _, read_only in parse_this:
+                for key, i, _, _, read_only in parse_this:
                     logger_cfg['name'] = self.logger_names[(key, i)]
-                    self._parsed_mscx[(key, i)] = Score(read_only=read_only, logger_cfg=logger_cfg)
-                    self.logger.info(f"Would have parsed {path}")
-                return
-            if parallel:
+                    path = self.full_paths[key][i]
+                    try:
+                        score_object = Score(path, read_only=read_only, logger_cfg=logger_cfg)
+                    except:
+                        self.logger.exception(traceback.format_exc())
+                        score_object = None
+                    if score_object is not None:
+                        self._parsed_mscx[(key, i)] = score_object
+                        successful += 1
+                        self.logger.debug(f"Successfully parsed {path}")
+                    else:
+                        self.logger.debug(f"Errors while parsing {path}")
+            elif parallel:
                 pool = mp.Pool(mp.cpu_count())
                 res = pool.starmap(self._parse, parse_this)
                 pool.close()
                 pool.join()
-                self._parsed_mscx.update({id: score for id, score in zip(ids, res)})
+                successful_results = {id: score for id, score in zip(ids, res) if score is not None}
+                self._parsed_mscx.update(successful_results)
+                successful = len(successful_results)
             else:
                 for params in parse_this:
-                    self._parsed_mscx[params[:2]] = self._parse(*params)
+                    score_object = self._parse(*params)
+                    if score_object is not None:
+                        self._parsed_mscx[params[:2]] = score_object
+                        successful += 1
+            if successful > 0:
+                if successful == target:
+                    self.logger.info(f"All {target} files {modus}have been parsed successfully.")
+                else:
+                    self.logger.info(f"Only {successful} of the {target} files {modus}have been parsed successfully.")
+            else:
+                self.logger.info(f"None of the {target} files {modus}have been parsed successfully.")
         except KeyboardInterrupt:
             self.logger.info("Parsing interrupted by user.")
         finally:
@@ -898,7 +926,11 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
-                                                    simulate=False):
+                                                    simulate=None):
+        if simulate is None:
+            simulate = self.simulate
+        else:
+            self.simulate = simulate
         l = locals()
         list_types = list(self._lists)
         folder_vars = [t + '_folder' for t in list_types]
@@ -906,20 +938,38 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
         if len(folder_params) == 0:
             self.logger.warning("Pass at least one parameter to store files.")
+            return [] if simulate else None
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
+        modus = 'would ' if simulate else ''
+        if len(lists) == 0:
+            self.logger.info(f"No files {modus}have been written.")
+            return [] if simulate  else None
         paths = {}
-        prev_logger = self.logger
+        warnings, infos = [], []
+        prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
-            modus = 'would ' if simulate else ''
             if new_path in paths:
-                self.logger.warning(f"The {paths[new_path]} at {new_path} {modus} been overwritten with {what}.")
+                warnings.append(f"The {paths[new_path]} at {new_path} {modus} been overwritten with {what}.")
             else:
-                self.logger.info(f"{what} {modus}have been stored as {new_path}.")
+                infos.append(f"{what} {modus}have been stored as {new_path}.")
             paths[new_path] = what
+        self.update_logger_cfg(name=prev_logger)
+        if len(warnings) > 0:
+            self.logger.warning('\n'.join(warnings))
+        l_infos = len(infos)
+        l_target = len(lists)
+        if l_infos > 0:
+            if l_infos < l_target:
+                msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
+            else:
+                msg = f"\n\nAll {l_infos} {modus}have been written."
+            self.logger.info('\n'.join(infos) + msg)
+        else:
+            self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         self.logger = prev_logger
         if simulate:
             return list(set(paths.keys()))
@@ -1018,27 +1068,25 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                 if i in selector:
                     yield e
 
-    def _parse(self, key, i, path=None, logger_cfg={}, labels_cfg={}, read_only=False):
-        if path is None:
-            path = self.full_paths[key][i]
+    def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
+        """Performs a single parse and returns the resulting Score object or None."""
+        path = self.full_paths[key][i]
         file = self.files[key][i]
-        # prev_logger = self.logger
-        # if 'name' not in logger_cfg:
-        #     logger_cfg['name'] = self.logger_names[key][i]
-        # self.update_logger_cfg(logger_cfg)
         self.logger.debug(f"Attempting to parse {file}")
         try:
             score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg)
-            self._parsed_mscx[(key, i)] = score
-            self.logger.info(f"Done parsing {file}")
+            if score is None:
+                self.logger.debug(f"Encountered errors when parsing {file}")
+            else:
+                self.logger.debug(f"Successfully parsed {file}")
+                # self._parsed_mscx[(key, i)] = score
             return score
         except (KeyboardInterrupt, SystemExit):
+            self.logger.info("Process aborted.")
             raise
         except:
             self.logger.exception(traceback.format_exc())
             return None
-        # finally:
-        #     self.logger = prev_logger
 
 
 

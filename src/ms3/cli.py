@@ -38,9 +38,18 @@ def extract(args):
         return
     logger_cfg = {'level': args.level}
     p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
-    p.parse_mscx()
-    params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
-    suffixes = {f"{p}_suffix": p if args.suffix is None else args.suffix for p in params if p in args}
+    p.parse_mscx(simulate=args.test)
+    if args.suffix is not None:
+        l_suff = len(args.suffix)
+        params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
+        if l_suff == 0:
+            suffixes = {f"{p}_suffix": f"_{p}" for p in params if p in args}
+        elif l_suff == 1:
+            suffixes = {f"{p}_suffix": args.suffix[0] for p in params if p in args}
+        else:
+            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params) if p in args}
+    else:
+        suffixes = {}
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
                   labels_folder=args.labels,
