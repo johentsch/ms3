@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, update_labels_cfg, update_cfg
+from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, unpack_mscz, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -79,12 +79,12 @@ class Score(LoggedClass):
 
     rn_regex = r"^$"
 
-    def __init__(self, mscx_src=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={}, parser='bs4'):
+    def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={}, parser='bs4'):
         """
 
         Parameters
         ----------
-        mscx_src : :obj:`str`, optional
+        musescore_file : :obj:`str`, optional
             Path to the MuseScore file to be parsed.
         infer_label_types : :obj:`list` or :obj:`dict`, optional
             Determine which label types are determined automatically. Defaults to ['dcml'].
@@ -121,8 +121,8 @@ class Score(LoggedClass):
         }
         self.infer_label_types = infer_label_types
         self.parser = parser
-        if mscx_src is not None:
-            self._parse_mscx(mscx_src, read_only=read_only, labels_cfg=labels_cfg)
+        if musescore_file is not None:
+            self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=labels_cfg)
 
     @property
     def infer_label_types(self):
@@ -159,7 +159,7 @@ class Score(LoggedClass):
 
 
 
-    def handle_path(self, path, key=None):
+    def handle_path(self, path, key=None, logger_name=None):
         full_path = resolve_dir(path)
         if os.path.isfile(full_path):
             file_path, file = os.path.split(full_path)
@@ -173,7 +173,10 @@ class Score(LoggedClass):
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
-            self.logger_names[key] = file_name.replace('.', '')
+            if logger_name is None:
+                self.logger_names[key] = file_name.replace('.', '')
+            else:
+                self.logger_names[key] = logger_name
             return key
         else:
             self.logger.error("No file found at this path: " + full_path)
@@ -181,24 +184,29 @@ class Score(LoggedClass):
 
 
 
-    def _parse_mscx(self, mscx_src, read_only=False, parser=None, labels_cfg={}):
+    def _parse_mscx(self, musescore_file, read_only=False, parser=None, labels_cfg={}):
         """
         This method is called by :meth:`.__init__` to parse the score.
         It doesn't systematically clean up data from previous parse.
 
         """
-        _ = self.handle_path(mscx_src)
         if parser is not None:
             self.parser = parser
-        if 'mscx' in self.fnames:
-            logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] = self.logger_names['mscx']
-            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_cfg=logger_cfg)
-            if self._mscx.has_annotations:
-                self._annotations['annotations'] = self._mscx._annotations
-                self._annotations['annotations'].infer_types(self.get_infer_regex())
+        if musescore_file[-4:] not in ('mscx', 'mscz'):
+            raise ValueError(f"The extension of a MuseScore file should be mscx or mscz, not {extensions}.")
+        extension = self.handle_path(musescore_file)
+        logger_cfg = self.logger_cfg.copy()
+        logger_cfg['name'] = self.logger_names[extension]
+        if extension == 'mscz':
+            fake_path = musescore_file[:-4] + 'mscx'
+            self.handle_path(fake_path)
+            with unpack_mscz(musescore_file) as tmp_mscx:
+                self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_cfg=logger_cfg)
         else:
-            self.logger.error("No existing .mscx file specified.")
+            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser, logger_cfg=logger_cfg)
+        if self._mscx.has_annotations:
+            self._annotations['annotations'] = self._mscx._annotations
+            self._annotations['annotations'].infer_types(self.get_infer_regex())
 
     def store_mscx(self, filepath):
         return self._mscx.store_mscx(filepath)
@@ -399,9 +407,12 @@ class MSCX(LoggedClass):
         Write the internal score representation to a file.
     """
 
-    def __init__(self, mscx_src=None, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None):
+    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None):
         super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
-        self.mscx_src = mscx_src
+        if os.path.isfile(mscx_src):
+            self.mscx_src = mscx_src
+        else:
+            raise ValueError(f"File does not exist: {mscx_src}")
         self.read_only = read_only
         self._annotations = None
         if parser is not None:
@@ -423,9 +434,7 @@ class MSCX(LoggedClass):
             'column_name': 'label',
             }
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
-
-        if self.mscx_src is not None:
-            self.parse_mscx()
+        self.parse_mscx()
 
 
     def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
@@ -437,15 +446,9 @@ class MSCX(LoggedClass):
 
 
 
-    def parse_mscx(self, mscx_src=None):
-        if mscx_src is not None:
-            self.mscx_src = mscx_src
-        assert self.mscx_src is not None, "No path specified for parsing MSCX."
-        assert os.path.isfile(self.mscx_src), f"{self.mscx_src} does not exist."
-
+    def parse_mscx(self):
         implemented_parsers = ['bs4']
-        if self.parser == 'bs4':
-
+        if self.parser in implemented_parsers:
             self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")

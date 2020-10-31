@@ -1,8 +1,11 @@
 import os, re
 from collections import defaultdict
 from collections.abc import Iterable
+from contextlib import contextmanager
 from fractions import Fraction as frac
 from itertools import repeat
+from tempfile import NamedTemporaryFile as Temp
+from zipfile import ZipFile as Zip
 
 import pandas as pd
 import numpy as np
@@ -726,6 +729,21 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
+@contextmanager
+def unpack_mscz(mscz, dir=None):
+    if dir is None:
+        dir = os.path.dirname(mscz)
+    tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
+    with Zip(mscz) as zip_file:
+        mscx = next(fname for fname in zip_file.namelist() if fname.endswith('.mscx'))
+        with zip_file.open(mscx) as mscx_file:
+            with tmp_file as tmp:
+                for line in mscx_file:
+                    tmp.write(line)
+    try:
+        yield tmp_file.name
+    finally:
+        os.remove(tmp_file.name)
 
 
 @function_logger
