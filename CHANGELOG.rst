@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 0.4.1
+=============
+
+* ms3 0.4.1 supports parsing (but not storing) compressed MuseScore files (.mscz)
+* Install "ms3 convert" command to your system for batch conversion using your local MuseScore installation
+* "ms3 extract" command now supports creation of log files
+* take ``labels_cfg`` into account when creating expanded chord tables
+
 Version 0.4.0
 =============
 

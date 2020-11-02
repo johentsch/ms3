@@ -262,7 +262,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         return res
 
 
-    def expand_dcml(self, drop_others=True, warn_about_others=True):
+    def expand_dcml(self, drop_others=True, warn_about_others=True, **kwargs):
         """ Expands all labels where the label_type has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
         Parameters
@@ -272,6 +272,8 @@ Possible values are {{1, 2, 3, 4}}.""")
         warn_about_others : :obj:`bool`, optional
             Set to False to suppress warnings about labels that have not label_type 'dcml'.
             Is automatically set to False if ``drop_others`` is set to False.
+        kwargs
+            Additional arguments are passed to :py:meth:`.get_labels` to define the original representation.
 
         Returns
         -------
@@ -281,15 +283,16 @@ Possible values are {{1, 2, 3, 4}}.""")
         if 'dcml' not in self.regex_dict:
             self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
             self.infer_types()
-        sel = self.df.label_type == 'dcml'
+        df = self.get_labels(**kwargs)
+        sel = df.label_type == 'dcml'
         if not sel.any():
             self.logger.info(f"Score does not contain any DCML harmonic annotations.")
             return
         if not drop_others:
             warn_about_others = False
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(self.df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
-        df = self.df[sel]
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
+        df = df[sel]
         try:
             exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
             if drop_others:
@@ -297,16 +300,14 @@ Possible values are {{1, 2, 3, 4}}.""")
             else:
                 df = self.df.copy()
                 df.loc[sel, exp.df.columns] = exp
+                self._expanded = df
+            if 'label_type' in self._expanded.columns:
+                self._expanded.drop(columns='label_type', inplace=True)
         except:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
+
         return self._expanded
 
-
-    @property
-    def expanded(self):
-        if self._expanded is None:
-            return self.expand_dcml()
-        return self._expanded
 
 
     def infer_mc_from_mn(self, mscx_obj=None):

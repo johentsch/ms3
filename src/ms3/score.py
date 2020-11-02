@@ -696,7 +696,9 @@ class MSCX(LoggedClass):
         DataFrame of labels that have been split into various features using a regular expression."""
         if self._annotations is None:
             return None
-        return self._annotations.expanded
+        labels_cfg = self.labels_cfg.copy()
+        labels_cfg['decode'] = False
+        return self._annotations.expand_dcml(**labels_cfg)
 
 
     @property

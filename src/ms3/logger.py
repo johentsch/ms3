@@ -141,6 +141,9 @@ def config_logger(name, level=None, path=None, file=None):
         file = os.path.expanduser(file)
         if os.path.isabs(file):
             log_file = os.path.abspath(file)
+        elif path is None:
+            logger.warning(f"""Log file output cannot be configured for '{name}' because 'file' is relative ({file})
+but no 'path' has been configured.""")
     if log_file is None and path is not None:
         path = os.path.expanduser(path)
         log_file = os.path.abspath(os.path.join(path, f"{name}.log"))

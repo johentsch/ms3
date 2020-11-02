@@ -37,9 +37,6 @@ def extract(args):
     if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
         print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
         return
-    logger_cfg = {'level': args.level}
-    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
-    p.parse_mscx(simulate=args.test)
     if args.suffix is not None:
         l_suff = len(args.suffix)
         params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
@@ -51,6 +48,13 @@ def extract(args):
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
     else:
         suffixes = {}
+    logger_cfg = {
+        'level': args.level,
+        'file': args.logfile,
+        'path': args.logpath,
+    }
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
+    p.parse_mscx(simulate=args.test)
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
                   labels_folder=args.labels,
@@ -125,8 +129,7 @@ The library offers you the following commands. Add the flag -h to one of them to
     extract_parser.add_argument('-E', '--events', metavar='folder', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
     extract_parser.add_argument('-C', '--chords', metavar='folder', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
     extract_parser.add_argument('-X', '--expanded', metavar='folder', help="Folder where to store TSV files with expanded DCML labels.")
-
-    extract_parser.add_argument('-s', '--suffix', nargs='*', default='', const=None, metavar='SUFFIX',
+    extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
     extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
                                 help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
@@ -138,9 +141,15 @@ This setting has no effect on absolute folder paths.""")
     extract_parser.add_argument('-l', '--level', metavar='LOG_LEVEL', default='i',
                                 help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
-    extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include their spacial positionings in order to restore them when re-inserting.")
+    extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
     extract_parser.add_argument('-n', '--nonrecursive', action='store_false', help="Don't scan folders recursively, i.e. parse only files in MSCX_DIR.")
+    extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
+or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
+In the former case, --logpath will be disregarded.""")
+    extract_parser.add_argument('--logpath', type=check_and_create, help="""If you define a path for storing log files, the original folder structure of the parsed
+MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
+subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
     check_parser = subparsers.add_parser('check', help="Check DCML harmony labels.")
