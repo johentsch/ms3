@@ -110,7 +110,6 @@ Methods
         -------
         :obj:`pandas.DataFrame`
             DataFrame representing all <Chord> tags in the score with the selected features.
-            
         """
 
     def infer_mc(self, mn, mn_onset=0, volta=None):

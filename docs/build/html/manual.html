@@ -388,7 +388,7 @@ of the home directory <cite>~</cite>, regardless of the original subdirectory st
 There are two different possibilities for that. The first possibility is naming
 relative folder names, meaning that the subdirectory structure (<code class="docutils literal notranslate"><span class="pre">docs</span></code> and <code class="docutils literal notranslate"><span class="pre">tests</span></code>)
 is recreated in each of the folders:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;p.store_lists(root_dir=&#39;~/tsv&#39;, notes_folder=&#39;notes&#39;, measures_folder=&#39;measures&#39;)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="s1">&#39;~/tsv&#39;</span><span class="p">,</span> <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="n">measures_folder</span><span class="o">=</span><span class="s1">&#39;measures&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">~/tsv</span>
@@ -577,10 +577,10 @@ Starts with 1 except for pieces beginning with a pickup measure, numbered as 0.<
 corresponds to the earliest possible position (in most cases beat 1), and some other fraction corresponds to an onset’s offset from <code class="docutils literal notranslate"><span class="pre">0</span></code>.
 <a class="reference internal" href="#quarter-beats"><span class="std std-ref">Quarter beats</span></a> can be <a class="reference internal" href="#converting-quarter-beats"><span class="std std-ref">converted to beats</span></a>, e.g. to half beats or dotted eighth beats;
 However, the operation may rely on the value of <a class="reference internal" href="#mc-offset"><span class="std std-ref">mc_offset</span></a>.</p>
-<div class="topic">
-<p class="topic-title">Developers</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
 <p>When loading a table from a file, it is recommended to parse the text of this
-column with <code class="docutils literal notranslate"><span class="pre">fractions.Fraction()</span></code> to be able to calculate with the values.
+column with <a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a> to be able to calculate with the values.
 MS3 does this automatically.</p>
 </div>
 </div>
@@ -635,7 +635,7 @@ In the case of repetitions, measures can have more than one subsequent MCs, in w
 the inferred MNs might be wrong. Also, it is needed for MS3’s unfold repeats functionality (TODO).</p>
 <div class="topic">
 <p class="topic-title">Developers</p>
-<p>Within MS3, the <code class="docutils literal notranslate"><span class="pre">next</span></code> column holds tuples, which MS3 should normally store as strings without paranthesis. For
+<p>Within MS3, the <code class="docutils literal notranslate"><span class="pre">next</span></code> column holds tuples, which MS3 should normally store as strings without parenthesis. For
 example, the tuple <code class="docutils literal notranslate"><span class="pre">(17,</span> <span class="pre">1)</span></code> is stored as <code class="docutils literal notranslate"><span class="pre">'17,</span> <span class="pre">1'</span></code>. However, users might have extracted and stored a raw DataFrame
 from a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code> object and MS3 needs to handle both formats.</p>
 </div>
@@ -663,8 +663,8 @@ column which, in return, is required for MS3’s unfolding repetitions functiona
 The <a class="reference internal" href="#act-dur"><span class="std std-ref">actual duration</span></a> of a measure can deviate from the time signature for notational reasons: For example,
 a pickup bar could have an actual duration of <code class="docutils literal notranslate"><span class="pre">1/4</span></code>  but still be part of a <code class="docutils literal notranslate"><span class="pre">'3/8'</span></code> meter, which usually
 has an actual duration of <code class="docutils literal notranslate"><span class="pre">3/8</span></code>.</p>
-<div class="topic">
-<p class="topic-title">Developers</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
 <p>When loading a table from a file, time signatures are not parsed as fractions because then both
 <code class="docutils literal notranslate"><span class="pre">'2/2'</span></code> and <code class="docutils literal notranslate"><span class="pre">'4/4'</span></code>, for example, would become <code class="docutils literal notranslate"><span class="pre">1</span></code>.</p>
 </div>

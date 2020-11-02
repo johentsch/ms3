@@ -343,7 +343,7 @@ is recreated in each of the folders:
 
 .. code-block:: python
 
-    >>>p.store_lists(root_dir='~/tsv', notes_folder='notes', measures_folder='measures')
+    >>> p.store_lists(root_dir='~/tsv', notes_folder='notes', measures_folder='measures')
 
 .. code-block:: console
 
@@ -554,10 +554,10 @@ corresponds to the earliest possible position (in most cases beat 1), and some o
 :ref:`Quarter beats <quarter_beats>` can be :ref:`converted to beats <converting_quarter_beats>`, e.g. to half beats or dotted eighth beats;
 However, the operation may rely on the value of :ref:`mc_offset <mc_offset>`.
 
-.. topic:: Developers
+.. tip::
 
     When loading a table from a file, it is recommended to parse the text of this
-    column with ``fractions.Fraction()`` to be able to calculate with the values.
+    column with :obj:`fractions.Fraction` to be able to calculate with the values.
     MS3 does this automatically.
 
 Measures
@@ -635,7 +635,7 @@ the inferred MNs might be wrong. Also, it is needed for MS3's unfold repeats fun
 
 .. topic:: Developers
 
-    Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without paranthesis. For
+    Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without parenthesis. For
     example, the tuple ``(17, 1)`` is stored as ``'17, 1'``. However, users might have extracted and stored a raw DataFrame
     from a :obj:`Score` object and MS3 needs to handle both formats.
 
@@ -677,7 +677,7 @@ The :ref:`actual duration <act_dur>` of a measure can deviate from the time sign
 a pickup bar could have an actual duration of ``1/4``  but still be part of a ``'3/8'`` meter, which usually
 has an actual duration of ``3/8``.
 
-.. topic:: Developers
+.. tip::
 
     When loading a table from a file, time signatures are not parsed as fractions because then both
     ``'2/2'`` and ``'4/4'``, for example, would become ``1``.
