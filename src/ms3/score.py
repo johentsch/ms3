@@ -706,6 +706,10 @@ class MSCX(LoggedClass):
         Is True as long as at least one label is attached to the current XML."""
         return self.parsed.has_annotations
 
+    @has_annotations.setter
+    def has_annotations(self, val):
+        self.parsed.has_annotations = val
+
 
     @property
     def labels(self):
@@ -931,7 +935,9 @@ class MSCX(LoggedClass):
         :obj:`pandas.DataFrame`
             DataFrame representing all <Chord> tags in the score with the selected features.
         """
-        return self.parsed.get_chords
+        return self.parsed.get_chords(staff=staff, voice=voice, mode=mode, lyrics=lyrics, staff_text=staff_text,
+                                      dynamics=dynamics,
+                                      articulation=articulation, spanners=spanners, **kwargs)
 
 
     def get_raw_labels(self):
@@ -945,7 +951,7 @@ class MSCX(LoggedClass):
         :obj:`pandas.DataFrame`
             DataFrame with raw label features (i.e. as encoded in XML)
         """
-        return self.parsed.get_raw_labels
+        return self.parsed.get_raw_labels()
 
 
     def infer_mc(self, mn, mn_onset=0, volta=None):
@@ -976,7 +982,7 @@ class MSCX(LoggedClass):
         :obj:`fractions.Fraction`
 
         """
-        return self.parsed.infer_mc
+        return self.parsed.infer_mc(mn=mn, mn_onset=mn_onset, volta=volta)
 
     def parse_mscx(self):
         implemented_parsers = ['bs4']
@@ -1012,7 +1018,7 @@ class MSCX(LoggedClass):
         :obj:`bool`
             Whether the file was successfully created.
         """
-        self.parsed.store_mscx
+        return self.parsed.store_mscx(filepath=filepath)
 
     def store_list(self, what='all', folder=None, suffix=None, **kwargs):
         """
