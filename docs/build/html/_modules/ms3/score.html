@@ -76,74 +76,15 @@
 
 <div class="viewcode-block" id="Score"><a class="viewcode-back" href="../../reference.html#ms3.score.Score">[docs]</a><span class="k">class</span> <span class="nc">Score</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Object representing a score.</span>
-
-<span class="sd">    The attributes are subdivided into Class Variables (constants), &quot;normal&quot; Attributes (data fields),</span>
-<span class="sd">    and Properties (which cannot be changed or do something when changed).</span>
-
-<span class="sd">    Attributes</span>
-<span class="sd">    ----------</span>
-<span class="sd">    </span>
-<span class="sd">    CLASS VARIABLES***</span>
-<span class="sd">        holding the regular expressions that are used to recognize particular types of annotation labels.</span>
-<span class="sd">    dcml_regex :</span>
-<span class="sd">        Recognize labels conforming to the DCML harmony annotation standard.</span>
-<span class="sd">    nashville_regex :</span>
-<span class="sd">        Recognizes labels representing a Nashville numeral, which MuseScore is able to encode.</span>
-<span class="sd">    rn_regex :</span>
-<span class="sd">        Momentarily this regex matches nothing.</span>
-<span class="sd">    NORMAL ATTRIBUTES***</span>
-<span class="sd">    files, fnames, fexts : :obj:`dict`</span>
-<span class="sd">        ``{KEY: {i: file info}}`` dictionaries holding the file name information of each parsed file.</span>
-<span class="sd">        Handled by :py:meth:`~ms3.score.Score.handle_path`.</span>
-<span class="sd">        The information is redundant in the sense of ``files = fnames + fexts``.</span>
-<span class="sd">    full_paths, paths : :obj:`dict`</span>
-<span class="sd">        ``{KEY: {i: file path}}`` dictionaries holding the paths (with and without file name respectively) of all parsed</span>
-<span class="sd">        MuseScore and TSV files. Handled by :py:meth:`~ms3.score.Score.handle_path`.</span>
-<span class="sd">    musescore_file : :obj:`str`</span>
-<span class="sd">        Full path to the parsed MuseScore file.</span>
-<span class="sd">    parser : &#39;bs4&#39;</span>
-<span class="sd">        Currently only one XML parser has been implemented which uses BeautifulSoup 4.</span>
-<span class="sd">    _annotations : :obj:`dict`</span>
-<span class="sd">        ``{(key, i): Annotations object}`` dictionary for accessing all :py:class:`~ms3.annotations.Annotations` objects.</span>
-<span class="sd">    _label_regex : :obj:`dict`</span>
-<span class="sd">        Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.</span>
-<span class="sd">        1: self.rn_regex,</span>
-<span class="sd">        2: self.nashville_regex,</span>
-<span class="sd">        3: self.abs_regex,</span>
-<span class="sd">        &#39;dcml&#39;: self.dcml_regex,</span>
-<span class="sd">    _label_types : :obj:`dict`</span>
-<span class="sd">        Mapping label types to their descriptions.</span>
-<span class="sd">        0: &quot;Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)&quot;,</span>
-<span class="sd">        1: &quot;MuseScore&#39;s Roman Numeral Annotation format&quot;,</span>
-<span class="sd">        2: &quot;MuseScore&#39;s Nashville Number format&quot;,</span>
-<span class="sd">        3: &quot;Absolute chord encoded by MuseScore&quot;,</span>
-<span class="sd">        &#39;dcml&#39;: &quot;Latest version of the DCML harmonic annotation standard.&quot;,</span>
-<span class="sd">    _mscx : :obj:`MSCX`</span>
-<span class="sd">        The object representing the parsed MuseScore file.</span>
-<span class="sd">    _types_to_infer : :obj:`list`</span>
-<span class="sd">        Current order in which types are being recognized.</span>
-<span class="sd">    PROPERTIES***</span>
-<span class="sd">    has_detached_annotations : :obj:`bool`</span>
-<span class="sd">        Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.</span>
-<span class="sd">    infer_label_types : :obj:`list` or :obj:`dict`, optional</span>
-<span class="sd">        The order in which label types are to be inferred.</span>
-<span class="sd">        Assigning a new value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.</span>
-<span class="sd">        Passing a {label type: regex} dictionary is a shortcut to update type regex&#39;s or to add new ones.</span>
-<span class="sd">        The inference will take place in the order in which they appear in the dictionary. To reuse an existing</span>
-<span class="sd">        regex will updating others, you can refer to them as None, e.g. ``{&#39;dcml&#39;: None, &#39;my_own&#39;: r&#39;^(PAC|HC)$&#39;}``.</span>
-<span class="sd">    mscx : :obj:`MSCX`</span>
-<span class="sd">        Standard way of accessing the parsed MuseScore file.</span>
-<span class="sd">    types : :obj:`dict`</span>
-<span class="sd">        Shows the mapping of label types to their descriptions.</span>
-
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">abs_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$&quot;</span>
+    <span class="n">ABS_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$&quot;</span>
     <span class="sd">&quot;&quot;&quot; :obj:`str`</span>
-<span class="sd">    Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</span>
+<span class="sd">    Class variable with a regular expression that</span>
+<span class="sd">    recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">dcml_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+    <span class="n">DCML_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                                ^(?P&lt;first&gt;</span>
 <span class="s2">                                  (\.?</span>
 <span class="s2">                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\#*))\.)?</span>
@@ -181,10 +122,23 @@
 <span class="s2">                                $</span>
 <span class="s2">                                &quot;&quot;&quot;</span><span class="p">,</span>
                             <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+    <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="sd">    Class variable with a regular expression that</span>
+<span class="sd">    recognizes labels conforming to the DCML harmony annotation standard.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">nashville_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^(b*|#*)(\d).*$&quot;</span>
+    <span class="n">NASHVILLE_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^(b*|#*)(\d).*$&quot;</span>
+    <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="sd">    Class variable with a regular expression that</span>
+<span class="sd">    recognizes labels representing a Nashville numeral, which MuseScore is able to encode.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">rn_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^$&quot;</span>
+    <span class="n">RN_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^$&quot;</span>
+    <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="sd">    Class variable with a regular expression for Roman numerals that</span>
+<span class="sd">    romentarily matches nothing because ms3 tries interpreting Roman Numerals</span>
+<span class="sd">    als DCML harmony annotations.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Score.__init__"><a class="viewcode-back" href="../../manual.html#ms3.score.Score.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">musescore_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infer_label_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;dcml&#39;</span><span class="p">],</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="p">{},</span>
                  <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">):</span>
@@ -213,10 +167,50 @@
 <span class="sd">            The only XML parser currently implemented is BeautifulSoup 4.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;Score&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{},</span> <span class="p">{}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{KEY: {i: full_path}}`` dictionary holding the full paths of all parsed MuseScore and TSV files,</span>
+<span class="sd">        including file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{KEY: {i: file path}}`` dictionary holding the paths of all parsed MuseScore and TSV files,</span>
+<span class="sd">        excluding file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{KEY: {i: file name with extension}}`` dictionary holding the complete file name  of each parsed file,</span>
+<span class="sd">        including the extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{KEY: {i: file name without extension}}`` dictionary holding the file name  of each parsed file,</span>
+<span class="sd">        without its extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{KEY: {i: file extension}}`` dictionary holding the file extension of each parsed file.</span>
+<span class="sd">        Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`MSCX`</span>
+<span class="sd">        The object representing the parsed MuseScore file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        ``{(key, i): Annotations object}`` dictionary for accessing all :py:class:`~ms3.annotations.Annotations` objects.            &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_types_to_infer</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`list`</span>
+<span class="sd">        Current order in which types are being recognized.&quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_label_types</span> <span class="o">=</span> <span class="p">{</span>
             <span class="mi">0</span><span class="p">:</span> <span class="s2">&quot;Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)&quot;</span><span class="p">,</span>
             <span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;MuseScore&#39;s Roman Numeral Annotation format&quot;</span><span class="p">,</span>
@@ -224,19 +218,49 @@
             <span class="mi">3</span><span class="p">:</span> <span class="s2">&quot;Absolute chord encoded by MuseScore&quot;</span><span class="p">,</span>
             <span class="s1">&#39;dcml&#39;</span><span class="p">:</span> <span class="s2">&quot;Latest version of the DCML harmonic annotation standard.&quot;</span><span class="p">,</span>
         <span class="p">}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        Mapping label types to their descriptions.</span>
+<span class="sd">        0: &quot;Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)&quot;,</span>
+<span class="sd">        1: &quot;MuseScore&#39;s Roman Numeral Annotation format&quot;,</span>
+<span class="sd">        2: &quot;MuseScore&#39;s Nashville Number format&quot;,</span>
+<span class="sd">        3: &quot;Absolute chord encoded by MuseScore&quot;,</span>
+<span class="sd">        &#39;dcml&#39;: &quot;Latest version of the DCML harmonic annotation standard.&quot;,</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_label_regex</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">rn_regex</span><span class="p">,</span>
-            <span class="mi">2</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nashville_regex</span><span class="p">,</span>
-            <span class="mi">3</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">abs_regex</span><span class="p">,</span>
-            <span class="s1">&#39;dcml&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dcml_regex</span><span class="p">,</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">RN_REGEX</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">NASHVILLE_REGEX</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ABS_REGEX</span><span class="p">,</span>
+            <span class="s1">&#39;dcml&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DCML_REGEX</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infer_label_types</span> <span class="o">=</span> <span class="n">infer_label_types</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.</span>
+<span class="sd">        1: self.rn_regex,</span>
+<span class="sd">        2: self.nashville_regex,</span>
+<span class="sd">        3: self.abs_regex,</span>
+<span class="sd">        &#39;dcml&#39;: self.dcml_regex,</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
+        <span class="sd">&quot;&quot;&quot;{&#39;bs4&#39;}</span>
+<span class="sd">        Currently only one XML parser has been implemented which uses BeautifulSoup 4.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">infer_label_types</span> <span class="o">=</span> <span class="n">infer_label_types</span>
         <span class="k">if</span> <span class="n">musescore_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_parse_mscx</span><span class="p">(</span><span class="n">musescore_file</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">)</span></div>
+    <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
+    <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">infer_label_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`list` or :obj:`dict`, optional</span>
+<span class="sd">        The order in which label types are to be inferred.</span>
+<span class="sd">        Assigning a new value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.</span>
+<span class="sd">        Passing a {label type: regex} dictionary is a shortcut to update type regex&#39;s or to add new ones.</span>
+<span class="sd">        The inference will take place in the order in which they appear in the dictionary. To reuse an existing</span>
+<span class="sd">        regex will updating others, you can refer to them as None, e.g. ``{&#39;dcml&#39;: None, &#39;my_own&#39;: r&#39;^(PAC|HC)$&#39;}``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_types_to_infer</span>
 
     <span class="nd">@infer_label_types</span><span class="o">.</span><span class="n">setter</span>
@@ -267,16 +291,23 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">has_detached_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
+<span class="sd">        Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`MSCX`</span>
+<span class="sd">        Standard way of accessing the parsed MuseScore file.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s2">&quot;No XML has been parsed so far. Use the method parse_mscx().&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        Shows the mapping of label types to their descriptions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_types</span>
 
 
@@ -625,7 +656,7 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        mscx_src : :obj:`str`</span>
-<span class="sd">            MuseScore 3 file to parse.</span>
+<span class="sd">            Uncompressed MuseScore 3 file to parse.</span>
 <span class="sd">        read_only : :obj:`bool`, optional</span>
 <span class="sd">            Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations</span>
 <span class="sd">            of the score, such as adding and deleting labels. Set to ``True`` if you&#39;re only extracting information.</span>

@@ -10,74 +10,15 @@ from .logger import LoggedClass
 
 class Score(LoggedClass):
     """ Object representing a score.
-
-    The attributes are subdivided into Class Variables (constants), "normal" Attributes (data fields),
-    and Properties (which cannot be changed or do something when changed).
-
-    Attributes
-    ----------
-    
-    CLASS VARIABLES***
-        holding the regular expressions that are used to recognize particular types of annotation labels.
-    dcml_regex :
-        Recognize labels conforming to the DCML harmony annotation standard.
-    nashville_regex :
-        Recognizes labels representing a Nashville numeral, which MuseScore is able to encode.
-    rn_regex :
-        Momentarily this regex matches nothing.
-    NORMAL ATTRIBUTES***
-    files, fnames, fexts : :obj:`dict`
-        ``{KEY: {i: file info}}`` dictionaries holding the file name information of each parsed file.
-        Handled by :py:meth:`~ms3.score.Score.handle_path`.
-        The information is redundant in the sense of ``files = fnames + fexts``.
-    full_paths, paths : :obj:`dict`
-        ``{KEY: {i: file path}}`` dictionaries holding the paths (with and without file name respectively) of all parsed
-        MuseScore and TSV files. Handled by :py:meth:`~ms3.score.Score.handle_path`.
-    musescore_file : :obj:`str`
-        Full path to the parsed MuseScore file.
-    parser : 'bs4'
-        Currently only one XML parser has been implemented which uses BeautifulSoup 4.
-    _annotations : :obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all :py:class:`~ms3.annotations.Annotations` objects.
-    _label_regex : :obj:`dict`
-        Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.
-        1: self.rn_regex,
-        2: self.nashville_regex,
-        3: self.abs_regex,
-        'dcml': self.dcml_regex,
-    _label_types : :obj:`dict`
-        Mapping label types to their descriptions.
-        0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
-        1: "MuseScore's Roman Numeral Annotation format",
-        2: "MuseScore's Nashville Number format",
-        3: "Absolute chord encoded by MuseScore",
-        'dcml': "Latest version of the DCML harmonic annotation standard.",
-    _mscx : :obj:`MSCX`
-        The object representing the parsed MuseScore file.
-    _types_to_infer : :obj:`list`
-        Current order in which types are being recognized.
-    PROPERTIES***
-    has_detached_annotations : :obj:`bool`
-        Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.
-    infer_label_types : :obj:`list` or :obj:`dict`, optional
-        The order in which label types are to be inferred.
-        Assigning a new value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.
-        Passing a {label type: regex} dictionary is a shortcut to update type regex's or to add new ones.
-        The inference will take place in the order in which they appear in the dictionary. To reuse an existing
-        regex will updating others, you can refer to them as None, e.g. ``{'dcml': None, 'my_own': r'^(PAC|HC)$'}``.
-    mscx : :obj:`MSCX`
-        Standard way of accessing the parsed MuseScore file.
-    types : :obj:`dict`
-        Shows the mapping of label types to their descriptions.
-
     """
 
-    abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
+    ABS_REGEX = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
     """ :obj:`str`
-    Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.
+    Class variable with a regular expression that
+    recognizes absolute chord symbols in their decoded (string) form; they start with a note name.
     """
 
-    dcml_regex = re.compile(r"""
+    DCML_REGEX = re.compile(r"""
                                 ^(?P<first>
                                   (\.?
                                     ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
@@ -115,10 +56,23 @@ class Score(LoggedClass):
                                 $
                                 """,
                             re.VERBOSE)
+    """:obj:`str`
+    Class variable with a regular expression that
+    recognizes labels conforming to the DCML harmony annotation standard.
+    """
 
-    nashville_regex = r"^(b*|#*)(\d).*$"
+    NASHVILLE_REGEX = r"^(b*|#*)(\d).*$"
+    """:obj:`str`
+    Class variable with a regular expression that
+    recognizes labels representing a Nashville numeral, which MuseScore is able to encode.
+    """
 
-    rn_regex = r"^$"
+    RN_REGEX = r"^$"
+    """:obj:`str`
+    Class variable with a regular expression for Roman numerals that
+    romentarily matches nothing because ms3 tries interpreting Roman Numerals
+    als DCML harmony annotations.
+    """
 
     def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4'):
@@ -147,10 +101,50 @@ class Score(LoggedClass):
             The only XML parser currently implemented is BeautifulSoup 4.
         """
         super().__init__(subclass='Score', logger_cfg=logger_cfg)
-        self.full_paths, self.paths, self.files, self.fnames, self.fexts = {}, {}, {}, {}, {}
+
+        self.full_paths = {}
+        """:obj:`dict`
+        ``{KEY: {i: full_path}}`` dictionary holding the full paths of all parsed MuseScore and TSV files,
+        including file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        """
+
+        self.paths = {}
+        """:obj:`dict`
+        ``{KEY: {i: file path}}`` dictionary holding the paths of all parsed MuseScore and TSV files,
+        excluding file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        """
+
+        self.files = {}
+        """:obj:`dict`
+        ``{KEY: {i: file name with extension}}`` dictionary holding the complete file name  of each parsed file,
+        including the extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        """
+
+        self.fnames = {}
+        """:obj:`dict`
+        ``{KEY: {i: file name without extension}}`` dictionary holding the file name  of each parsed file,
+        without its extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        """
+
+        self.fexts = {}
+        """:obj:`dict`
+        ``{KEY: {i: file extension}}`` dictionary holding the file extension of each parsed file.
+        Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        """
+
         self._mscx = None
+        """:obj:`MSCX`
+        The object representing the parsed MuseScore file.
+        """
+
         self._annotations = {}
+        """:obj:`dict`
+        ``{(key, i): Annotations object}`` dictionary for accessing all :py:class:`~ms3.annotations.Annotations` objects.            """
+
         self._types_to_infer = []
+        """:obj:`list`
+        Current order in which types are being recognized."""
+
         self._label_types = {
             0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
             1: "MuseScore's Roman Numeral Annotation format",
@@ -158,19 +152,49 @@ class Score(LoggedClass):
             3: "Absolute chord encoded by MuseScore",
             'dcml': "Latest version of the DCML harmonic annotation standard.",
         }
+        """:obj:`dict`
+        Mapping label types to their descriptions.
+        0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
+        1: "MuseScore's Roman Numeral Annotation format",
+        2: "MuseScore's Nashville Number format",
+        3: "Absolute chord encoded by MuseScore",
+        'dcml': "Latest version of the DCML harmonic annotation standard.",
+        """
+
         self._label_regex = {
-            1: self.rn_regex,
-            2: self.nashville_regex,
-            3: self.abs_regex,
-            'dcml': self.dcml_regex,
+            1: self.RN_REGEX,
+            2: self.NASHVILLE_REGEX,
+            3: self.ABS_REGEX,
+            'dcml': self.DCML_REGEX,
         }
-        self.infer_label_types = infer_label_types
+        """:obj:`dict`
+        Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.
+        1: self.rn_regex,
+        2: self.nashville_regex,
+        3: self.abs_regex,
+        'dcml': self.dcml_regex,
+        """
+
         self.parser = parser
+        """{'bs4'}
+        Currently only one XML parser has been implemented which uses BeautifulSoup 4.
+        """
+
+        self.infer_label_types = infer_label_types
         if musescore_file is not None:
             self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=labels_cfg)
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
     def infer_label_types(self):
+        """:obj:`list` or :obj:`dict`, optional
+        The order in which label types are to be inferred.
+        Assigning a new value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.
+        Passing a {label type: regex} dictionary is a shortcut to update type regex's or to add new ones.
+        The inference will take place in the order in which they appear in the dictionary. To reuse an existing
+        regex will updating others, you can refer to them as None, e.g. ``{'dcml': None, 'my_own': r'^(PAC|HC)$'}``.
+        """
         return self._types_to_infer
 
     @infer_label_types.setter
@@ -201,16 +225,23 @@ class Score(LoggedClass):
 
     @property
     def has_detached_annotations(self):
+        """:obj:`bool`
+        Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.
+        """
         return sum(True for key in self._annotations if key != 'annotations') > 0
 
     @property
     def mscx(self):
+        """:obj:`MSCX`
+        Standard way of accessing the parsed MuseScore file."""
         if self._mscx is None:
             raise LookupError("No XML has been parsed so far. Use the method parse_mscx().")
         return self._mscx
 
     @property
     def types(self):
+        """:obj:`dict`
+        Shows the mapping of label types to their descriptions."""
         return self._label_types
 
 
@@ -559,7 +590,7 @@ class MSCX(LoggedClass):
         Parameters
         ----------
         mscx_src : :obj:`str`
-            MuseScore 3 file to parse.
+            Uncompressed MuseScore 3 file to parse.
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
             of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.

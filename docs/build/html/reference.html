@@ -89,212 +89,124 @@ those of an entire corpus, we use <a class="reference internal" href="#ms3.parse
 <p>Since <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-class docutils literal notranslate"><span class="pre">MSCX</span></code></a> and <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
 objects are always attached to a <a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a>, the documentation
 starts with this central class.</p>
-<div class="section" id="module-ms3.score">
-<span id="the-score-module"></span><h2>The score module<a class="headerlink" href="#module-ms3.score" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="the-score-module">
+<h2>The score module<a class="headerlink" href="#the-score-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="the-score-class">
+<h3>The Score class<a class="headerlink" href="#the-score-class" title="Permalink to this headline">¶</a></h3>
 <dl class="py class">
 <dt id="ms3.score.Score">
 <em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">musescore_file</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Object representing a score.</p>
-<p>The attributes are subdivided into Class Variables (constants), “normal” Attributes (data fields),
-and Properties (which cannot be changed or do something when changed).</p>
 <dl class="py attribute">
-<dt>
-<code class="sig-name descname">CLASS VARIABLES***</code></dt>
-<dd><p>holding the regular expressions that are used to recognize particular types of annotation labels.</p>
+<dt id="ms3.score.Score.ABS_REGEX">
+<code class="sig-name descname">ABS_REGEX</code><em class="property"> = '^\\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$'</em><a class="headerlink" href="#ms3.score.Score.ABS_REGEX" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Class variable with a regular expression that
+recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="ms3.score.Score.dcml_regex">
-<code class="sig-name descname">dcml_regex</code><a class="headerlink" href="#ms3.score.Score.dcml_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recognize labels conforming to the DCML harmony annotation standard.</p>
+<dt id="ms3.score.Score.DCML_REGEX">
+<code class="sig-name descname">DCML_REGEX</code><em class="property"> = re.compile('\n                                ^(?P&lt;first&gt;\n                                  (\\.?\n                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\\#*))\\.)?\n                                   , re.VERBOSE)</em><a class="headerlink" href="#ms3.score.Score.DCML_REGEX" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Class variable with a regular expression that
+recognizes labels conforming to the DCML harmony annotation standard.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="ms3.score.Score.nashville_regex">
-<code class="sig-name descname">nashville_regex</code><a class="headerlink" href="#ms3.score.Score.nashville_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recognizes labels representing a Nashville numeral, which MuseScore is able to encode.</p>
+<dt id="ms3.score.Score.NASHVILLE_REGEX">
+<code class="sig-name descname">NASHVILLE_REGEX</code><em class="property"> = '^(b*|#*)(\\d).*$'</em><a class="headerlink" href="#ms3.score.Score.NASHVILLE_REGEX" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Class variable with a regular expression that
+recognizes labels representing a Nashville numeral, which MuseScore is able to encode.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="ms3.score.Score.rn_regex">
-<code class="sig-name descname">rn_regex</code><a class="headerlink" href="#ms3.score.Score.rn_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Momentarily this regex matches nothing.</p>
+<dt id="ms3.score.Score.RN_REGEX">
+<code class="sig-name descname">RN_REGEX</code><em class="property"> = '^$'</em><a class="headerlink" href="#ms3.score.Score.RN_REGEX" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Class variable with a regular expression for Roman numerals that
+romentarily matches nothing because ms3 tries interpreting Roman Numerals
+als DCML harmony annotations.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt>
-<code class="sig-name descname">NORMAL ATTRIBUTES***</code></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt>
-<code class="sig-name descname">files, fnames, fexts</code></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">info}}</span></code> dictionaries holding the file name information of each parsed file.
-Handled by <code class="xref py py-meth docutils literal notranslate"><span class="pre">handle_path()</span></code>.
-The information is redundant in the sense of <code class="docutils literal notranslate"><span class="pre">files</span> <span class="pre">=</span> <span class="pre">fnames</span> <span class="pre">+</span> <span class="pre">fexts</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
+<dt id="ms3.score.Score.full_paths">
+<code class="sig-name descname">full_paths</code><a class="headerlink" href="#ms3.score.Score.full_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">full_path}}</span></code> dictionary holding the full paths of all parsed MuseScore and TSV files,
+including file names. Handled internally by <code class="xref py py-meth docutils literal notranslate"><span class="pre">_handle_path()</span></code>.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt>
-<code class="sig-name descname">full_paths, paths</code></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">path}}</span></code> dictionaries holding the paths (with and without file name respectively) of all parsed
-MuseScore and TSV files. Handled by <code class="xref py py-meth docutils literal notranslate"><span class="pre">handle_path()</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
+<dt id="ms3.score.Score.paths">
+<code class="sig-name descname">paths</code><a class="headerlink" href="#ms3.score.Score.paths" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">path}}</span></code> dictionary holding the paths of all parsed MuseScore and TSV files,
+excluding file names. Handled internally by <code class="xref py py-meth docutils literal notranslate"><span class="pre">_handle_path()</span></code>.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="ms3.score.Score.musescore_file">
-<code class="sig-name descname">musescore_file</code><a class="headerlink" href="#ms3.score.Score.musescore_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Full path to the parsed MuseScore file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
-</dd>
-</dl>
+<dt id="ms3.score.Score.files">
+<code class="sig-name descname">files</code><a class="headerlink" href="#ms3.score.Score.files" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">name</span> <span class="pre">with</span> <span class="pre">extension}}</span></code> dictionary holding the complete file name  of each parsed file,
+including the extension. Handled internally by <code class="xref py py-meth docutils literal notranslate"><span class="pre">_handle_path()</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.fnames">
+<code class="sig-name descname">fnames</code><a class="headerlink" href="#ms3.score.Score.fnames" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">name</span> <span class="pre">without</span> <span class="pre">extension}}</span></code> dictionary holding the file name  of each parsed file,
+without its extension. Handled internally by <code class="xref py py-meth docutils literal notranslate"><span class="pre">_handle_path()</span></code>.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.fexts">
+<code class="sig-name descname">fexts</code><a class="headerlink" href="#ms3.score.Score.fexts" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+<code class="docutils literal notranslate"><span class="pre">{KEY:</span> <span class="pre">{i:</span> <span class="pre">file</span> <span class="pre">extension}}</span></code> dictionary holding the file extension of each parsed file.
+Handled internally by <code class="xref py py-meth docutils literal notranslate"><span class="pre">_handle_path()</span></code>.</p>
 </dd></dl>
 
 <dl class="py attribute">
 <dt id="ms3.score.Score.parser">
 <code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.Score.parser" title="Permalink to this definition">¶</a></dt>
-<dd><p>Currently only one XML parser has been implemented which uses BeautifulSoup 4.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p>‘bs4’</p>
-</dd>
-</dl>
+<dd><p>{‘bs4’}
+Currently only one XML parser has been implemented which uses BeautifulSoup 4.</p>
 </dd></dl>
 
-<dl class="py attribute">
-<dt id="ms3.score.Score._annotations">
-<code class="sig-name descname">_annotations</code><a class="headerlink" href="#ms3.score.Score._annotations" title="Permalink to this definition">¶</a></dt>
-<dd><p><code class="docutils literal notranslate"><span class="pre">{(key,</span> <span class="pre">i):</span> <span class="pre">Annotations</span> <span class="pre">object}</span></code> dictionary for accessing all <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> objects.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score._label_regex">
-<code class="sig-name descname">_label_regex</code><a class="headerlink" href="#ms3.score.Score._label_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mapping label types to their corresponding regex. Managed via the property <a class="reference internal" href="#ms3.score.Score.infer_label_types" title="ms3.score.Score.infer_label_types"><code class="xref py py-meth docutils literal notranslate"><span class="pre">infer_label_types()</span></code></a>.
-1: self.rn_regex,
-2: self.nashville_regex,
-3: self.abs_regex,
-‘dcml’: self.dcml_regex,</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score._label_types">
-<code class="sig-name descname">_label_types</code><a class="headerlink" href="#ms3.score.Score._label_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>Mapping label types to their descriptions.
-0: “Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)”,
-1: “MuseScore’s Roman Numeral Annotation format”,
-2: “MuseScore’s Nashville Number format”,
-3: “Absolute chord encoded by MuseScore”,
-‘dcml’: “Latest version of the DCML harmonic annotation standard.”,</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score._mscx">
-<code class="sig-name descname">_mscx</code><a class="headerlink" href="#ms3.score.Score._mscx" title="Permalink to this definition">¶</a></dt>
-<dd><p>The object representing the parsed MuseScore file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score._types_to_infer">
-<code class="sig-name descname">_types_to_infer</code><a class="headerlink" href="#ms3.score.Score._types_to_infer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Current order in which types are being recognized.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt>
-<code class="sig-name descname">PROPERTIES***</code></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score.has_detached_annotations">
-<code class="sig-name descname">has_detached_annotations</code><a class="headerlink" href="#ms3.score.Score.has_detached_annotations" title="Permalink to this definition">¶</a></dt>
-<dd><p>Is True as long as the score contains <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> objects, that are not attached to the <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a> object.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
+<dl class="py method">
 <dt id="ms3.score.Score.infer_label_types">
-<code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#ms3.score.Score.infer_label_types" title="Permalink to this definition">¶</a></dt>
-<dd><p>The order in which label types are to be inferred.
+<em class="property">property </em><code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#ms3.score.Score.infer_label_types" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional
+The order in which label types are to be inferred.
 Assigning a new value results in a call to <code class="xref py py-meth docutils literal notranslate"><span class="pre">infer_types()</span></code>.
 Passing a {label type: regex} dictionary is a shortcut to update type regex’s or to add new ones.
 The inference will take place in the order in which they appear in the dictionary. To reuse an existing
 regex will updating others, you can refer to them as None, e.g. <code class="docutils literal notranslate"><span class="pre">{'dcml':</span> <span class="pre">None,</span> <span class="pre">'my_own':</span> <span class="pre">r'^(PAC|HC)$'}</span></code>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional</p>
-</dd>
-</dl>
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py method">
+<dt id="ms3.score.Score.has_detached_annotations">
+<em class="property">property </em><code class="sig-name descname">has_detached_annotations</code><a class="headerlink" href="#ms3.score.Score.has_detached_annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
+Is True as long as the score contains <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> objects, that are not attached to the <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a> object.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="ms3.score.Score.mscx">
-<code class="sig-name descname">mscx</code><a class="headerlink" href="#ms3.score.Score.mscx" title="Permalink to this definition">¶</a></dt>
-<dd><p>Standard way of accessing the parsed MuseScore file.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a></p>
-</dd>
-</dl>
+<em class="property">property </em><code class="sig-name descname">mscx</code><a class="headerlink" href="#ms3.score.Score.mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a>
+Standard way of accessing the parsed MuseScore file.</p>
 </dd></dl>
 
-<dl class="py attribute">
+<dl class="py method">
 <dt id="ms3.score.Score.types">
-<code class="sig-name descname">types</code><a class="headerlink" href="#ms3.score.Score.types" title="Permalink to this definition">¶</a></dt>
-<dd><p>Shows the mapping of label types to their descriptions.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Type</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score.abs_regex">
-<code class="sig-name descname">abs_regex</code><em class="property"> = '^\\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$'</em><a class="headerlink" href="#ms3.score.Score.abs_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
-Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</p>
+<em class="property">property </em><code class="sig-name descname">types</code><a class="headerlink" href="#ms3.score.Score.types" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+Shows the mapping of label types to their descriptions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -339,7 +251,7 @@ may use it as a property: For example, passing <code class="docutils literal not
 <li><p><strong>voice</strong> (<em>{1</em><em>, </em><em>2</em><em>, </em><em>3</em><em>, </em><em>4}</em><em>, </em><em>optional</em>) – Can be used to select only labels from one of the four notational layers.
 Layer 1 is MuseScore’s main, ‘upper voice’ layer, coloured in blue.</p></li>
 <li><p><strong>label_type</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Select one of the predefined or custom label types to select only labels of this type.
-Predefined types are {0, 1, 2, 3, ‘dcml’} (see <a class="reference internal" href="#ms3.score.Score._label_types" title="ms3.score.Score._label_types"><code class="xref py py-attr docutils literal notranslate"><span class="pre">_label_types</span></code></a>).</p></li>
+Predefined types are {0, 1, 2, 3, ‘dcml’} (see <code class="xref py py-attr docutils literal notranslate"><span class="pre">_label_types</span></code>).</p></li>
 <li><p><strong>delete</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, the labels are removed from the XML structure in <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a>.
 Pass False if you want them to remain. This could be useful if you only want to extract a subset
 of the annotations for storing them separately but without removing the labels from the score.</p></li>
@@ -438,6 +350,9 @@ Uncompressed files (‘.mscz’) are not supported.</p>
 
 </dd></dl>
 
+</div>
+<div class="section" id="the-mscx-class">
+<h3>The MSCX class<a class="headerlink" href="#the-mscx-class" title="Permalink to this headline">¶</a></h3>
 <dl class="py class">
 <dt id="ms3.score.MSCX">
 <em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
@@ -524,7 +439,7 @@ Is True as long as at least one label is attached to the current XML.</p>
 <em class="property">property </em><code class="sig-name descname">labels</code><a class="headerlink" href="#ms3.score.MSCX.labels" title="Permalink to this definition">¶</a></dt>
 <dd><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
 DataFrame representing all &lt;Harmony&gt; tags in the score as returned by calling <a class="reference internal" href="#ms3.annotations.Annotations.get_labels" title="ms3.annotations.Annotations.get_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_labels()</span></code></a>
-on the object at <a class="reference internal" href="#ms3.score.Score._annotations" title="ms3.score.Score._annotations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_annotations</span></code></a> with the current <code class="xref py py-obj docutils literal notranslate"><span class="pre">_labels_cfg</span></code>.</p>
+on the object at <code class="xref py py-obj docutils literal notranslate"><span class="pre">_annotations</span></code> with the current <code class="xref py py-obj docutils literal notranslate"><span class="pre">_labels_cfg</span></code>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -779,6 +694,7 @@ If ‘sep’ is changed to a different separator, the file extension(s) will be 
 
 </dd></dl>
 
+</div>
 </div>
 <div class="section" id="module-ms3.annotations">
 <span id="the-annotations-module"></span><h2>The annotations module<a class="headerlink" href="#module-ms3.annotations" title="Permalink to this headline">¶</a></h2>
@@ -1772,7 +1688,11 @@ Changes do not express absolute intervals but instead depend on the numeral and 
 <li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Developers' Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-ms3.score">The score module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-score-module">The score module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-score-class">The Score class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-mscx-class">The MSCX class</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The annotations module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.parse">The parse module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.expand_dcml">The expand_dcml module</a></li>

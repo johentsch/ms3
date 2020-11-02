@@ -23,7 +23,16 @@ starts with this central class.
 The score module
 ================
 
-.. automodule:: ms3.score
+The Score class
+---------------
+
+.. autoclass:: ms3.score.Score
+    :members:
+
+The MSCX class
+--------------
+
+.. autoclass:: ms3.score.MSCX
     :members:
 
 The annotations module
