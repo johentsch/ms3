@@ -350,8 +350,9 @@ class _MSCX_bs4(LoggedClass):
 
 
     def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False, articulation=False, spanners=False, **kwargs):
-        """ Returns a DataFrame with the score's chords (groups of simultaneous notes in the same layer).
-            Such a list is needed for extracting certain types of information which is attached to chords rather than notes.
+        """ Shortcut for ``MSCX.parsed.get_chords()``.
+        Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
+        unprocessed ones.
 
         Parameters
         ----------
@@ -380,7 +381,8 @@ class _MSCX_bs4(LoggedClass):
 
         Returns
         -------
-
+        :obj:`pandas.DataFrame`
+            DataFrame representing all <Chord> tags in the score with the selected features.
         """
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
@@ -473,6 +475,7 @@ class _MSCX_bs4(LoggedClass):
 
         Returns
         -------
+        :obj:`pandas.DataFrame`
 
         """
         cols = {'label_type': 'Harmony/harmonyType',
@@ -510,6 +513,10 @@ class _MSCX_bs4(LoggedClass):
                 raise
             mn = int(m.group(1))
             volta = ord(m.group(2)) - 96 # turn 'a' into 1, 'b' into 2 etc.
+        try:
+            mn_onset = frac(mn_onset)
+        except:
+            self.logger.error(f"The mn_onset {mn_onset} could not be interpreted as a fraction.")
         candidates = self.ml[self.ml['mn'] == mn]
         if len(candidates) == 0:
             self.logger.error(f"MN {mn} does not occur in measure list, which ends at MN {self.ml['mn'].max()}.")
@@ -533,7 +540,6 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         if len(candidates) == 0:
             self.logger.error(f"Volta selection failed")
             return None, None
-        mn_onset = frac(mn_onset)
         if mn_onset == 0:
             mc = candidates.iloc[0].mc
             return mc, mn_onset
@@ -601,10 +607,26 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
 
 
     def delete_label(self, mc, staff, voice, mc_onset):
+        """ Delete a label from a particular position (if there is one).
+
+        Parameters
+        ----------
+        mc : :obj:`int`
+            Measure count.
+        staff, voice
+            Notational layer in which to delete the label.
+        mc_onset : :obj:`fractions.Fraction`
+            mc_onset
+
+        Returns
+        -------
+        :obj:`bool`
+            Whether a label was deleted or not.
+        """
         self.make_writeable()
         measure = self.tags[mc][staff][voice]
         if mc_onset not in measure:
-            self.logger.warning(f"Nothing to detelete for MC {mc} mc_onset {mc_onset} in staff {staff}, voice {voice}.")
+            self.logger.warning(f"Nothing to delete for MC {mc} mc_onset {mc_onset} in staff {staff}, voice {voice}.")
             return False
         elements = measure[mc_onset]
         element_names = [e['name'] for e in elements]
@@ -758,6 +780,22 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
 
 
     def add_label(self, label, mc, mc_onset, staff=1, voice=1, **kwargs):
+        """ Adds a single label to the current XML in form of a new
+        <Harmony> (and maybe also <location>) tag.
+
+        Parameters
+        ----------
+        label
+        mc
+        mc_onset
+        staff
+        voice
+        kwargs
+
+        Returns
+        -------
+
+        """
         self.make_writeable()
         if mc not in self.tags:
             self.logger.error(f"MC {mc} not found.")

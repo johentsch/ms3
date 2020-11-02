@@ -1,0 +1,289 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3 - Parsing MuseScore 3 &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
+    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Installing ms3" href="install.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="install.html" title="Installing ms3"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+    <li><a href="#">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="ms3-parsing-musescore-3">
+<h1>ms3 - Parsing MuseScore 3<a class="headerlink" href="#ms3-parsing-musescore-3" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to <strong>ms3</strong>, a Python library for parsing annotated <a class="reference external" href="https://musescore.org/en/download">MuseScore 3</a> files. It</p>
+<ul class="simple">
+<li><p>parses uncompressed MuseScore 3 files (<code class="docutils literal notranslate"><span class="pre">*.mscx</span></code>),</p></li>
+<li><p>stores the contained information in a tabular format (<code class="docutils literal notranslate"><span class="pre">*.tsv</span></code>),</p></li>
+<li><p>deletes and writes annotation labels to MuseScores &lt;Harmony&gt; layer,</p></li>
+<li><p>parses and transforms labels following the <a class="reference external" href="https://github.com/DCMLab/standards">DCML harmonic annotation standard</a></p></li>
+</ul>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="install.html#unix-based-systems">Unix-based systems</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="install.html#using-python-3-6">Using Python &gt;= 3.6</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install.html#installing-via-pip">Installing via <code class="docutils literal notranslate"><span class="pre">pip</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="quick.html#parsing-a-single-score">Parsing a single score</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#storing-the-labels">Storing the labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#removing-annotation-labels">Removing annotation labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#storing-the-changed-score">Storing the changed score</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#adding-labels-to-score">Adding labels to score</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#accessing-score-information">Accessing score information</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="quick.html#metadata">Metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="quick.html#tabular-information">Tabular information</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="quick.html#parsing-multiple-scores">Parsing multiple scores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#loading">Loading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#parsing">Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="quick.html#extracting-score-information">Extracting score information</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#good-to-know">Good to know</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#terminology">Terminology</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#quarter-beats">Quarter Beats</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#functionality">Functionality</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#converting-quarter-beats">Converting <span class="xref std std-ref">quarter_beats</span></a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#read-only-mode">Read-only mode</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#using-the-library">Using the library</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#parsing-a-single-score">Parsing a single score</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#parsing-options">Parsing options</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#parsing-multiple-scores">Parsing multiple scores</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#extracting-score-information">Extracting score information</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#specifying-folders">Specifying folders</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#column-names">Column Names</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#general-columns">General Columns</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#mc-measure-counts"><strong>mc</strong> Measure Counts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#mn-measure-numbers"><strong>mn</strong> Measure Numbers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#onsets"><strong>onsets</strong></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#measures">Measures</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#act-dur-actual-duration-of-a-measure"><strong>act_dur</strong> Actual duration of a measure</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#barline"><strong>barline</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#breaks"><strong>breaks</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#dont-count-measures-excluded-from-bar-count"><strong>dont_count</strong> Measures excluded from bar count</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#keysig-key-signatures"><strong>keysig</strong> Key Signatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#mc-offset-offset-of-a-mc"><strong>mc_offset</strong> Offset of a MC</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#next"><strong>next</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#numbering-offset-offsetting-mns"><strong>numbering_offset</strong> Offsetting MNs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#repeats"><strong>repeats</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#timesig-time-signatures"><strong>timesig</strong> Time Signatures</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#volta"><strong>volta</strong></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#the-score-module">The score module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reference.html#the-score-class">The Score class</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reference.html#the-mscx-class">The MSCX class</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.annotations">The annotations module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.parse">The parse module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.expand_dcml">The expand_dcml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#developing-a-new-parser">Developing a new parser</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reference.html#methods">Methods</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-4-0">Version 0.4.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-3-0">Version 0.3.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-2-0">Version 0.2.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-1-3">Version 0.1.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-1-0">Version 0.1.0</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="#">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="install.html"
+                          title="Next page">&rarr; Installing ms3</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="install.html" title="Installing ms3"
+             >next</a> &nbsp; &nbsp;</li>
+    <li><a href="#">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

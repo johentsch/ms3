@@ -1,0 +1,1012 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3 package &#8212; ms3 0.1.2 documentation</title>
+    <link rel="stylesheet" href="../_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+    <script src="../_static/jquery.js"></script>
+    <script src="../_static/underscore.js"></script>
+    <script src="../_static/doctools.js"></script>
+    <script src="../_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">ms3 package</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="ms3-package">
+<h1>ms3 package<a class="headerlink" href="#ms3-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ms3.bs4_measures">
+<span id="ms3-bs4-measures-module"></span><h2>ms3.bs4_measures module<a class="headerlink" href="#module-ms3.bs4_measures" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.bs4_measures.MeasureList">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">MeasureList</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">section_breaks</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">secure</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">reset_index</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'MeasureList'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#MeasureList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.MeasureList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Turns a _MSCX_bs4._measures DataFrame into a measure list and performs a couple of consistency checks on the score.</p>
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.df">
+<code class="sig-name descname">df</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.df" title="Permalink to this definition">¶</a></dt>
+<dd><p>The input DataFrame from _MSCX_bs4.raw_measures</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.section_breaks">
+<code class="sig-name descname">section_breaks</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.section_breaks" title="Permalink to this definition">¶</a></dt>
+<dd><p>By default, section breaks allow for several anacrusis measures within the piece (relevant for <cite>mc_offset</cite> column)
+and make it possible to omit a repeat sign in the following bar (relevant for <cite>next</cite> column).
+Set to False if you want to ignore section breaks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, default True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.secure">
+<code class="sig-name descname">secure</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.secure" title="Permalink to this definition">¶</a></dt>
+<dd><p>By default, measure information from lower staves is considered to contain only redundant information.
+Set to True if you want to be warned about additional measure information from lower staves that is not taken into account.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, default False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.reset_index">
+<code class="sig-name descname">reset_index</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.reset_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>By default, the original index of <cite>df</cite> is replaced. Pass False to keep original index values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, default True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.logger_name">
+<code class="sig-name descname">logger_name</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.logger_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>If you have defined a logger, pass its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.level">
+<code class="sig-name descname">level</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a level name for which (and above which) you want to see log records.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘W’, ‘D’, ‘I’, ‘E’, ‘C’, ‘WARNING’, ‘DEBUG’, ‘INFO’, ‘ERROR’, ‘CRITICAL’}, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.cols">
+<code class="sig-name descname">cols</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.cols" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dictionary of the relevant columns in <cite>df</cite> as present after the parse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.ml">
+<code class="sig-name descname">ml</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.ml" title="Permalink to this definition">¶</a></dt>
+<dd><p>The measure list in the making; the final result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_measures.MeasureList.volta_structure">
+<code class="sig-name descname">volta_structure</code><a class="headerlink" href="#ms3.bs4_measures.MeasureList.volta_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keys are first MCs of volta groups, values are dictionaries of {volta_no: [mc1, mc2 …]}</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.MeasureList.make_ml">
+<code class="sig-name descname">make_ml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">section_breaks</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">secure</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">reset_index</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#MeasureList.make_ml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.MeasureList.make_ml" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.MeasureList.add_col">
+<code class="sig-name descname">add_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#MeasureList.add_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.MeasureList.add_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Inserts or appends a column created by <cite>func(df, **kwargs)</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.MeasureList.get_unique_measure_list">
+<code class="sig-name descname">get_unique_measure_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#MeasureList.get_unique_measure_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.MeasureList.get_unique_measure_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Keep only the measure information from the first staff.
+Uses: keep_one_row_each()</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mc_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – DataFrame columns where MC and staff can be found. Staff is to be dropped.</p></li>
+<li><p><strong>staff_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – DataFrame columns where MC and staff can be found. Staff is to be dropped.</p></li>
+<li><p><strong>secure</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>) – If the dropped rows contain additional information, set <cite>secure</cite> to True to
+be informed about the information being lost by the function keep_one_row_each().</p></li>
+<li><p><strong>**kwargs</strong> (Additional parameter passed on to keep_one_row_each(). Ignored if <cite>secure=False</cite>.) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.MeasureList.check_measure_numbers">
+<code class="sig-name descname">check_measure_numbers</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">mn_col</span><span class="o">=</span><span class="default_value">'mn'</span></em>, <em class="sig-param"><span class="n">act_dur</span><span class="o">=</span><span class="default_value">'act_dur'</span></em>, <em class="sig-param"><span class="n">mc_offset</span><span class="o">=</span><span class="default_value">'mc_offset'</span></em>, <em class="sig-param"><span class="n">dont_count</span><span class="o">=</span><span class="default_value">'dont_count'</span></em>, <em class="sig-param"><span class="n">numbering_offset</span><span class="o">=</span><span class="default_value">'numbering_offset'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#MeasureList.check_measure_numbers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.MeasureList.check_measure_numbers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.bs4_measures.NextColumnMaker">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">NextColumnMaker</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">volta_structure</span></em>, <em class="sig-param"><span class="n">logger</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#NextColumnMaker"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.NextColumnMaker" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt id="ms3.bs4_measures.NextColumnMaker.start_section">
+<code class="sig-name descname">start_section</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#NextColumnMaker.start_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.NextColumnMaker.start_section" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.NextColumnMaker.end_section">
+<code class="sig-name descname">end_section</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#NextColumnMaker.end_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.NextColumnMaker.end_section" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_measures.NextColumnMaker.treat_input">
+<code class="sig-name descname">treat_input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">repeat</span></em>, <em class="sig-param"><span class="n">section_break</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#NextColumnMaker.treat_input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.NextColumnMaker.treat_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.get_volta_structure">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">get_volta_structure</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">volta_start</span></em>, <em class="sig-param"><span class="n">volta_length</span></em>, <em class="sig-param"><span class="n">frac_col</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#get_volta_structure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.get_volta_structure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses: treat_group()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.keep_one_row_each">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">keep_one_row_each</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">compress_col</span></em>, <em class="sig-param"><span class="n">differentiating_col</span></em>, <em class="sig-param"><span class="n">differentiating_val</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ignore_columns</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fillna</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">drop_differentiating</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#keep_one_row_each"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.keep_one_row_each" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Eliminates duplicates in <cite>compress_col</cite> but warns about values within the</dt><dd><p>dropped rows which diverge from those of the remaining rows. The <cite>differentiating_col</cite>
+serves to identify places where information gets lost during the process.</p>
+</dd>
+</dl>
+<p>The result of this function is the same as <cite>df.drop_duplicates(subset=[compress_col])</cite>
+if <cite>differentiating_val</cite> is None, and <cite>df[df[compress_col] == differentiating_val]</cite> otherwise
+but with the difference that only adjacent duplicates are eliminated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>compress_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Column with duplicates (e.g. measure counts).</p></li>
+<li><p><strong>differentiating_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Column that differentiates duplicates (e.g. staff IDs).</p></li>
+<li><p><strong>differentiating_val</strong> (<em>value</em><em>, </em><em>optional</em>) – If you want to keep rows with a certain <cite>differentiating_col</cite> value, pass that value (e.g. a certain staff).
+Otherwise, the first row of every <cite>compress_col</cite> value is kept.</p></li>
+<li><p><strong>ignore_columns</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">Iterable</span></code>, optional) – These columns are not checked.</p></li>
+<li><p><strong>fillna</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, missing values of kept rows are filled if the dropped rows contain
+one unique value in that particular column. Pass False to keep rows as they are.</p></li>
+<li><p><strong>drop_differentiating</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, the column that differentiates the <cite>compress_col</cite> is dropped.
+Pass False to prevent that.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_actdur_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_actdur_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">len_col</span></em>, <em class="sig-param"><span class="n">timesig_col</span><span class="o">=</span><span class="default_value">'timesig'</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'act_dur'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_actdur_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_actdur_col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_keysig_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_keysig_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">keysig_col</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'keysig'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_keysig_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_keysig_col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_mn_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_mn_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">dont_count</span></em>, <em class="sig-param"><span class="n">numbering_offset</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'mn'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_mn_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_mn_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute measure numbers where one or two columns can influence the counting.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">pd.DataFrame</span></code>) – If no other parameters are given, every row is counted, starting from 1.</p></li>
+<li><p><strong>dont_count</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – This column has notna() for measures where the option “Exclude from bar count” is activated, NaN otherwise.</p></li>
+<li><p><strong>numbering_offset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – This column has values of the MuseScore option “Add to bar number”, which adds
+notna() values to this and all subsequent measures.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_next_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_next_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">repeats</span><span class="o">=</span><span class="default_value">'repeats'</span></em>, <em class="sig-param"><span class="n">volta_structure</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">section_breaks</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'next'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_next_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_next_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses a <cite>NextColumnMaker</cite> object to create a column with all MCs that can follow each MC (e.g. due to repetitions).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Raw measure list.</p></li>
+<li><p><strong>mc_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Column names.</p></li>
+<li><p><strong>repeats</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Column names.</p></li>
+<li><p><strong>volta_structure</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – This parameter can be computed by get_volta_structure(). It is empty if
+there are no voltas in the piece.</p></li>
+<li><p><strong>section_breaks</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you pass the name of a column, the string ‘section’ is taken into account
+as ending a section and therefore potentially ending a repeated part even when
+the repeat sign is missing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_offset_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_offset_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">timesig</span><span class="o">=</span><span class="default_value">'timesig'</span></em>, <em class="sig-param"><span class="n">act_dur</span><span class="o">=</span><span class="default_value">'act_dur'</span></em>, <em class="sig-param"><span class="n">next_col</span><span class="o">=</span><span class="default_value">'next'</span></em>, <em class="sig-param"><span class="n">section_breaks</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'mc_offset'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_offset_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_offset_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>If one MN is composed of two MCs, the resulting column indicates the second MC’s offset from the MN’s beginning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mc_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Names of the required columns.</p></li>
+<li><p><strong>timesig</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Names of the required columns.</p></li>
+<li><p><strong>act_dur</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Names of the required columns.</p></li>
+<li><p><strong>next_col</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Names of the required columns.</p></li>
+<li><p><strong>section_breaks</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you pass the name of a column, the string ‘section’ is taken into account
+as ending a section and therefore potentially ending a repeated part even when
+the repeat sign is missing.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_repeat_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_repeat_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">startRepeat</span></em>, <em class="sig-param"><span class="n">endRepeat</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'repeats'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_repeat_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_repeat_col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_timesig_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_timesig_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">sigN_col</span></em>, <em class="sig-param"><span class="n">sigD_col</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'timesig'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_timesig_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_timesig_col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.make_volta_col">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">make_volta_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">volta_structure</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">'volta'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#make_volta_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.make_volta_col" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the input for <cite>volta_structure</cite> using get_volta_structure()</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_measures.treat_group">
+<code class="sig-prename descclassname">ms3.bs4_measures.</code><code class="sig-name descname">treat_group</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">group</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_measures.html#treat_group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_measures.treat_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function for make_volta_col()
+Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
+where columns are (MC, volta number, volta length).</p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.bs4_parser">
+<span id="ms3-bs4-parser-module"></span><h2>ms3.bs4_parser module<a class="headerlink" href="#module-ms3.bs4_parser" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="ms3.bs4_parser.get_duration_event">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">get_duration_event</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">elements</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#get_duration_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.get_duration_event" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.make_spanner_cols">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">make_spanner_cols</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">spanner_types</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#make_spanner_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.make_spanner_cols" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>From a raw chord list as returned by <code class="docutils literal notranslate"><span class="pre">get_chords(spanners=True)</span></code></dt><dd><p>create a DataFrame with Spanner IDs for all chords for all spanner
+types they are associated with.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>spanner_types</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">collection</span></code>) – If this parameter is passed, only the enlisted
+spanner types (e.g. <code class="docutils literal notranslate"><span class="pre">Slur</span></code> or <code class="docutils literal notranslate"><span class="pre">Pedal</span></code>) are included.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.sort_note_list">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">sort_note_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">onset_col</span><span class="o">=</span><span class="default_value">'onset'</span></em>, <em class="sig-param"><span class="n">midi_col</span><span class="o">=</span><span class="default_value">'midi'</span></em>, <em class="sig-param"><span class="n">duration_col</span><span class="o">=</span><span class="default_value">'duration'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#sort_note_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.sort_note_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort every measure (MC) by [‘onset’, ‘midi’, ‘duration’] while leaving gracenotes’ order (duration=0) intact</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.make_tied_col">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">make_tied_col</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">tie_col</span></em>, <em class="sig-param"><span class="n">next_col</span></em>, <em class="sig-param"><span class="n">prev_col</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#make_tied_col"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.make_tied_col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.safe_update">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">safe_update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">old</span></em>, <em class="sig-param"><span class="n">new</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#safe_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.safe_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update dict without replacing values.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.recurse_node">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">recurse_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">prepend</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">exclude_children</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#recurse_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.recurse_node" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.sort_cols">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">sort_cols</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">first_cols</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#sort_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.sort_cols" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.bs4_chord_duration">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">bs4_chord_duration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">duration_multiplier</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#bs4_chord_duration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.bs4_chord_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.bs4_rest_duration">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">bs4_rest_duration</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">duration_multiplier</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#bs4_rest_duration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.bs4_rest_duration" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.opening_tag">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">opening_tag</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">closed</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#opening_tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.opening_tag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.closing_tag">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">closing_tag</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#closing_tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.closing_tag" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.make_oneliner">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">make_oneliner</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#make_oneliner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.make_oneliner" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.bs4_to_mscx">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">bs4_to_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">soup</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/bs4_parser.html#bs4_to_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.bs4_to_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-ms3.logger">
+<span id="ms3-logger-module"></span><h2>ms3.logger module<a class="headerlink" href="#module-ms3.logger" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.logger.ContextAdapter">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.logger.</code><code class="sig-name descname">ContextAdapter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logger</span></em>, <em class="sig-param"><span class="n">extra</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/logger.html#ContextAdapter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.logger.ContextAdapter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/logging.html#logging.LoggerAdapter" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">logging.LoggerAdapter</span></code></a></p>
+<p>This LoggerAdapter is designed to include the module and function that called the logger.</p>
+<dl class="py method">
+<dt id="ms3.logger.ContextAdapter.process">
+<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">msg</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">stack_info</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/logger.html#ContextAdapter.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.logger.ContextAdapter.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the logging message and keyword arguments passed in to
+a logging call to insert contextual information. You can either
+manipulate the message itself, the keyword args or both. Return
+the message and kwargs modified (or not) to suit your needs.</p>
+<p>Normally, you’ll only need to override this one method in a
+LoggerAdapter subclass for your specific needs.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.logger.get_logger">
+<code class="sig-prename descclassname">ms3.logger.</code><code class="sig-name descname">get_logger</code><span class="sig-paren">(</span><em class="sig-param">name=None</em>, <em class="sig-param">level=None</em>, <em class="sig-param">adapter=&lt;class 'ms3.logger.ContextAdapter'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/logger.html#get_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.logger.get_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>The function gets or creates the logger <cite>name</cite> and returns it, by default through the given LoggerAdapter class.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.logger.config_logger">
+<code class="sig-prename descclassname">ms3.logger.</code><code class="sig-name descname">config_logger</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">logfile</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/logger.html#config_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.logger.config_logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs the logger with name <cite>name</cite>. Overwrites existing config.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.logger.function_logger">
+<code class="sig-prename descclassname">ms3.logger.</code><code class="sig-name descname">function_logger</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">f</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/logger.html#function_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.logger.function_logger" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>This decorator ensures that the decorated function can use the variable <cite>logger</cite> for logging and</dt><dd><p>makes it possible to pass the function the keyword argument <cite>logger</cite> with either a Logger object or
+the name of one. If the keyword argument is not passed, the root logger is used.</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<p>This is how the decorator can be used:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">ms3.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
+
+<span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">log_this</span><span class="p">(</span><span class="n">msg</span><span class="p">):</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">log_this</span><span class="p">(</span><span class="s1">&#39;First test&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="s1">&#39;my_logger&#39;</span><span class="p">)</span>
+    <span class="n">log_this</span><span class="p">(</span><span class="s1">&#39;Second Test&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Output:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">WARNING</span> <span class="n">my_logger</span> <span class="o">--</span> <span class="n">function_logger</span><span class="o">.</span><span class="n">py</span> <span class="p">(</span><span class="n">line</span> <span class="mi">5</span><span class="p">)</span> <span class="n">log_this</span><span class="p">():</span>
+    <span class="n">First</span> <span class="n">test</span>
+<span class="n">WARNING</span> <span class="n">root</span> <span class="o">--</span> <span class="n">function_logger</span><span class="o">.</span><span class="n">py</span> <span class="p">(</span><span class="n">line</span> <span class="mi">5</span><span class="p">)</span> <span class="n">log_this</span><span class="p">():</span>
+    <span class="n">Second</span> <span class="n">Test</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.score">
+<span id="ms3-score-module"></span><h2>ms3.score module<a class="headerlink" href="#module-ms3.score" title="Permalink to this headline">¶</a></h2>
+<dl class="py class">
+<dt id="ms3.score.Score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'Score'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Object representing a score.</p>
+<dl class="py attribute">
+<dt id="ms3.score.Score.infer_label_types">
+<code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#ms3.score.Score.infer_label_types" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changing this value results in a call to <code class="xref py py-meth docutils literal notranslate"><span class="pre">infer_types()</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.logger">
+<code class="sig-name descname">logger</code><a class="headerlink" href="#ms3.score.Score.logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Current logger that the object is using.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/logging.html#logging.Logger" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.Logger</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/logging.html#logging.LoggerAdapter" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.LoggerAdapter</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.Score.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The only XML parser currently implemented is BeautifulSoup 4.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘bs4’}</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">paths, files, fnames, fexts, logger_names</code></dt>
+<dd><p>Dictionaries for keeping track of file information handled by <a class="reference internal" href="#id1" title="ms3.score.Score.handle_path"><code class="xref py py-meth docutils literal notranslate"><span class="pre">handle_path()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._annotations">
+<code class="sig-name descname">_annotations</code><a class="headerlink" href="#ms3.score.Score._annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._harmony_regex">
+<code class="sig-name descname">_harmony_regex</code><a class="headerlink" href="#ms3.score.Score._harmony_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._label_types">
+<code class="sig-name descname">_label_types</code><a class="headerlink" href="#ms3.score.Score._label_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._mscx">
+<code class="sig-name descname">_mscx</code><a class="headerlink" href="#ms3.score.Score._mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>After parsing, holds the <cite>MSCX</cite> object with the parsed score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score._types_to_infer">
+<code class="sig-name descname">_types_to_infer</code><a class="headerlink" href="#ms3.score.Score._types_to_infer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.handle_path">
+<code class="sig-name descname">handle_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.handle_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.handle_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Puts the path into <cite>paths, files, fnames, fexts</cite> dicts with the given key.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.abs_regex">
+<code class="sig-name descname">abs_regex</code><em class="property"> = '^\\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$'</em><a class="headerlink" href="#ms3.score.Score.abs_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.dcml_regex">
+<code class="sig-name descname">dcml_regex</code><em class="property"> = re.compile('\n                                ^(?P&lt;first&gt;\n                                  (\\.?\n                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\\#*))\\.)?\n                                   , re.VERBOSE)</em><a class="headerlink" href="#ms3.score.Score.dcml_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.nashville_regex">
+<code class="sig-name descname">nashville_regex</code><em class="property"> = '^(b*|#*)(\\d).*$'</em><a class="headerlink" href="#ms3.score.Score.nashville_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.rn_regex">
+<code class="sig-name descname">rn_regex</code><em class="property"> = '^$'</em><a class="headerlink" href="#ms3.score.Score.rn_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id0">
+<em class="property">property </em><code class="sig-name descname">infer_label_types</code><a class="headerlink" href="#id0" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.get_infer_regex">
+<code class="sig-name descname">get_infer_regex</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.get_infer_regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.get_infer_regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="id1">
+<code class="sig-name descname">handle_path</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.handle_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#id1" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.output_mscx">
+<code class="sig-name descname">output_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.output_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.output_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.detach_labels">
+<code class="sig-name descname">detach_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">delete</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.detach_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.detach_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.attach_labels">
+<code class="sig-name descname">attach_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.attach_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.attach_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.mscx">
+<em class="property">property </em><code class="sig-name descname">mscx</code><a class="headerlink" href="#ms3.score.Score.mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the <cite>MSCX</cite> object with the parsed score.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.load_annotations">
+<code class="sig-name descname">load_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tsv_path</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'file'</span></em>, <em class="sig-param"><span class="n">infer</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.load_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.load_annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.store_annotations">
+<code class="sig-name descname">store_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tsv_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.store_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.store_annotations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.types">
+<em class="property">property </em><code class="sig-name descname">types</code><a class="headerlink" href="#ms3.score.Score.types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.new_type">
+<code class="sig-name descname">new_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="n">description</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">infer</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#Score.new_type"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.new_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.score.MSCX">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">logger_name</span><span class="o">=</span><span class="default_value">'MSCX'</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Object for interacting with the XML structure of a MuseScore 3 file.</p>
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore 3 file to parse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX._parsed">
+<code class="sig-name descname">_parsed</code><a class="headerlink" href="#ms3.score.MSCX._parsed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Holds the MSCX score parsed by the selected parser.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parser">
+<code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.MSCX.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Which XML parser to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt>
+<code class="sig-name descname">infer_label_types :obj:`bool`, optional</code></dt>
+<dd><p>For label_type 0 (simple string), mark which ones</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.logger_name">
+<code class="sig-name descname">logger_name</code><a class="headerlink" href="#ms3.score.MSCX.logger_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>If you have defined a logger, pass its name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.level">
+<code class="sig-name descname">level</code><a class="headerlink" href="#ms3.score.MSCX.level" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a level name for which (and above which) you want to see log records.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>{‘W’, ‘D’, ‘I’, ‘E’, ‘C’, ‘WARNING’, ‘DEBUG’, ‘INFO’, ‘ERROR’, ‘CRITICAL’}, optional</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.output_mscx">
+<code class="sig-name descname">output_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filepath</span></em><span class="sig-paren">)</span><a class="headerlink" href="#ms3.score.MSCX.output_mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the internal score representation to a file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.parse_mscx">
+<code class="sig-name descname">parse_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#MSCX.parse_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.parse_mscx" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.delete_labels">
+<code class="sig-name descname">delete_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#MSCX.delete_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.delete_labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.add_labels">
+<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">label</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">onset</span><span class="o">=</span><span class="default_value">'onset'</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">'staff'</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">'voice'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/score.html#MSCX.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.add_labels" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame with labels to be added.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
+<li><p><strong>kwargs</strong> – <dl class="simple">
+<dt>label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville</dt><dd><p>For these parameters, the standard column names are used automatically if the columns are present.
+If the column names have changed, pass them as kwargs, e.g. <code class="docutils literal notranslate"><span class="pre">base='name_of_the_base_column'</span></code></p>
+</dd>
+</dl>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/constants.html#None" title="(in Python v3.8)">None</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.parsed">
+<em class="property">property </em><code class="sig-name descname">parsed</code><a class="headerlink" href="#ms3.score.MSCX.parsed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.measures">
+<em class="property">property </em><code class="sig-name descname">measures</code><a class="headerlink" href="#ms3.score.MSCX.measures" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.events">
+<em class="property">property </em><code class="sig-name descname">events</code><a class="headerlink" href="#ms3.score.MSCX.events" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.chords">
+<em class="property">property </em><code class="sig-name descname">chords</code><a class="headerlink" href="#ms3.score.MSCX.chords" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.labels">
+<em class="property">property </em><code class="sig-name descname">labels</code><a class="headerlink" href="#ms3.score.MSCX.labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.notes">
+<em class="property">property </em><code class="sig-name descname">notes</code><a class="headerlink" href="#ms3.score.MSCX.notes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.rests">
+<em class="property">property </em><code class="sig-name descname">rests</code><a class="headerlink" href="#ms3.score.MSCX.rests" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.notes_and_rests">
+<em class="property">property </em><code class="sig-name descname">notes_and_rests</code><a class="headerlink" href="#ms3.score.MSCX.notes_and_rests" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.expanded">
+<em class="property">property </em><code class="sig-name descname">expanded</code><a class="headerlink" href="#ms3.score.MSCX.expanded" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.version">
+<em class="property">property </em><code class="sig-name descname">version</code><a class="headerlink" href="#ms3.score.MSCX.version" title="Permalink to this definition">¶</a></dt>
+<dd><p>MuseScore version with which the file was created (read-only).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-ms3.skeleton">
+<span id="ms3-skeleton-module"></span><h2>ms3.skeleton module<a class="headerlink" href="#module-ms3.skeleton" title="Permalink to this headline">¶</a></h2>
+<p>This is a skeleton file that can serve as a starting point for a Python
+console script. To run this script uncomment the following lines in the
+[options.entry_points] section in setup.cfg:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>console_scripts =</dt><dd><p>fibonacci = ms3.skeleton:run</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>Then run <cite>python setup.py install</cite> which will install the command <cite>fibonacci</cite>
+inside your current environment.
+Besides console scripts, the header (i.e. until _logger…) of this file can
+also be used as template for Python modules.</p>
+<p>Note: This skeleton file can be safely removed if not needed!</p>
+<dl class="py function">
+<dt id="ms3.skeleton.fib">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">fib</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#fib"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.fib" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fibonacci example function</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>n</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – integer</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>n-th Fibonacci number</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.parse_args">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">parse_args</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#parse_args"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.parse_args" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse command line parameters</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>]</em>) – command line parameters as list of strings</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>command line parameters namespace</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/argparse.html#argparse.Namespace" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.Namespace</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.setup_logging">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">setup_logging</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loglevel</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#setup_logging"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.setup_logging" title="Permalink to this definition">¶</a></dt>
+<dd><p>Setup basic logging</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>loglevel</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><em>int</em></a>) – minimum loglevel for emitting messages</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.main">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main entry point allowing external calls</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>args</strong> (<em>[</em><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><em>str</em></a><em>]</em>) – command line parameter list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.skeleton.run">
+<code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/ms3/skeleton.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Entry point for console_scripts</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="ms3.skeleton.score">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.skeleton.</code><code class="sig-name descname">score</code><a class="reference internal" href="../_modules/ms3/skeleton.html#score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.skeleton.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.8/library/functions.html#object" title="(in Python v3.8)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="ms3-transformations-module">
+<h2>ms3.transformations module<a class="headerlink" href="#ms3-transformations-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ms3">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ms3" title="Permalink to this headline">¶</a></h2>
+<p>All functionality of the library is available through creating a <code class="docutils literal notranslate"><span class="pre">ms3.Score</span></code> object for a single score and a
+<code class="docutils literal notranslate"><span class="pre">ms3.Parse</span></code> object for multiple scores. Parsing a list of annotation labels only can be done by creating a
+<code class="docutils literal notranslate"><span class="pre">ms3.Annotations</span></code> object.</p>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/ms3.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../index.html">ms3 0.1.2 documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">ms3 package</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

@@ -1,0 +1,663 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3.utils &#8212; ms3 0.2.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.2.0 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ms3.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span>
+<span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
+
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
+
+
+<div class="viewcode-block" id="decode_harmonies"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.decode_harmonies">[docs]</a><span class="k">def</span> <span class="nf">decode_harmonies</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">return_series</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">drop_cols</span><span class="p">,</span> <span class="n">compose_label</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="s1">&#39;nashville&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">sel</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">nashville</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;nashville&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">sel</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;nashville&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;leftParen&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">leftParen</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;(&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;leftParen&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;leftParen&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;root&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">root</span> <span class="o">=</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">root</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;root&#39;</span><span class="p">)</span>
+    <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;base&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">base</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;base&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;rightParen&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">rightParen</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;)&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">compose_label</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;rightParen&#39;</span><span class="p">)</span>
+        <span class="n">drop_cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;rightParen&#39;</span><span class="p">)</span>
+    <span class="n">label_col</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">compose_label</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">return_series</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">label_col</span>
+    <span class="k">if</span> <span class="s1">&#39;label_type&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">label_type</span><span class="o">.</span><span class="n">isin</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">]),</span> <span class="s1">&#39;label_type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">label</span> <span class="o">=</span> <span class="n">label_col</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">drop</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">drop_cols</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">df</span></div>
+
+
+<div class="viewcode-block" id="fifths2acc"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2acc">[docs]</a><span class="k">def</span> <span class="nf">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns accidentals for a stack of fifths that can be combined with a</span>
+<span class="sd">        basic representation of the seven steps.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">fifths</span> <span class="o">//</span> <span class="mi">7</span><span class="p">)</span> <span class="o">*</span> <span class="s1">&#39;b&#39;</span> <span class="k">if</span> <span class="n">fifths</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">fifths</span> <span class="o">//</span> <span class="mi">7</span> <span class="o">*</span> <span class="s1">&#39;#&#39;</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2iv"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2iv">[docs]</a><span class="k">def</span> <span class="nf">fifths2iv</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return interval name of a stack of fifths such that</span>
+<span class="sd">       0 = &#39;P1&#39;, -1 = &#39;P4&#39;, -2 = &#39;m7&#39;, 4 = &#39;M3&#39; etc.</span>
+<span class="sd">       Uses: map2elements()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2iv</span><span class="p">)</span>
+    <span class="n">interval_qualities</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">],</span>
+                          <span class="o">-</span><span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">]}</span>
+    <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>  <span class="c1"># making 0 = fourth, 1 = unison, 2 = fifth etc.</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span>
+    <span class="n">int_num</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">][</span><span class="n">pos</span><span class="p">]</span>
+    <span class="n">qual_region</span> <span class="o">=</span> <span class="n">fifths</span> <span class="o">//</span> <span class="mi">7</span>
+    <span class="k">if</span> <span class="n">qual_region</span> <span class="ow">in</span> <span class="n">interval_qualities</span><span class="p">:</span>
+        <span class="n">int_qual</span> <span class="o">=</span> <span class="n">interval_qualities</span><span class="p">[</span><span class="n">qual_region</span><span class="p">][</span><span class="n">pos</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">qual_region</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">int_qual</span> <span class="o">=</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">qual_region</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="s1">&#39;D&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">int_qual</span> <span class="o">=</span> <span class="n">qual_region</span> <span class="o">*</span> <span class="s1">&#39;A&#39;</span>
+    <span class="k">return</span> <span class="n">int_qual</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">int_num</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2name"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2name">[docs]</a><span class="k">def</span> <span class="nf">fifths2name</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">midi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Return note name of a stack of fifths such that</span>
+<span class="sd">       0 = C, -1 = F, -2 = Bb, 1 = G etc.</span>
+<span class="sd">       Uses: map2elements(), fifths2str()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    fifths : :obj:`int`</span>
+<span class="sd">        Tonal pitch class to turn into a note name.</span>
+<span class="sd">    midi : :obj:`int`</span>
+<span class="sd">        In order to include the octave into the note name,</span>
+<span class="sd">        pass the corresponding MIDI pitch.</span>
+<span class="sd">    ms : :obj:`bool`, optional</span>
+<span class="sd">        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fifths</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="n">ms</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+
+    <span class="k">if</span> <span class="n">ms</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">-=</span> <span class="mi">14</span>
+    <span class="n">note_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">note_names</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">midi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">octave</span> <span class="o">=</span> <span class="n">midi2octave</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">fifths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">octave</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">name</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2pc"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2pc">[docs]</a><span class="k">def</span> <span class="nf">fifths2pc</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Turn a stack of fifths into a chromatic pitch class.</span>
+<span class="sd">        Uses: map2elements()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fifths</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="mi">7</span> <span class="o">*</span> <span class="n">fifths</span> <span class="o">%</span> <span class="mi">12</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2rn"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2rn">[docs]</a><span class="k">def</span> <span class="nf">fifths2rn</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">auto_key</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return Roman numeral of a stack of fifths such that</span>
+<span class="sd">       0 = I, -1 = IV, 1 = V, -2 = bVII in major, VII in minor, etc.</span>
+<span class="sd">       Uses: map2elements(), is_minor_mode()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    auto_key : :obj:`bool`, optional</span>
+<span class="sd">        By default, the returned Roman numerals are uppercase. Pass True to pass upper-</span>
+<span class="sd">        or lowercase according to the position in the scale.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="n">minor</span><span class="p">)</span>
+    <span class="n">rn</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;III&#39;</span><span class="p">,</span> <span class="s1">&#39;VII&#39;</span><span class="p">,</span> <span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="p">[</span><span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;III&#39;</span><span class="p">,</span> <span class="s1">&#39;VII&#39;</span><span class="p">]</span>
+    <span class="n">sel</span> <span class="o">=</span> <span class="n">fifths</span> <span class="o">+</span> <span class="mi">3</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="n">fifths</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">rn</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">auto_key</span> <span class="ow">and</span> <span class="n">is_minor_mode</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2sd"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2sd">[docs]</a><span class="k">def</span> <span class="nf">fifths2sd</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return scale degree of a stack of fifths such that</span>
+<span class="sd">       0 = &#39;1&#39;, -1 = &#39;4&#39;, -2 = &#39;b7&#39; in major, &#39;7&#39; in minor etc.</span>
+<span class="sd">       Uses: map2elements(), fifths2str()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">fifths</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">fifths</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="n">minor</span><span class="p">)</span>
+    <span class="n">sd</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="p">[</span><span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">minor</span><span class="p">:</span>
+        <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">3</span>
+    <span class="k">return</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">sd</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fifths2str"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.fifths2str">[docs]</a><span class="k">def</span> <span class="nf">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Boiler plate used by fifths2-functions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">acc</span> <span class="o">=</span> <span class="n">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">inverted</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="n">acc</span>
+    <span class="k">return</span> <span class="n">acc</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="is_minor_mode"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.is_minor_mode">[docs]</a><span class="k">def</span> <span class="nf">is_minor_mode</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns True if the scale degree `fifths` naturally has a minor third in the scale.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">thirds</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">third</span> <span class="o">=</span> <span class="n">thirds</span><span class="p">[(</span><span class="n">fifths</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span> <span class="o">-</span> <span class="n">fifths</span>
+    <span class="k">return</span> <span class="n">third</span> <span class="o">==</span> <span class="o">-</span><span class="mi">3</span></div>
+
+
+<div class="viewcode-block" id="iterable2str"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.iterable2str">[docs]</a><span class="k">def</span> <span class="nf">iterable2str</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">iterable</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="load_tsv"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.load_tsv">[docs]</a><span class="k">def</span> <span class="nf">load_tsv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">dtypes</span><span class="o">=</span><span class="p">{},</span> <span class="n">stringtype</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Loads the TSV file `path` while applying correct type conversion and parsing tuples.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    path : :obj:`str`</span>
+<span class="sd">        Path to a TSV file as output by format_data().</span>
+<span class="sd">    index_col : :obj:`list`, optional</span>
+<span class="sd">        By default, the first two columns are loaded as MultiIndex.</span>
+<span class="sd">        The first level distinguishes pieces and the second level the elements within.</span>
+<span class="sd">    converters, dtypes : :obj:`dict`, optional</span>
+<span class="sd">        Enhances or overwrites the mapping from column names to types included the constants.</span>
+<span class="sd">    stringtype : :obj:`bool`, optional</span>
+<span class="sd">        If you&#39;re using pandas &gt;= 1.0.0 you might want to set this to True in order</span>
+<span class="sd">        to be using the new `string` datatype that includes the new null type `pd.NA`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">str2inttuple</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">()</span> <span class="k">if</span> <span class="n">l</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;, &#39;</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">int2bool</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">s</span>
+
+    <span class="n">CONVERTERS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;act_dur&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;chord_tones&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;globalkey_is_minor&#39;</span><span class="p">:</span> <span class="n">int2bool</span><span class="p">,</span>
+        <span class="s1">&#39;localkey_is_minor&#39;</span><span class="p">:</span> <span class="n">int2bool</span><span class="p">,</span>
+        <span class="s1">&#39;next&#39;</span><span class="p">:</span> <span class="n">str2inttuple</span><span class="p">,</span>
+        <span class="s1">&#39;nominal_duration&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;mc_offset&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;onset&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;duration&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span>
+        <span class="s1">&#39;scalar&#39;</span><span class="p">:</span> <span class="n">frac</span><span class="p">,</span> <span class="p">}</span>
+
+    <span class="n">DTYPES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;alt_label&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;barline&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;base&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;bass_note&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;cadence&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;cadences_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;changes&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;chord&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;chord_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;chord_type&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;dont_count&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;figbass&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;globalkey&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;gracenote&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;harmonies_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;keysig&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;label_type&#39;</span><span class="p">:</span> <span class="nb">object</span><span class="p">,</span>
+        <span class="s1">&#39;leftParen&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;localkey&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;mc&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;midi&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;mn&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;offset:x&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;offset:y&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;nashville&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;notes_id&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;numbering_offset&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;numeral&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;pedal&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;playthrough&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;phraseend&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;relativeroot&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;repeats&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;rightParen&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;special&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;staff&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;tied&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;timesig&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="s1">&#39;tpc&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;voice&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;voices&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="s1">&#39;volta&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span>
+    <span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">converters</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">conv</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">CONVERTERS</span><span class="p">)</span>
+        <span class="n">conv</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">converters</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dtypes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">DTYPES</span><span class="p">)</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stringtype</span><span class="p">:</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span> <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">typ</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">typ</span> <span class="ow">in</span> <span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">sep</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="n">index_col</span><span class="p">,</span>
+                       <span class="n">dtype</span><span class="o">=</span><span class="n">types</span><span class="p">,</span>
+                       <span class="n">converters</span><span class="o">=</span><span class="n">conv</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="map2elements"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.map2elements">[docs]</a><span class="k">def</span> <span class="nf">map2elements</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; If `e` is an iterable, `f` is applied to all elements.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">map2elements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="midi2octave"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.midi2octave">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">midi2octave</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">fifths</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; For a given MIDI pitch, calculate the octave. Middle octave = 4</span>
+<span class="sd">        Uses: fifths2pc(), map2elements()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    midi : :obj:`int`</span>
+<span class="sd">        MIDI pitch (positive integer)</span>
+<span class="sd">    tpc : :obj:`int`, optional</span>
+<span class="sd">        To be precise, for some Tonal Pitch Classes, the octave deviates</span>
+<span class="sd">        from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">midi</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">midi</span><span class="p">))</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">midi2octave</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">midi</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="n">fifths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">fifths2pc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">midi</span> <span class="o">%</span> <span class="mi">12</span> <span class="o">!=</span> <span class="n">pc</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;midi2octave(): The Tonal Pitch Class </span><span class="si">{</span><span class="n">fifths</span><span class="si">}</span><span class="s2"> cannot be MIDI pitch </span><span class="si">{</span><span class="n">midi</span><span class="si">}</span><span class="s2"> &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fifths</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="mi">12</span><span class="p">,</span>  <span class="c1"># B#</span>
+            <span class="mi">19</span><span class="p">,</span>  <span class="c1"># B##</span>
+            <span class="mi">26</span><span class="p">,</span>  <span class="c1"># B###</span>
+            <span class="mi">24</span><span class="p">,</span>  <span class="c1"># A###</span>
+        <span class="p">]:</span>
+            <span class="n">i</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">fifths</span> <span class="ow">in</span> <span class="p">[</span>
+            <span class="o">-</span><span class="mi">7</span><span class="p">,</span>  <span class="c1"># Cb</span>
+            <span class="o">-</span><span class="mi">14</span><span class="p">,</span>  <span class="c1"># Cbb</span>
+            <span class="o">-</span><span class="mi">21</span><span class="p">,</span>  <span class="c1"># Cbbb</span>
+            <span class="o">-</span><span class="mi">19</span><span class="p">,</span>  <span class="c1"># Dbbb</span>
+        <span class="p">]:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">midi</span> <span class="o">//</span> <span class="mi">12</span> <span class="o">+</span> <span class="n">i</span></div>
+
+
+<div class="viewcode-block" id="name2tpc"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.name2tpc">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">name2tpc</span><span class="p">(</span><span class="n">nn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.</span>
+<span class="sd">        Uses: split_note_name()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">nn</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="nb">int</span> <span class="ow">or</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">nn</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nn</span>
+    <span class="n">name_tpcs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}</span>
+    <span class="n">accidentals</span><span class="p">,</span> <span class="n">note_name</span> <span class="o">=</span> <span class="n">split_note_name</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="n">step_tpc</span> <span class="o">=</span> <span class="n">name_tpcs</span><span class="p">[</span><span class="n">note_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()]</span>
+    <span class="k">return</span> <span class="n">step_tpc</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">*</span> <span class="n">accidentals</span></div>
+
+
+
+<div class="viewcode-block" id="ordinal_suffix"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.ordinal_suffix">[docs]</a><span class="k">def</span> <span class="nf">ordinal_suffix</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="n">suffixes</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;st&#39;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;nd&#39;</span><span class="p">,</span>
+        <span class="mi">3</span><span class="p">:</span> <span class="s1">&#39;rd&#39;</span>
+    <span class="p">}</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">n</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">in</span> <span class="n">suffixes</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">suffixes</span><span class="p">[</span><span class="n">n</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="s1">&#39;th&#39;</span></div>
+
+
+<div class="viewcode-block" id="resolve_dir"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.resolve_dir">[docs]</a><span class="k">def</span> <span class="nf">resolve_dir</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;~&#39;</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="nb">dir</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="scan_directory"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.scan_directory">[docs]</a><span class="k">def</span> <span class="nf">scan_directory</span><span class="p">(</span><span class="nb">dir</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;.*&quot;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|__)&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Get a list of files.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    dir : :obj:`str`</span>
+<span class="sd">        Directory to be scanned for files.</span>
+<span class="sd">    file_re, folder_re : :obj:`str`, optional</span>
+<span class="sd">        Regular expressions for filtering certain file names or folder names.</span>
+<span class="sd">        The regEx are checked with search(), not match(), allowing for fuzzy search.</span>
+<span class="sd">    recursive : :obj:`bool`, optional</span>
+<span class="sd">        By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        List of full paths meeting the criteria.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">check_regex</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">reg</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">res</span>
+
+    <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">dirs</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">walk</span><span class="p">(</span><span class="nb">dir</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">current_folder</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">recursive</span> <span class="ow">and</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">current_folder</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">d</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">dirs</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dirs</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">check_regex</span><span class="p">(</span><span class="n">folder_re</span><span class="p">,</span> <span class="n">current_folder</span><span class="p">):</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="k">if</span> <span class="n">check_regex</span><span class="p">(</span><span class="n">file_re</span><span class="p">,</span> <span class="n">f</span><span class="p">)]</span>
+            <span class="n">res</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+<div class="viewcode-block" id="sort_tpcs"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.sort_tpcs">[docs]</a><span class="k">def</span> <span class="nf">sort_tpcs</span><span class="p">(</span><span class="n">tpcs</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Sort tonal pitch classes by order on the piano.</span>
+<span class="sd">        Uses: fifths2pc()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    tpcs : collection of :obj:`int`</span>
+<span class="sd">        Tonal pitch classes to sort.</span>
+<span class="sd">    ascending : :obj:`bool`, optional</span>
+<span class="sd">        Pass False to sort by descending order.</span>
+<span class="sd">    start : :obj:`int`, optional</span>
+<span class="sd">        Start on or above this TPC.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tpcs</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">fifths2pc</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="o">-</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pcs</span> <span class="o">=</span> <span class="p">[</span><span class="n">fifths2pc</span><span class="p">(</span><span class="n">tpc</span><span class="p">)</span> <span class="k">for</span> <span class="n">tpc</span> <span class="ow">in</span> <span class="n">res</span><span class="p">]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">fifths2pc</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">pcs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">pcs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">start</span><span class="p">:</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="n">i</span><span class="p">:]</span> <span class="o">+</span> <span class="n">res</span><span class="p">[:</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">res</span> <span class="k">if</span> <span class="n">ascending</span> <span class="k">else</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">res</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="split_note_name"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.split_note_name">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">split_note_name</span><span class="p">(</span><span class="n">nn</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Splits a note name such as &#39;Ab&#39; into accidentals and name.</span>
+
+<span class="sd">    nn : :obj:`str`</span>
+<span class="sd">        Note name.</span>
+<span class="sd">    count : :obj:`bool`, optional</span>
+<span class="sd">        Pass True to get the accidentals as integer rather than as string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^([A-G]|[a-g])(#*|b*)$&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">nn</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">nn</span> <span class="o">+</span> <span class="s2">&quot; is not a valid scale degree.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+    <span class="n">note_name</span><span class="p">,</span> <span class="n">accidentals</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">m</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">count</span><span class="p">:</span>
+        <span class="n">accidentals</span> <span class="o">=</span> <span class="n">accidentals</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="n">accidentals</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">accidentals</span><span class="p">,</span> <span class="n">note_name</span></div>
+
+
+
+<div class="viewcode-block" id="transform"><a class="viewcode-back" href="../../api/ms3.html#ms3.utils.transform">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">transform</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">param2col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">column_wise</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Compute a function for every row of a DataFrame, using several cols as arguments.</span>
+<span class="sd">        The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)</span>
+<span class="sd">        but it optimizes the procedure by precomputing `func` for all occurrent parameter combinations.</span>
+<span class="sd">        Uses: inspect.getfullargspec()</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pandas.DataFrame` or :obj:`pandas.Series`</span>
+<span class="sd">        Dataframe containing function parameters.</span>
+<span class="sd">    func : :obj:`callable`</span>
+<span class="sd">        The result of this function for every row will be returned.</span>
+<span class="sd">    param2col : :obj:`dict` or :obj:`list`, optional</span>
+<span class="sd">        Mapping from parameter names of `func` to column names.</span>
+<span class="sd">        If you pass a list of column names, the columns&#39; values are passed as positional arguments.</span>
+<span class="sd">        Pass None if you want to use all columns as positional arguments.</span>
+<span class="sd">    column_wise : :obj:`bool`, optional</span>
+<span class="sd">        Pass True if you want to map `func` to the elements of every column separately.</span>
+<span class="sd">        This is simply an optimized version of df.apply(func) but allows for naming</span>
+<span class="sd">        columns to use as function arguments. If param2col is None, `func` is mapped</span>
+<span class="sd">        to the elements of all columns, otherwise to all columns that are not named</span>
+<span class="sd">        as parameters in `param2col`.</span>
+<span class="sd">        In the case where `func` does not require a positional first element and</span>
+<span class="sd">        you want to pass the elements of the various columns as keyword argument,</span>
+<span class="sd">        give it as param2col={&#39;function_argument&#39;: None}</span>
+<span class="sd">    inplace : :obj:`bool`, optional</span>
+<span class="sd">        Pass True if you want to mutate `df` rather than getting an altered copy.</span>
+<span class="sd">    **kwargs : Other parameters passed to `func`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">column_wise</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">df</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param2col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">transform</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">func</span><span class="p">,),</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">param2col</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+                <span class="n">var_arg</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">param2col</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">]</span>
+                <span class="n">apply_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">param2col</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span>
+                    <span class="n">var_arg</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Name only one variable keyword argument as which </span><span class="si">{</span><span class="n">apply_cols</span><span class="si">}</span><span class="s2"> are used </span><span class="si">{</span><span class="s1">&#39;argument&#39;</span><span class="si">:</span><span class="s2"> None</span><span class="si">}</span><span class="s2">.&quot;</span>
+                <span class="n">var_arg</span> <span class="o">=</span> <span class="n">var_arg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_arg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">getfullargspec</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">param2col</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">param2col</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+                <span class="n">result_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">transform</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">{</span><span class="o">**</span><span class="p">{</span><span class="n">var_arg</span><span class="p">:</span> <span class="n">col</span><span class="p">},</span> <span class="o">**</span><span class="n">param2col</span><span class="p">},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span>
+                               <span class="n">apply_cols</span><span class="p">}</span>
+                <span class="n">param2col</span> <span class="o">=</span> <span class="n">param2col</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">apply_cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">param2col</span><span class="p">]</span>
+                <span class="n">result_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">transform</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">param2col</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">apply_cols</span><span class="p">}</span>
+            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">result_cols</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">param2col</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">param_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">param2col</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+        <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">param2col</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">t</span><span class="p">)},</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">param_tuples</span><span class="p">)}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">df</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">==</span> <span class="n">pd</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">series</span><span class="o">.</span><span class="n">Series</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param2col</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;When &#39;df&#39; is a Series, the parameter &#39;param2col&#39; has no use.&quot;</span><span class="p">)</span>
+            <span class="n">param_tuples</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span>
+            <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">func</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">param_tuples</span><span class="p">)}</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">param2col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">param_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">param_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">param2col</span><span class="p">)]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+            <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="p">:</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">t</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">param_tuples</span><span class="p">)}</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">param_tuples</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span></div>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.2.0 documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

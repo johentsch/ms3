@@ -1,0 +1,809 @@
+
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quick Reference &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
+    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+
+    
+    
+     
+        <script src="_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Manual" href="manual.html" />
+    <link rel="prev" title="Installing ms3" href="install.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             accesskey="N">next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="install.html" title="Installing ms3"
+             accesskey="P">previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="quick-reference">
+<h1>Quick Reference<a class="headerlink" href="#quick-reference" title="Permalink to this headline">¶</a></h1>
+<p>This page is a quick guide for using ms3 for different tasks. It supposes you are working in an interactive Python
+interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
+<div class="section" id="parsing-a-single-score">
+<h2>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h2>
+<p>The example score is called <code class="docutils literal notranslate"><span class="pre">stabat.mscx</span></code> and can be downloaded from
+<a class="reference external" href="https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx">here</a>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs/stabat.mscx&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
+<span class="go">    MuseScore file</span>
+<span class="go">    --------------</span>
+
+<span class="go">    ~/ms3/docs/stabat.mscx</span>
+
+<span class="go">    Attached annotations</span>
+<span class="go">    --------------------</span>
+
+<span class="go">    48 labels:</span>
+<span class="go">    staff  voice  label_type</span>
+<span class="go">    3      2      dcml          48</span>
+</pre></div>
+</div>
+<div class="section" id="storing-the-labels">
+<h3>Storing the labels<a class="headerlink" href="#storing-the-labels" title="Permalink to this headline">¶</a></h3>
+<p>The annotations contained in a score are stored in an <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object and can be accessed
+and stored as a tab-separated file (TSV) like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">annotations</span>
+<span class="go">48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      2      0             48</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">annotations</span><span class="o">.</span><span class="n">output_tsv</span><span class="p">(</span><span class="s1">&#39;~/stabat_chords.tsv&#39;</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="removing-annotation-labels">
+<span id="detaching"></span><h3>Removing annotation labels<a class="headerlink" href="#removing-annotation-labels" title="Permalink to this headline">¶</a></h3>
+<p>The annotations will be stored with a keyword that you choose. It needs to be different from <code class="docutils literal notranslate"><span class="pre">'annotations'</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;chords&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
+<span class="go">MuseScore file (CHANGED!!!)</span>
+<span class="go">---------------!!!!!!!!!!!!</span>
+
+<span class="go">~/ms3/docs/stabat.mscx</span>
+
+<span class="go">No annotations attached.</span>
+
+<span class="go">Detached annotations</span>
+<span class="go">--------------------</span>
+
+<span class="go">chords -&gt; 48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      2      dcml          48</span>
+</pre></div>
+</div>
+<p>Upon inspecting the object we see that the 48 labels are not attached to the score anymore. They are stored in a new
+<a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
+The warning <code class="docutils literal notranslate"><span class="pre">CHANGED!!!</span></code> does not mean that the file on disc has been changed, only the inner representation. Overwriting
+the original file could mean a loss of the labels unless they are stored separately.</p>
+</div>
+<div class="section" id="storing-the-changed-score">
+<h3>Storing the changed score<a class="headerlink" href="#storing-the-changed-score" title="Permalink to this headline">¶</a></h3>
+<p>To output the changed score without the labels, choose a different path unless you really want to overwrite the annotated file.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">output_mscx</span><span class="p">(</span><span class="s1">&#39;~/stabat_empty.mscx&#39;</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="adding-labels-to-score">
+<h3>Adding labels to score<a class="headerlink" href="#adding-labels-to-score" title="Permalink to this headline">¶</a></h3>
+<p>The method <a class="reference internal" href="reference.html#ms3.score.Score.attach_labels" title="ms3.score.Score.attach_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code></a> can be used to re-attach a set of labels that has been
+<a class="reference internal" href="#detaching"><span class="std std-ref">detached</span></a>. Similarly we can load the empty score and the stored labels to reunite them:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;~/stabat_empty.mscx&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">load_annotations</span><span class="p">(</span><span class="s1">&#39;~/stabat_chords.tsv&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;tsv_chords&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span>
+<span class="go">MuseScore file</span>
+<span class="go">--------------</span>
+
+<span class="go">~/stabat_empty.mscx</span>
+
+<span class="go">No annotations attached.</span>
+
+<span class="go">Detached annotations</span>
+<span class="go">--------------------</span>
+
+<span class="go">tsv_chords (stored as stabat_chords.tsv) -&gt; 48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      2      0             48</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">attach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;tsv_chords&#39;</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">e</span>
+<span class="go">MuseScore file (CHANGED!!!)</span>
+<span class="go">---------------!!!!!!!!!!!!</span>
+
+<span class="go">~/stabat_empty.mscx</span>
+
+<span class="go">Attached annotations</span>
+<span class="go">--------------------</span>
+
+<span class="go">48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      1      0             48</span>
+
+<span class="go">Detached annotations</span>
+<span class="go">--------------------</span>
+
+<span class="go">tsv_chords (stored as stabat_chords.tsv) -&gt; 48 labels:</span>
+<span class="go">staff  voice  label_type</span>
+<span class="go">3      2      0             48</span>
+</pre></div>
+</div>
+<p>As we can see, the parameter <code class="docutils literal notranslate"><span class="pre">voice=1</span></code> has been used to insert the labels in the first layer (coloured blue in MuseScore)
+of staff 3 when originally they had been attached to layer two (coloured in green in the software).</p>
+</div>
+<div class="section" id="accessing-score-information">
+<h3>Accessing score information<a class="headerlink" href="#accessing-score-information" title="Permalink to this headline">¶</a></h3>
+<p>After parsing a score, all contained information is accessible in structured formats. Most information is returned as
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
+<p>Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
+via <code class="docutils literal notranslate"><span class="pre">s.mscx</span></code>.</p>
+<div class="section" id="metadata">
+<h4>Metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h4>
+<p>The metadata contains the data that can be accessed and altered in MuseScore 3 through the menu <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Score</span> <span class="pre">Properties</span></code>
+as well as information computed from the score, such as the names and ambitus of the contained staves. Note that the
+ambitus here pertain to the first page only.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()</span>
+<span class="go">{&#39;arranger&#39;: None,</span>
+<span class="go"> &#39;composer&#39;: &#39;Giovanni Battista Pergolesi&#39;,</span>
+<span class="go"> &#39;copyright&#39;: &#39;Editions FREDIPI&#39;,</span>
+<span class="go"> &#39;creationDate&#39;: &#39;2019-07-23&#39;,</span>
+<span class="go"> &#39;lyricist&#39;: None,</span>
+<span class="go"> &#39;movementNumber&#39;: &#39;1&#39;,</span>
+<span class="go"> &#39;movementTitle&#39;: &#39;Stabat Mater dolorosa&#39;,</span>
+<span class="go"> &#39;platform&#39;: &#39;Microsoft Windows&#39;,</span>
+<span class="go"> &#39;poet&#39;: None,</span>
+<span class="go"> &#39;source&#39;: &#39;http://musescore.com/user/1630246/scores/5653570&#39;,</span>
+<span class="go"> &#39;translator&#39;: &#39;fredipi&#39;,</span>
+<span class="go"> &#39;workNumber&#39;: None,</span>
+<span class="go"> &#39;workTitle&#39;: &#39;Stabat Mater&#39;,   #  &lt;- Score Properties until here</span>
+<span class="go"> &#39;last_mc&#39;: 13,                 #  &lt;- computed information from here</span>
+<span class="go"> &#39;last_mn&#39;: 13,</span>
+<span class="go"> &#39;label_count&#39;: 48,</span>
+<span class="go"> &#39;TimeSig&#39;: {1: &#39;4/4&#39;},</span>
+<span class="go"> &#39;KeySig&#39;: {1: -4},</span>
+<span class="go"> &#39;annotated_key&#39;: &#39;f&#39;,</span>
+<span class="go"> &#39;parts&#39;:  {&#39;Soprano&#39;: {1:  {&#39;min_midi&#39;: 65,</span>
+<span class="go">                            &#39;min_name&#39;: &#39;F4&#39;,</span>
+<span class="go">                            &#39;max_midi&#39;: 70,</span>
+<span class="go">                            &#39;max_name&#39;: &#39;Bb4&#39;}</span>
+<span class="go">                          },</span>
+<span class="go">              &#39;Alto&#39;:  {2:  {&#39;min_midi&#39;: 64,</span>
+<span class="go">                            &#39;min_name&#39;: &#39;E4&#39;,</span>
+<span class="go">                            &#39;max_midi&#39;: 68,</span>
+<span class="go">                            &#39;max_name&#39;: &#39;Ab4&#39;}</span>
+<span class="go">                          },</span>
+<span class="go">              &#39;Piano&#39;: {3: {&#39;min_midi&#39;: 56,</span>
+<span class="go">                            &#39;min_name&#39;: &#39;Ab3&#39;,</span>
+<span class="go">                            &#39;max_midi&#39;: 85,</span>
+<span class="go">                            &#39;max_name&#39;: &#39;Db6&#39;},</span>
+<span class="go">                        4: {&#39;min_midi&#39;: 44,</span>
+<span class="go">                            &#39;min_name&#39;: &#39;Ab2&#39;,</span>
+<span class="go">                            &#39;max_midi&#39;: 70,</span>
+<span class="go">                            &#39;max_name&#39;: &#39;Bb4&#39;}</span>
+<span class="go">                          }</span>
+<span class="go">              },</span>
+<span class="go"> &#39;musescore&#39;: &#39;3.5.0&#39;}</span>
+</pre></div>
+</div>
+<p>The computed information contains the following:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">last_mc/last_mn</span></code>: Last measure number and measure count (see <a class="reference internal" href="manual.html#mc-vs-mn"><span class="std std-ref">here</span></a> to learn the difference).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">TimeSig/KeySig</span></code>: Time signatures and key signatures, each given as a dictionary with measure counts as keys.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">annotated_key</span></code>: Only included if the first annotation label in the score starts with a key such as <code class="docutils literal notranslate"><span class="pre">Ab</span></code> or <code class="docutils literal notranslate"><span class="pre">f#</span></code>.</p></li>
+<li><dl class="simple">
+<dt><code class="docutils literal notranslate"><span class="pre">parts</span></code>: contain several inner dictionaries: parts -&gt; partname -&gt; staves -&gt; ambitus. For example, the dictionary</dt><dd><p>for the piano part contains staves 3 and for, one for the right hand (Ab3-Db6) and one for the left hand (Ab2-Bb4).</p>
+</dd>
+</dl>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">musescore</span></code>: The MuseScore version with which the files has been saved.</p></li>
+</ul>
+</div>
+<div class="section" id="tabular-information">
+<span id="tabular-info"></span><h4>Tabular information<a class="headerlink" href="#tabular-information" title="Permalink to this headline">¶</a></h4>
+<p>The accessible DataFrames with score information are:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">measures</span></code>: A list of all measures together with the strictly increasing <strong>measure counts (MC)</strong> mapped to the actual
+<strong>measure numbers (MN)</strong>. Read more on the difference in the <a class="reference internal" href="manual.html#mc-vs-mn"><span class="std std-ref">manual</span></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">notes</span></code>: A list of all notes contained in the score together with their respective features.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chords</span></code>: Not to confound with labels or chord annotations, a chord is a notational unit in which all included
+notes are part of the same notational layer and have the same onset. Every chord has a <code class="docutils literal notranslate"><span class="pre">chord_id</span></code> and every note
+is part of a chord. These tables are used to convey score information that is not attached to a particular note,
+such as lyrics, staff text, dynamics and other markup.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rests</span></code>: A list of rests.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">events</span></code>: For sake of completeness, a raw version of the score information for debugging purposes.</p></li>
+</ul>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">measures</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 4%" />
+<col style="width: 4%" />
+<col style="width: 7%" />
+<col style="width: 8%" />
+<col style="width: 8%" />
+<col style="width: 9%" />
+<col style="width: 7%" />
+<col style="width: 10%" />
+<col style="width: 6%" />
+<col style="width: 8%" />
+<col style="width: 14%" />
+<col style="width: 10%" />
+<col style="width: 6%" />
+</colgroup>
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="manual.html#mc"><span class="std std-ref">mc</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#mn"><span class="std std-ref">mn</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#keysig"><span class="std std-ref">keysig</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#timesig"><span class="std std-ref">timesig</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#act-dur"><span class="std std-ref">act_dur</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#mc-offset"><span class="std std-ref">mc_offset</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#breaks"><span class="std std-ref">breaks</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#repeats"><span class="std std-ref">repeats</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#volta"><span class="std std-ref">volta</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#barline"><span class="std std-ref">barline</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#numbering-offset"><span class="std std-ref">numbering_offset</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#dont-count"><span class="std std-ref">dont_count</span></a></p></td>
+<td><p><a class="reference internal" href="manual.html#next"><span class="std std-ref">next</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>-4</p></td>
+<td><p>4/4</p></td>
+<td><p>1</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>firstMeasure</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>NaN</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>(2,)</p></td>
+</tr>
+<tr class="row-odd"><td><p>2</p></td>
+<td><p>2</p></td>
+<td><p>-4</p></td>
+<td><p>4/4</p></td>
+<td><p>1</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>NaN</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>(3,)</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">notes</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 3%" />
+<col style="width: 3%" />
+<col style="width: 8%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 8%" />
+<col style="width: 9%" />
+<col style="width: 15%" />
+<col style="width: 7%" />
+<col style="width: 5%" />
+<col style="width: 4%" />
+<col style="width: 5%" />
+<col style="width: 6%" />
+<col style="width: 8%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
+<th class="head"><p>mn</p></th>
+<th class="head"><p>timesig</p></th>
+<th class="head"><p>onset</p></th>
+<th class="head"><p>staff</p></th>
+<th class="head"><p>voice</p></th>
+<th class="head"><p>duration</p></th>
+<th class="head"><p>gracenote</p></th>
+<th class="head"><p>nominal_duration</p></th>
+<th class="head"><p>scalar</p></th>
+<th class="head"><p>tied</p></th>
+<th class="head"><p>tpc</p></th>
+<th class="head"><p>midi</p></th>
+<th class="head"><p>volta</p></th>
+<th class="head"><p>chord_id</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>4</p></td>
+<td><p>2</p></td>
+<td><p>1/8</p></td>
+<td><p>NaN</p></td>
+<td><p>1/8</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>-1</p></td>
+<td><p>53</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>4</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>3</p></td>
+<td><p>2</p></td>
+<td><p>3/4</p></td>
+<td><p>NaN</p></td>
+<td><p>1/2</p></td>
+<td><p>3/2</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>-1</p></td>
+<td><p>77</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>1</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">chords</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 2%" />
+<col style="width: 2%" />
+<col style="width: 5%" />
+<col style="width: 4%" />
+<col style="width: 4%" />
+<col style="width: 4%" />
+<col style="width: 6%" />
+<col style="width: 6%" />
+<col style="width: 10%" />
+<col style="width: 5%" />
+<col style="width: 4%" />
+<col style="width: 6%" />
+<col style="width: 7%" />
+<col style="width: 5%" />
+<col style="width: 8%" />
+<col style="width: 6%" />
+<col style="width: 3%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
+<th class="head"><p>mn</p></th>
+<th class="head"><p>timesig</p></th>
+<th class="head"><p>onset</p></th>
+<th class="head"><p>staff</p></th>
+<th class="head"><p>voice</p></th>
+<th class="head"><p>duration</p></th>
+<th class="head"><p>gracenote</p></th>
+<th class="head"><p>nominal_duration</p></th>
+<th class="head"><p>scalar</p></th>
+<th class="head"><p>volta</p></th>
+<th class="head"><p>chord_id</p></th>
+<th class="head"><p>staff_text</p></th>
+<th class="head"><p>lyrics</p></th>
+<th class="head"><p>articulation</p></th>
+<th class="head"><p>dynamics</p></th>
+<th class="head"><p>Slur</p></th>
+<th class="head"><p>decrescendo</p></th>
+<th class="head"><p>diminuendo</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>1/2</p></td>
+<td><p>3</p></td>
+<td><p>1</p></td>
+<td><p>1/2</p></td>
+<td><p>NaN</p></td>
+<td><p>1/2</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>3</p></td>
+<td><p>2</p></td>
+<td><p>3/4</p></td>
+<td><p>NaN</p></td>
+<td><p>1/2</p></td>
+<td><p>3/2</p></td>
+<td><p>&lt;NA&gt;</p></td>
+<td><p>1</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+<td><p>0</p></td>
+<td><p>NaN</p></td>
+<td><p>NaN</p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">rests</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 5%" />
+<col style="width: 5%" />
+<col style="width: 11%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 9%" />
+<col style="width: 12%" />
+<col style="width: 22%" />
+<col style="width: 10%" />
+<col style="width: 9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>mc</p></th>
+<th class="head"><p>mn</p></th>
+<th class="head"><p>timesig</p></th>
+<th class="head"><p>onset</p></th>
+<th class="head"><p>staff</p></th>
+<th class="head"><p>voice</p></th>
+<th class="head"><p>duration</p></th>
+<th class="head"><p>nominal_duration</p></th>
+<th class="head"><p>scalar</p></th>
+<th class="head"><p>volta</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>4/4</p></td>
+<td><p>0</p></td>
+<td><p>2</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>1</p></td>
+<td><p>&lt;NA&gt;</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="section" id="parsing-multiple-scores">
+<h2>Parsing multiple scores<a class="headerlink" href="#parsing-multiple-scores" title="Permalink to this headline">¶</a></h2>
+<p>Often we want to perform operations on many scores at once, for example extracting the notelist of each and store it as
+a tab-separated values file (TSV).</p>
+<div class="section" id="loading">
+<h3>Loading<a class="headerlink" href="#loading" title="Permalink to this headline">¶</a></h3>
+<p>The first step is to create a <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a> object. When passing it
+the path of the cloned <a class="reference external" href="https://github.com/johentsch/ms3">Git</a>, it scans it for all MSCX files:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Parse</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
+<span class="go">10 files.</span>
+<span class="go">KEY       -&gt; EXTENSIONS</span>
+<span class="go">docs      -&gt; {&#39;.mscx&#39;: 4}</span>
+<span class="go">tests/MS3 -&gt; {&#39;.mscx&#39;: 6}</span>
+</pre></div>
+</div>
+<p>As we see, different keys have been automatically assigned for the different folders because no key has been specified.
+Instead, we could assign all ten files to the same key and then add the ‘docs’ once more with a different key:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">add_dir</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;doubly&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
+<span class="go">14 files.</span>
+<span class="go">KEY    -&gt; EXTENSIONS</span>
+<span class="go">all    -&gt; {&#39;.mscx&#39;: 10}</span>
+<span class="go">doubly -&gt; {&#39;.mscx&#39;: 4}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="parsing">
+<h3>Parsing<a class="headerlink" href="#parsing" title="Permalink to this headline">¶</a></h3>
+<p>… is as simple as</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="go">WARNING Did03M-Son_regina-1762-Sarti -- bs4_measures.py (line 152) check_measure_numbers():</span>
+<span class="go">        MC 94, the 1st measure of a 2nd volta, should have MN 93, not MN 94.</span>
+</pre></div>
+</div>
+<p>Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
+<a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a>) are stored in the dictionary
+<code class="xref py py-attr docutils literal notranslate"><span class="pre">_parsed</span></code>, the state of which can be viewed like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parsed</span>
+<span class="go">{(&#39;all&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 1): &#39;~/ms3/docs/o_quam.mscx -&gt; 26 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 2): &#39;~/ms3/docs/quae.mscx -&gt; 79 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 3): &#39;~/ms3/docs/stabat.mscx -&gt; 48 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 4): &#39;~/ms3/tests/MS3/05_symph_fant.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 5): &#39;~/ms3/tests/MS3/76CASM34A33UM.mscx -&gt; 173 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 6): &#39;~/ms3/tests/MS3/BWV_0815.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 7): &#39;~/ms3/tests/MS3/D973deutscher01.mscx&#39;,</span>
+<span class="go"> (&#39;all&#39;, 8): &#39;~/ms3/tests/MS3/Did03M-Son_regina-1762-Sarti.mscx -&gt; 193 labels&#39;,</span>
+<span class="go"> (&#39;all&#39;, 9): &#39;~/ms3/tests/MS3/K281-3.mscx -&gt; 375 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 1): &#39;~/ms3/docs/o_quam.mscx -&gt; 26 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 2): &#39;~/ms3/docs/quae.mscx -&gt; 79 labels&#39;,</span>
+<span class="go"> (&#39;doubly&#39;, 3): &#39;~/ms3/docs/stabat.mscx -&gt; 48 labels&#39;}</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="extracting-score-information">
+<h3>Extracting score information<a class="headerlink" href="#extracting-score-information" title="Permalink to this headline">¶</a></h3>
+<p>Each of the <a class="reference internal" href="#tabular-info"><span class="std std-ref">previously discussed DataFrames</span></a> can be automatically stored for every score. To select
+one or several aspects from <code class="docutils literal notranslate"><span class="pre">[notes,</span> <span class="pre">measures,</span> <span class="pre">rests,</span> <span class="pre">notes_and_rests,</span> <span class="pre">events,</span> <span class="pre">labels,</span> <span class="pre">chords,</span> <span class="pre">expanded]</span></code>, it is enough
+to pass the respective <code class="docutils literal notranslate"><span class="pre">_folder</span></code> parameter to <code class="xref py py-meth docutils literal notranslate"><span class="pre">store_lists()</span></code> distinguishing where to store
+the TSV files. Additionally, the method accepts one <code class="docutils literal notranslate"><span class="pre">_suffix</span></code> parameter per aspect, i.e. a slug added to the respective
+filenames. If the parameter <code class="docutils literal notranslate"><span class="pre">simulate=True</span></code> is passed, no files are written but the file paths to be created are returned.</p>
+<p>In this variant, all aspects are stored each in individual folders but with identical filenames:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
+<span class="go">                    rests_folder=&#39;./rests&#39;,</span>
+<span class="go">                    notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
+<span class="go">                    simulate=True</span>
+<span class="go">                    )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
+</pre></div>
+</div>
+<p>In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
+<span class="go">                    measures_folder=&#39;../measures&#39;,</span>
+<span class="go">                    rests_folder=&#39;rests&#39;,</span>
+<span class="go">                    labels_folder=&#39;~/labels&#39;,</span>
+<span class="go">                    expanded_folder=&#39;~/labels&#39;, expanded_suffix=&#39;_exp&#39;,</span>
+<span class="go">                    simulate = True</span>
+<span class="go">                    )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
+</pre></div>
+</div>
+<p>The rules for specifying the folders are as follows:</p>
+<ul class="simple">
+<li><p>absolute folder (e.g. <code class="docutils literal notranslate"><span class="pre">~/labels</span></code>): Store all files in this particular folder without creating subfolders.</p></li>
+<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code>: relative folders are created
+“at the end” of the original subdirectory structure, i.e. relative to the MuseScore
+files.</p></li>
+<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>): relative
+folders are created at the top level (of the original directory or the specified
+<code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
+in each of them.</p></li>
+</ul>
+<p>To see examples for the three possibilities, see <a class="reference internal" href="manual.html#specifying-folders"><span class="std std-ref">Specifying folders</span></a>.</p>
+</div>
+</div>
+</div>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quick Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#storing-the-labels">Storing the labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#removing-annotation-labels">Removing annotation labels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#storing-the-changed-score">Storing the changed score</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adding-labels-to-score">Adding labels to score</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#accessing-score-information">Accessing score information</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#metadata">Metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tabular-information">Tabular information</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#parsing-multiple-scores">Parsing multiple scores</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#loading">Loading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#parsing">Parsing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extracting-score-information">Extracting score information</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+</div>
+  <div class="sphinxprev">
+    <h4>Previous page</h4>
+    <p class="topless"><a href="install.html"
+                          title="Previous page">&larr; Installing ms3</a></p>
+  </div>
+  <div class="sphinxnext">
+    <h4>Next page</h4>
+    <p class="topless"><a href="manual.html"
+                          title="Next page">&rarr; Manual</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/quick.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="manual.html" title="Manual"
+             >next</a> &nbsp; &nbsp;</li>
+        <li class="right" >
+          <a href="install.html" title="Installing ms3"
+             >previous</a> &nbsp; &nbsp;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+
+        <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>

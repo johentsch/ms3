@@ -751,8 +751,25 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     param_cols = {col: cols[col] for col in ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'mc'] if cols[col] is not None}
     param_cols['minor'] = local_minor
     param_tuples = list(df[param_cols.values()].itertuples(index=False, name=None))
-    # print([dict({a: b for a, b in zip(param_cols.keys(), t)},  bass_only = bass_only, merge_tones = not expand, logger = logger) for t in set(param_tuples)])
-    result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}
+    #result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}
+    result_dict = {}
+    if bass_only:
+        default = None
+    elif not expand:
+        default = tuple()
+    else:
+        default = {
+            'chord_tones': tuple(),
+            'added_tones': tuple(),
+            'root': None,
+        }
+    for t in set(param_tuples):
+        try:
+            result_dict[t] = features2tpcs(**{a: b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only,
+                                           merge_tones=not expand, logger=logger)
+        except:
+            result_dict[t] = default
+            logger.warning(sys.exc_info()[1])
     if expand:
         res = pd.DataFrame([result_dict[t] for t in param_tuples], index=df.index)
         res['bass_note'] = res.chord_tones.apply(lambda l: l if pd.isnull(l) else l[0])

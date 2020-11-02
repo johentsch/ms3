@@ -32,7 +32,15 @@ class ContextAdapter(logging.LoggerAdapter):
 
 
 class LoggedClass:
+    """
 
+    logger : :obj:`logging.Logger` or :obj:`logging.LoggerAdapter`
+        Current logger that the object is using.
+    parser : {'bs4'}
+        The only XML parser currently implemented is BeautifulSoup 4.
+    paths, files, fnames, fexts, logger_names : :obj:`dict`
+        Dictionaries for keeping track of file information handled by .
+    """
     def __init__(self, subclass='root', logger_cfg={}):
         self.logger_cfg = {'name': subclass}
         if 'name' in logger_cfg:
@@ -133,6 +141,9 @@ def config_logger(name, level=None, path=None, file=None):
         file = os.path.expanduser(file)
         if os.path.isabs(file):
             log_file = os.path.abspath(file)
+        elif path is None:
+            logger.warning(f"""Log file output cannot be configured for '{name}' because 'file' is relative ({file})
+but no 'path' has been configured.""")
     if log_file is None and path is not None:
         path = os.path.expanduser(path)
         log_file = os.path.abspath(os.path.join(path, f"{name}.log"))
