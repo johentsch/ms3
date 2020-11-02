@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Developers’ Reference &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
+    <title>Developers’ Reference &#8212; ms3 0.4.1 documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="manual.html" title="Manual"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.1 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
@@ -739,7 +739,7 @@ bass as TPC (tonal pitch class) where C = 14).</p></li>
 
 <dl class="py method">
 <dt id="ms3.annotations.Annotations.expand_dcml">
-<code class="sig-name descname">expand_dcml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">drop_others</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">warn_about_others</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.expand_dcml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.expand_dcml" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">expand_dcml</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">drop_others</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">warn_about_others</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.expand_dcml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.expand_dcml" title="Permalink to this definition">¶</a></dt>
 <dd><p>Expands all labels where the label_type has been inferred as ‘dcml’ and stores the DataFrame in self._expanded.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -747,6 +747,7 @@ bass as TPC (tonal pitch class) where C = 14).</p></li>
 <li><p><strong>drop_others</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False if you want to keep labels in the expanded DataFrame which have not label_type ‘dcml’.</p></li>
 <li><p><strong>warn_about_others</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False to suppress warnings about labels that have not label_type ‘dcml’.
 Is automatically set to False if <code class="docutils literal notranslate"><span class="pre">drop_others</span></code> is set to False.</p></li>
+<li><p><strong>kwargs</strong> – Additional arguments are passed to <a class="reference internal" href="#ms3.annotations.Annotations.get_labels" title="ms3.annotations.Annotations.get_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_labels()</span></code></a> to define the original representation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1772,7 +1773,7 @@ Changes do not express absolute intervals but instead depend on the numeral and 
         <li class="right" >
           <a href="manual.html" title="Manual"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.1 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
