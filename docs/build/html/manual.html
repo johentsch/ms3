@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manual &#8212; ms3 0.4.0 documentation</title>
+    <title>Manual &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.0 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>
@@ -177,21 +177,23 @@ and bind it to the variable <code class="docutils literal notranslate"><span cla
 <h4>Parsing options<a class="headerlink" href="#parsing-options" title="Permalink to this headline">¶</a></h4>
 <dl class="py method">
 <dt>
-<code class="sig-prename descclassname">Score.</code><code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.__init__"><span class="viewcode-link">[source]</span></a></dt>
+<code class="sig-prename descclassname">Score.</code><code class="sig-name descname">__init__</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">musescore_file</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.__init__"><span class="viewcode-link">[source]</span></a></dt>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mscx_src</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Path to the MuseScore file to be parsed.</p></li>
+<li><p><strong>musescore_file</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Path to the MuseScore file to be parsed.</p></li>
 <li><p><strong>infer_label_types</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – Determine which label types are determined automatically. Defaults to [‘dcml’].
 Pass <code class="docutils literal notranslate"><span class="pre">[]</span></code> to infer only main types 0 - 3.
 Pass <code class="docutils literal notranslate"><span class="pre">{'type_name':</span> <span class="pre">r&quot;^(regular)(Expression)$&quot;}</span></code> to call <code class="xref py py-meth docutils literal notranslate"><span class="pre">ms3.Score.new_type()</span></code>.</p></li>
 <li><p><strong>read_only</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>, meaning that the parsing is slower and uses more memory in order to allow for manipulations
 of the score, such as adding and deleting labels. Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if you’re only extracting information.</p></li>
+<li><p><strong>labels_cfg</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>) – Store a configuration dictionary to determine the output format of the <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
+object representing the currently attached annotations. See <a class="reference internal" href="reference.html#ms3.score.MSCX.labels_cfg" title="ms3.score.MSCX.labels_cfg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code></a>.</p></li>
 <li><p><strong>logger_cfg</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – The following options are available:
 ‘name’: LOGGER_NAME -&gt; by default the logger name is based on the parsed file(s)
 ‘level’: {‘W’, ‘D’, ‘I’, ‘E’, ‘C’, ‘WARNING’, ‘DEBUG’, ‘INFO’, ‘ERROR’, ‘CRITICAL’}
 ‘file’: PATH_TO_LOGFILE to store all log messages under the given path.</p></li>
-<li><p><strong>parser</strong> (<em>{'bs4'}</em><em>, </em><em>optional</em>) – The only XML parser currently implemented is BeautifulSoup 4.</p></li>
+<li><p><strong>parser</strong> (<em>'bs4'</em><em>, </em><em>optional</em>) – The only XML parser currently implemented is BeautifulSoup 4.</p></li>
 </ul>
 </dd>
 </dl>
@@ -218,8 +220,8 @@ of the score, such as adding and deleting labels. Set to <code class="docutils l
 </li>
 <li><p>Locate the folder containing MuseScore files.</p>
 <blockquote>
-<div><p>In this example, we are going to parse all files included in ms3’s
-<a class="reference external" href="https://github.com/johentsch/ms3">Git repo</a> which has been
+<div><p>In this example, we are going to parse all files included in
+<a class="reference external" href="https://github.com/johentsch/ms3/tree/e25ec55c3bbf07664436a73db956f4855890516c">this older version of ms3’s Git repo</a> which has been
 <a class="reference external" href="https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone">cloned</a>
 into the home directory and therefore has the path <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>.</p>
 </div></blockquote>
@@ -299,73 +301,27 @@ strings (type 0) overall.</p>
 </ol>
 <div class="section" id="extracting-score-information">
 <h4>Extracting score information<a class="headerlink" href="#extracting-score-information" title="Permalink to this headline">¶</a></h4>
-<p>Each of the <a class="reference internal" href="quick.html#tabular-info"><span class="std std-ref">previously discussed DataFrames</span></a> can be automatically stored for every score. To select
-one or several aspects from <code class="docutils literal notranslate"><span class="pre">[notes,</span> <span class="pre">measures,</span> <span class="pre">rests,</span> <span class="pre">notes_and_rests,</span> <span class="pre">events,</span> <span class="pre">labels,</span> <span class="pre">chords,</span> <span class="pre">expanded]</span></code>, it is enough
-to pass the respective <code class="docutils literal notranslate"><span class="pre">_folder</span></code> parameter to <code class="xref py py-meth docutils literal notranslate"><span class="pre">store_lists()</span></code> distinguishing where to store
-the TSV files. Additionally, the method accepts one <code class="docutils literal notranslate"><span class="pre">_suffix</span></code> parameter per aspect, i.e. a slug added to the respective
-filenames. If the parameter <code class="docutils literal notranslate"><span class="pre">simulate=True</span></code> is passed, no files are written but the file paths to be created are returned.</p>
-<p>In this variant, all aspects are stored each in individual folders but with identical filenames:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
-<span class="go">                    rests_folder=&#39;./rests&#39;,</span>
-<span class="go">                    notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
-<span class="go">                    simulate=True</span>
-<span class="go">                    )</span>
-<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/rests/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes_and_rests/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/rests/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes_and_rests/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/rests/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes_and_rests/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/rests/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
-</pre></div>
-</div>
-<p>In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
-same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
-<span class="go">                    measures_folder=&#39;../measures&#39;,</span>
-<span class="go">                    rests_folder=&#39;rests&#39;,</span>
-<span class="go">                    labels_folder=&#39;~/labels&#39;,</span>
-<span class="go">                    expanded_folder=&#39;~/labels&#39;, expanded_suffix=&#39;_exp&#39;,</span>
-<span class="go">                    simulate = True</span>
-<span class="go">                    )</span>
-<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/rests/docs/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/measures/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/cujus.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/cujus_exp.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/rests/docs/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/measures/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/o_quam.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/o_quam_exp.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/rests/docs/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/measures/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/quae.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/quae_exp.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/rests/docs/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/ms3/measures/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/stabat.tsv&#39;,</span>
-<span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
-</pre></div>
-</div>
-<p>The rules for specifying the folders are as follows:</p>
+<p>Each of the <a class="reference internal" href="quick.html#tabular-info"><span class="std std-ref">DataFrames holding score information</span></a> can be
+automatically stored for every score. To select one or several aspects out of
+<code class="docutils literal notranslate"><span class="pre">{notes,</span> <span class="pre">measures,</span> <span class="pre">rests,</span> <span class="pre">notes_and_rests,</span> <span class="pre">events,</span> <span class="pre">labels,</span> <span class="pre">chords,</span> <span class="pre">expanded}</span></code>,
+it is enough to pass the respective <code class="docutils literal notranslate"><span class="pre">_folder</span></code> parameter to
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">store_lists()</span></code> distinguishing where to store the TSV
+files. Additionally, the method accepts one <code class="docutils literal notranslate"><span class="pre">_suffix</span></code> parameter per aspect,
+i.e. a slug added to the respective filenames. If the parameter
+<code class="docutils literal notranslate"><span class="pre">simulate=True</span></code> is passed, no files are written but the file paths to be
+created are returned. Since corpora might have quite diverse directory structures,
+ms3 gives you various ways of specifying folders which will be explained in detail
+in the following section.</p>
+<p>Briefly, the rules for specifying the folders are as follows:</p>
 <ul class="simple">
 <li><p>absolute folder (e.g. <code class="docutils literal notranslate"><span class="pre">~/labels</span></code>): Store all files in this particular folder without creating subfolders.</p></li>
-<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> means that the file is to be placed relative to the location of the
-original MSCX file</p></li>
-<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>) creates the folder under the scan folder and
-places the files into a (newly created) relative folder structure below.</p></li>
+<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code>: relative folders are created
+“at the end” of the original subdirectory structure, i.e. relative to the MuseScore
+files.</p></li>
+<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>): relative
+folders are created at the top level (of the original directory or the specified
+<code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
+in each of them.</p></li>
 </ul>
 <p>To see examples for the three possibilities, see the following section.</p>
 </div>
@@ -392,11 +348,11 @@ which is the one passed to <code class="xref py py-obj docutils literal notransl
 <p>The first level contains the subdirectories <cite>docs</cite> (4 files) and <cite>tests</cite>
 (6 files in the subdirectory <cite>MS3</cite>). Now we look at the three different ways to specify folders for storing notes and
 measures.</p>
-<div class="section" id="absolute-folder">
-<h5>Absolute Folder<a class="headerlink" href="#absolute-folder" title="Permalink to this headline">¶</a></h5>
+<div class="section" id="absolute-folders">
+<h5>Absolute Folders<a class="headerlink" href="#absolute-folders" title="Permalink to this headline">¶</a></h5>
 <p>When we specify absolute paths, all files are stored in the specified directories.
 In this example, the measures and notes are stored in the two specified subfolders
-of the home directory <cite>~</cite>:</p>
+of the home directory <cite>~</cite>, regardless of the original subdirectory structure.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span><span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;~/notes&#39;</span><span class="p">,</span> <span class="n">measures_folder</span><span class="o">=</span><span class="s1">&#39;~/measures&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -426,11 +382,183 @@ of the home directory <cite>~</cite>:</p>
 </pre></div>
 </div>
 </div>
+<div class="section" id="relative-folders">
+<h5>Relative Folders<a class="headerlink" href="#relative-folders" title="Permalink to this headline">¶</a></h5>
+<p>In contrast, specifying relative folders recreates the original subdirectory structure.
+There are two different possibilities for that. The first possibility is naming
+relative folder names, meaning that the subdirectory structure (<code class="docutils literal notranslate"><span class="pre">docs</span></code> and <code class="docutils literal notranslate"><span class="pre">tests</span></code>)
+is recreated in each of the folders:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="go">&gt;&gt;&gt;p.store_lists(root_dir=&#39;~/tsv&#39;, notes_folder=&#39;notes&#39;, measures_folder=&#39;measures&#39;)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">~/tsv</span>
+<span class="go">├── measures</span>
+<span class="go">│   ├── docs</span>
+<span class="go">│   │   ├── cujus.tsv</span>
+<span class="go">│   │   ├── o_quam.tsv</span>
+<span class="go">│   │   ├── quae.tsv</span>
+<span class="go">│   │   └── stabat.tsv</span>
+<span class="go">│   └── tests</span>
+<span class="go">│       └── MS3</span>
+<span class="go">│           ├── 05_symph_fant.tsv</span>
+<span class="go">│           ├── 76CASM34A33UM.tsv</span>
+<span class="go">│           ├── BWV_0815.tsv</span>
+<span class="go">│           ├── D973deutscher01.tsv</span>
+<span class="go">│           ├── Did03M-Son_regina-1762-Sarti.tsv</span>
+<span class="go">│           └── K281-3.tsv</span>
+<span class="go">└── notes</span>
+<span class="go">    ├── docs</span>
+<span class="go">    │   ├── cujus.tsv</span>
+<span class="go">    │   ├── o_quam.tsv</span>
+<span class="go">    │   ├── quae.tsv</span>
+<span class="go">    │   └── stabat.tsv</span>
+<span class="go">    └── tests</span>
+<span class="go">        └── MS3</span>
+<span class="go">            ├── 05_symph_fant.tsv</span>
+<span class="go">            ├── 76CASM34A33UM.tsv</span>
+<span class="go">            ├── BWV_0815.tsv</span>
+<span class="go">            ├── D973deutscher01.tsv</span>
+<span class="go">            ├── Did03M-Son_regina-1762-Sarti.tsv</span>
+<span class="go">            └── K281-3.tsv</span>
+</pre></div>
+</div>
+<p>Note that in this example, we have specified a <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>. Leaving this argument
+out will create the same structure in the directory from which the <code class="xref py py-obj docutils literal notranslate"><span class="pre">Parse</span></code>
+object was created, i.e. the folder structure would be:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
+<span class="go">├── docs</span>
+<span class="go">├── measures</span>
+<span class="go">│   ├── docs</span>
+<span class="go">│   └── tests</span>
+<span class="go">│       └── MS3</span>
+<span class="go">├── notes</span>
+<span class="go">│   ├── docs</span>
+<span class="go">│   └── tests</span>
+<span class="go">│       └── MS3</span>
+<span class="go">└── tests</span>
+<span class="go">    └── MS3</span>
+</pre></div>
+</div>
+<p>If, instead, you want to create the specified relative folders relative to each
+MuseScore file’s location, specify them with an initial dot. <code class="docutils literal notranslate"><span class="pre">./</span></code> means
+“relative to the original path” and <code class="docutils literal notranslate"><span class="pre">../</span></code> one level up from the original path.
+To exemplify both:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="s1">&#39;~/tsv&#39;</span><span class="p">,</span> <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span> <span class="n">measures_folder</span><span class="o">=</span><span class="s1">&#39;../measures&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">~/tsv</span>
+<span class="go">├── docs</span>
+<span class="go">│   └── notes</span>
+<span class="go">│       ├── cujus.tsv</span>
+<span class="go">│       ├── o_quam.tsv</span>
+<span class="go">│       ├── quae.tsv</span>
+<span class="go">│       └── stabat.tsv</span>
+<span class="go">├── measures</span>
+<span class="go">│   ├── cujus.tsv</span>
+<span class="go">│   ├── o_quam.tsv</span>
+<span class="go">│   ├── quae.tsv</span>
+<span class="go">│   └── stabat.tsv</span>
+<span class="go">└── tests</span>
+<span class="go">    ├── measures</span>
+<span class="go">    │   ├── 05_symph_fant.tsv</span>
+<span class="go">    │   ├── 76CASM34A33UM.tsv</span>
+<span class="go">    │   ├── BWV_0815.tsv</span>
+<span class="go">    │   ├── D973deutscher01.tsv</span>
+<span class="go">    │   ├── Did03M-Son_regina-1762-Sarti.tsv</span>
+<span class="go">    │   └── K281-3.tsv</span>
+<span class="go">    └── MS3</span>
+<span class="go">        └── notes</span>
+<span class="go">            ├── 05_symph_fant.tsv</span>
+<span class="go">            ├── 76CASM34A33UM.tsv</span>
+<span class="go">            ├── BWV_0815.tsv</span>
+<span class="go">            ├── D973deutscher01.tsv</span>
+<span class="go">            ├── Did03M-Son_regina-1762-Sarti.tsv</span>
+<span class="go">            └── K281-3.tsv</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">notes</span></code> folders are created in directories where MuseScore files are located,
+and the <code class="docutils literal notranslate"><span class="pre">measures</span></code> folders one directory above, respectively. Leaving out the
+<code class="docutils literal notranslate"><span class="pre">root_dir</span></code> argument would lead to the same folder structure but in the directory
+from which the <code class="xref py py-obj docutils literal notranslate"><span class="pre">Parse</span></code> object has been created. In a similar manner,
+the arguments <code class="docutils literal notranslate"><span class="pre">p.store_lists(notes_folder='.',</span> <span class="pre">measures_folder='.')</span></code> would create
+the TSV files just next to the MuseScore files. However, this would lead to warnings
+such as</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The notes at ~/ms3/docs/cujus.tsv have been overwritten with measures.</p>
+</div>
+<p>In such a case we need to specify a suffix for at least one of both aspects:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span><span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">notes_suffix</span><span class="o">=</span><span class="s1">&#39;_notes&#39;</span><span class="p">,</span>
+              <span class="n">measures_folder</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="n">measures_suffix</span><span class="o">=</span><span class="s1">&#39;_measures&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="examples">
+<h5>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h5>
+<p>Before you are sure to have picked the right parameters for your desired output,
+you can simply use the <code class="docutils literal notranslate"><span class="pre">simulate=True</span></code> argument which lets you view the paths
+without actually creating any files. In this variant, all aspects are stored each
+in individual folders but with identical filenames:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>
+<span class="go">                    rests_folder=&#39;./rests&#39;,</span>
+<span class="go">                    notes_and_rests_folder=&#39;./notes_and_rests&#39;,</span>
+<span class="go">                    simulate=True</span>
+<span class="go">                    )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/rests/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
+</pre></div>
+</div>
+<p>In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">store_lists</span><span class="p">(</span>  <span class="n">notes_folder</span><span class="o">=</span><span class="s1">&#39;./notes&#39;</span><span class="p">,</span>            <span class="c1"># relative to ms3/docs</span>
+<span class="go">                    measures_folder=&#39;../measures&#39;,     # one level up from ms3/docs</span>
+<span class="go">                    rests_folder=&#39;rests&#39;,              # relative to the parsed directory</span>
+<span class="go">                    labels_folder=&#39;~/labels&#39;,          # absolute folder</span>
+<span class="go">                    expanded_folder=&#39;~/labels&#39;, expanded_suffix=&#39;_exp&#39;,</span>
+<span class="go">                    simulate = True</span>
+<span class="go">                    )</span>
+<span class="go">[&#39;~/ms3/docs/notes/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/cujus_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/o_quam_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/quae_exp.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/docs/notes/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/rests/docs/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/ms3/measures/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat.tsv&#39;,</span>
+<span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 </div>
 <div class="section" id="column-names">
-<h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
+<span id="id4"></span><h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="general-columns">
 <h3>General Columns<a class="headerlink" href="#general-columns" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="mc-measure-counts">
@@ -468,11 +596,11 @@ of length 1/8, would have <code class="docutils literal notranslate"><span class
 from <a class="reference internal" href="#mc"><span class="std std-ref">MCs</span></a>. See also the columns <a class="reference internal" href="#dont-count"><span class="std std-ref">dont_count</span></a> and <a class="reference internal" href="#numbering-offset"><span class="std std-ref">numbering_offset</span></a>.</p>
 </div>
 <div class="section" id="barline">
-<span id="id4"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
+<span id="id5"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">barline</span></code> encodes information about the measure’s final bar line.</p>
 </div>
 <div class="section" id="breaks">
-<span id="id5"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
+<span id="id6"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">breaks</span></code> may include three different values: <code class="docutils literal notranslate"><span class="pre">{'line',</span> <span class="pre">'page',</span> <span class="pre">'section'}</span></code> which represent the different
 breaks types. In the case of section breaks, MuseScore</p>
 </div>
@@ -499,7 +627,7 @@ which are also part of the corresponding MN. In the standard case that one MN wo
 would have mc_offset = <code class="docutils literal notranslate"><span class="pre">0</span></code> , and the second one mc_offset = <code class="docutils literal notranslate"><span class="pre">the</span> <span class="pre">previous</span> <span class="pre">MC's</span></code> <a class="reference internal" href="#act-dur"><span class="std std-ref">act_dur</span></a> .</p>
 </div>
 <div class="section" id="next">
-<span id="id6"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
+<span id="id7"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
 <p>Every cell in this column has at least one integer, namely the MC of the subsequent bar, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> in the cast of the last.
 In the case of repetitions, measures can have more than one subsequent MCs, in which case the integers are separated by
 <code class="docutils literal notranslate"><span class="pre">',</span> <span class="pre">'</span></code> .</p>
@@ -522,7 +650,7 @@ sometimes, instead of using section <a class="reference internal" href="#breaks"
 <a class="reference internal" href="#mn"><span class="std std-ref">MNs</span></a> at every new section. This leads to ambiguous MNs.</p>
 </div>
 <div class="section" id="repeats">
-<span id="id7"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
+<span id="id8"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">repeats</span></code> indicates the presence of repeat signs and can have the values
 <code class="docutils literal notranslate"><span class="pre">{'start',</span> <span class="pre">'end',</span> <span class="pre">'startend',</span> <span class="pre">'firstMeasure',</span> <span class="pre">'lastMeasure'}</span></code>. MS3 performs a test on the
 repeat signs’ plausibility and throws warnings when some inference is required for this.</p>
@@ -542,7 +670,7 @@ has an actual duration of <code class="docutils literal notranslate"><span class
 </div>
 </div>
 <div class="section" id="volta">
-<span id="id8"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
+<span id="id9"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
 <p>In the case of first and second (third etc.) endings, this column holds the number of every “bracket”, “house”, or <em>volta</em>,
 which should increase from 1. This is required for MS3’s unfold repeats function (TODO) to work.</p>
 <p>The MNs for all voltas except those of the first one need to be amended to match those of the
@@ -687,7 +815,7 @@ the voltas have more than one measure, the <a class="reference internal" href="#
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.0 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>

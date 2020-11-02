@@ -430,9 +430,12 @@ same four files but this time from the perspective of ``~/ms3``:
 The rules for specifying the folders are as follows:
 
 * absolute folder (e.g. ``~/labels``): Store all files in this particular folder without creating subfolders.
-* relative folder starting with ``./`` or ``../`` means that the file is to be placed relative to the location of the
-  original MSCX file
-* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``) creates the folder under the scan folder and
-  places the files into a (newly created) relative folder structure below.
+* relative folder starting with ``./`` or ``../``: relative folders are created
+  "at the end" of the original subdirectory structure, i.e. relative to the MuseScore
+  files.
+* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``): relative
+  folders are created at the top level (of the original directory or the specified
+  ``root_dir``) and the original subdirectory structure is replicated
+  in each of them.
 
 To see examples for the three possibilities, see :ref:`specifying_folders`.

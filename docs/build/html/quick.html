@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quick Reference &#8212; ms3 0.4.0 documentation</title>
+    <title>Quick Reference &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.0 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -676,10 +676,13 @@ same four files but this time from the perspective of <code class="docutils lite
 <p>The rules for specifying the folders are as follows:</p>
 <ul class="simple">
 <li><p>absolute folder (e.g. <code class="docutils literal notranslate"><span class="pre">~/labels</span></code>): Store all files in this particular folder without creating subfolders.</p></li>
-<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> means that the file is to be placed relative to the location of the
-original MSCX file</p></li>
-<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>) creates the folder under the scan folder and
-places the files into a (newly created) relative folder structure below.</p></li>
+<li><p>relative folder starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code>: relative folders are created
+“at the end” of the original subdirectory structure, i.e. relative to the MuseScore
+files.</p></li>
+<li><p>relative folder not starting with <code class="docutils literal notranslate"><span class="pre">./</span></code> or <code class="docutils literal notranslate"><span class="pre">../</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">rests</span></code>): relative
+folders are created at the top level (of the original directory or the specified
+<code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
+in each of them.</p></li>
 </ul>
 <p>To see examples for the three possibilities, see <a class="reference internal" href="manual.html#specifying-folders"><span class="std std-ref">Specifying folders</span></a>.</p>
 </div>
@@ -790,7 +793,7 @@ places the files into a (newly created) relative folder structure below.</p></li
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.0 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
