@@ -20,11 +20,9 @@ Since :py:class:`~ms3.score.MSCX` and :py:class:`~ms3.annotations.Annotations`
 objects are always attached to a :py:class:`~ms3.score.Score`, the documentation
 starts with this central class.
 
-The score module
-================
 
 The Score class
----------------
+===============
 
 .. autoclass:: ms3.score.Score
     :members:
@@ -35,13 +33,13 @@ The MSCX class
 .. autoclass:: ms3.score.MSCX
     :members:
 
-The annotations module
-======================
+The Annotations class
+=====================
 
 .. automodule:: ms3.annotations
     :members:
 
-The parse module
+The Parse class
 ================
 
 .. automodule:: ms3.parse
