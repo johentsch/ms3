@@ -19,8 +19,6 @@ class Score(LoggedClass):
     
     CLASS VARIABLES***
         holding the regular expressions that are used to recognize particular types of annotation labels.
-    abs_regex :
-        Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.
     dcml_regex :
         Recognize labels conforming to the DCML harmony annotation standard.
     nashville_regex :
@@ -75,6 +73,9 @@ class Score(LoggedClass):
     """
 
     abs_regex = r"^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$"
+    """ :obj:`str`
+    Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.
+    """
 
     dcml_regex = re.compile(r"""
                                 ^(?P<first>

@@ -104,12 +104,6 @@ and Properties (which cannot be changed or do something when changed).</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt id="ms3.score.Score.abs_regex">
-<code class="sig-name descname">abs_regex</code><a class="headerlink" href="#ms3.score.Score.abs_regex" title="Permalink to this definition">¶</a></dt>
-<dd><p>Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</p>
-</dd></dl>
-
-<dl class="py attribute">
 <dt id="ms3.score.Score.dcml_regex">
 <code class="sig-name descname">dcml_regex</code><a class="headerlink" href="#ms3.score.Score.dcml_regex" title="Permalink to this definition">¶</a></dt>
 <dd><p>Recognize labels conforming to the DCML harmony annotation standard.</p>
@@ -294,6 +288,13 @@ regex will updating others, you can refer to them as None, e.g. <code class="doc
 <dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.abs_regex">
+<code class="sig-name descname">abs_regex</code><em class="property"> = '^\\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$'</em><a class="headerlink" href="#ms3.score.Score.abs_regex" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</p>
 </dd></dl>
 
 <dl class="py method">

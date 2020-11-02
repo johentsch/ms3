@@ -85,8 +85,6 @@
 <span class="sd">    </span>
 <span class="sd">    CLASS VARIABLES***</span>
 <span class="sd">        holding the regular expressions that are used to recognize particular types of annotation labels.</span>
-<span class="sd">    abs_regex :</span>
-<span class="sd">        Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</span>
 <span class="sd">    dcml_regex :</span>
 <span class="sd">        Recognize labels conforming to the DCML harmony annotation standard.</span>
 <span class="sd">    nashville_regex :</span>
@@ -141,6 +139,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">abs_regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$&quot;</span>
+    <span class="sd">&quot;&quot;&quot; :obj:`str`</span>
+<span class="sd">    Recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">dcml_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">                                ^(?P&lt;first&gt;</span>
