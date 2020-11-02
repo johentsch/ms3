@@ -156,8 +156,8 @@ Parsing multiple scores
 
 2. Locate the folder containing MuseScore files.
 
-    In this example, we are going to parse all files included in ms3's
-    `Git repo <https://github.com/johentsch/ms3>`__ which has been
+    In this example, we are going to parse all files included in
+    `this older version of ms3's Git repo <https://github.com/johentsch/ms3/tree/e25ec55c3bbf07664436a73db956f4855890516c>`__ which has been
     `cloned <https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone>`__
     into the home directory and therefore has the path ``~/ms3``.
 
@@ -242,79 +242,28 @@ Parsing multiple scores
 Extracting score information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Each of the :ref:`previously discussed DataFrames<tabular_info>` can be automatically stored for every score. To select
-one or several aspects from ``[notes, measures, rests, notes_and_rests, events, labels, chords, expanded]``, it is enough
-to pass the respective ``_folder`` parameter to :py:meth:`~ms3.parse.Parsed.store_lists` distinguishing where to store
-the TSV files. Additionally, the method accepts one ``_suffix`` parameter per aspect, i.e. a slug added to the respective
-filenames. If the parameter ``simulate=True`` is passed, no files are written but the file paths to be created are returned.
+Each of the :ref:`DataFrames holding score information<tabular_info>` can be
+automatically stored for every score. To select one or several aspects out of
+``{notes, measures, rests, notes_and_rests, events, labels, chords, expanded}``,
+it is enough to pass the respective ``_folder`` parameter to
+:py:meth:`~ms3.parse.Parsed.store_lists` distinguishing where to store the TSV
+files. Additionally, the method accepts one ``_suffix`` parameter per aspect,
+i.e. a slug added to the respective filenames. If the parameter
+``simulate=True`` is passed, no files are written but the file paths to be
+created are returned. Since corpora might have quite diverse directory structures,
+ms3 gives you various ways of specifying folders which will be explained in detail
+in the following section.
 
-In this variant, all aspects are stored each in individual folders but with identical filenames:
-
-.. code-block:: python
-
-    >>> p = Parse('~/ms3/docs', key='pergo')
-    >>> p.parse_mscx()
-    >>> p.store_lists(  notes_folder='./notes',
-                        rests_folder='./rests',
-                        notes_and_rests_folder='./notes_and_rests',
-                        simulate=True
-                        )
-    ['~/ms3/docs/notes/cujus.tsv',
-     '~/ms3/docs/rests/cujus.tsv',
-     '~/ms3/docs/notes_and_rests/cujus.tsv',
-     '~/ms3/docs/notes/o_quam.tsv',
-     '~/ms3/docs/rests/o_quam.tsv',
-     '~/ms3/docs/notes_and_rests/o_quam.tsv',
-     '~/ms3/docs/notes/quae.tsv',
-     '~/ms3/docs/rests/quae.tsv',
-     '~/ms3/docs/notes_and_rests/quae.tsv',
-     '~/ms3/docs/notes/stabat.tsv',
-     '~/ms3/docs/rests/stabat.tsv',
-     '~/ms3/docs/notes_and_rests/stabat.tsv']
-
-
-In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
-same four files but this time from the perspective of ``~/ms3``:
-
-.. code-block:: python
-
-    >>> p = Parse('~/ms3', folder_re='docs', key='pergo')
-    >>> p.parse_mscx()
-    >>> p.store_lists(  notes_folder='./notes',
-                        measures_folder='../measures',
-                        rests_folder='rests',
-                        labels_folder='~/labels',
-                        expanded_folder='~/labels', expanded_suffix='_exp',
-                        simulate = True
-                        )
-    ['~/ms3/docs/notes/cujus.tsv',
-     '~/ms3/rests/docs/cujus.tsv',
-     '~/ms3/measures/cujus.tsv',
-     '~/labels/cujus.tsv',
-     '~/labels/cujus_exp.tsv',
-     '~/ms3/docs/notes/o_quam.tsv',
-     '~/ms3/rests/docs/o_quam.tsv',
-     '~/ms3/measures/o_quam.tsv',
-     '~/labels/o_quam.tsv',
-     '~/labels/o_quam_exp.tsv',
-     '~/ms3/docs/notes/quae.tsv',
-     '~/ms3/rests/docs/quae.tsv',
-     '~/ms3/measures/quae.tsv',
-     '~/labels/quae.tsv',
-     '~/labels/quae_exp.tsv',
-     '~/ms3/docs/notes/stabat.tsv',
-     '~/ms3/rests/docs/stabat.tsv',
-     '~/ms3/measures/stabat.tsv',
-     '~/labels/stabat.tsv',
-     '~/labels/stabat_exp.tsv']
-
-The rules for specifying the folders are as follows:
+Briefly, the rules for specifying the folders are as follows:
 
 * absolute folder (e.g. ``~/labels``): Store all files in this particular folder without creating subfolders.
-* relative folder starting with ``./`` or ``../`` means that the file is to be placed relative to the location of the
-  original MSCX file
-* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``) creates the folder under the scan folder and
-  places the files into a (newly created) relative folder structure below.
+* relative folder starting with ``./`` or ``../``: relative folders are created
+  "at the end" of the original subdirectory structure, i.e. relative to the MuseScore
+  files.
+* relative folder not starting with ``./`` or ``../`` (e.g. ``rests``): relative
+  folders are created at the top level (of the original directory or the specified
+  ``root_dir``) and the original subdirectory structure is replicated
+  in each of them.
 
 To see examples for the three possibilities, see the following section.
 
@@ -347,12 +296,12 @@ The first level contains the subdirectories `docs` (4 files) and `tests`
 (6 files in the subdirectory `MS3`). Now we look at the three different ways to specify folders for storing notes and
 measures.
 
-Absolute Folder
-"""""""""""""""
+Absolute Folders
+""""""""""""""""
 
 When we specify absolute paths, all files are stored in the specified directories.
 In this example, the measures and notes are stored in the two specified subfolders
-of the home directory `~`:
+of the home directory `~`, regardless of the original subdirectory structure.
 
 .. code-block:: python
 
@@ -384,7 +333,195 @@ of the home directory `~`:
       ├── quae.tsv
       └── stabat.tsv
 
+Relative Folders
+""""""""""""""""
 
+In contrast, specifying relative folders recreates the original subdirectory structure.
+There are two different possibilities for that. The first possibility is naming
+relative folder names, meaning that the subdirectory structure (``docs`` and ``tests``)
+is recreated in each of the folders:
+
+.. code-block:: python
+
+    >>> p.store_lists(root_dir='~/tsv', notes_folder='notes', measures_folder='measures')
+
+.. code-block:: console
+
+    ~/tsv
+    ├── measures
+    │   ├── docs
+    │   │   ├── cujus.tsv
+    │   │   ├── o_quam.tsv
+    │   │   ├── quae.tsv
+    │   │   └── stabat.tsv
+    │   └── tests
+    │       └── MS3
+    │           ├── 05_symph_fant.tsv
+    │           ├── 76CASM34A33UM.tsv
+    │           ├── BWV_0815.tsv
+    │           ├── D973deutscher01.tsv
+    │           ├── Did03M-Son_regina-1762-Sarti.tsv
+    │           └── K281-3.tsv
+    └── notes
+        ├── docs
+        │   ├── cujus.tsv
+        │   ├── o_quam.tsv
+        │   ├── quae.tsv
+        │   └── stabat.tsv
+        └── tests
+            └── MS3
+                ├── 05_symph_fant.tsv
+                ├── 76CASM34A33UM.tsv
+                ├── BWV_0815.tsv
+                ├── D973deutscher01.tsv
+                ├── Did03M-Son_regina-1762-Sarti.tsv
+                └── K281-3.tsv
+
+Note that in this example, we have specified a ``root_dir``. Leaving this argument
+out will create the same structure in the directory from which the :obj:`Parse`
+object was created, i.e. the folder structure would be:
+
+.. code-block:: console
+
+    .
+    ├── docs
+    ├── measures
+    │   ├── docs
+    │   └── tests
+    │       └── MS3
+    ├── notes
+    │   ├── docs
+    │   └── tests
+    │       └── MS3
+    └── tests
+        └── MS3
+
+If, instead, you want to create the specified relative folders relative to each
+MuseScore file's location, specify them with an initial dot. ``./`` means
+"relative to the original path" and ``../`` one level up from the original path.
+To exemplify both:
+
+.. code-block:: python
+
+    >>> p.store_lists(root_dir='~/tsv', notes_folder='./notes', measures_folder='../measures')
+
+.. code-block:: console
+
+    ~/tsv
+    ├── docs
+    │   └── notes
+    │       ├── cujus.tsv
+    │       ├── o_quam.tsv
+    │       ├── quae.tsv
+    │       └── stabat.tsv
+    ├── measures
+    │   ├── cujus.tsv
+    │   ├── o_quam.tsv
+    │   ├── quae.tsv
+    │   └── stabat.tsv
+    └── tests
+        ├── measures
+        │   ├── 05_symph_fant.tsv
+        │   ├── 76CASM34A33UM.tsv
+        │   ├── BWV_0815.tsv
+        │   ├── D973deutscher01.tsv
+        │   ├── Did03M-Son_regina-1762-Sarti.tsv
+        │   └── K281-3.tsv
+        └── MS3
+            └── notes
+                ├── 05_symph_fant.tsv
+                ├── 76CASM34A33UM.tsv
+                ├── BWV_0815.tsv
+                ├── D973deutscher01.tsv
+                ├── Did03M-Son_regina-1762-Sarti.tsv
+                └── K281-3.tsv
+
+The ``notes`` folders are created in directories where MuseScore files are located,
+and the ``measures`` folders one directory above, respectively. Leaving out the
+``root_dir`` argument would lead to the same folder structure but in the directory
+from which the :obj:`Parse` object has been created. In a similar manner,
+the arguments ``p.store_lists(notes_folder='.', measures_folder='.')`` would create
+the TSV files just next to the MuseScore files. However, this would lead to warnings
+such as
+
+.. warning::
+
+    The notes at ~/ms3/docs/cujus.tsv have been overwritten with measures.
+
+In such a case we need to specify a suffix for at least one of both aspects:
+
+.. code-block:: python
+
+    p.store_lists(notes_folder='.', notes_suffix='_notes',
+                  measures_folder='.', measures_suffix='_measures')
+
+Examples
+""""""""
+
+Before you are sure to have picked the right parameters for your desired output,
+you can simply use the ``simulate=True`` argument which lets you view the paths
+without actually creating any files. In this variant, all aspects are stored each
+in individual folders but with identical filenames:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3/docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',
+                        rests_folder='./rests',
+                        notes_and_rests_folder='./notes_and_rests',
+                        simulate=True
+                        )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/docs/rests/cujus.tsv',
+     '~/ms3/docs/notes_and_rests/cujus.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/docs/rests/o_quam.tsv',
+     '~/ms3/docs/notes_and_rests/o_quam.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/docs/rests/quae.tsv',
+     '~/ms3/docs/notes_and_rests/quae.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/docs/rests/stabat.tsv',
+     '~/ms3/docs/notes_and_rests/stabat.tsv']
+
+
+In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
+same four files but this time from the perspective of ``~/ms3``:
+
+.. code-block:: python
+
+    >>> p = Parse('~/ms3', folder_re='docs', key='pergo')
+    >>> p.parse_mscx()
+    >>> p.store_lists(  notes_folder='./notes',            # relative to ms3/docs
+                        measures_folder='../measures',     # one level up from ms3/docs
+                        rests_folder='rests',              # relative to the parsed directory
+                        labels_folder='~/labels',          # absolute folder
+                        expanded_folder='~/labels', expanded_suffix='_exp',
+                        simulate = True
+                        )
+    ['~/ms3/docs/notes/cujus.tsv',
+     '~/ms3/rests/docs/cujus.tsv',
+     '~/ms3/measures/cujus.tsv',
+     '~/labels/cujus.tsv',
+     '~/labels/cujus_exp.tsv',
+     '~/ms3/docs/notes/o_quam.tsv',
+     '~/ms3/rests/docs/o_quam.tsv',
+     '~/ms3/measures/o_quam.tsv',
+     '~/labels/o_quam.tsv',
+     '~/labels/o_quam_exp.tsv',
+     '~/ms3/docs/notes/quae.tsv',
+     '~/ms3/rests/docs/quae.tsv',
+     '~/ms3/measures/quae.tsv',
+     '~/labels/quae.tsv',
+     '~/labels/quae_exp.tsv',
+     '~/ms3/docs/notes/stabat.tsv',
+     '~/ms3/rests/docs/stabat.tsv',
+     '~/ms3/measures/stabat.tsv',
+     '~/labels/stabat.tsv',
+     '~/labels/stabat_exp.tsv']
+
+.. _column_names:
 
 Column Names
 ============
@@ -417,10 +554,10 @@ corresponds to the earliest possible position (in most cases beat 1), and some o
 :ref:`Quarter beats <quarter_beats>` can be :ref:`converted to beats <converting_quarter_beats>`, e.g. to half beats or dotted eighth beats;
 However, the operation may rely on the value of :ref:`mc_offset <mc_offset>`.
 
-.. topic:: Developers
+.. tip::
 
     When loading a table from a file, it is recommended to parse the text of this
-    column with ``fractions.Fraction()`` to be able to calculate with the values.
+    column with :obj:`fractions.Fraction` to be able to calculate with the values.
     MS3 does this automatically.
 
 Measures
@@ -498,7 +635,7 @@ the inferred MNs might be wrong. Also, it is needed for MS3's unfold repeats fun
 
 .. topic:: Developers
 
-    Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without paranthesis. For
+    Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without parenthesis. For
     example, the tuple ``(17, 1)`` is stored as ``'17, 1'``. However, users might have extracted and stored a raw DataFrame
     from a :obj:`Score` object and MS3 needs to handle both formats.
 
@@ -540,7 +677,7 @@ The :ref:`actual duration <act_dur>` of a measure can deviate from the time sign
 a pickup bar could have an actual duration of ``1/4``  but still be part of a ``'3/8'`` meter, which usually
 has an actual duration of ``3/8``.
 
-.. topic:: Developers
+.. tip::
 
     When loading a table from a file, time signatures are not parsed as fractions because then both
     ``'2/2'`` and ``'4/4'``, for example, would become ``1``.

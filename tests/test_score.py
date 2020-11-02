@@ -14,7 +14,7 @@ from ms3.utils import decode_harmonies, load_tsv
 
 @pytest.fixture(
     params=['Did03M-Son_regina-1762-Sarti.mscx', 'D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx', '76CASM34A33UM.mscx'],
-    ids=['sarti', "schubert", "berlioz", 'bach', 'mozart', 'monty'])
+ids=['sarti', "schubert", "berlioz", 'bach', 'mozart', 'monty'])
 def score_object(request):
     test_folder, _ = os.path.split(os.path.realpath(__file__))
     mscx_path = os.path.join(test_folder, 'MS3', request.param)

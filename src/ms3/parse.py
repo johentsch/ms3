@@ -384,7 +384,7 @@ Continuing with {annotation_key}.""")
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
-            res_dict[key].update(self._annotations[(key, i)].label_types)
+            res_dict[key].update(self._annotations[(key, i)]._label_types)
         if len(res_dict) == 0:
             if len(self._parsed_mscx) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
@@ -536,7 +536,6 @@ Load one of the identically named files with a different key using add_dir(key='
             keys = self._treat_key_param(keys)
             return {k: self.index(k) for k in keys}
         return [self._index[id] for id in self._iterids(keys)]
-
 
 
 
@@ -953,7 +952,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.update_logger_cfg(name=self.logger_names[(key, i)])
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
-                warnings.append(f"The {paths[new_path]} at {new_path} {modus} been overwritten with {what}.")
+                warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
             else:
                 infos.append(f"{what} {modus}have been stored as {new_path}.")
             paths[new_path] = what
@@ -970,7 +969,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.info('\n'.join(infos) + msg)
         else:
             self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
-        self.logger = prev_logger
+        #self.logger = prev_logger
         if simulate:
             return list(set(paths.keys()))
 
