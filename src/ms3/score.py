@@ -617,6 +617,11 @@ class MSCX(LoggedClass):
         else:
             raise ValueError(f"File does not exist: {mscx_src}")
 
+        self.changed = False
+        """:obj:`bool`
+        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
+        """
+
         self.read_only = read_only
         """:obj:`bool`, optional
         Shortcut for ``MSCX.parsed.read_only``.
@@ -646,8 +651,9 @@ class MSCX(LoggedClass):
             'column_name': 'label',
         }
         """:obj:`dict`
-        Configuration dictionary to determine the output format of the loaded :py:class:`~ms3.annotations.Annotations`
-        objects. The default options correspond to the default parameters of
+        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
+        object representing the labels that are attached to a score (stored as :obj:`._annotations``). 
+        The default options correspond to the default parameters of
         :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
@@ -656,17 +662,6 @@ class MSCX(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    @property
-    def changed(self):
-        """:obj:`bool`
-        Shortcut for ``MSCX.parsed.changed``.
-        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
-        """
-        return self.parsed.changed
-
-    @changed.setter
-    def changed(self, val):
-        self.parsed.changed = val
 
 
     @property

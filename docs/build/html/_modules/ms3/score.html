@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 None.post0.dev5-geb8c62e.dirty documentation</title>
+    <title>ms3.score &#8212; ms3 0.4.1.post0.dev4+g619dcae documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -712,8 +712,9 @@
             <span class="s1">&#39;column_name&#39;</span><span class="p">:</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
-<span class="sd">        Configuration dictionary to determine the output format of the loaded :py:class:`~ms3.annotations.Annotations`</span>
-<span class="sd">        objects. The default options correspond to the default parameters of</span>
+<span class="sd">        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`</span>
+<span class="sd">        object representing the labels that are attached to a score (stored as :obj:`._annotations``). </span>
+<span class="sd">        The default options correspond to the default parameters of</span>
 <span class="sd">        :py:meth:`Annotations.get_labels()&lt;ms3.annotations.Annotations.get_labels&gt;`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update_labels_cfg</span><span class="p">(</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">))</span>
@@ -762,7 +763,9 @@
 <span class="sd">        DataFrame of labels that have been split into various features using a regular expression.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">expanded</span>
+        <span class="n">labels_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">labels_cfg</span><span class="p">[</span><span class="s1">&#39;decode&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">expand_dcml</span><span class="p">(</span><span class="o">**</span><span class="n">labels_cfg</span><span class="p">)</span>
 
 
     <span class="nd">@property</span>
@@ -771,6 +774,10 @@
 <span class="sd">        Shortcut for ``MSCX.parsed.has_annotations``.</span>
 <span class="sd">        Is True as long as at least one label is attached to the current XML.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span>
+
+    <span class="nd">@has_annotations</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">has_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="n">val</span>
 
 
     <span class="nd">@property</span>
@@ -997,7 +1004,9 @@
 <span class="sd">        :obj:`pandas.DataFrame`</span>
 <span class="sd">            DataFrame representing all &lt;Chord&gt; tags in the score with the selected features.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_chords</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_chords</span><span class="p">(</span><span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span> <span class="n">lyrics</span><span class="o">=</span><span class="n">lyrics</span><span class="p">,</span> <span class="n">staff_text</span><span class="o">=</span><span class="n">staff_text</span><span class="p">,</span>
+                                      <span class="n">dynamics</span><span class="o">=</span><span class="n">dynamics</span><span class="p">,</span>
+                                      <span class="n">articulation</span><span class="o">=</span><span class="n">articulation</span><span class="p">,</span> <span class="n">spanners</span><span class="o">=</span><span class="n">spanners</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MSCX.get_raw_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.get_raw_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_raw_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1011,7 +1020,7 @@
 <span class="sd">        :obj:`pandas.DataFrame`</span>
 <span class="sd">            DataFrame with raw label features (i.e. as encoded in XML)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_raw_labels</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_raw_labels</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="MSCX.infer_mc"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.infer_mc">[docs]</a>    <span class="k">def</span> <span class="nf">infer_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mn</span><span class="p">,</span> <span class="n">mn_onset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">volta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1042,7 +1051,7 @@
 <span class="sd">        :obj:`fractions.Fraction`</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">infer_mc</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">infer_mc</span><span class="p">(</span><span class="n">mn</span><span class="o">=</span><span class="n">mn</span><span class="p">,</span> <span class="n">mn_onset</span><span class="o">=</span><span class="n">mn_onset</span><span class="p">,</span> <span class="n">volta</span><span class="o">=</span><span class="n">volta</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">implemented_parsers</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;bs4&#39;</span><span class="p">]</span>
@@ -1078,7 +1087,7 @@
 <span class="sd">        :obj:`bool`</span>
 <span class="sd">            Whether the file was successfully created.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">store_mscx</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">store_mscx</span><span class="p">(</span><span class="n">filepath</span><span class="o">=</span><span class="n">filepath</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MSCX.store_list"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.store_list">[docs]</a>    <span class="k">def</span> <span class="nf">store_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -1231,7 +1240,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 None.post0.dev5-geb8c62e.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 

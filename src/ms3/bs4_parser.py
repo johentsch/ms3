@@ -73,7 +73,7 @@ class _MSCX_bs4(LoggedClass):
         """
         assert self.mscx_src is not None, "No MSCX file specified." \
                                           ""
-        with open(self.mscx_src, 'r') as file:
+        with open(self.mscx_src, 'r', encoding='utf-8') as file:
             self.soup = bs4.BeautifulSoup(file.read(), 'xml')
 
         if self.version[0] != '3':
@@ -213,7 +213,7 @@ class _MSCX_bs4(LoggedClass):
 
     def store_mscx(self, filepath):
 
-        with open(resolve_dir(filepath), 'w') as file:
+        with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
             file.write(bs4_to_mscx(self.soup))
         self.logger.info(f"Score written to {filepath}.")
         return True

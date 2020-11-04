@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 0.4.2
+=============
+
+* small bug fixes
+* correct computation of chord tones for new DCML syntax elements ``+M``, ``-``, ``^``, and ``v``
+
 Version 0.4.1
 =============
 

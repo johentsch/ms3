@@ -14,6 +14,22 @@ from .logger import function_logger
 # Constants
 ################################################################################
 
+DCML_REGEX = re.compile(r"""
+            ^(\.?
+                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                (?P<chord>
+                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                    (?P<form>(%|o|\+|M|\+M))?
+                    (?P<figbass>(7|65|43|42|2|64|6))?
+                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                )
+                (?P<pedalend>\])?
+            )?
+            (?P<phraseend>(\\\\|\{|\}|\}\{))?$
+            """, re.VERBOSE)
 
 class SliceMaker(object):
     """ This class serves for storing slice notation such as ``:3`` as a variable or
@@ -94,22 +110,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
 from several pieces. Apply expand_labels() to one piece at a time."""
     df = df.copy()
     if regex is None:
-        regex = re.compile(r"""
-            ^(\.?
-                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                (?P<chord>
-                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                    (?P<form>(%|o|\+|M|\+M))?
-                    (?P<figbass>(7|65|43|42|2|64|6))?
-                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
-                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                )
-                (?P<pedalend>\])?
-            )?
-            (?P<phraseend>(\\\\|\{|\}|\}\{))?$
-            """, re.VERBOSE)
+        regex = DCML_REGEX
 
     ### If the index is not unique, it has to be temporarily replaced
     tmp_index = not df.index.is_unique
@@ -151,7 +152,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
         c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        self.logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
+        logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
 
     if propagate or chord_tones:
         if not propagate:
@@ -459,7 +460,7 @@ def changes2list(changes, sort=True):
     [('+#7', '+', '#', '7'),
      ('b5',  '',  'b', '5')]
     """
-    res = [t for t in re.findall(r"((\+)?(#+|b+)?(1\d|\d))", changes)]
+    res = [t for t in re.findall(r"((\+|-|\^|v)?(#+|b+)?(1\d|\d))", changes)]
     return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
 
 
@@ -838,7 +839,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     form, figbass, changes, relativeroot = tuple(
         '' if pd.isnull(val) else val for val in (form, figbass, changes, relativeroot))
     label = f"{numeral}{form}{figbass}{'(' + changes + ')' if changes != '' else ''}{'/' + relativeroot if relativeroot != '' else ''}"
-
+    MC = '' if mc is None else f'MC {mc}: '
     if minor is None:
         try:
             minor = str_is_minor(key, is_name=True)
@@ -848,117 +849,178 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
 
     key = name2tpc(key)
 
-    if form in ['%', 'M']:
+    if form in ['%', 'M', '+M']:
         assert figbass in ['7', '65', '43',
-                           '2'], f"{label}: {form} requires figbass since it specifies a chord's seventh."
+                           '2'], f"{MC}{label}: {form} requires figbass (7, 65, 43, or 2) since it specifies a chord's seventh."
 
     if relativeroot != '':
         resolved = resolve_relative_keys(relativeroot, minor)
         rel_minor = str_is_minor(resolved, is_name=False)
         transp = rn2tpc(resolved, minor)
         logger.debug(
-            f"{'' if mc is None else f'MC {mc}: '}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
+            f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
         return features2tpcs(numeral=numeral, form=form, figbass=figbass, relativeroot=None, changes=changes,
                              key=key + transp, minor=rel_minor, merge_tones=merge_tones, bass_only=bass_only, mc=mc,
                              logger=logger)
 
     if numeral.lower() == '#vii' and not minor:
         logger.warning(
-            f"{'' if mc is None else f'MC {mc}: '}{label} in a major context is most probably an annotation error.")
+            f"{MC}{label} in a major context is most probably an annotation error.")
 
     root_alteration, num_degree = split_sd(numeral, count=True, logger=logger)
 
     # build 2-octave diatonic scale on C major/minor
     root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
     tpcs = 2 * [i + key for i in (0, 2, -3, -1, 1, -4, -2)] if minor else 2 * [i + key for i in (0, 2, 4, -1, 1, 3, 5)]
-    tpcs = tpcs[root:] + tpcs[:root]  # starting the scale from chord root
+    # starting the scale from chord root, i.e. root will be tpcs[0], the chord's seventh tpcs[6] etc.
+    tpcs = tpcs[root:] + tpcs[:root]
     root = tpcs[0] + 7 * root_alteration
     tpcs[0] = root  # octave stays diatonic, is not altered
     logger.debug(f"The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
 
     def set_iv(chord_interval, interval_size):
-        """ Fix the interval of a given chord interval (both viewed from the bass note).
+        """ Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).
+
+        Parameters
+        ----------
+        chord_interval : :obj:`int`
+            Pass 0 for the root note, 2 for the third, 8 for the ninth etc.
+        interval_size : :obj:`int`
+            Stack-of-fifths interval.
         """
         nonlocal tpcs, root
         iv = root + interval_size
-        i = chord_interval - 1
-        tpcs[i] = iv
-        tpcs[i + 7] = iv
+        tpcs[chord_interval] = iv
+        tpcs[chord_interval + 7] = iv
+        
+    is_seventh_chord = figbass in ['7', '65', '43', '2']
 
     if form == 'o':
-        set_iv(3, -3)
-        set_iv(5, -6)
-        if figbass in ['7', '65', '43', '2']:
-            set_iv(7, -9)
+        set_iv(2, -3)
+        set_iv(4, -6)
+        if is_seventh_chord:
+            set_iv(6, -9)
     elif form == '%':
-        set_iv(3, -1)
-        set_iv(5, 6)
-        set_iv(7, -2)
+        set_iv(2, -3)
+        set_iv(4, -6)
+        set_iv(6, -2)
     elif form == '+':
-        set_iv(3, 4)
-        set_iv(5, 8)
+        set_iv(2, 4)
+        set_iv(4, 8)
+        if is_seventh_chord:
+            set_iv(6, -2)
+    elif form == '+M':
+        set_iv(2, 4)
+        set_iv(4, 8)
+        set_iv(6, 5)
     else:  # triad with or without major or minor seven
-        set_iv(5, 1)
+        set_iv(4, 1)
         if num_degree.isupper():
-            set_iv(3, 4)
+            set_iv(2, 4)
         else:
-            set_iv(3, -3)
+            set_iv(2, -3)
         if form == 'M':
-            set_iv(7, 5)
-        elif figbass in ['7', '65', '43', '2']:
-            set_iv(7, -2)
+            set_iv(6, 5)
+        elif is_seventh_chord:
+            set_iv(6, -2)
+
+    if figbass in ['', '6', '64']:
+        # for triads, select root, third and fifth
+        selector = [0, 2, 4]
+    elif is_seventh_chord:
+        # for seventh chords, select root, third, fifth and seventh
+        selector = [0, 2, 4, 6]
+    else:
+        raise ValueError(f"{MC}{figbass} is not a valid chord inversion.")
+
+    def replace_chord_tone(ct, replacement, fixed_position=None):
+        nonlocal selector
+        if ct in selector:
+            selector.remove(ct)
+        if not replacement in selector:
+            if fixed_position is None:
+                    selector.append(replacement)
+                    selector = list(sorted(selector))
+            else:
+                selector.insert(fixed_position, replacement)
+
+
 
     # apply changes
     alts = changes2list(changes, sort=False)
     added_notes = []
-
-    for full, added, acc, chord_interval in alts:
-        added = added == '+'
+#    changed_intervals = {}
+    for full, add_remove, acc, chord_interval in alts:
+#         if chord_interval in changed_intervals:
+#             logger.warning(
+# f"{MC}There is more than one change to {chord_interval}. Applying only the first, {changed_intervals[chord_interval]}, not {full}.")
+#         else:
+#             changed_intervals[chord_interval] = full
+        added = add_remove == '+'
+        substracted = add_remove == '-'
+        replacing_upper = add_remove == '^'
+        replacing_lower = add_remove == 'v'
         chord_interval = int(chord_interval) - 1
-        if chord_interval == 0 or chord_interval > 13:
+        ### From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in `tpcs`)
+        if (chord_interval == 0 and not substracted) or chord_interval > 13:
             logger.warning(
-                f"{'' if mc is None else f'MC {mc}: '}Alteration of scale degree {chord_interval + 1} is meaningless and ignored.")
+                f"{MC}Alteration of scale degree {chord_interval + 1} is meaningless and ignored.")
             continue
         next_octave = chord_interval > 7
         shift = 7 * (acc.count('#') - acc.count('b'))
         new_val = tpcs[chord_interval] + shift
-        if added:
+        if substracted:
+            pass
+        elif added:
             added_notes.append(new_val)
         elif chord_interval in [1, 3, 5, 8, 10,
                                 12]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a #
-            if '#' in acc:
-                tpcs[chord_interval + 1] = new_val
-                if chord_interval == 5 and not figbass in ['7', '65', '43',
-                                                           '2']:  # leading tone to 7 but not in seventh chord
-                    added_notes.append(new_val)
+            tpcs[chord_interval] = new_val
+            if not replacing_lower and ('#' in acc or replacing_upper):
+                if '#' in acc and replacing_upper:
+                    logger.warning(f"{MC}^ is redundant in {full}.")
+                if chord_interval in [1, 3, 5]:
+                    if chord_interval == 5 and not is_seventh_chord:  # leading tone to 7 but not in seventh chord
+                        added_notes.append(new_val)
+                    else:
+                        replace_chord_tone(chord_interval + 1, chord_interval)
             else:
-                tpcs[chord_interval - 1] = new_val
+                if replacing_lower:
+                    logger.warning(f"{MC}v is redundant in {full}.")
+                if chord_interval in [1, 3, 5]:
+                    replace_chord_tone(chord_interval - 1, chord_interval)
         else:  # chord tone alterations
-            if chord_interval == 6 and figbass != '7':  # 7th are a special case:
+            if replacing_lower:
+                tpcs[chord_interval] = new_val
+                replace_chord_tone(chord_interval - 1, chord_interval)
+            elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
                 if figbass == '':  # in root position triads they are added
                     added_notes.append(new_val)
                 elif figbass in ['6', '64']:  # in inverted triads they replace the root
-                    tpcs[0] = new_val
-                elif '#' in acc:  # in a seventh chord, they might retardate the 8
-                    tpcs[7] = new_val
+                    tpcs[chord_interval] = new_val
+                    replace_chord_tone(0, 6, 0)
+                elif '#' in acc:  # in an inverted seventh chord, they might retardate the 8
                     added_notes.append(new_val)
                 else:  # otherwise they are unclear
                     logger.warning(
-                        f"{'' if mc is None else f'MC {mc}: '}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.")
+                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.")
             elif tpcs[chord_interval] == new_val:
                 logger.warning(
-                    f"{'' if mc is None else f'MC {mc}: '}The change {full} has no effect in {numeral}{form}{figbass}")
+                    f"{MC}The change {full} has no effect in {numeral}{form}{figbass}")
             else:
                 tpcs[chord_interval] = new_val
-        if next_octave and not added:
+        if next_octave and not (added or substracted):
             added_notes.append(new_val)
 
-    if figbass in ['', '6', '64']:
-        chord_tones = [tpcs[i] for i in [0, 2, 4]]
-    elif figbass in ['7', '65', '43', '2']:
-        chord_tones = [tpcs[i] for i in [0, 2, 4, 6]]
-    else:
-        raise ValueError(f"{'' if mc is None else f'MC {mc}: '}{figbass} is not a valid chord inversion.")
+
+        if substracted:
+            if chord_interval not in selector:
+                logger.warning(
+                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by {numeral}{form}{figbass}.")
+            else:
+                selector.remove(chord_interval)
+
+    chord_tones = [tpcs[i] for i in selector]
 
     figbass2bass = {
         '': 0,
@@ -1425,7 +1487,7 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False):
 
 
 @function_logger
-def chord2tpcs(chord, regex, **kwargs):
+def chord2tpcs(chord, regex=None, **kwargs):
     """
     Split a chord label into its features and apply features2tpcs().
 
@@ -1435,11 +1497,14 @@ def chord2tpcs(chord, regex, **kwargs):
     ----------
     chord : :obj:`str`
         Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
-    regex : :obj:`re.Pattern`
-        Compiled regex with named groups for the five features.
+    regex : :obj:`re.Pattern`, optional
+        Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
+        annotation standard is used.
     **kwargs :
         arguments for features2tpcs (pass MC to show it in warnings!)
     """
+    if regex is None:
+        regex = DCML_REGEX
     chord_features = re.match(regex, chord)
     assert chord_features is not None, f"{chord} does not match the regex."
     chord_features = chord_features.groupdict()

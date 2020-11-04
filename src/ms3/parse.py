@@ -10,13 +10,13 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict, \
+from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
     resolve_dir, scan_directory, string2lines, update_labels_cfg
 
 
 class Parse(LoggedClass):
     """
-    Class for storing and manipulating the information from multiple parses (i.e. :py:class:`~ms3.score.Score` objects).
+    Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
     def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
@@ -42,14 +42,111 @@ class Parse(LoggedClass):
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
-        self.full_paths, self.rel_paths, self.scan_paths, self.paths, self.files, self.fnames, self.fexts = defaultdict(
-            list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(list), defaultdict(
-            list), defaultdict(list)
+        self.full_paths = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [full_path]}`` dictionary of the full paths of all detected files.
+        """
+        
+        self.rel_paths = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
+        """
+        
+        self.scan_paths = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [scan_path]}`` dictionary of the scan_paths from which each file was detected.
+        """
 
-        # dicts that have IDs as keys and are therefore accessed via [(key, i)]
-        self._parsed_mscx, self._annotations, self._notelists, self._restlists, self._noterestlists = {}, {}, {}, {}, {}
-        self._eventlists, self._labellists, self._chordlists, self._expandedlists, self._index = {}, {}, {}, {}, {}
-        self._measurelists, self._parsed_tsv, self._tsv_types = {}, {}, {}
+        self.paths = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [path]}`` dictionary of the paths of all detected files (without file name).
+        """
+
+        self.files = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [file]}`` dictionary of file names with extensions of all detected files.
+        """
+
+        self.fnames = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [fname]}`` dictionary of file names without extensions of all detected files.
+        """
+
+        self.fexts = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [fext]}`` dictionary of file extensions of all detected files.
+        """
+
+        self._parsed_mscx = {}
+        """:obj:`dict`
+        ``{(key, i): :obj:`~ms3.score.Score`}`` dictionary of parsed scores.
+        """
+        
+        self._annotations = {}
+        """:obj:`dict`
+        {(key, i): :obj:`~ms3.annotations.Annotations`} dictionary of parsed sets of annotations.
+        """
+
+        self._notelists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.notes` tables.
+        """
+
+        self._restlists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.rests` tables 
+        """
+
+        self._noterestlists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.notes_and_rests` tables
+        """
+
+        self._eventlists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.events` tables.
+        """
+
+        self._labellists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.labels` tables.
+        """
+
+        self._chordlists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.chords` tables.
+        """
+
+        self._expandedlists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.expanded` tables.
+        """
+
+        self._index = {}
+        """:obj:`dict`
+        {(key, i): :obj:`tuple`} dictionary of index tuples where every element represents one index level.
+        """
+
+        self._levelnames = {}
+        """:obj:`dict`
+        {(key, i): :obj:`tuple`} dictionary of index names for the corresponding index tuple.
+        """
+
+        self._measurelists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.measures` tables.
+        """
+
+        self._parsed_tsv = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of all parsed (i.e. loaded as DataFrame) TSV files.
+        """
+
+        self._tsv_types = {}
+        """:obj:`dict`
+        {(key, i): :obj:`str`} dictionary of TSV types as inferred by :py:meth:`._infer_tsv_type`, i.e. one of
+        ``None, 'notes', 'events', 'chords', 'rests', 'measures', 'labels'}``
+        """
 
         self.labels_cfg = {
             'staff': None,
@@ -59,10 +156,12 @@ class Parse(LoggedClass):
             'decode': False,
             'column_name': 'label',
         }
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of :obj:`~ms3.score.Score.labels` and
+        :obj:`~ms3.score.Score.expanded` tables. The dictonary is passed to :obj:`~ms3.score.Score` upon parsing.
+        """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
-        # dict with keys as keys, holding the names of the index levels (which have to be the same for all corresponding IDs)
-        self._levelnames = {}
         self._lists = {
             'notes': self._notelists,
             'rests': self._restlists,
@@ -73,15 +172,28 @@ class Parse(LoggedClass):
             'chords': self._chordlists,
             'expanded': self._expandedlists,
         }
+        """:obj:`dict`
+        Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
+        """
 
         self._matches = pd.DataFrame(columns=['mscx', 'annotations']+list(self._lists.keys()))
+        """:obj:`pandas.DataFrame`
+        Dataframe that holds the (file name) matches between MuseScore and TSV files.
+        """
+
         self.last_scanned_dir = dir
+        """:obj:`str`
+        The directory that was scanned for files last.
+        """
         if dir is not None:
             self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
     def parsed(self):
-        """ Returns an overview of the MSCX files that have already been parsed."""
+        """:obj:`dict`
+        Returns an overview of the parsed MuseScore files."""
         return {k: score.full_paths['mscx'] for k, score in self._parsed_mscx.items()}
         # res = {}
         # for k, score in self._parsed.items():
@@ -93,6 +205,23 @@ class Parse(LoggedClass):
 
 
     def add_detached_annotations(self, mscx_key, tsv_key, new_key=None, match_dict=None):
+        """ Add :obj:`~ms3.annotations.Annotations` objects generated from TSV files to the :obj:`~ms3.score.Score`
+        objects to which they are being matched based on their filenames or on ``match_dict``.
+
+        Parameters
+        ----------
+        mscx_key : :obj:`str`
+            A key under which parsed MuseScore files are stored.
+        tsv_key : :obj:`str`
+            A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
+        new_key : :obj:`str`, optional
+            The key under which the :obj:`~ms3.annotations.Annotations` objects will be available after attaching
+            them to the :obj:`~ms3.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
+            is used.
+        match_dict : :obj:`dict`, optional
+            Dictionary mapping IDs of parsed :obj:`~ms3.score.Score` objects to IDs of parsed :obj:`~ms3.annotations.Annotations`
+            objects.
+        """
         if new_key is None:
             new_key = tsv_key
         if match_dict is None:
@@ -127,31 +256,33 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             | Pass a string to identify the loaded files.
             | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
               itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        index : element or :obj:`Collection` of {'key', 'fname', 'i', :obj:`Collection`}
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
             | Change this parameter if you want to create particular indices for multi-piece DataFrames.
             | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`Collection`} stands for an index level.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
             | In other words, a single level will result in a single index and a collection of levels will result in a
               :obj:`~pandas.core.indexes.multi.MultiIndex`.
             | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
               index level itself and needs to have at least as many elements as the number of added files.
             | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
             | 'fname' evokes an index level made from file names.
-        file_re
-        folder_re
-        exclude_re
-        recursive
-
-        Returns
-        -------
-
+        dir : :obj:`str`
+            Directory to be scanned for files.
+        file_re : :obj:`str`, optional
+            Regular expression for filtering certain file names.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        folder_re : :obj:`str`, optional
+            Regular expression for filtering certain folder names.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        recursive : :obj:`bool`, optional
+            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
         dir = resolve_dir(dir)
         self.last_scanned_dir = dir
         if file_re in ['tsv', 'csv']:
             file_re = r"\." + file_re + '$'
         res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-        ids = [self.handle_path(p, key) for p in res]
+        ids = [self._handle_path(p, key) for p in res]
         if len(ids) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             grouped_ids = group_id_tuples(ids)
@@ -185,6 +316,30 @@ Therefore, the index for this key has been adapted.""")
 
 
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, check_for_clashes=True):
+        """ Attach all :obj:`~ms3.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
+        respective :obj:`~ms3.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
+        MuseScore files where the annotations show in the score.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
+        annotation_key : :obj:`str` or :obj:`list` or :obj:`tuple`, optional
+            Key(s) under which the :obj:`~ms3.annotations.Annotations` objects to be attached are stored in the
+            :obj:`~ms3.score.Score` objects. By default, all keys are selected.
+        staff : :obj:`int`, optional
+            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
+            By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
+            will be used.
+        voice : {1, 2, 3, 4}, optional
+            If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),
+            the labels will be attached to that one.
+            By default, the notational layers indicated in the 'voice' column of
+            :obj:`ms3.annotations.Annotations.df` will be used.
+        check_for_clashes : :obj:`bool`, optional
+            By default, warnings are thrown when there already exists a label at a position (and in a notational
+            layer) where a new one is attached. Pass False to deactivate this warnings.
+        """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
         if annotation_key is None:
             annotation_key = list(layers.keys())
@@ -216,28 +371,16 @@ Continuing with {annotation_key}.""")
         self._collect_annotations_objects_references(ids=ids)
 
 
-
-
-    def _collect_annotations_objects_references(self, keys=None, ids=None):
-        """ Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). """
-        if ids is None:
-            ids = list(self._iterids(keys, only_parsed_mscx=True))
-        updated = {}
-        for id in ids:
-            if id in self._parsed_mscx:
-                score = self._parsed_mscx[id]
-                if score is not None:
-                    if 'annotations' in score._annotations:
-                        updated[id] = score.annotations
-                    elif id in self._annotations:
-                        del (self._annotations[id])
-                else:
-                    del (self._parsed_mscx[id])
-        self._annotations.update(updated)
-
-
-
     def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
+        """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
+
+        Parameters
+        ----------
+        labels_cfg : :obj:`dict`
+            Using an entire dictionary or, to change only particular options, choose from:
+        staff, voice, label_type, positioning, decode
+            Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
+        """
         for k in self.labels_cfg.keys():
             val = locals()[k]
             if val is not None:
@@ -256,23 +399,13 @@ Continuing with {annotation_key}.""")
 
         Parameters
         ----------
-        keys
-        ids : :obj:`Collection`
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
+        ids : :obj:`~collections.abc.Collection`
             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
-        notes
-        rests
-        notes_and_rests
-        measures
-        events
-        labels
-        chords
-        expanded
+        notes, rests, notes_and_rests, measures, events, labels, chords, expanded : :obj:`bool`, optional
         only_new : :obj:`bool`, optional
-            Set to True to also retrieve lists that have already been retrieved.
-
-        Returns
-        -------
-        None
+            Set to True to also retrieve lists that had already been retrieved.
         """
         if len(self._parsed_mscx) == 0:
             self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
@@ -297,12 +430,13 @@ Continuing with {annotation_key}.""")
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
-        """ Returns a dict {key: Counter} or just a Counter.
+        """ Counts the labels for each annotation layer defined as (staff, voice, label_type).
+        By default, only labels attached to a score are counted.
 
         Parameters
         ----------
-        keys : :obj:`str` or :obj:`Collection`, defaults to None
-            Key(s) for which to count annotation layers.
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to count annotation layers.  By default, all keys are selected.
         which : {'attached', 'detached', 'tsv'}, optional
             'attached': Counts layers from annotations attached to a score.
             'detached': Counts layers from annotations that are in a Score object, but detached from the score.
@@ -310,13 +444,12 @@ Continuing with {annotation_key}.""")
         per_key : :obj:`bool`, optional
             If set to True, the results are returned as a dict {key: Counter}, otherwise the counts are summed up in one Counter.
             If ``which='detached'``, the keys are keys from Score objects, otherwise they are keys from this Parse object.
-        detached : :obj:`bool`, optional
-            Set to True in order to count layers in annotations that are currently not attached to a score.
 
         Returns
         -------
         :obj:`dict` or :obj:`collections.Counter`
-
+            By default, the function returns a Counter of labels for every annotation layer (staff, voice, label_type)
+            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
         """
         res_dict = defaultdict(Counter)
 
@@ -355,12 +488,12 @@ Continuing with {annotation_key}.""")
 
 
     def count_extensions(self, keys=None, per_key=False):
-        """ Returns a dict {key: Counter} or just a Counter.
+        """ Count file extensions.
 
         Parameters
         ----------
-        keys : :obj:`str` or :obj:`Collection`, defaults to None
-            Key(s) for which to count file extensions.
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to count file extensions.  By default, all keys are selected.
         per_key : :obj:`bool`, optional
             If set to True, the results are returned as a dict {key: Counter},
             otherwise the counts are summed up in one Counter.
@@ -368,7 +501,8 @@ Continuing with {annotation_key}.""")
         Returns
         -------
         :obj:`dict` or :obj:`collections.Counter`
-
+            By default, the function returns a Counter of file extensions.
+            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
         """
         keys = self._treat_key_param(keys)
         res_dict = {}
@@ -381,6 +515,22 @@ Continuing with {annotation_key}.""")
 
 
     def count_label_types(self, keys=None, per_key=False):
+        """ Count label types.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to count label types.  By default, all keys are selected.
+        per_key : :obj:`bool`, optional
+            If set to True, the results are returned as a dict {key: Counter},
+            otherwise the counts are summed up in one Counter.
+
+        Returns
+        -------
+        :obj:`dict` or :obj:`collections.Counter`
+            By default, the function returns a Counter of label types.
+            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
+        """
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
@@ -397,6 +547,22 @@ Continuing with {annotation_key}.""")
 
 
     def count_tsv_types(self, keys=None, per_key=False):
+        """ Count inferred TSV types.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to count inferred TSV types.  By default, all keys are selected.
+        per_key : :obj:`bool`, optional
+            If set to True, the results are returned as a dict {key: Counter},
+            otherwise the counts are summed up in one Counter.
+
+        Returns
+        -------
+        :obj:`dict` or :obj:`collections.Counter`
+            By default, the function returns a Counter of inferred TSV types.
+            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
+        """
         res_dict = defaultdict(Counter)
         for key, i in self._iterids(keys, only_parsed_mscx=True):
             t = self._tsv_types[(key, i)] if (key, i) in self._tsv_types else None
@@ -408,6 +574,8 @@ Continuing with {annotation_key}.""")
 
 
     def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
+        """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
+        """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         ids = list(self._iterids(keys, filter_attached_annotations=True))
         prev_logger = self.logger
@@ -468,37 +636,6 @@ Continuing with {annotation_key}.""")
                     res[id + (param,)] = li[id]
         return res
 
-
-
-    def handle_path(self, full_path, key=None):
-        full_path = resolve_dir(full_path)
-        if os.path.isfile(full_path):
-            file_path, file = os.path.split(full_path)
-            file_name, file_ext = os.path.splitext(file)
-            rel_path = os.path.relpath(file_path, self.last_scanned_dir)
-            if key is None:
-                key = rel_path
-            if file in self.files[key]:
-                same_name = [i for i, f in enumerate(self.files[key]) if f == file]
-                if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
-                    self.logger.error(f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
-Load one of the identically named files with a different key using add_dir(key='KEY').""")
-                    return (None, None)
-                self.logger.debug(f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path.")
-
-            i = len(self.full_paths[key])
-            self.full_paths[key].append(full_path)
-            self.scan_paths[key].append(self.last_scanned_dir)
-            self.rel_paths[key].append(rel_path)
-            self.paths[key].append(file_path)
-            self.files[key].append(file)
-            self.logger_names[(key, i)] = file.replace('.', '')
-            self.fnames[key].append(file_name)
-            self.fexts[key].append(file_ext)
-            return key, len(self.paths[key]) - 1
-        else:
-            self.logger.error("No file found at this path: " + full_path)
-            return (None, None)
 
 
     def ids2idx(self, ids, pandas_index=False):
@@ -684,7 +821,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
         Parameters
         ----------
-        keys : :obj:`str` or :obj:`Collection`, defaults to None
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             For which key(s) to parse all MSCX files.
         read_only : :obj:`bool`, optional
             If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
@@ -823,11 +960,11 @@ Load one of the identically named files with a different key using add_dir(key='
 
         Parameters
         ----------
-        keys : : :obj:`str` or :obj:`Collection`, optional
-            Key(s) for which to parse all non-MSCX files.
-        fexts :  :obj:`str` or :obj:`Collection`, optional
+        keys : : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to parse all non-MSCX files.  By default, all keys are selected.
+        fexts :  :obj:`str` or :obj:`~collections.abc.Collection`, optional
             If you want to parse only files with one or several particular file extension(s), pass the extension(s)
-        annotations : :obj:`str` or :obj:`Collection`, optional
+        annotations : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             By default, if a column called ``'label'`` is found, the TSV is treated as an annotation table and turned into
             an Annotations object. Pass one or several column name(s) to treat *them* as label columns instead. If you
             pass ``None`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
@@ -890,29 +1027,6 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
             except:
                 self.logger.error(f"Parsing {rel_path} failed with the following error:\n{sys.exc_info()[1]}")
-
-
-
-
-
-
-    def _infer_tsv_type(self, df):
-        type2cols = {
-            'notes': ['tpc', 'midi'],
-            'events': ['event'],
-            'chords': ['chord_id'],
-            'rests': ['nominal_duration'],
-            'measures': ['act_dur'],
-            'labels': ['label_type', 'mc', 'mn'],
-        }
-        res = None
-        for t, columns in type2cols.items():
-            if any(True for c in columns if c in df.columns):
-                res = t
-                break
-        return res
-
-
 
 
 
@@ -1027,13 +1141,87 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
+    def _collect_annotations_objects_references(self, keys=None, ids=None):
+        """ Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). """
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        updated = {}
+        for id in ids:
+            if id in self._parsed_mscx:
+                score = self._parsed_mscx[id]
+                if score is not None:
+                    if 'annotations' in score._annotations:
+                        updated[id] = score.annotations
+                    elif id in self._annotations:
+                        del (self._annotations[id])
+                else:
+                    del (self._parsed_mscx[id])
+        self._annotations.update(updated)
+
+    def _handle_path(self, full_path, key=None):
+        full_path = resolve_dir(full_path)
+        if os.path.isfile(full_path):
+            file_path, file = os.path.split(full_path)
+            file_name, file_ext = os.path.splitext(file)
+            rel_path = os.path.relpath(file_path, self.last_scanned_dir)
+            if key is None:
+                key = rel_path
+            if file in self.files[key]:
+                same_name = [i for i, f in enumerate(self.files[key]) if f == file]
+                if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
+                    self.logger.error(
+                        f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
+Load one of the identically named files with a different key using add_dir(key='KEY').""")
+                    return (None, None)
+                self.logger.debug(
+                    f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path.")
+
+            i = len(self.full_paths[key])
+            self.full_paths[key].append(full_path)
+            self.scan_paths[key].append(self.last_scanned_dir)
+            self.rel_paths[key].append(rel_path)
+            self.paths[key].append(file_path)
+            self.files[key].append(file)
+            self.logger_names[(key, i)] = file.replace('.', '')
+            self.fnames[key].append(file_name)
+            self.fexts[key].append(file_ext)
+            return key, len(self.paths[key]) - 1
+        else:
+            self.logger.error("No file found at this path: " + full_path)
+            return (None, None)
+
+
+    def _infer_tsv_type(self, df):
+        type2cols = {
+            'notes': ['tpc', 'midi'],
+            'events': ['event'],
+            'chords': ['chord_id'],
+            'rests': ['nominal_duration'],
+            'measures': ['act_dur'],
+            'labels': ['label_type', 'mc', 'mn'],
+        }
+        res = None
+        for t, columns in type2cols.items():
+            if any(True for c in columns if c in df.columns):
+                res = t
+                break
+        return res
+
     def _iterids(self, keys=None, only_parsed_mscx=False, filter_attached_annotations=False, filter_detached_annotations=False):
-        """ Iterator through IDs for a given set of keys.
+        """Iterator through IDs for a given set of keys.
+
+        Parameters
+        ----------
+        keys
+        only_parsed_mscx
+        filter_attached_annotations
+        filter_detached_annotations
 
         Yields
         ------
         :obj:`tuple`
             (str, int)
+
         """
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
@@ -1066,6 +1254,41 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             for i, e in enumerate(collectio):
                 if i in selector:
                     yield e
+
+        def _make_index_level(self, level, ids, selector=None):
+            if level == 'key':
+                return {id: id[0] for id in ids}
+            if level == 'i':
+                return {id: id[1] for id in ids}
+            if level == 'fname':
+                return {(key, i): self.fnames[key][i] for key, i in ids}
+            ll, li = len(level), len(ids)
+            ls = 0 if selector is None else len(selector)
+            if ll < li:
+                self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
+                return {}
+            if ll > li:
+                if ls == 0:
+                    res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
+                    discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
+                    self.logger.warning(
+                        f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
+    Using the first {li} elements, discarding {discarded}""")
+                elif ls != li:
+                    self.logger.error(
+                        f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
+                    res = {}
+                else:
+                    if ls != ll:
+                        discarded = [l for l in self._itersel(level, selector, opposite=True)]
+                        plural_s = 's' if len(discarded) > 1 else ''
+                        self.logger.debug(
+                            f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
+                    res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
+            else:
+                res = {i: l for i, l in zip(ids, level)}
+            return res
+
 
     def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
         """Performs a single parse and returns the resulting Score object or None."""
@@ -1137,6 +1360,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.debug(f"Score written to {file_path}.")
 
         return restore_logger(file_path)
+
 
     def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
         """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
@@ -1250,46 +1474,13 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         return new_index, tuple(names)
 
 
-
-    def _make_index_level(self, level, ids, selector=None):
-        if level == 'key':
-            return {id: id[0] for id in ids}
-        if level == 'i':
-            return {id: id[1] for id in ids}
-        if level == 'fname':
-            return {(key, i): self.fnames[key][i] for key, i in ids}
-        ll, li = len(level), len(ids)
-        ls = 0 if selector is None else len(selector)
-        if ll < li:
-            self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
-            return {}
-        if ll > li:
-            if ls == 0:
-                res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
-                discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
-                self.logger.warning(f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
-Using the first {li} elements, discarding {discarded}""")
-            elif ls != li:
-                self.logger.error(f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
-                res = {}
-            else:
-                if ls != ll:
-                    discarded = [l for l in self._itersel(level, selector, opposite=True)]
-                    plural_s = 's' if len(discarded) > 1 else ''
-                    self.logger.debug(f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
-                res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
-        else:
-            res = {i: l for i, l in zip(ids, level)}
-        return res
-
-
-
     def _treat_key_param(self, keys):
         if keys is None:
             keys = list(self.full_paths.keys())
         elif isinstance(keys, str):
             keys = [keys]
         return list(set(keys))
+
 
     def _treat_label_type_param(self, label_type):
         if label_type is None:
