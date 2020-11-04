@@ -646,8 +646,9 @@ class MSCX(LoggedClass):
             'column_name': 'label',
         }
         """:obj:`dict`
-        Configuration dictionary to determine the output format of the loaded :py:class:`~ms3.annotations.Annotations`
-        objects. The default options correspond to the default parameters of
+        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
+        object representing the labels that are attached to a score (stored as :obj:`._annotations``). 
+        The default options correspond to the default parameters of
         :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
