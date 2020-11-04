@@ -617,6 +617,11 @@ class MSCX(LoggedClass):
         else:
             raise ValueError(f"File does not exist: {mscx_src}")
 
+        self.changed = False
+        """:obj:`bool`
+        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
+        """
+
         self.read_only = read_only
         """:obj:`bool`, optional
         Shortcut for ``MSCX.parsed.read_only``.
@@ -657,17 +662,6 @@ class MSCX(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    @property
-    def changed(self):
-        """:obj:`bool`
-        Shortcut for ``MSCX.parsed.changed``.
-        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
-        """
-        return self.parsed.changed
-
-    @changed.setter
-    def changed(self, val):
-        self.parsed.changed = val
 
 
     @property
