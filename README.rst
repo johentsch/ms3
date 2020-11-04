@@ -1,7 +1,4 @@
-|tests| |license| |version| |release|  |size| |down|
-
-.. |down| image:: https://img.shields.io/github/downloads/johentsch/ms3/total
-    :alt: GitHub All Releases
+|tests| |license| |version| |release|  |size|
 
 .. |license| image:: https://img.shields.io/github/license/johentsch/ms3?color=%230000ff
     :alt: GitHub
@@ -26,7 +23,7 @@ ms3 - Parsing MuseScore 3
 ..
     Plan to use
     .. include:: ./docs/intro.rst
-    failed
+    failed because of PyPi
 
 
 Welcome to **ms3**, a Python library for parsing annotated `MuseScore 3 <https://musescore.org/en/download>`__ files. It
