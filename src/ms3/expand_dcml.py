@@ -151,7 +151,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
         c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        self.logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
+        logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
 
     if propagate or chord_tones:
         if not propagate:
