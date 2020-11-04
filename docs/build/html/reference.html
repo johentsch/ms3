@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Developers’ Reference &#8212; ms3 0.4.1.post0.dev4+g619dcae documentation</title>
+    <title>Developers’ Reference &#8212; ms3 0.4.2 documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="manual.html" title="Manual"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.2 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
@@ -364,6 +364,13 @@ Full path of the parsed MuseScore file.</p>
 </dd></dl>
 
 <dl class="py attribute">
+<dt id="ms3.score.MSCX.changed">
+<code class="sig-name descname">changed</code><a class="headerlink" href="#ms3.score.MSCX.changed" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
+Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt id="ms3.score.MSCX.read_only">
 <code class="sig-name descname">read_only</code><a class="headerlink" href="#ms3.score.MSCX.read_only" title="Permalink to this definition">¶</a></dt>
 <dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional
@@ -387,14 +394,6 @@ Configuration dictionary to determine the output format of the <a class="referen
 object representing the labels that are attached to a score (stored as <code class="xref py py-obj docutils literal notranslate"><span class="pre">_annotations`</span></code>).
 The default options correspond to the default parameters of
 <a class="reference internal" href="#ms3.annotations.Annotations.get_labels" title="ms3.annotations.Annotations.get_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Annotations.get_labels()</span></code></a>.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="ms3.score.MSCX.changed">
-<em class="property">property </em><code class="sig-name descname">changed</code><a class="headerlink" href="#ms3.score.MSCX.changed" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
-Shortcut for <code class="docutils literal notranslate"><span class="pre">MSCX.parsed.changed</span></code>.
-Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1736,14 +1735,15 @@ Changes do not express absolute intervals but instead depend on the numeral and 
 
 <dl class="py function">
 <dt id="ms3.expand_dcml.chord2tpcs">
-<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">chord2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chord</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#chord2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.chord2tpcs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">chord2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chord</span></em>, <em class="sig-param"><span class="n">regex</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#chord2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.chord2tpcs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Split a chord label into its features and apply features2tpcs().</p>
 <p>Uses: features2tpcs()</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>chord</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Chord label that can be split into the features [‘numeral’, ‘form’, ‘figbass’, ‘changes’, ‘relativeroot’].</p></li>
-<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regex with named groups for the five features.</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>, optional) – Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
+annotation standard is used.</p></li>
 <li><p><strong>**kwargs</strong> – arguments for features2tpcs (pass MC to show it in warnings!)</p></li>
 </ul>
 </dd>
@@ -1947,7 +1947,7 @@ Changes do not express absolute intervals but instead depend on the numeral and 
         <li class="right" >
           <a href="manual.html" title="Manual"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.2 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
