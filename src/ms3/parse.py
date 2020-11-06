@@ -39,6 +39,10 @@ class Parse(LoggedClass):
                 If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
                 If 'path' is set, the corresponding subdirectory structure is created there.
         """
+        if 'file' in logger_cfg and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
+            # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
+            # if `dir` is also None, Parse.log will not be created and a warning will be shown.
+            logger_cfg['path'] = dir
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
@@ -862,40 +866,39 @@ Continuing with {annotation_key}.""")
             path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
             if file is not None:
                 file_path, file_name = os.path.split(file)
-                _, fext = os.path.splitext(file_name)
-                if fext == '':
-                    file_path = file
-                    file_name = None
-                    self.logger.debug(f"{file} was interpreted as a directory rather than as a file name.")
+                if file_path == '':
+                    if file_name in ['.', '..']:
+                        file_path = file_name
+                        file_name = None
+                    else:
+                        file_path = None
             else:
                 file_path, file_name = None, None
 
-            if file_path is not None:
-                if os.path.isabs(file_path):
-                    if file_name is None:
-                        self.logger.error(f"Logger is configured with 'file' = '{file}' which is an absolute directory without specified file name. Make directory relative or add file name.")
-                        configs = [cfg for i in range(len(paths))]
-                    else:
-                        cfg['file'] = file
-                        configs = [cfg for i in range(len(paths))]
-                elif file_name is None:
-                    if path is None:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(self.paths[k][i], file_path, f"{self.logger_names[(k, i)]}.log")
-                                                  )) for k, i in paths]
-                    else:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(path, self.rel_paths[k][i], file_path, f"{self.logger_names[(k, i)]}.log")
-                                                  )) for k, i in paths]
+            if file_path is not None and os.path.isabs(file_path):
+                if os.path.isdir(file):
+                    self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
+                    configs = [cfg for i in range(len(paths))]
                 else:
-                    if path is None:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(self.paths[k][i], file_path, file_name)
-                                                  )) for k, i in paths]
-                    else:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(path, self.rel_paths[k][i], file_path, file_name)
-                                                  )) for k, i in paths]
+                    cfg['file'] = file
+                    configs = [cfg for i in range(len(paths))]
+            elif not (file_path is None and file_name is None):
+                root_dir = None if path is None else path
+                if file_name is None:
+                    log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in paths]
+                else:
+                    log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+                                                             file_name)) for k, i in paths}
+                    are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
+                    if len(are_dirs) > 0:
+                        NL = '\n'
+                        self.logger.info(
+                        f"""The following file paths are actually existing directories, individual log files are created:
+                        {NL.join(are_dirs)}""")
+                        log_paths = {id: os.path.join(p, self.logger_names[id]) if os.path.isdir(p) else p for id, p in log_paths.items()}
+                    log_paths = list(log_paths.values())
+                configs = [dict(cfg, file=p) for p in log_paths]
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
                                             os.path.join(path, f"{self.logger_names[(k, i)]}.log")
@@ -1126,15 +1129,15 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
             ``root_dir`` is ignored.
         """
-        if (os.path.isabs(folder) or '~' in folder) and folder is not None:
+        if folder is not None and (os.path.isabs(folder) or '~' in folder):
             folder = resolve_dir(folder)
             path = folder
         else:
             root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
-            if folder[0] == '.':
-                path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
-            elif folder is None:
+            if folder is None:
                 path = root
+            elif folder[0] == '.':
+                path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
             base, _ = os.path.split(root)
@@ -1399,9 +1402,9 @@ Load one of the identically named files with a different key using add_dir(key='
 
         prev_logger = self.logger
         fname = self.fnames[key][i]
-        # # make sure all subloggers store their information into
-        # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
-        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}")
+        # make sure all subloggers store their information into Parse.log if it is being used
+        file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
+        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
         if df is None:
             self.logger.debug(f"No DataFrame for {what}.")
             return restore_logger(None)
