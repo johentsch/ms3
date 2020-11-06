@@ -28,7 +28,7 @@ class Score(LoggedClass):
                                         (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form>(%|o|\+|M|\+M))?
                                         (?P<figbass>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                                         (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                                     )
                                     (?P<pedalend>\])?
@@ -45,7 +45,7 @@ class Score(LoggedClass):
                                         (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form2>(%|o|\+|M|\+M))?
                                         (?P<figbass2>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes2>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (\((?P<changes2>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                                         (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                                     )
                                     (?P<pedalend2>\])?
@@ -328,6 +328,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += f"{self.logger_names['mscx']}:{key}"
+        logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
         self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                              logger_cfg=logger_cfg)
         if delete:

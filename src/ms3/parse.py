@@ -385,7 +385,7 @@ Continuing with {annotation_key}.""")
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         ids = list(self._labellists.keys())
         if len(ids) > 0:
             self.collect_lists(ids=ids, labels=True)
@@ -841,7 +841,7 @@ Continuing with {annotation_key}.""")
         """
         if simulate is not None:
             self.simulate = simulate
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
@@ -881,11 +881,11 @@ Continuing with {annotation_key}.""")
                 elif file_name is None:
                     if path is None:
                         configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(self.paths[k][i], file_path, f"{self.fnames[k][i]}.log")
+                                                    os.path.join(self.paths[k][i], file_path, f"{self.logger_names[(k, i)]}.log")
                                                   )) for k, i in paths]
                     else:
                         configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(path, self.rel_paths[k][i], file_path, f"{self.fnames[k][i]}.log")
+                                                    os.path.join(path, self.rel_paths[k][i], file_path, f"{self.logger_names[(k, i)]}.log")
                                                   )) for k, i in paths]
                 else:
                     if path is None:
@@ -898,11 +898,13 @@ Continuing with {annotation_key}.""")
                                                   )) for k, i in paths]
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
-                                            os.path.join(path, f"{self.fnames[k][i]}.log")
+                                            os.path.join(path, f"{self.logger_names[(k, i)]}.log")
                                           )) for k, i in paths]
             else:
                 configs = [cfg for i in range(len(paths))]
         else:
+            if self.logger.logger.file_handler is not None:
+                cfg['file'] = self.logger.logger.file_handler.baseFilename
             configs = [cfg for i in range(len(paths))]
 
         ### collect argument tuples for calling self._parse
@@ -1124,13 +1126,15 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
             ``root_dir`` is ignored.
         """
-        if os.path.isabs(folder) or '~' in folder:
+        if (os.path.isabs(folder) or '~' in folder) and folder is not None:
             folder = resolve_dir(folder)
             path = folder
         else:
             root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
             if folder[0] == '.':
                 path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
+            elif folder is None:
+                path = root
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
             base, _ = os.path.split(root)
@@ -1307,7 +1311,7 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.info("Process aborted.")
             raise
         except:
-            self.logger.exception(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             return None
 
 
@@ -1395,6 +1399,8 @@ Load one of the identically named files with a different key using add_dir(key='
 
         prev_logger = self.logger
         fname = self.fnames[key][i]
+        # # make sure all subloggers store their information into
+        # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
         self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}")
         if df is None:
             self.logger.debug(f"No DataFrame for {what}.")

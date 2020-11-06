@@ -220,7 +220,7 @@ def split_alternatives(df, column='label', inplace=False):
     """
     if not inplace:
         df = df.copy()
-    regex = r"-(?!(\d|b|\#))"  # <v2.2.0 labels work without lookahead: regex='-'
+    regex = r"-(?!(#+|b+)?\d)"  # <v2.2.0 labels work without lookahead: regex='-'
     alternatives = df[column].str.split(regex, expand=True)
     if len(alternatives.columns) > 1:
         logger.debug("Labels split into alternatives.")
@@ -876,7 +876,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     tpcs = tpcs[root:] + tpcs[:root]
     root = tpcs[0] + 7 * root_alteration
     tpcs[0] = root  # octave stays diatonic, is not altered
-    logger.debug(f"The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
+    logger.debug(f"{num_degree}: The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
 
     def set_iv(chord_interval, interval_size):
         """ Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).

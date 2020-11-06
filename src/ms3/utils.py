@@ -750,6 +750,7 @@ def unpack_mscz(mscz, dir=None):
 def update_labels_cfg(labels_cfg):
     keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name']
     if 'logger' in labels_cfg:
+        print("STILL FAILING")
         del labels_cfg['logger']
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
     if 'logger' in updated:

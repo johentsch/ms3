@@ -78,7 +78,7 @@ class _MSCX_bs4(LoggedClass):
 
         if self.version[0] != '3':
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
-            raise ValueError(f"Cannot parse MuseScore {self.version} file.")
+            raise ValueError(f"Cannot parse MuseScore {self.version} file. You may want to use 'ms3 convert'.")
 
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
@@ -222,6 +222,7 @@ class _MSCX_bs4(LoggedClass):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
+        logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
         return MeasureList(self._measures, sections=sections, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
