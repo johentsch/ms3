@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 0.4.3
+=============
+
+* better interface for defining log file paths (more options, now conforming to the Parse.store_lists() interface)
+* fixed erroneous separation of alternative labels
+
 Version 0.4.2
 =============
 

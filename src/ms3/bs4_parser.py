@@ -222,7 +222,8 @@ class _MSCX_bs4(LoggedClass):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
-        logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
+        if self.logger.logger.file_handler is not None:
+            logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
         return MeasureList(self._measures, sections=sections, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
