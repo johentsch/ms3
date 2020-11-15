@@ -1255,39 +1255,39 @@ Load one of the identically named files with a different key using add_dir(key='
                 if i in selector:
                     yield e
 
-        def _make_index_level(self, level, ids, selector=None):
-            if level == 'key':
-                return {id: id[0] for id in ids}
-            if level == 'i':
-                return {id: id[1] for id in ids}
-            if level == 'fname':
-                return {(key, i): self.fnames[key][i] for key, i in ids}
-            ll, li = len(level), len(ids)
-            ls = 0 if selector is None else len(selector)
-            if ll < li:
-                self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
-                return {}
-            if ll > li:
-                if ls == 0:
-                    res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
-                    discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
-                    self.logger.warning(
-                        f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
-    Using the first {li} elements, discarding {discarded}""")
-                elif ls != li:
-                    self.logger.error(
-                        f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
-                    res = {}
-                else:
-                    if ls != ll:
-                        discarded = [l for l in self._itersel(level, selector, opposite=True)]
-                        plural_s = 's' if len(discarded) > 1 else ''
-                        self.logger.debug(
-                            f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
-                    res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
+    def _make_index_level(self, level, ids, selector=None):
+        if level == 'key':
+            return {id: id[0] for id in ids}
+        if level == 'i':
+            return {id: id[1] for id in ids}
+        if level == 'fname':
+            return {(key, i): self.fnames[key][i] for key, i in ids}
+        ll, li = len(level), len(ids)
+        ls = 0 if selector is None else len(selector)
+        if ll < li:
+            self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
+            return {}
+        if ll > li:
+            if ls == 0:
+                res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
+                discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
+                self.logger.warning(
+                    f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
+Using the first {li} elements, discarding {discarded}""")
+            elif ls != li:
+                self.logger.error(
+                    f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
+                res = {}
             else:
-                res = {i: l for i, l in zip(ids, level)}
-            return res
+                if ls != ll:
+                    discarded = [l for l in self._itersel(level, selector, opposite=True)]
+                    plural_s = 's' if len(discarded) > 1 else ''
+                    self.logger.debug(
+                        f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
+                res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
+        else:
+            res = {i: l for i, l in zip(ids, level)}
+        return res
 
 
     def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
