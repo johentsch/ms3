@@ -61,6 +61,7 @@ class Score(LoggedClass):
     recognizes labels conforming to the DCML harmony annotation standard.
     """
 
+
     NASHVILLE_REGEX = r"^(b*|#*)(\d).*$"
     """:obj:`str`
     Class variable with a regular expression that
@@ -649,6 +650,7 @@ class MSCX(LoggedClass):
             'positioning': True,
             'decode': False,
             'column_name': 'label',
+            'color_format': 'html',
         }
         """:obj:`dict`
         Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
@@ -657,6 +659,7 @@ class MSCX(LoggedClass):
         :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
+
         self.parse_mscx()
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -856,7 +859,7 @@ class MSCX(LoggedClass):
         return changes
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, color_format=None):
         """ Update :obj:`MSCX.labels_cfg`.
 
         Parameters

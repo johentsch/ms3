@@ -3,11 +3,7 @@
 
 import pytest
 import os
-import shutil
 import tempfile
-
-
-import pandas as pd
 
 import ms3
 from ms3.utils import assert_all_lines_equal, assert_dfs_equal, decode_harmonies, load_tsv

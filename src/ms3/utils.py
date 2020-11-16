@@ -1,4 +1,4 @@
-import os, re
+import os, re, shutil
 from collections import defaultdict
 from collections.abc import Iterable
 from contextlib import contextmanager
@@ -9,8 +9,94 @@ from zipfile import ZipFile as Zip
 
 import pandas as pd
 import numpy as np
+import webcolors
 
 from .logger import function_logger, update_cfg
+
+
+MS3_HTML = {'#005500': 'ms3_darkgreen',
+            '#aa0000': 'ms3_darkred',
+            '#aa5500': 'ms3_sienna',
+            '#00aa00': 'ms3_green',
+            '#aaaa00': 'ms3_darkgoldenrod',
+            '#aaff00': 'ms3_chartreuse',
+            '#00007f': 'ms3_navy',
+            '#aa007f': 'ms3_darkmagenta',
+            '#00557f': 'ms3_teal',
+            '#aa557f': 'ms3_indianred',
+            '#00aa7f': 'ms3_darkcyan',
+            '#aaaa7f': 'ms3_darkgray',
+            '#aaff7f': 'ms3_palegreen',
+            '#aa00ff': 'ms3_darkviolet',
+            '#0055ff': 'ms3_dodgerblue',
+            '#aa55ff': 'ms3_mediumorchid',
+            '#00aaff': 'ms3_deepskyblue',
+            '#aaaaff': 'ms3_lightsteelblue',
+            '#aaffff': 'ms3_paleturquoise',
+            '#550000': 'ms3_maroon',
+            '#555500': 'ms3_darkolivegreen',
+            '#ff5500': 'ms3_orangered',
+            '#55aa00': 'ms3_olive',
+            '#ffaa00': 'ms3_orange',
+            '#55ff00': 'ms3_lawngreen',
+            '#55007f': 'ms3_indigo',
+            '#ff007f': 'ms3_deeppink',
+            '#55557f': 'ms3_darkslateblue',
+            '#ff557f': 'ms3_lightcoral',
+            '#55aa7f': 'ms3_mediumseagreen',
+            '#ffaa7f': 'ms3_lightsalmon',
+            '#55ff7f': 'ms3_lightgreen',
+            '#ffff7f': 'ms3_khaki',
+            '#5500ff': 'ms3_blue',
+            '#5555ff': 'ms3_royalblue',
+            '#ff55ff': 'ms3_violet',
+            '#55aaff': 'ms3_cornflowerblue',
+            '#ffaaff': 'ms3_lightpink',
+            '#55ffff': 'ms3_aquamarine'}
+
+MS3_RGB = {(0, 85, 0): 'ms3_darkgreen',
+           (170, 0, 0): 'ms3_darkred',
+           (170, 85, 0): 'ms3_sienna',
+           (0, 170, 0): 'ms3_green',
+           (170, 170, 0): 'ms3_darkgoldenrod',
+           (170, 255, 0): 'ms3_chartreuse',
+           (0, 0, 127): 'ms3_navy',
+           (170, 0, 127): 'ms3_darkmagenta',
+           (0, 85, 127): 'ms3_teal',
+           (170, 85, 127): 'ms3_indianred',
+           (0, 170, 127): 'ms3_darkcyan',
+           (170, 170, 127): 'ms3_darkgray',
+           (170, 255, 127): 'ms3_palegreen',
+           (170, 0, 255): 'ms3_darkviolet',
+           (0, 85, 255): 'ms3_dodgerblue',
+           (170, 85, 255): 'ms3_mediumorchid',
+           (0, 170, 255): 'ms3_deepskyblue',
+           (170, 170, 255): 'ms3_lightsteelblue',
+           (170, 255, 255): 'ms3_paleturquoise',
+           (85, 0, 0): 'ms3_maroon',
+           (85, 85, 0): 'ms3_darkolivegreen',
+           (255, 85, 0): 'ms3_orangered',
+           (85, 170, 0): 'ms3_olive',
+           (255, 170, 0): 'ms3_orange',
+           (85, 255, 0): 'ms3_lawngreen',
+           (85, 0, 127): 'ms3_indigo',
+           (255, 0, 127): 'ms3_deeppink',
+           (85, 85, 127): 'ms3_darkslateblue',
+           (255, 85, 127): 'ms3_lightcoral',
+           (85, 170, 127): 'ms3_mediumseagreen',
+           (255, 170, 127): 'ms3_lightsalmon',
+           (85, 255, 127): 'ms3_lightgreen',
+           (255, 255, 127): 'ms3_khaki',
+           (85, 0, 255): 'ms3_blue',
+           (85, 85, 255): 'ms3_royalblue',
+           (255, 85, 255): 'ms3_violet',
+           (85, 170, 255): 'ms3_cornflowerblue',
+           (255, 170, 255): 'ms3_lightpink',
+           (85, 255, 255): 'ms3_aquamarine'}
+
+CSS2MS3 = {c[4:]: c for c in MS3_HTML.values()}
+CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
+COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
 
 
 def assert_all_lines_equal(before, after, original, tmp_file):
@@ -71,6 +157,41 @@ def assert_dfs_equal(old, new, exclude=[]):
 def ambitus2oneliner(ambitus):
     """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
+
+
+def color_name2format(n, format='rgb'):
+    """ Converts a single CSS3 name into one of 'HTML', 'rgb', or 'rgba'"""
+    if pd.isnull(n):
+        return n
+    if n in webcolors.CSS3_NAMES_TO_HEX:
+        html = webcolors.name_to_hex(n)
+    elif n[0] == '#':
+        html = n
+    else:
+        return n
+    if format == 'html':
+        return html
+    if format == 'rgb':
+        return webcolors.hex_to_rgb(html)
+    if format == 'rgba':
+        rgb = tuple(webcolors.hex_to_rgb(html))
+        return rgb + (255,)
+    return html
+
+
+def color_name2html(n):
+    """ Converts a single CSS3 name into HTML"""
+    return color_name2format(n, format='html')
+
+
+def color_name2rgb(n):
+    """ Converts a single CSS3 name into RGB"""
+    return color_name2format(n, format='rgb')
+
+
+def color_name2rgba(n):
+    """ Converts a single CSS3 name into RGBA"""
+    return color_name2format(n, format='rgba')
 
 
 def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
@@ -257,6 +378,50 @@ def group_id_tuples(l):
         if k is not None:
             d[k].append(i)
     return dict(d)
+
+
+def html2format(df, format='name', html_col='color:html'):
+    """ Converts the HTML column of a DataFrame into 'name', 'rgb , or 'rgba'. """
+    if format == 'name':
+        return df[html_col].map(color_name2html)
+    if format == 'rgb':
+        return df[html_col].map(color_name2rgb)
+    if format == 'rgba':
+        return df[html_col].map(color_name2rgba)
+
+
+def html_color2format(h, format='name'):
+    """ Converts a single HTML color into 'name', 'rgb', or  'rgba'."""
+    if pd.isnull(h):
+        return 'default'
+    if format == 'name':
+        try:
+            return webcolors.hex_to_name(h)
+        except:
+            try:
+                return MS3_HTML[h]
+            except:
+                return h
+    if format == 'rgb':
+        return webcolors.hex_to_rgb(h)
+    if format == 'rgba':
+        rgb = webcolors.hex_to_rgb(h)
+        return rgb + (255,)
+
+
+def html_color2name(h):
+    """ Converts a HTML color into its CSS3 name or itself if there is none."""
+    return html_color2format(h, 'name')
+
+
+def html_color2rgb(h):
+    """ Converts a HTML color into RGB."""
+    return html_color2format(h, 'rgb')
+
+
+def html_color2rgba(h):
+    """ Converts a HTML color into RGBA."""
+    return html_color2format(h, 'rgba')
 
 
 @function_logger
@@ -501,6 +666,16 @@ def mn2int(mn_series):
     return split.astype('Int64')
 
 
+def name2format(df, format='html', name_col='color:name'):
+    """ Converts a column with CSS3 names into 'html', 'rgb', or  'rgba'."""
+    if format == 'html':
+        return df[name_col].map(color_name2html)
+    if format == 'rgb':
+        return df[name_col].map(color_name2rgb)
+    if format == 'rgba':
+        return df[name_col].map(color_name2rgba)
+
+
 @function_logger
 def name2tpc(nn):
     """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
@@ -623,6 +798,45 @@ def resolve_dir(dir):
     if '~' in dir:
         return os.path.expanduser(dir)
     return os.path.abspath(dir)
+
+
+def rgb2format(df, format='html', r_col='color:r', g_col='color:g', b_col='color:b'):
+    """ Converts three RGB columns into a color:html or color:name column. """
+    cols = [r_col, g_col, b_col]
+    if format == 'html':
+        html = list(map(rgb_tuple2html, df[cols].itertuples(index=False, name=None)))
+        return pd.Series(html, index=df.index).rename('color:html')
+    if format == 'name':
+        names = list(map(rgb_tuple2name, df[cols].itertuples(index=False, name=None)))
+        return pd.Series(names, index=df.index).rename('color:name')
+
+
+def rgb_tuple2format(t, format='html'):
+    """ Converts a single RGB tuple into 'HTML' or 'name'."""
+    if pd.isnull(t) or pd.isnull(t[0]):
+        return 'default'
+    norm = webcolors.normalize_integer_triplet(tuple(int(i) for i in t))
+    if format == 'html':
+        return webcolors.rgb_to_hex(norm)
+    if format == 'name':
+        try:
+            return webcolors.rgb_to_name(norm)
+        except:
+            try:
+                print(f"Looking up {norm}: {'Is' if norm in MS3_RGB else 'Not'} in MS3_RGB.")
+                return MS3_RGB[norm]
+            except:
+                return webcolors.rgb_to_hex(norm)
+
+
+def rgb_tuple2html(t):
+    """ Converts a single RGB tuple into HTML."""
+    return rgb_tuple2format(t, format='html')
+
+
+def rgb_tuple2name(t):
+    """ Converts a single RGB tuple into its CSS3 name or to HTML if there is none."""
+    return rgb_tuple2format(t, format='name')
 
 
 def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
@@ -803,10 +1017,6 @@ def unpack_mscz(mscz, dir=None):
 
 @function_logger
 def update_labels_cfg(labels_cfg):
-    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name']
-    if 'logger' in labels_cfg:
-        del labels_cfg['logger']
+    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
-    if 'logger' in updated:
-        del updated['logger']
     return updated

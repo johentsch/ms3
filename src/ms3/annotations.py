@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir, update_cfg
+from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, name2format, resolve_dir, rgb2format, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -184,7 +184,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         return df
 
 
-    def n_labels(self):
+    def count(self):
         return len(self.df)
 
 
@@ -200,14 +200,25 @@ Possible values are {{1, 2, 3, 4}}.""")
 
     @property
     def annotation_layers(self):
-        layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
-        return self.n_labels(), self.df.groupby(layers).size()
+        df = self.df.copy()
+        layers = [col for col in ['staff', 'voice', 'label_type'] if col in df.columns]
+        color_cols = ['color:name', 'color:html', 'color:r']
+        if any(True for c in color_cols if c in df):
+            if 'color:name' in df.columns:
+                pass
+            elif 'color:html' in df.columns:
+                df['color:name'] = html2format(df, 'name')
+            elif 'color:r' in df.columns:
+                df['color:name'] = rgb2format(df, 'name')
+            layers += ['color:name']
+
+        return self.count(), df.groupby(layers).size()
 
     def __repr__(self):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None):
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format='html'):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -233,12 +244,15 @@ Possible values are {{1, 2, 3, 4}}.""")
             Set to False to suppress warnings about non-existent label_types.
         column_name : :obj:`str`, optional
             Can be used to rename the columns holding the labels.
+        color_format : {'html', 'rgb', 'rgba', 'name', None}
+            If label colors are encoded, determine how they are displayed.
 
         Returns
         -------
 
         """
         sel = pd.Series(True, index=self.df.index)
+
         if staff is not None:
             sel = sel & (self.df[self.cols['staff']] == staff)
         if voice is not None:
@@ -259,6 +273,28 @@ Possible values are {{1, 2, 3, 4}}.""")
             res = decode_harmonies(res, label_col=label_col)
         if column_name is not None and column_name != label_col:
             res = res.rename(columns={label_col: column_name})
+        color_cols = ['color:html', 'color:r', 'color:g', 'color:b', 'color:a', 'color:name']
+        rgb_cols = ['color:r', 'color:g', 'color:b']
+        if color_format is not None and any(True for c in color_cols if c in res):
+            if color_format == 'html' and 'color:html' not in res.columns:
+                if 'color:name' in res.columns:
+                    html = name2format(res, 'html')
+                elif 'color:r' in res.columns:
+                    if any(True for c in rgb_cols if c not in res.columns):
+                        logger.warning(f"The following columns are missing: {list(c for c in rgb_cols if c not in res.columns)}")
+                    else:
+                        html = rgb2format(res, 'html')
+                res['color:html'] = html
+            elif color_format == 'name' and 'color:name' not in res.columns:
+                if 'color:html' in res.columns:
+                    name = html2format(res, 'name')
+                elif 'color:r' in res.columns:
+                    if any(True for c in rgb_cols if c not in res.columns):
+                        logger.warning(f"The following columns are required")
+                    else:
+                        name = rgb2format(res, 'name')
+                res['color:name'] = name
+
         return res
 
 

@@ -484,9 +484,13 @@ class _MSCX_bs4(LoggedClass):
                 'root': 'Harmony/root',
                 'base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
-                'rightParen': 'Harmony/rightParen'}
+                'rightParen': 'Harmony/rightParen',
+                'color:r': 'Harmony/color:r',
+                'color:g': 'Harmony/color:g',
+                'color:b': 'Harmony/color:b',
+                'color:a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type']
+        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type', 'color:r', 'color:g', 'color:b', 'color:a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -495,7 +499,7 @@ class _MSCX_bs4(LoggedClass):
         if 'label_type' in df.columns:
             df.label_type.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
-        additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
+        additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' and c not in cols.values()}
         df.rename(columns=additional_cols, inplace=True)
         columns += list(additional_cols.values())
         return df[columns]

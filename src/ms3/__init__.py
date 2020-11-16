@@ -18,3 +18,4 @@ finally:
 from .score import Score
 from .annotations import Annotations
 from .parse import Parse
+from .utils import COLORS
