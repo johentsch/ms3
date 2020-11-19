@@ -1,5 +1,5 @@
 import os, re, shutil
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
@@ -97,6 +97,7 @@ MS3_RGB = {(0, 85, 0): 'ms3_darkgreen',
 CSS2MS3 = {c[4:]: c for c in MS3_HTML.values()}
 CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
 COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
+rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
 
 
 class map_dict(dict):
@@ -168,11 +169,11 @@ def color2rgba(c):
     """ Pass a RGB or RGBA tuple, HTML color or name to convert it to RGBA """
     if isinstance(c, tuple):
         if len(c) > 3:
-            return c[:4]
+            return rgba(*c[:4])
         if len(c) == 3:
-            return c + (255,)
+            return rgba(*(c + (255,)))
         else:
-            return c
+            return rgba(*c)
     if c[0] == '#':
         return html_color2rgba(c)
     return color_name2rgba(c)
@@ -185,6 +186,8 @@ def color_name2format(n, format='rgb'):
         return n
     if n in webcolors.CSS3_NAMES_TO_HEX:
         html = webcolors.name_to_hex(n)
+    elif n in MS3_HTML.values():
+        html = next(k for k, v in MS3_HTML.items() if v == n)
     elif n[0] == '#':
         html = n
     else:
@@ -194,8 +197,8 @@ def color_name2format(n, format='rgb'):
     if format == 'rgb':
         return webcolors.hex_to_rgb(html)
     if format == 'rgba':
-        rgb = tuple(webcolors.hex_to_rgb(html))
-        return rgb + (255,)
+        rgb = webcolors.hex_to_rgb(html)
+        return rgba(*(rgb + (255,)))
     return html
 
 
@@ -212,6 +215,25 @@ def color_name2rgb(n):
 def color_name2rgba(n):
     """ Converts a single CSS3 name into RGBA"""
     return color_name2format(n, format='rgba')
+
+
+def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+    if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
+        return None
+    res = None
+    if not pd.isnull(color_r):
+        if pd.isnull(color_a):
+            color_a = 255
+        if pd.isnull(color_g) or pd.isnull(color_b):
+            if pd.isnull(color_name) and pd.isnull(color_html):
+                self.logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
+        else:
+            res = (color_r, color_g, color_b, color_a)
+    if res is None and not pd.isnull(color_html):
+        res = color2rgba(color_html)
+    if res is None and not pd.isnull(color_name):
+        res = color2rgba(color_name)
+    return rgba(*res)
 
 
 def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
@@ -255,6 +277,7 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
+
 
 
 def dict2oneliner(d):
@@ -429,7 +452,7 @@ def html_color2format(h, format='name'):
         return webcolors.hex_to_rgb(h)
     if format == 'rgba':
         rgb = webcolors.hex_to_rgb(h)
-        return rgb + (255,)
+        return rgba(*(rgb + (255,)))
 
 
 def html_color2name(h):
@@ -550,7 +573,9 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'midi': 'Int64',
         'mn': str,
         'offset:x': str,
+        'offset_x': str,
         'offset:y': str,
+        'offset_y': str,
         'nashville': 'Int64',
         'notes_id': 'Int64',
         'numbering_offset': 'Int64',
@@ -870,6 +895,14 @@ def rgb_tuple2html(t):
 def rgb_tuple2name(t):
     """ Converts a single RGB tuple into its CSS3 name or to HTML if there is none."""
     return rgb_tuple2format(t, format='name')
+
+
+def rgba2attrs(named_tuple):
+    return {k: str(v) for k, v in named_tuple._asdict().items()}
+
+def rgba2params(named_tuple):
+    attrs = rgba2attrs(named_tuple)
+    return {'color_'+k: v for k, v in attrs.items()}
 
 
 def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):

@@ -68,7 +68,7 @@ class Annotations(LoggedClass):
                     re.VERBOSE)
 
     main_cols = ['label', 'mc', 'mc_onset', 'staff', 'voice']
-    additional_cols = ['label_type', 'root', 'rootCase', 'base', 'leftParen', 'rightParen', 'offset:x', 'offset:y',
+    additional_cols = ['label_type', 'root', 'rootCase', 'base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
                        'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a']
 
     def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
@@ -278,7 +278,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             # (pd.to_numeric(self.df['label_type']).astype('Int64') == label_type).fillna(False)
         res = self.df[sel].copy()
         if not positioning:
-            pos_cols = [c for c in ['minDistance',  'offset', 'offset:x', 'offset:y'] if c in res.columns]
+            pos_cols = [c for c in ['minDistance',  'offset', 'offset_x', 'offset_y'] if c in res.columns]
             res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]

@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, fifths2name, ordinal_suffix, resolve_dir
+from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params
 
 
 class _MSCX_bs4(LoggedClass):
@@ -485,12 +485,14 @@ class _MSCX_bs4(LoggedClass):
                 'base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
                 'rightParen': 'Harmony/rightParen',
+                'offset_x': 'Harmony/offset:x',
+                'offset_y': 'Harmony/offset:y',
                 'color_r': 'Harmony/color:r',
                 'color_g': 'Harmony/color:g',
                 'color_b': 'Harmony/color:b',
                 'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
+        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -955,6 +957,80 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
+    def change_label_color(self, mc, mc_onset, staff, voice, label, color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+        """  Change the color of an existing label.
+
+        Parameters
+        ----------
+        mc : :obj:`int`
+            Measure count of the label
+        mc_onset : :obj:`fractions.Fraction`
+            Onset position to which the label is attached.
+        staff : :obj:`int`
+            Staff to which the label is attached.
+        voice : :obj:`int`
+            Notational layer to which the label is attached.
+        label : :obj:`str`
+            (Decoded) label.
+        color_name, color_html : :obj:`str`, optional
+            Two ways of specifying the color.
+        color_r, color_g, color_b, color_a : :obj:`int` or :obj:`str`, optional
+            To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
+            to 255.
+        """
+        params = [color_name, color_html, color_r, color_g, color_b, color_a]
+        rgba = color_params2rgba(*params)
+        if rgba is None:
+            given_params = [p for p in params if p is not None]
+            self.logger.warning(f"Parameters could not be turned into a RGBA color: {given_params}")
+            return False
+        self.make_writeable()
+        if mc not in self.tags:
+            self.logger.error(f"MC {mc} not found.")
+            return False
+        if staff not in self.tags[mc]:
+            self.logger.error(f"Staff {staff} not found.")
+            return False
+        if voice not in [1, 2, 3, 4]:
+            self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
+            return False
+        if voice not in self.tags[mc][staff]:
+            self.logger.error(f"Staff {staff}, MC {mc} has no voice {voice}.")
+            return False
+        measure = self.tags[mc][staff][voice]
+        mc_onset = frac(mc_onset)
+        if mc_onset not in measure:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice} has no event on mc_onset {mc_onset}.")
+            return False
+        elements = measure[mc_onset]
+        harmony_tags = [e['tag'] for e in elements if e['name'] == 'Harmony']
+        n_labels = len(harmony_tags)
+        if n_labels == 0:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no labels.")
+            return False
+        labels = [decode_harmony_tag(t) for t in harmony_tags]
+        try:
+            ix = labels.index(label)
+        except:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}.")
+            return False
+        tag = harmony_tags[ix]
+        attrs = rgba2attrs(rgba)
+        if tag.color is None:
+            tag_order = ['base', 'function', 'name', 'rootCase', 'root']
+            after = next(tag.find(t) for t in tag_order if tag.find(t) is not None)
+            self.new_tag('color', attributes=attrs, after=after)
+        else:
+            for k, v in attrs.items():
+                tag.color[k] = v
+        return True
+
+
+
+
+
+
+
     def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, rootCase=None, base=None,
                   leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None,
                   color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
@@ -983,22 +1059,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
         if not pd.isnull(base):
             _ = self.new_tag('base', value=base, within=tag)
 
-        if any(True for param in [color_name, color_html, color_r, color_g, color_b, color_a] if not pd.isnull(param)):
-            rgba = None
-            if not pd.isnull(color_r):
-                if pd.isnull(color_a):
-                    color_a = 255
-                if pd.isnull(color_g) or pd.isnull(color_b):
-                    if pd.isnull(color_name) and pd.isnull(color_html):
-                        self.logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
-                else:
-                    rgba = (color_r, color_g, color_b, color_a)
-            if rgba is None and not pd.isnull(color_html):
-                rgba = color2rgba(color_html)
-            if rgba is None and not pd.isnull(color_name):
-                rgba = color2rgba(color_name)
-            vals = ('r', 'g', 'b', 'a')
-            attrs = {k: val for k, val in zip(vals, (str(v) for v in rgba))}
+        rgba = color_params2rgba(color_name, color_html, color_r, color_g, color_b, color_a)
+        if rgba is not None:
+            attrs = rgba2attrs(rgba)
             _ = self.new_tag('color', attributes=attrs, within=tag)
 
         if not pd.isnull(offset_x) or not pd.isnull(offset_y):
@@ -1279,12 +1342,37 @@ def bs4_rest_duration(node, duration_multiplier=1):
     return bs4_chord_duration(node, duration_multiplier)
 
 
+def decode_harmony_tag(tag):
+    """ Decode a <Harmony> tag into a string."""
+    label = ''
+    if tag.function is not None:
+        label = str(tag.function.string)
+    if tag.leftParen is not None:
+        label = '('
+    if tag.root is not None:
+        root = fifths2name(tag.root.string, ms=True)
+        if str(tag.rootCase) == '1':
+            root = root.lower()
+        label += root
+    name = tag.find('name')
+    if name is not None:
+        label += str(name.string)
+    if tag.base is not None:
+        label += '/' + str(tag.base.string)
+    if tag.rightParen is not None:
+        label += ')'
+    return label
+
+
+############ Functions for writing BeautifulSoup to MSCX file
+
+
 def opening_tag(node, closed=False):
-    closing = '/' if closed else ''
     result = f"<{node.name}"
-    attributes = node.attrs.items()
+    attributes = node.attrs
     if len(attributes) > 0:
-        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes)
+        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes.items())
+    closing = '/' if closed else ''
     return f"{result}{closing}>"
 
 
@@ -1293,6 +1381,7 @@ def closing_tag(node_name):
 
 
 def make_oneliner(node):
+    """ Pass a tag of which the layout does not spread over several lines. """
     result = opening_tag(node)
     for c in node.children:
         if isinstance(c, bs4.element.Tag):
@@ -1306,27 +1395,30 @@ def make_oneliner(node):
     return result
 
 
-def bs4_to_mscx(soup):
-    def format_node(node, indent):
-        nxt_indent = indent + 2
-        space = indent * ' '
-        node_name = node.name
-        # The following tags are exceptionally not abbreviated when empty,
-        # so for instance you get <metaTag></metaTag> and not <metaTag/>
-        if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
-            return f"{space}{make_oneliner(node)}\n"
-        children = node.find_all(recursive=False)
-        if len(children) > 0:
-            result = f"{space}{opening_tag(node)}\n"
-            result += ''.join(format_node(child, nxt_indent) for child in children)
-            result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
-            return result
-        if node.string == '\n':
-            return f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
-        if node.string is None:
-            return f"{space}{opening_tag(node, closed=True)}\n"
+def format_node(node, indent):
+    """ Recursively format Beautifulsoup tag as in an MSCX file."""
+    nxt_indent = indent + 2
+    space = indent * ' '
+    node_name = node.name
+    # The following tags are exceptionally not abbreviated when empty,
+    # so for instance you get <metaTag></metaTag> and not <metaTag/>
+    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
         return f"{space}{make_oneliner(node)}\n"
+    children = node.find_all(recursive=False)
+    if len(children) > 0:
+        result = f"{space}{opening_tag(node)}\n"
+        result += ''.join(format_node(child, nxt_indent) for child in children)
+        result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
+        return result
+    if node.string == '\n':
+        return f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
+    if node.string is None:
+        return f"{space}{opening_tag(node, closed=True)}\n"
+    return f"{space}{make_oneliner(node)}\n"
 
+
+def bs4_to_mscx(soup):
+    """ Turn the BeautifulSoup into a string representing an MSCX file"""
     initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)

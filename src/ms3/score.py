@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, no_collections_no_booleans, resolve_dir, unpack_mscz, update_labels_cfg, update_cfg
+from .utils import color2rgba, decode_harmonies, no_collections_no_booleans, resolve_dir, rgba, rgba2attrs, rgba2params, unpack_mscz, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -246,7 +246,7 @@ class Score(LoggedClass):
         return self._label_types
 
 
-    def attach_labels(self, key, staff=None, voice=None, check_for_clashes=True):
+    def attach_labels(self, key, staff=None, voice=None, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
@@ -258,6 +258,9 @@ class Score(LoggedClass):
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.
+        remove_detached : :obj:`bool`, optional
+            By default, the detached :py:class:`~ms3.annotations.Annotations` object is removed after successfully attaching it.
+            Pass False to have it remain in detached state.
 
         Returns
         -------
@@ -288,7 +291,81 @@ Use one of the existing keys or load a new set with the method load_annotations(
         self._annotations['annotations'] = self._mscx._annotations
         if len(self._mscx._annotations.df) > 0:
             self._mscx.has_annotations = True
+        if remove_detached:
+            if reached == goal:
+                del(self._annotations[key])
+                self.logger.debug(f"Detached annotations '{key}' successfully attached and removed.")
+            else:
+                self.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
         return reached, goal
+
+
+    def compare_labels(self, key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False):
+        """ Compare detached labels ``key`` to the ones attached to the Score.
+        By default, the attached labels are considered as the reviewed version and changes are colored in green;
+        Changes with respect to the detached labels are attached to the Score in red.
+
+        Parameters
+        ----------
+        key : :obj:`str`
+            Key of the detached labels you want to compare to the ones in the score.
+        new_color, old_color : :obj:`str` or :obj:`tuple`, optional
+            The colors by which new and old labels are differentiated. Identical labels remain unchanged.
+        detached_is_newer : :obj:`bool`, optional
+            Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+            will turn ``old_color``, as opposed to the default.
+        """
+        assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
+        if not self.mscx.has_annotations:
+            self.logger.info(f"This score has no annotations attached.")
+            return
+        if key not in self._annotations:
+            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
+Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
+            return
+
+        old_obj = self._annotations[key]
+        new_obj = self._annotations['annotations']
+        compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
+        old_cols = [old_obj.cols[c] for c in compare_cols]
+        new_cols = [new_obj.cols[c] for c in compare_cols]
+        old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'])
+        new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'])
+        assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
+        assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
+        old_vals = set(old[old_cols].itertuples(index=False, name=None))
+        new_vals = set(new[new_cols].itertuples(index=False, name=None))
+        unchanged = old_vals.intersection(new_vals)
+        changes_old = old_vals - unchanged
+        changes_new = new_vals - unchanged
+
+        new_rgba =  color2rgba(new_color)
+        new_color_params = rgba2params(new_rgba)
+        old_rgba = color2rgba(old_color)
+        old_color_params = rgba2params(old_rgba)
+
+        if detached_is_newer:
+            change_to = old_color
+            change_to_params = old_color_params
+            added_color = new_color
+            added_color_params = new_color_params
+        else:
+            change_to = new_color
+            change_to_params = new_color_params
+            added_color = old_color
+            added_color_params = old_color_params
+
+        color_changes = sum(self.mscx.change_label_color(*t, **change_to_params) for t in changes_new)
+        df = pd.DataFrame(changes_old, columns=compare_cols)
+        for k, v in added_color_params.items():
+            df[k] = v
+        added_changes = self.mscx.add_labels(Annotations(df=df))
+        if added_changes > 0 or added_changes > 0:
+            self.mscx.changed = True
+            self.mscx.parsed.parse_measures()
+            self.mscx._update_annotations()
+            self._annotations['annotations'] = self.mscx._annotations
+            self.logger.debug(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
 
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
@@ -334,9 +411,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
                                              logger_cfg=logger_cfg)
         if delete:
             self._mscx.delete_labels(df)
-        if len(self._annotations['annotations'].df) == 0:
-            self._mscx.has_annotations = False
-            del (self._annotations['annotations'])
+            if self.mscx.has_annotations:
+                self._annotations['annotations'] = self._mscx._annotations
+            else:
+                del (self._annotations['annotations'])
         return
 
 
@@ -837,13 +915,36 @@ class MSCX(LoggedClass):
         if changes > 0:
             self.changed = True
             self._parsed.parse_measures()
-            logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] += ':annotations'
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self,
-                                            logger_cfg=logger_cfg)
+            self._update_annotations()
             self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
         return changes
 
+
+    def change_label_color(self, mc, mc_onset, staff, voice, label, color_name=None, color_html=None, color_r=None,
+                           color_g=None, color_b=None, color_a=None):
+        """  Shortcut for :py:meth:``MSCX.parsed.change_label_color``
+
+        Parameters
+        ----------
+        mc : :obj:`int`
+            Measure count of the label
+        mc_onset : :obj:`fractions.Fraction`
+            Onset position to which the label is attached.
+        staff : :obj:`int`
+            Staff to which the label is attached.
+        voice : :obj:`int`
+            Notational layer to which the label is attached.
+        label : :obj:`str`
+            (Decoded) label.
+        color_name, color_html : :obj:`str`, optional
+            Two ways of specifying the color.
+        color_r, color_g, color_b, color_a : :obj:`int` or :obj:`str`, optional
+            To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
+            to 255.
+        """
+        return self.parsed.change_label_color(mc=mc, mc_onset=mc_onset, staff=staff, voice=voice, label=label,
+                                              color_name=color_name, color_html=color_html, color_r=color_r,
+                                              color_g=color_g, color_b=color_b, color_a=color_a)
 
     def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, color_format=None):
         """ Update :obj:`MSCX.labels_cfg`.
@@ -881,6 +982,7 @@ class MSCX(LoggedClass):
         if changes > 0:
             self.changed = True
             self._parsed.parse_measures()
+            self._update_annotations()
             target = len(df)
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
@@ -982,12 +1084,7 @@ class MSCX(LoggedClass):
         else:
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
-
-        if self._parsed.has_annotations:
-            logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] += ':annotations'
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self,
-                                            logger_cfg=logger_cfg)
+        self._update_annotations()
 
 
     def store_mscx(self, filepath):
@@ -1096,3 +1193,13 @@ class MSCX(LoggedClass):
         elif len(suffix) > len(correct):
             suffix = suffix[:len(correct)]
         return what, [str(s) for s in suffix]
+
+
+    def _update_annotations(self):
+        if self._parsed.has_annotations:
+            logger_cfg = self.logger_cfg.copy()
+            logger_cfg['name'] += ':annotations'
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self,
+                                            logger_cfg=logger_cfg)
+        else:
+            self._annotations = None
