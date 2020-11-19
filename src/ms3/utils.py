@@ -99,6 +99,11 @@ CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
 COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
 
 
+class map_dict(dict):
+    def __missing__(self, key):
+        return key
+
+
 def assert_all_lines_equal(before, after, original, tmp_file):
     """ Compares two multiline strings to test equality."""
     diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
@@ -159,6 +164,21 @@ def ambitus2oneliner(ambitus):
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
 
 
+def color2rgba(c):
+    """ Pass a RGB or RGBA tuple, HTML color or name to convert it to RGBA """
+    if isinstance(c, tuple):
+        if len(c) > 3:
+            return c[:4]
+        if len(c) == 3:
+            return c + (255,)
+        else:
+            return c
+    if c[0] == '#':
+        return html_color2rgba(c)
+    return color_name2rgba(c)
+
+
+
 def color_name2format(n, format='rgb'):
     """ Converts a single CSS3 name into one of 'HTML', 'rgb', or 'rgba'"""
     if pd.isnull(n):
@@ -199,7 +219,7 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
         sel = df.nashville.notna()
-        df.loc[sel, label_col] = df.loc[sel, 'nashville'] + df.loc[sel, label_col].replace('/', '')
+        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
         drop_cols.append('nashville')
     if 'leftParen' in df.columns:
         df.leftParen.replace('/', '(', inplace=True)
@@ -210,8 +230,9 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
         compose_label.append('root')
         drop_cols.append('root')
         if 'rootCase' in df.columns:
+            sel = df.rootCase.notna()
+            df.loc[sel, 'root'] = df.loc[sel, 'root'].str.lower()
             drop_cols.append('rootCase')
-        # TODO: use rootCase
     compose_label.append(label_col)
     if 'base' in df.columns:
         df.base = '/' + fifths2name(df.base, ms=True)
@@ -222,8 +243,10 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
     new_label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+
     if return_series:
         return new_label_col
+
     if 'label_type' in df.columns:
         if keep_type:
             df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
@@ -380,7 +403,7 @@ def group_id_tuples(l):
     return dict(d)
 
 
-def html2format(df, format='name', html_col='color:html'):
+def html2format(df, format='name', html_col='color_html'):
     """ Converts the HTML column of a DataFrame into 'name', 'rgb , or 'rgba'. """
     if format == 'name':
         return df[html_col].map(color_name2html)
@@ -393,7 +416,7 @@ def html2format(df, format='name', html_col='color:html'):
 def html_color2format(h, format='name'):
     """ Converts a single HTML color into 'name', 'rgb', or  'rgba'."""
     if pd.isnull(h):
-        return 'default'
+        return h
     if format == 'name':
         try:
             return webcolors.hex_to_name(h)
@@ -506,6 +529,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'chord': str,
         'chord_id': 'Int64',
         'chord_type': str,
+        'color_name': str,
+        'color_html': str,
+        'color_r': 'Int64',
+        'color_g': 'Int64',
+        'color_b': 'Int64',
+        'color_a': 'Int64',
         'dont_count': 'Int64',
         'figbass': str,
         'form': str,
@@ -533,6 +562,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'repeats': str,
         'rightParen': str,
         'root': 'Int64',
+        'rootCase': 'Int64',
         'special': str,
         'staff': 'Int64',
         'tied': 'Int64',
@@ -581,6 +611,8 @@ def make_id_tuples(key, n):
 
     """
     return list(zip(repeat(key), range(n)))
+
+
 
 
 def map2elements(e, f, *args, **kwargs):
@@ -666,7 +698,7 @@ def mn2int(mn_series):
     return split.astype('Int64')
 
 
-def name2format(df, format='html', name_col='color:name'):
+def name2format(df, format='html', name_col='color_name'):
     """ Converts a column with CSS3 names into 'html', 'rgb', or  'rgba'."""
     if format == 'html':
         return df[name_col].map(color_name2html)
@@ -800,21 +832,23 @@ def resolve_dir(dir):
     return os.path.abspath(dir)
 
 
-def rgb2format(df, format='html', r_col='color:r', g_col='color:g', b_col='color:b'):
-    """ Converts three RGB columns into a color:html or color:name column. """
+def rgb2format(df, format='html', r_col='color_r', g_col='color_g', b_col='color_b'):
+    """ Converts three RGB columns into a color_html or color_name column. """
     cols = [r_col, g_col, b_col]
     if format == 'html':
         html = list(map(rgb_tuple2html, df[cols].itertuples(index=False, name=None)))
-        return pd.Series(html, index=df.index).rename('color:html')
+        return pd.Series(html, index=df.index).rename('color_html')
     if format == 'name':
         names = list(map(rgb_tuple2name, df[cols].itertuples(index=False, name=None)))
-        return pd.Series(names, index=df.index).rename('color:name')
+        return pd.Series(names, index=df.index).rename('color_name')
 
 
 def rgb_tuple2format(t, format='html'):
     """ Converts a single RGB tuple into 'HTML' or 'name'."""
-    if pd.isnull(t) or pd.isnull(t[0]):
-        return 'default'
+    if pd.isnull(t):
+        return t
+    if pd.isnull(t[0]):
+        return t[0]
     norm = webcolors.normalize_integer_triplet(tuple(int(i) for i in t))
     if format == 'html':
         return webcolors.rgb_to_hex(norm)
@@ -823,7 +857,6 @@ def rgb_tuple2format(t, format='html'):
             return webcolors.rgb_to_name(norm)
         except:
             try:
-                print(f"Looking up {norm}: {'Is' if norm in MS3_RGB else 'Not'} in MS3_RGB.")
                 return MS3_RGB[norm]
             except:
                 return webcolors.rgb_to_hex(norm)
@@ -1018,5 +1051,7 @@ def unpack_mscz(mscz, dir=None):
 @function_logger
 def update_labels_cfg(labels_cfg):
     keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+    if 'logger' in labels_cfg:
+        del(labels_cfg['logger'])
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
     return updated

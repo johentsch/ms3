@@ -28,7 +28,7 @@ class Score(LoggedClass):
                                         (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form>(%|o|\+|M|\+M))?
                                         (?P<figbass>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                                         (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                                     )
                                     (?P<pedalend>\])?
@@ -45,7 +45,7 @@ class Score(LoggedClass):
                                         (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form2>(%|o|\+|M|\+M))?
                                         (?P<figbass2>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes2>((\+|-|\^)?(b*|\#*)\d)+)\))?
+                                        (\((?P<changes2>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
                                         (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
                                     )
                                     (?P<pedalend2>\])?
@@ -283,7 +283,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return reached, goal
 
-        reached = self._mscx.add_labels(df, label=annotations.cols['label'])
+        prepared_annotations = Annotations(df=df, cols=annotations.cols)
+        reached = self._mscx.add_labels(prepared_annotations)
         self._annotations['annotations'] = self._mscx._annotations
         if len(self._mscx._annotations.df) > 0:
             self._mscx.has_annotations = True
@@ -488,7 +489,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self.logger_names[key] = logger_name
             return key
         else:
-            self.logger.error("No file found at this path: " + full_path)
+            raise ValueError(f"Path not found: {path}.")
+            #self.logger.error("No file found at this path: " + full_path)
             return None
 
     def _parse_mscx(self, musescore_file, read_only=False, parser=None, labels_cfg={}):
@@ -788,7 +790,7 @@ class MSCX(LoggedClass):
         return self._parsed.version
 
 
-    def add_labels(self, df, label='label', mc='mc', mc_onset='mc_onset', staff='staff', voice='voice', **kwargs):
+    def add_labels(self, annotations_object):
         """ Receives the labels from an :py:class:`~ms3.annotations.Annotations` object and adds them to the XML structure
         representing the MuseScore file that might be written to a file afterwards.
 
@@ -796,12 +798,11 @@ class MSCX(LoggedClass):
         ----------
         df : :obj:`pandas.DataFrame`
             DataFrame with labels to be added.
-        label, mc, mc_onset, staff, voice : :obj:`str`
-            Names of the DataFrame columns for the five required parameters.
-        kwargs:
-            label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville
-                For these parameters, the standard column names are used automatically if the columns are present.
-                If the column names have changed, pass them as kwargs, e.g. ``base='name_of_the_base_column'``
+        columns : :obj:`dict`
+            If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
+            Required columns: label, mc, mc_onset, staff, voice
+            Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
+            color_html, color_r, color_g, color_b, color_a
 
         Returns
         -------
@@ -809,38 +810,23 @@ class MSCX(LoggedClass):
             Number of actually added labels.
 
         """
+        df = annotations_object.df
         if len(df) == 0:
             self.logger.info("Nothing to add.")
             return
-        cols = dict(
-            label_type='label_type',
-            root='root',
-            base='base',
-            leftParen='leftParen',
-            rightParen='rightParen',
-            offset_x='offset:x',
-            offset_y='offset:y',
-            nashville='nashville',
-            decoded='decoded'
-        )
-        missing_additional = {k: v for k, v in kwargs.items() if v not in df.columns}
-        if len(missing_additional) > 0:
-            self.logger.warning(f"The following specified columns could not be found:\n{missing_additional}.")
-        main_params = ['label', 'mc', 'mc_onset', 'staff', 'voice']
-        l = locals()
-        missing_main = {k: l[k] for k in main_params if l[k] not in df.columns}
+        main_cols = Annotations.main_cols
+        columns = annotations_object.cols
+        missing_main = {c for  c in main_cols if columns[c] not in df.columns}
         assert len(
             missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
-        main_cols = {k: l[k] for k in main_params}
-        cols.update(kwargs)
-        if cols['decoded'] not in df.columns:
-            df[cols['decoded']] = decode_harmonies(df, label_col=label, return_series=True)
-        add_cols = {k: v for k, v in cols.items() if v in df.columns}
-        param2cols = {**main_cols, **add_cols}
+        if columns['decoded'] not in df.columns:
+            df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True)
+        existing_cols = {k: v for k, v in columns.items() if v in df.columns}
+        param2cols = {**existing_cols}
         parameters = list(param2cols.keys())
-        columns = list(param2cols.values())
+        clmns = list(param2cols.values())
         self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
-        tups = tuple(df[columns].itertuples(index=False, name=None))
+        tups = tuple(df[clmns].itertuples(index=False, name=None))
         params = [{a: b for a, b in zip(parameters, t)} for t in tups]
         res = [self._parsed.add_label(**p) for p in params]
         changes = sum(res)
@@ -885,11 +871,12 @@ class MSCX(LoggedClass):
         df : :obj:`pandas.DataFrame`
             A DataFrame with the columns ['mc', 'mc_onset', 'staff', 'voice']
         """
-        changed = pd.Series([self._parsed.delete_label(mc, staff, voice, mc_onset)
-                             for mc, staff, voice, mc_onset
-                             in reversed(
-                list(df[['mc', 'staff', 'voice', 'mc_onset']].itertuples(name=None, index=False)))],
-                            index=df.index)
+        positions = set(df[['mc', 'staff', 'voice', 'mc_onset']].itertuples(name=None, index=False))
+        changed = {ix: self._parsed.delete_label(mc, staff, voice, mc_onset)
+                   for ix, mc, staff, voice, mc_onset
+                   in reversed(
+                        list(df[['mc', 'staff', 'voice', 'mc_onset']].drop_duplicates().itertuples(name=None, index=True)))}
+        changed = pd.Series(changed, index=df.index).fillna(method='ffill')
         changes = changed.sum()
         if changes > 0:
             self.changed = True
@@ -897,7 +884,7 @@ class MSCX(LoggedClass):
             target = len(df)
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
-                self.logger.warning(f"{target - changes} labels have not been deleted:\n{df.loc[~changed]}")
+                self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
 
 
     def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False,

@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, name2format, resolve_dir, rgb2format, update_cfg
+from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, map_dict, name2format, resolve_dir, rgb2format, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -67,6 +67,10 @@ class Annotations(LoggedClass):
                             """,
                     re.VERBOSE)
 
+    main_cols = ['label', 'mc', 'mc_onset', 'staff', 'voice']
+    additional_cols = ['label_type', 'root', 'rootCase', 'base', 'leftParen', 'rightParen', 'offset:x', 'offset:y',
+                       'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a']
+
     def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
         """
 
@@ -74,7 +78,9 @@ class Annotations(LoggedClass):
         ----------
         tsv_path
         df
-        cols
+        cols : :obj:`dict`, optional
+            If one or several column names differ, pass a {NAME -> ACTUAL_NAME} dictionary, where NAME can be
+            {'mc', 'mn', 'mc_onset', 'label', 'staff', 'voice', 'volta'}
         index_col
         sep
         mscx_obj
@@ -93,15 +99,8 @@ class Annotations(LoggedClass):
         self.changed = False
         self.read_only = read_only
         self.mscx_obj = mscx_obj
-        self.cols = {
-            'mc': 'mc',
-            'mn': 'mn',
-            'mc_onset': 'mc_onset',
-            'label': 'label',
-            'staff': 'staff',
-            'voice': 'voice',
-            'volta': 'volta',
-        }
+        columns = self.main_cols + self.additional_cols
+        self.cols = {c: c for c in columns}
         self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
 
         if df is not None:
@@ -109,11 +108,12 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        for col in ['label', 'mc_onset']:
+        for col in ['label']:
             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
 Present column names are:\n{self.df.columns.to_list()}."""
-        if 'offset' in self.df.columns:
-            self.df.drop(columns='offset', inplace=True)
+        # if 'offset' in self.df.columns:
+        #     self.df.drop(columns='offset', inplace=True)
+        #self.cols = {k: v for k, v in self.cols.items() if k in self.main_cols + ['label_type'] or v in df.columns}
         self.infer_types()
 
 
@@ -145,8 +145,10 @@ Possible values are {{1, 2, 3, 4}}.""")
         if voice is not None:
             df[voice_col] = voice
         if voice_col in cols and df[voice_col].isna().any():
-            self.logger.warning(f"The following labels don't have staff information: {df[df.voice.isna()]}")
+            self.logger.warning(f"The following labels don't ahve voice information: {df[df.voice.isna()]}")
             error = True
+        if error:
+            return pd.DataFrame()
 
         if self.cols['mc'] not in cols:
             if self.cols['mn'] not in cols:
@@ -167,7 +169,7 @@ Possible values are {{1, 2, 3, 4}}.""")
 
         position_cols = ['mc', 'mc_onset', 'staff', 'voice']
         new_pos_cols = [self.cols[c] for c in position_cols]
-        if all(c in df.columns for c in position_cols):
+        if all(c in df.columns for c in new_pos_cols):
             if check_for_clashes and self.mscx_obj.has_annotations:
                 existing = self.mscx_obj.get_raw_labels()[position_cols]
                 to_be_attached = df[new_pos_cols]
@@ -201,18 +203,30 @@ Possible values are {{1, 2, 3, 4}}.""")
     @property
     def annotation_layers(self):
         df = self.df.copy()
-        layers = [col for col in ['staff', 'voice', 'label_type'] if col in df.columns]
-        color_cols = ['color:name', 'color:html', 'color:r']
-        if any(True for c in color_cols if c in df):
-            if 'color:name' in df.columns:
+        layers = ['staff', 'voice', 'label_type']
+        for c in layers:
+            if self.cols[c] not in df.columns:
+                df[c] = None
+        color_cols = ['color_name', 'color_html', 'color_r']
+        if any(True for c in color_cols if self.cols[c] in df):
+            color_name = self.cols['color_name']
+            if color_name in df.columns:
                 pass
-            elif 'color:html' in df.columns:
-                df['color:name'] = html2format(df, 'name')
-            elif 'color:r' in df.columns:
-                df['color:name'] = rgb2format(df, 'name')
-            layers += ['color:name']
-
-        return self.count(), df.groupby(layers).size()
+            elif self.cols['color_html'] in df.columns:
+                df[color_name] = html2format(df, 'name')
+            elif self.cols['color_r'] in df.columns:
+                df[color_name] = rgb2format(df, 'name')
+            df[color_name] = df[color_name].fillna('default')
+            layers += [color_name]
+        type2name = map_dict({
+            0: '0 (Plain Text)',
+            1: '1 (Nashville)',
+            2: '2 (Roman Numeral)',
+            3: '3 (Absolute Chord)',
+            'dcml': 'dcml',
+        })
+        df.label_type = df.label_type.map(type2name)
+        return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
         n, layers = self.annotation_layers
@@ -273,27 +287,27 @@ Possible values are {{1, 2, 3, 4}}.""")
             res = decode_harmonies(res, label_col=label_col)
         if column_name is not None and column_name != label_col:
             res = res.rename(columns={label_col: column_name})
-        color_cols = ['color:html', 'color:r', 'color:g', 'color:b', 'color:a', 'color:name']
-        rgb_cols = ['color:r', 'color:g', 'color:b']
+        color_cols = ['color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'color_name']
+        rgb_cols = ['color_r', 'color_g', 'color_b']
         if color_format is not None and any(True for c in color_cols if c in res):
-            if color_format == 'html' and 'color:html' not in res.columns:
-                if 'color:name' in res.columns:
+            if color_format == 'html' and 'color_html' not in res.columns:
+                if 'color_name' in res.columns:
                     html = name2format(res, 'html')
-                elif 'color:r' in res.columns:
+                elif 'color_r' in res.columns:
                     if any(True for c in rgb_cols if c not in res.columns):
                         logger.warning(f"The following columns are missing: {list(c for c in rgb_cols if c not in res.columns)}")
                     else:
                         html = rgb2format(res, 'html')
-                res['color:html'] = html
-            elif color_format == 'name' and 'color:name' not in res.columns:
-                if 'color:html' in res.columns:
+                res['color_html'] = html
+            elif color_format == 'name' and 'color_name' not in res.columns:
+                if 'color_html' in res.columns:
                     name = html2format(res, 'name')
-                elif 'color:r' in res.columns:
+                elif 'color_r' in res.columns:
                     if any(True for c in rgb_cols if c not in res.columns):
                         logger.warning(f"The following columns are required")
                     else:
                         name = rgb2format(res, 'name')
-                res['color:name'] = name
+                res['color_name'] = name
 
         return res
 
@@ -371,10 +385,13 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
         if 'root' in self.df.columns:
             self.df.loc[self.df.root.notna(), 'label_type'] = 3
-        for name, regex in self.regex_dict.items():
-            sel = self.df.label_type == 0
-            mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
-            self.df.loc[sel & mtch, 'label_type'] = name
+        if len(self.regex_dict) > 0:
+            decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
+            for name, regex in self.regex_dict.items():
+                sel = self.df.label_type.isin((0, 1, 2, 3))
+                #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
+                mtch = decoded[sel].str.match(regex)
+                self.df.loc[sel & mtch, 'label_type'] = self.df.loc[sel & mtch, 'label_type'].astype(str) + f" ({name})"
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):

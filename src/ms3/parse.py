@@ -341,6 +341,10 @@ Therefore, the index for this key has been adapted.""")
             layer) where a new one is attached. Pass False to deactivate this warnings.
         """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
+        if len(layers) == 0:
+            ks = '' if keys is None else ' under the key(s) ' + keys
+            self.logger.warning(f"No detached annotations found{ks}.")
+            return
         if annotation_key is None:
             annotation_key = list(layers.keys())
         elif isinstance(annotation_key, str):
@@ -475,7 +479,14 @@ Continuing with {annotation_key}.""")
             if len(counts) == 0:
                 return pd.Series()
             data = counts.values()
-            ix = pd.Index(counts.keys(), names=['staff', 'voice', 'label_type'])
+            ks = list(counts.keys())
+            levels = len(ks[0])
+            names = ['staff', 'voice', 'label_type', 'color'][:levels]
+            try:
+                ix = pd.Index(counts.keys(), names=names)
+            except:
+                print(counts)
+                raise
             return pd.Series(data, ix)
 
         if per_key:
@@ -1015,7 +1026,7 @@ Continuing with {annotation_key}.""")
                         if label_col in df.columns:
                             logger_name = self.files[key][i]
                             self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                      logger_name=logger_name, level=level)
+                                                                      logger_cfg={'name': logger_name}, level=level)
                             self.logger.debug(
                                 f"{rel_path} parsed as a list of labels and an Annotations object was created.")
                         else:
@@ -1089,13 +1100,13 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
-    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', simulate=False):
+    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
         """
         ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
-            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, simulate=simulate)
+            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path in paths:
                 modus = 'would ' if simulate else ''
                 self.logger.warning(f"The score at {new_path} {modus}have been overwritten.")
@@ -1313,7 +1324,7 @@ Using the first {li} elements, discarding {discarded}""")
 
 
 
-    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, simulate=False):
+    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
         """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
 
         Parameters
@@ -1352,6 +1363,16 @@ Using the first {li} elements, discarding {discarded}""")
 
         fname = fname + suffix + '.mscx'
         file_path = os.path.join(path, fname)
+        if os.path.isfile(file_path):
+            if simulate:
+                if overwrite:
+                    self.logger.warning(f"Would have overwritten {file_path}.")
+                    return restore_logger(file_path)
+                self.logger.warning(f"Would have skipped {file_path}.")
+                return restore_logger(None)
+            elif not overwrite:
+                self.logger.warning(f"Skipped {file_path}.")
+                return restore_logger(None)
         if simulate:
             self.logger.debug(f"Would have written score to {file_path}.")
         else:

@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import fifths2name, ordinal_suffix, resolve_dir
+from .utils import color2rgba, fifths2name, ordinal_suffix, resolve_dir
 
 
 class _MSCX_bs4(LoggedClass):
@@ -485,12 +485,12 @@ class _MSCX_bs4(LoggedClass):
                 'base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
                 'rightParen': 'Harmony/rightParen',
-                'color:r': 'Harmony/color:r',
-                'color:g': 'Harmony/color:g',
-                'color:b': 'Harmony/color:b',
-                'color:a': 'Harmony/color:a'}
+                'color_r': 'Harmony/color:r',
+                'color_g': 'Harmony/color:g',
+                'color_b': 'Harmony/color:b',
+                'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type', 'color:r', 'color:g', 'color:b', 'color:a']
+        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -848,7 +848,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             else:
                 self.logger.debug(f"Added {label_name} to {name} in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
             if 'Harmony' in old_names:
-                self.logger.warning(
+                self.logger.debug(
                     f"The chord in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} was already carrying a label.")
             return True
 
@@ -955,16 +955,25 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None):
+    def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, rootCase=None, base=None,
+                  leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None,
+                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(label_type):
+            try:
+                label_type = int(label_type)
+            except:
+                if label_type[0] in ('1', '2'):
+                    label_type = int(label_type[0])
             # only include <harmonyType> tag for label_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            if label_type in [1, 2, '1', '2']:
+            if label_type in (1, 2):
                 _ = self.new_tag('harmonyType', value=label_type, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
         if not pd.isnull(root):
             _ = self.new_tag('root', value=root, within=tag)
+        if not pd.isnull(rootCase):
+            _ = self.new_tag('rootCase', value=rootCase, within=tag)
         if not pd.isnull(label):
             _ = self.new_tag('name', value=label, within=tag)
         else:
@@ -973,6 +982,25 @@ and {loc_after} before the subsequent {nxt_name}.""")
             _ = self.new_tag('function', value=nashville, within=tag)
         if not pd.isnull(base):
             _ = self.new_tag('base', value=base, within=tag)
+
+        if any(True for param in [color_name, color_html, color_r, color_g, color_b, color_a] if not pd.isnull(param)):
+            rgba = None
+            if not pd.isnull(color_r):
+                if pd.isnull(color_a):
+                    color_a = 255
+                if pd.isnull(color_g) or pd.isnull(color_b):
+                    if pd.isnull(color_name) and pd.isnull(color_html):
+                        self.logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
+                else:
+                    rgba = (color_r, color_g, color_b, color_a)
+            if rgba is None and not pd.isnull(color_html):
+                rgba = color2rgba(color_html)
+            if rgba is None and not pd.isnull(color_name):
+                rgba = color2rgba(color_name)
+            vals = ('r', 'g', 'b', 'a')
+            attrs = {k: val for k, val in zip(vals, (str(v) for v in rgba))}
+            _ = self.new_tag('color', attributes=attrs, within=tag)
+
         if not pd.isnull(offset_x) or not pd.isnull(offset_y):
             if pd.isnull(offset_x):
                 offset_x = '0'
@@ -1285,7 +1313,7 @@ def bs4_to_mscx(soup):
         node_name = node.name
         # The following tags are exceptionally not abbreviated when empty,
         # so for instance you get <metaTag></metaTag> and not <metaTag/>
-        if node_name in ['continueAt', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
+        if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
             return f"{space}{make_oneliner(node)}\n"
         children = node.find_all(recursive=False)
         if len(children) > 0:
