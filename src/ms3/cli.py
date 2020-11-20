@@ -29,6 +29,7 @@ __license__ = "gpl3"
 
 
 
+
 def extract(args):
     labels_cfg = {
         'positioning': args.positioning,
@@ -152,14 +153,17 @@ MuseScore files is recreated there. Additionally, you can pass a filename to --l
 subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
-    check_parser = subparsers.add_parser('check', help="Check DCML harmony labels.")
+    check_parser = subparsers.add_parser('check', help="Check DCML harmony labels for syntactic correctness.")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
                               default=os.getcwd(),
                               help='Folder that will be scanned for MuseScore files (.mscx).')
+    check_parser.add_argument('-f', '--file', metavar='PATH(s)', nargs='*', help='')
+    check_parser.set_defaults(func=check)
+
 
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.")
-    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
+    convert_parser.add_argument('dir', metavar='DIR', type=check_dir, default=os.getcwd(),
                                 help='path to folder with files to convert; can be relative to the folder where the script is located.')
     convert_parser.add_argument('target', metavar='TARGET_DIR', nargs='?', type=check_and_create, default=os.getcwd(),
                                 help='Path to folder for converted files. Defaults to current working directory.')
@@ -187,6 +191,8 @@ subdirectory; otherwise, an individual log file is automatically created for eac
         parser.print_help()
 
 
+def check(args):
+    if len(args.file) > 0:
 
 
 if __name__ == "__main__":

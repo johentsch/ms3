@@ -160,9 +160,48 @@ def assert_dfs_equal(old, new, exclude=[]):
     assert diffs_per_col.sum() == 0, show_diff()
 
 
+
 def ambitus2oneliner(ambitus):
     """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
     return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
+
+
+def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
+    """  Checks the labels in ``column`` against ``regex`` and returns those that don't match.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame containing a column with labels.
+    regex : :obj:`str`
+        Regular expression that incorrect labels don't match.
+    column : :obj:`str`, optional
+        Column name where the labels are. Defaults to 'label'
+    split_regex : :obj:`str`, optional
+        If you pass a regular expression (or simple string), it will be used to split the labels before checking the
+        resulting column separately. Instead, pass True to use the default (a '-' that does not precede a scale degree).
+    return_cols : :obj:`list`, optional
+        Pass a list of the DataFrame columns that you want to be displayed for the wrong labels.
+
+    Returns
+    -------
+    df : :obj:`pandas.DataFrame`
+        DataFrame with wrong labels.
+
+    """
+    if split_regex is not None:
+        if split_regex == True:
+            check_this = split_alternatives(df, column=column, alternatives_only=True)
+        else:
+            check_this = split_alternatives(df, column=column, regex=split_regex, max=1000, alternatives_only=True)
+    else:
+        check_this = df[[column]]
+    if regex.__class__ != re.compile('').__class__:
+        regex = re.compile(regex, re.VERBOSE)
+    for c in check_this.columns:
+        col = check_this[c].dropna()
+
+
 
 
 def color2rgba(c):
@@ -964,6 +1003,64 @@ def sort_tpcs(tpcs, ascending=True, start=None):
             i += 1
         res = res[i:] + res[:i]
     return res if ascending else list(reversed(res))
+
+
+@function_logger
+def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#))", max=2, inplace=False, alternatives_only=False):
+    """
+    Splits labels that come with an alternative separated by '-' and adds
+    a new column. Only one alternative is taken into account. `df` is
+    mutated inplace.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Dataframe where one column contains DCML chord labels.
+    column : :obj:`str`, optional
+        Name of the column that holds the harmony labels.
+    regex : :obj:`str`, optional
+        The regular expression (or simple string) that detects the character combination used to separate alternative annotations.
+        By default, alternatives are separated by a '-' that does not precede a scale degree such as 'b6' or '3'.
+    max : :obj:`int`, optional
+        Maximum number of admitted alternatives, defaults to 2.
+    inplace : :obj:`bool`, optional
+        Pass True if you want to mutate ``df``.
+    alternatives_only : :obj:`bool`, optional
+        By default the alternatives are added to the original DataFrame (``inplace`` or not).
+        Pass True if you just need the split alternatives.
+
+    Example
+    -------
+    >>> import pandas as pd
+    >>> labels = pd.read_csv('labels.csv')
+    >>> split_alternatives(labels, inplace=True)
+    """
+    if not inplace:
+        df = df.copy()
+    alternatives = df[column].str.split(regex, expand=True)
+    alternatives.dropna(axis=1, how='all', inplace=True)
+    alternatives.columns = range(alternatives.shape[1])
+    if alternatives_only:
+        columns = [column] + [f"alt_{column}" if i == 1 else f"alt{i}_{column}" for i in alternatives.columns[1:]]
+        alternatives.columns = columns
+        return alternatives.iloc[:, :max]
+    if len(alternatives.columns) > 1:
+        logger.debug("Labels split into alternatives.")
+        df.loc[:, column] = alternatives[0]
+        position = df.columns.get_loc(column) + 1
+        for i in alternatives.columns[1:]:
+            if i == max:
+                break
+            alt_name = f"alt_{column}" if i == 1 else f"alt{i}_{column}"
+            df.insert(position, alt_name, alternatives[i].fillna(np.nan))  # replace None by NaN
+            position += 1
+        if len(alternatives.columns) > max:
+            logger.warning(
+                f"More than {max} alternatives are not taken into account:\n{alternatives[alternatives[2].notna()]}")
+    else:
+        logger.debug("Contains no alternative labels.")
+    if not inplace:
+        return df
 
 
 
