@@ -1006,8 +1006,8 @@ Continuing with {annotation_key}.""")
             try:
                 df = load_tsv(path, **kwargs)
             except:
-                self.logger.error(path)
-                raise
+                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter.\n{path}")
+                continue
             label_col = cols['label'] if 'label' in cols else 'label'
             try:
                 self._parsed_tsv[(key, i)] = df
