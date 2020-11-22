@@ -5,6 +5,8 @@ All functionality of the library is available through creating a ``ms3.Score`` o
 """
 # -*- coding: utf-8 -*-
 from pkg_resources import get_distribution, DistributionNotFound
+import os
+os.environ["NUMEXPR_MAX_THREADS"] = "64"
 
 try:
     # Change here if project is renamed and does not equal the package name
@@ -18,4 +20,4 @@ finally:
 from .score import Score
 from .annotations import Annotations
 from .parse import Parse
-from .utils import COLORS
+from .utils import COLORS, load_tsv

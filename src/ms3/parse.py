@@ -443,7 +443,7 @@ Continuing with {annotation_key}.""")
         if ids is None:
             ids = list(self._iterids(keys, only_parsed_mscx=True))
         checks = {id: self._parsed_mscx[id].check_labels() for id in ids}
-        checks = {k: v for k, v in checks.items() if len(v) > 0}
+        checks = {k: v for k, v in checks.items() if v is not None and len(v) > 0}
         if len(checks) > 0:
             idx = self.ids2idx(checks.keys(), pandas_index=True)
             return pd.concat(checks.values(), keys=idx, names=idx.names)

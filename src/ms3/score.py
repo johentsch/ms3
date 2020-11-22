@@ -339,12 +339,15 @@ Use one of the existing keys or load a new set with the method load_annotations(
         :obj:`pandas.DataFrame`
             Labels not matching the regex.
         """
+        if len(self._annotations) == 0:
+            self.logger.debug("Score contains no Annotations.")
+            return
         if regex is None:
             if label_type in self._label_regex:
                 regex = self._label_regex[label_type]
             else:
                 self.logger.warning(f"Type {label_type} has not been registered. Pass a regular expression for it as argument 'regex'.")
-                return pd.DataFrame()
+                return
         else:
             if regex.__class__ != re.compile('').__class__:
                 regex = re.compile(regex, re.VERBOSE)

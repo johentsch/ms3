@@ -29,8 +29,13 @@ __license__ = "gpl3"
 
 def check(args):
     labels_cfg = {'decode': True}
+    if args.log is not None:
+        log = os.path.expanduser(args.log)
+        if not os.path.isabs(log):
+            log = os.path.join(os.getcwd(), log)
     logger_cfg = {
         'level': args.level,
+        'file': log,
     }
     if args.file is None:
         p = Parse(dir=args.root_dir, key='check', index='fname', file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
@@ -44,10 +49,10 @@ def check(args):
     if wrong is None:
         return
     if len(wrong) == 0:
-        print("No syntactical errors.")
+        p.logger.info("No syntactical errors.")
         return True
     else:
-        print(wrong)
+        p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
         return False
 
 
@@ -72,6 +77,7 @@ def extract(args):
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
     else:
         suffixes = {}
+
     logger_cfg = {
         'level': args.level,
         'file': args.logfile,
@@ -181,6 +187,7 @@ subdirectory; otherwise, an individual log file is automatically created for eac
                               help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
 working directory except if you pass -f/--file.""")
     check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
+    check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
 
 
