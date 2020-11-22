@@ -199,7 +199,6 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
     if regex.__class__ != re.compile('').__class__:
         regex = re.compile(regex, re.VERBOSE)
     not_matched = check_this.apply(lambda r: ~r.str.match(regex).fillna(True))
-    print(check_this)
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]

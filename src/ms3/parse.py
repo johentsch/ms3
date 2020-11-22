@@ -19,7 +19,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, dir=None, paths=[], key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}):
         """
 
@@ -27,7 +27,10 @@ class Parse(LoggedClass):
         ----------
         dir, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
-            If ``dir`` is not passed, no files are added to the new object.
+            If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
+        paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
+            List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
+            WARNING: If you want to use a custom index, don't use both arguments simultaneously.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
@@ -187,6 +190,10 @@ class Parse(LoggedClass):
         """
         if dir is not None:
             self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        if paths is not None:
+            if isinstance(paths, str):
+                paths = [paths]
+            self.add_files(paths, key=key, index=index)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -396,7 +403,7 @@ Currently available annotation keys are {list(layers.keys())}""")
 f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
 Continuing with {annotation_key}.""")
 
-        ids = list(self._iterids(keys, filter_detached_annotations=True))
+        ids = list(self._iterids(keys, only_detached_annotations=True))
         reached, goal = 0, 0
         for id in ids:
             for anno_key in annotation_key:
@@ -428,6 +435,19 @@ Continuing with {annotation_key}.""")
         if len(ids) > 0:
             self.collect_lists(ids=ids, labels=True)
 
+
+    def check_labels(self, keys=None, ids=None):
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            return
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        checks = {id: self._parsed_mscx[id].check_labels() for id in ids}
+        checks = {k: v for k, v in checks.items() if len(v) > 0}
+        if len(checks) > 0:
+            idx = self.ids2idx(checks.keys(), pandas_index=True)
+            return pd.concat(checks.values(), keys=idx, names=idx.names)
+        return pd.DataFrame()
 
 
 
@@ -492,7 +512,7 @@ Continuing with {annotation_key}.""")
         res_dict = defaultdict(Counter)
 
         if which == 'detached':
-            for id in self._iterids(keys, filter_detached_annotations=True):
+            for id in self._iterids(keys, only_detached_annotations=True):
                 for key, annotations in self._parsed_mscx[id]._annotations.items():
                     if key != 'annotations':
                         _, layers = annotations.annotation_layers
@@ -622,7 +642,7 @@ Continuing with {annotation_key}.""")
         """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
-        ids = list(self._iterids(keys, filter_attached_annotations=True))
+        ids = list(self._iterids(keys, only_attached_annotations=True))
         prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
@@ -684,6 +704,17 @@ Continuing with {annotation_key}.""")
 
 
     def ids2idx(self, ids, pandas_index=False):
+        """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
+
+        Parameters
+        ----------
+        ids
+        pandas_index
+
+        Returns
+        -------
+        :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
+        """
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
         error = False
@@ -897,7 +928,10 @@ Continuing with {annotation_key}.""")
         else:
             paths = [(key, i) for key, i in self._iterids(keys) if
                      self.fexts[key][i] == '.mscx']
-
+        if len(paths) == 0:
+            reason = 'in the entire object' if keys is None else f"for '{keys}'"
+            self.logger.info(f"No MSCX files found {reason}.")
+            return
         if level is None:
             level = self.logger.logger.level
         cfg = {'level': level}
@@ -1252,15 +1286,15 @@ Load one of the identically named files with a different key using add_dir(key='
                 break
         return res
 
-    def _iterids(self, keys=None, only_parsed_mscx=False, filter_attached_annotations=False, filter_detached_annotations=False):
+    def _iterids(self, keys=None, only_parsed_mscx=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
 
         Parameters
         ----------
         keys
         only_parsed_mscx
-        filter_attached_annotations
-        filter_detached_annotations
+        only_attached_annotations
+        only_detached_annotations
 
         Yields
         ------
@@ -1271,15 +1305,15 @@ Load one of the identically named files with a different key using add_dir(key='
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
             for id in make_id_tuples(key, len(self.fnames[key])):
-                if only_parsed_mscx or filter_attached_annotations or filter_detached_annotations:
+                if only_parsed_mscx or only_attached_annotations or only_detached_annotations:
                     if id not in self._parsed_mscx:
                         continue
-                    if filter_attached_annotations:
+                    if only_attached_annotations:
                         if 'annotations' in self._parsed_mscx[id]._annotations:
                             pass
                         else:
                             continue
-                    if filter_detached_annotations:
+                    if only_detached_annotations:
                         if self._parsed_mscx[id].has_detached_annotations:
                             pass
                         else:
