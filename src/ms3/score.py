@@ -2,7 +2,7 @@ import os, re
 
 import pandas as pd
 
-from .utils import color2rgba, decode_harmonies, no_collections_no_booleans, resolve_dir, rgba, rgba2attrs, rgba2params, unpack_mscz, update_labels_cfg, update_cfg
+from .utils import check_labels, color2rgba, decode_harmonies, no_collections_no_booleans, resolve_dir, rgba, rgba2attrs, rgba2params, unpack_mscz, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -176,6 +176,23 @@ class Score(LoggedClass):
         'dcml': self.dcml_regex,
         """
 
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'label_type': None,
+            'positioning': True,
+            'decode': False,
+            'column_name': 'label',
+            'color_format': 'html',
+        }
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
+        objects contained in :obj:`._annotations``. 
+        The default options correspond to the default parameters of
+        :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
+        """
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
+
         self.parser = parser
         """{'bs4'}
         Currently only one XML parser has been implemented which uses BeautifulSoup 4.
@@ -300,14 +317,63 @@ Use one of the existing keys or load a new set with the method load_annotations(
         return reached, goal
 
 
-    def compare_labels(self, key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False):
+    def check_labels(self, keys='annotations', regex=None, label_type='dcml', **kwargs):
+        """ Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``label_type``.
+        Returns wrong labels.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`Collection`, optional
+            The key(s) of the Annotation objects you want to check. Defaults to 'annotations', the attached labels.
+        regex : :obj:`str`, optional
+            Pass a regular expression against which to check the labels if you don't want to use the one of an existing
+            ``label_type`` or in order to register a new one on the fly by passing the new name as ``label_type``.
+        label_type : :obj:`str`, optional
+            To use the regular expression of a registered type, pass its name, defaults to 'dcml'. Pass a new name and
+            a ``regex`` to register a new label type on the fly.
+        kwargs :
+            Parameters passed to :py:func:`~ms3.utils.check_labels`.
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            Labels not matching the regex.
+        """
+        if regex is None:
+            if label_type in self._label_regex:
+                regex = self._label_regex[label_type]
+            else:
+                self.logger.warning(f"Type {label_type} has not been registered. Pass a regular expression for it as argument 'regex'.")
+                return pd.DataFrame()
+        else:
+            if regex.__class__ != re.compile('').__class__:
+                regex = re.compile(regex, re.VERBOSE)
+            if label_type not in self._label_regex:
+                self._label_regex[label_type] = regex
+        if isinstance(keys, str):
+            keys = [keys]
+        existing, missing = [], []
+        for k in keys:
+            (existing if k in self._annotations else missing).append(k)
+        if len(missing) > 0:
+            self.logger.warning(f"The following keys are not among the Annotations objects, which are: {list(self._annotations.keys())}")
+        if len(existing) == 0:
+            return pd.DataFrame()
+        labels_cfg = self.labels_cfg.copy()
+        labels_cfg['decode'] = True
+        checks = [check_labels(self._annotations[k].get_labels(**labels_cfg), regex=regex, **kwargs) for k in existing]
+        return pd.concat(checks, keys=existing)
+
+
+
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
 
         Parameters
         ----------
-        key : :obj:`str`
+        detached_key : :obj:`str`
             Key of the detached labels you want to compare to the ones in the score.
         new_color, old_color : :obj:`str` or :obj:`tuple`, optional
             The colors by which new and old labels are differentiated. Identical labels remain unchanged.
@@ -315,16 +381,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
             will turn ``old_color``, as opposed to the default.
         """
-        assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
+        assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
             return
-        if key not in self._annotations:
-            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
+        if detached_key not in self._annotations:
+            self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
             return
 
-        old_obj = self._annotations[key]
+        old_obj = self._annotations[detached_key]
         new_obj = self._annotations['annotations']
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
@@ -659,6 +725,13 @@ Use one of the existing keys or load a new set with the method load_annotations(
     #         self._annotations[key] = value
 
 
+########################################################################################################################
+########################################################################################################################
+################################################ End of Score() ########################################################
+########################################################################################################################
+########################################################################################################################
+
+
 class MSCX(LoggedClass):
     """ Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a
     :obj:`Score` object and exposed as ``Score.mscx``.
@@ -723,22 +796,13 @@ class MSCX(LoggedClass):
         Holds the MSCX score parsed by the selected parser (currently only BeautifulSoup 4 available)."""
 
 
-        self.labels_cfg = {
-            'staff': None,
-            'voice': None,
-            'label_type': None,
-            'positioning': True,
-            'decode': False,
-            'column_name': 'label',
-            'color_format': 'html',
-        }
+        self.labels_cfg = labels_cfg
         """:obj:`dict`
         Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
         object representing the labels that are attached to a score (stored as :obj:`._annotations``). 
-        The default options correspond to the default parameters of
+        The options correspond to the parameters of
         :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
         """
-        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
         self.parse_mscx()
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -775,7 +839,7 @@ class MSCX(LoggedClass):
         if self._annotations is None:
             return None
         labels_cfg = self.labels_cfg.copy()
-        labels_cfg['decode'] = False
+        #labels_cfg['decode'] = False
         return self._annotations.expand_dcml(**labels_cfg)
 
 
