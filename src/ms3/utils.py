@@ -3,7 +3,7 @@ from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
-from itertools import repeat
+from itertools import repeat, takewhile
 from tempfile import NamedTemporaryFile as Temp
 from zipfile import ZipFile as Zip
 
@@ -278,6 +278,16 @@ def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=No
     if res is None and not pd.isnull(color_name):
         res = color2rgba(color_name)
     return rgba(*res)
+
+
+def allnamesequal(name):
+    return all(n == name[0] for n in name[1:])
+
+def commonprefix(paths, sep='/'):
+    """ Returns common prefix of a list of paths.
+    Uses: allnamesequal(), itertools.takewhile()"""
+    bydirectorylevels = zip(*[p.split(sep) for p in paths])
+    return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
 def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):

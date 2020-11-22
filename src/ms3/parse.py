@@ -10,7 +10,7 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
+from .utils import commonprefix, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
     resolve_dir, scan_directory, string2lines, update_labels_cfg
 
 
@@ -244,7 +244,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
     def add_dir(self, dir, key=None, index=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
-        This function scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
+        This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
         e.g. 'mscx' for score, 'harmonies' for chord labels, and 'form' for form labels.
 
@@ -281,9 +281,43 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         self.last_scanned_dir = dir
         if file_re in ['tsv', 'csv']:
             file_re = r"\." + file_re + '$'
-        res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-        ids = [self._handle_path(p, key) for p in res]
-        if len(ids) > 0:
+        paths = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        self.add_files(paths=paths, key=key, index=index)
+
+
+    def add_files(self, paths, key, index=None):
+        """
+
+        Parameters
+        ----------
+        paths : :obj:`~collections.abc.Collection`
+            The paths of the files you want to add to the object.
+        key : :obj:`str`
+            | Pass a string to identify the loaded files.
+            | If you pass 'rel_path', the keys are automatically assigned relative to the longest common prefix of all paths.
+            | If None is passed, paths relative to :py:prop:`last_scanned_dir` are used as keys, which therefore needs to be
+              set (mainly for use with :py:meth:`add_dir`)
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
+            | 'fname' evokes an index level made from file names.
+        """
+        if isinstance(paths, str):
+            paths = [paths]
+        if key == 'rel_path':
+            if len(paths) > 1:
+                self.last_scanned_dir = commonprefix(paths, os.path.sep)
+            else:
+                key = os.path.basename(os.path.dirname(paths[0]))
+
+        ids = [self._handle_path(p, key) for p in paths]
+        if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             grouped_ids = group_id_tuples(ids)
             exts = {k: self.count_extensions(k, i) for k, i in grouped_ids.items()}

@@ -362,7 +362,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
         labels_cfg = self.labels_cfg.copy()
         labels_cfg['decode'] = True
         checks = [check_labels(self._annotations[k].get_labels(**labels_cfg), regex=regex, **kwargs) for k in existing]
-        return pd.concat(checks, keys=existing)
+        if len(keys) > 1:
+            return pd.concat(checks, keys=existing)
+        else:
+            return checks[0]
 
 
 
