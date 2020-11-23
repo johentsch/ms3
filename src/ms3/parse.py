@@ -243,7 +243,7 @@ class Parse(LoggedClass):
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
 Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             else:
-                self.logger.debug(f"Nothing to add to {score_id}. Make sure that it's counterpart has been recognized as tsv_type 'labels'.")
+                self.logger.debug(f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels'.")
 
 
 
@@ -442,7 +442,7 @@ Continuing with {annotation_key}.""")
         reached, goal = 0, 0
         for id in ids:
             for anno_key in annotation_key:
-                if anno_key in self._parsed_mscx[id]._detached_annotations:
+                if anno_key in self._parsed_mscx[id]:
                     r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
@@ -634,7 +634,7 @@ Continuing with {annotation_key}.""")
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
-            res_dict[key].update(self._annotations[(key, i)]._label_types)
+            res_dict[key].update(self._annotations[(key, i)].label_types)
         if len(res_dict) == 0:
             if len(self._parsed_mscx) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
@@ -1264,7 +1264,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             if id in self._parsed_mscx:
                 score = self._parsed_mscx[id]
                 if score is not None:
-                    if 'annotations' in score._detached_annotations:
+                    if 'annotations' in score:
                         updated[id] = score.annotations
                     elif id in self._annotations:
                         del (self._annotations[id])
@@ -1344,7 +1344,7 @@ Load one of the identically named files with a different key using add_dir(key='
                     if id not in self._parsed_mscx:
                         continue
                     if only_attached_annotations:
-                        if 'annotations' in self._parsed_mscx[id]._detached_annotations:
+                        if 'annotations' in self._parsed_mscx[id]:
                             pass
                         else:
                             continue
@@ -1613,13 +1613,18 @@ Using the first {li} elements, discarding {discarded}""")
         if isinstance(label_type, int) or isinstance(label_type, str):
             label_type = [label_type]
         lt = [str(t) for t in label_type]
-        not_found = [t for t in lt if t not in all_types]
+        def matches_any_type(user_input):
+            return any(True for t in all_types if user_input in t)
+        def get_matches(user_input):
+            return [t for t in all_types if user_input in t]
+
+        not_found = [t for t in lt if not matches_any_type(t)]
         if len(not_found) > 0:
             plural = len(not_found) > 1
             plural_s = 's' if plural else ''
             self.logger.warning(
                 f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
-        return [all_types[t] for t in lt if t in all_types]
+        return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
     def __getstate__(self):
         """ Override the method of superclass """

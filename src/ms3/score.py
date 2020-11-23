@@ -716,7 +716,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
     def __iter__(self):
         """ Iterate keys of Annotation objects. """
-        attached = ['annotations'] if self._mscx is not None and self.mscx.has_annotations else []
+        attached = ['annotations'] if self._mscx is not None and self._mscx.has_annotations else []
         yield from attached + list(self._detached_annotations.keys())
     # def __setattr__(self, key, value):
     #     assert key != 'annotations', "The key 'annotations' is managed automatically, please pick a different one."

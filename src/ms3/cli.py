@@ -240,9 +240,9 @@ working directory except if you pass -f/--file.""")
 
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.")
-    convert_parser.add_argument('dir', metavar='DIR', type=check_dir, default=os.getcwd(),
-                                help='path to folder with files to convert; can be relative to the folder where the script is located.')
-    convert_parser.add_argument('target', metavar='TARGET_DIR', nargs='?', type=check_and_create, default=os.getcwd(),
+    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
+                                help='Path to folder with files to convert; can be relative to the folder where the script is located.')
+    convert_parser.add_argument('target', metavar='TARGET_DIR', type=check_and_create, default=os.getcwd(),
                                 help='Path to folder for converted files. Defaults to current working directory.')
     convert_parser.add_argument('-e', '--extensions', nargs='+', default=['mscx', 'mscz'],
                                 help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")

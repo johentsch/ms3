@@ -202,7 +202,7 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]
-    res = res.apply(lambda c: c.str.replace('/', 'empty_harmony'))
+    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony'))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
@@ -290,7 +290,7 @@ def commonprefix(paths, sep='/'):
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
-def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
+def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
