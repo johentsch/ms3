@@ -198,10 +198,11 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
         check_this = df[[column]]
     if regex.__class__ != re.compile('').__class__:
         regex = re.compile(regex, re.VERBOSE)
-    not_matched = check_this.apply(lambda r: ~r.str.match(regex).fillna(True))
+    not_matched = check_this.apply(lambda c: ~c.str.match(regex).fillna(True))
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]
+    res = res.apply(lambda c: c.str.replace('/', 'empty_harmony'))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
@@ -318,6 +319,7 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
     new_label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
+    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony')
 
     if return_series:
         return new_label_col
@@ -1198,4 +1200,6 @@ def update_labels_cfg(labels_cfg):
     if 'logger' in labels_cfg:
         del(labels_cfg['logger'])
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
+    if 'logger' in updated:
+        del(updated['logger'])
     return updated

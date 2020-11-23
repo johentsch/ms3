@@ -29,8 +29,9 @@ __license__ = "gpl3"
 
 def check(args):
     labels_cfg = {'decode': True}
-    if args.log is not None:
-        log = os.path.expanduser(args.log)
+    log = args.log
+    if log is not None:
+        log = os.path.expanduser(log)
         if not os.path.isabs(log):
             log = os.path.join(os.getcwd(), log)
     logger_cfg = {
@@ -45,15 +46,16 @@ def check(args):
         p.logger.warning("No MSCX files found.")
         return
     p.parse_mscx()
-    wrong = p.check_labels()
-    if wrong is None:
-        return
-    if len(wrong) == 0:
-        p.logger.info("No syntactical errors.")
-        return True
-    else:
-        p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
-        return False
+    if not args.scores_only:
+        wrong = p.check_labels()
+        if wrong is None:
+            return
+        if len(wrong) == 0:
+            p.logger.info("No syntactical errors.")
+            return True
+        else:
+            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
+            return False
 
 
 
@@ -181,12 +183,15 @@ MuseScore files is recreated there. Additionally, you can pass a filename to --l
 subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
-    check_parser = subparsers.add_parser('check', help="Check DCML harmony labels for syntactic correctness.")
+    check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
+In particular, check DCML harmony labels for syntactic correctness.""")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
                               default=os.getcwd(),
                               help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
 working directory except if you pass -f/--file.""")
     check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
+    check_parser.add_argument('-S', '--scores_only', action='store_true',
+                              help="Don't check DCML labels for syntactic correctness.")
     check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
 

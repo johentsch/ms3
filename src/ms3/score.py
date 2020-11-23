@@ -138,9 +138,9 @@ class Score(LoggedClass):
         The object representing the parsed MuseScore file.
         """
 
-        self._annotations = {}
+        self._detached_annotations = {}
         """:obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all :py:class:`~ms3.annotations.Annotations` objects.            """
+        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.            """
 
         self._types_to_infer = []
         """:obj:`list`
@@ -238,15 +238,15 @@ class Score(LoggedClass):
             self._types_to_infer = list(val.keys())
         after_reg = self.get_infer_regex()
         if before_inf != self._types_to_infer or before_reg != after_reg:
-            for ann in self._annotations.values():
-                ann.infer_types(after_reg)
+            for key in self:
+                self[key].infer_types(after_reg)
 
     @property
     def has_detached_annotations(self):
         """:obj:`bool`
         Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.
         """
-        return sum(True for key in self._annotations if key != 'annotations') > 0
+        return len(self._detached_annotations) > 0
 
     @property
     def mscx(self):
@@ -287,12 +287,12 @@ class Score(LoggedClass):
             Number of labels that were to be attached.
         """
         assert key != 'annotations', "Labels with key 'annotations' are already attached."
-        if key not in self._annotations:
+        if key not in self._detached_annotations:
             self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
-Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
+Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return 0, 0
 
-        annotations = self._annotations[key]
+        annotations = self._detached_annotations[key]
         goal = len(annotations.df)
         if goal == 0:
             self.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
@@ -303,14 +303,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return reached, goal
 
-        prepared_annotations = Annotations(df=df, cols=annotations.cols)
-        reached = self._mscx.add_labels(prepared_annotations)
-        self._annotations['annotations'] = self._mscx._annotations
-        if len(self._mscx._annotations.df) > 0:
-            self._mscx.has_annotations = True
+        prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict)
+        reached = self.mscx.add_labels(prepared_annotations)
         if remove_detached:
             if reached == goal:
-                del(self._annotations[key])
+                del(self._detached_annotations[key])
                 self.logger.debug(f"Detached annotations '{key}' successfully attached and removed.")
             else:
                 self.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
@@ -339,7 +336,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         :obj:`pandas.DataFrame`
             Labels not matching the regex.
         """
-        if len(self._annotations) == 0:
+        if keys == 'annotations' and not self.mscx.has_annotations:
             self.logger.debug("Score contains no Annotations.")
             return
         if regex is None:
@@ -357,14 +354,14 @@ Use one of the existing keys or load a new set with the method load_annotations(
             keys = [keys]
         existing, missing = [], []
         for k in keys:
-            (existing if k in self._annotations else missing).append(k)
+            (existing if k in self else missing).append(k)
         if len(missing) > 0:
-            self.logger.warning(f"The following keys are not among the Annotations objects, which are: {list(self._annotations.keys())}")
+            self.logger.warning(f"The following keys are not among the Annotations objects, which are: {list(self)}")
         if len(existing) == 0:
             return pd.DataFrame()
         labels_cfg = self.labels_cfg.copy()
         labels_cfg['decode'] = True
-        checks = [check_labels(self._annotations[k].get_labels(**labels_cfg), regex=regex, **kwargs) for k in existing]
+        checks = [check_labels(self[k].get_labels(**labels_cfg), regex=regex, **kwargs) for k in existing]
         if len(keys) > 1:
             return pd.concat(checks, keys=existing)
         else:
@@ -391,13 +388,13 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
             return
-        if detached_key not in self._annotations:
+        if detached_key not in self._detached_annotations:
             self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
-Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._annotations.keys())}""")
+Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return
 
-        old_obj = self._annotations[detached_key]
-        new_obj = self._annotations['annotations']
+        old_obj = self._detached_annotations[detached_key]
+        new_obj = self.mscx._annotations
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
@@ -436,7 +433,6 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
-            self._annotations['annotations'] = self.mscx._annotations
             self.logger.debug(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
 
 
@@ -466,27 +462,23 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Pass False if you want them to remain. This could be useful if you only want to extract a subset
             of the annotations for storing them separately but without removing the labels from the score.
         """
-        if 'annotations' not in self._annotations:
+        if not self.mscx.has_annotations:
             self.logger.info("No annotations present in score.")
             return
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         if not key.isidentifier():
             self.logger.warning(
-                f"'{key}' can not be used as an identifier. The extracted labels need to be accessed via self._annotations['{key}']")
+                f"'{key}' can not be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
         df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=delete)
         if len(df) == 0:
             self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += f"{self.logger_names['mscx']}:{key}"
-        self._annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
-                                             logger_cfg=logger_cfg)
+        self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
+                                                      logger_cfg=logger_cfg)
         if delete:
             self._mscx.delete_labels(df)
-            if self.mscx.has_annotations:
-                self._annotations['annotations'] = self._mscx._annotations
-            else:
-                del (self._annotations['annotations'])
         return
 
 
@@ -522,8 +514,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         self._label_regex[name] = regex
         if infer:
             self._types_to_infer.insert(0, name)
-            for ann in self._annotations.values():
-                ann.infer_types(self.get_infer_regex())
+            for key in self:
+                self[key].infer_types(self.get_infer_regex())
 
     def load_annotations(self, tsv_path=None, anno_obj=None, key='tsv', cols={}, infer=True):
         """ Attach an :py:class:`~ms3.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
@@ -547,6 +539,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             By default, the label types are inferred in the currently configured order (see :py:attr:`infer_label_types`).
             Pass False to not add and not change any label types.
         """
+        assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
         inf_dict = self.get_infer_regex() if infer else {}
         mscx = None if self._mscx is None else self._mscx
@@ -554,13 +547,13 @@ Use one of the existing keys or load a new set with the method load_annotations(
             key = self._handle_path(tsv_path, key)
             logger_cfg = self.logger_cfg.copy()
             logger_cfg['name'] = f"{self.logger_names[key]}"
-            self._annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
-                                                 logger_cfg=logger_cfg)
+            self._detached_annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
+                                                          logger_cfg=logger_cfg)
         else:
             anno_obj.mscx_obj = mscx
-            self._annotations[key] = anno_obj
+            self._detached_annotations[key] = anno_obj
 
-    def store_annotations(self, key=None, tsv_path=None, **kwargs):
+    def store_annotations(self, key='annotations', tsv_path=None, **kwargs):
         """ Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method
         can also store detached labels by passing a ``key``.
 
@@ -577,10 +570,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             customise the format of the created file (e.g. to change the separator to commas instead of tabs,
             you would pass ``sep=','``).
         """
-        if key is None:
-            assert self._mscx.has_annotations, "Score has no labels attached."
-            key = 'annotations'
-        assert key in self._annotations, f"Key '{key}' not found. Available keys: {list(self._annotations.keys())}"
+        assert key in self, f"Key '{key}' not found. Available keys: {list(self)}"
         if tsv_path is None:
             if 'mscx' in self.paths:
                 path = self.paths['mscx']
@@ -589,10 +579,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
             else:
                 self.logger.warning(f"No tsv_path has been specified and no MuseScore file has been parsed to infer one.")
                 return
-        if self._annotations[key].store_tsv(tsv_path, **kwargs):
+        if self[key].store_tsv(tsv_path, **kwargs):
             new_key = self._handle_path(tsv_path, key=key)
             if key != 'annotations':
-                self._annotations[key].update_logger_cfg({'name': self.logger_names[new_key]})
+                self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
     def store_mscx(self, filepath):
@@ -682,9 +672,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         else:
             self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
                               logger_cfg=logger_cfg)
-        if self._mscx.has_annotations:
-            self._annotations['annotations'] = self._mscx._annotations
-            self._annotations['annotations'].infer_types(self.get_infer_regex())
+        if self.mscx.has_annotations:
+            self.mscx._annotations.infer_types(self.get_infer_regex())
 
 
     def __repr__(self):
@@ -696,32 +685,39 @@ Use one of the existing keys or load a new set with the method load_annotations(
             else:
                 msg += "\n--------------"
             msg += f"\n\n{self.full_paths['mscx']}\n\n"
-        if 'annotations' in self._annotations:
+        if self.mscx.has_annotations:
             msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
         else:
             msg += "No annotations attached.\n\n"
         if self.has_detached_annotations:
             msg += "Detached annotations\n--------------------\n\n"
-            for key, obj in self._annotations.items():
-                if key != 'annotations':
-                    key_info = key + f" (stored as {self.files[key]})" if key in self.files else key
-                    msg += f"{key_info} -> {obj}\n\n"
+            for key, obj in self._detached_annotations.items():
+                key_info = key + f" (stored as {self.files[key]})" if key in self.files else key
+                msg += f"{key_info} -> {obj}\n\n"
         return msg
 
 
 
     def __getattr__(self, item):
+        if item == 'annotations':
+            return self.mscx._annotations
         try:
-            return self._annotations[item]
+            return self._detached_annotations[item]
         except:
             raise AttributeError(item)
 
     def __getitem__(self, item):
+        if item == 'annotations':
+            return self.mscx._annotations
         try:
-            return self._annotations[item]
+            return self._detached_annotations[item]
         except:
             raise AttributeError(item)
 
+    def __iter__(self):
+        """ Iterate keys of Annotation objects. """
+        attached = ['annotations'] if self._mscx is not None and self.mscx.has_annotations else []
+        yield from attached + list(self._detached_annotations.keys())
     # def __setattr__(self, key, value):
     #     assert key != 'annotations', "The key 'annotations' is managed automatically, please pick a different one."
     #     assert key.isidentifier(), "Please use an alphanumeric key without special characters."
@@ -1042,11 +1038,12 @@ class MSCX(LoggedClass):
         df : :obj:`pandas.DataFrame`
             A DataFrame with the columns ['mc', 'mc_onset', 'staff', 'voice']
         """
-        positions = set(df[['mc', 'staff', 'voice', 'mc_onset']].itertuples(name=None, index=False))
+        cols = ['mc', 'staff', 'voice', 'mc_onset']
+        positions = set(df[cols].itertuples(name=None, index=False))
         changed = {ix: self._parsed.delete_label(mc, staff, voice, mc_onset)
                    for ix, mc, staff, voice, mc_onset
                    in reversed(
-                        list(df[['mc', 'staff', 'voice', 'mc_onset']].drop_duplicates().itertuples(name=None, index=True)))}
+                        list(df[cols].drop_duplicates().itertuples(name=None, index=True)))}
         changed = pd.Series(changed, index=df.index).fillna(method='ffill')
         changes = changed.sum()
         if changes > 0:
@@ -1057,6 +1054,32 @@ class MSCX(LoggedClass):
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
                 self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
+
+
+    def delete_empty_labels(self):
+        """ Remove all empty labels from the attached annotations. """
+        if self._annotations is None:
+            self.logger.info("No annotations attached.")
+            return
+        df = self._annotations.get_labels(decode=True)
+        label_col = self._annotations.cols['label']
+        sel = df[label_col] == 'empty_harmony'
+        if sel.sum() == 0:
+            self.logger.info("Score contains no empty labels.")
+            return
+        cols = ['mc', 'staff', 'voice', 'mc_onset']
+        changed = [self._parsed.delete_label(mc, staff, voice, mc_onset, empty_only=True)
+                   for mc, staff, voice, mc_onset
+                   in df.loc[sel, cols].itertuples(name=None, index=False)]
+        if sum(changed) > 0:
+            self.changed = True
+            self._parsed.parse_measures()
+            self._update_annotations()
+            self.logger.info(f"Successfully deleted {sum(changed)} empty labels.")
+        else:
+            self.logger.info("No empty labels were deleted.")
+
+
 
 
     def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False,
@@ -1265,11 +1288,14 @@ class MSCX(LoggedClass):
         return what, [str(s) for s in suffix]
 
 
-    def _update_annotations(self):
+    def _update_annotations(self, infer_types={}):
+        if len(infer_types) == 0 and self._annotations is not None:
+            infer_types = self._annotations.regex_dict
         if self._parsed.has_annotations:
+            self.has_annotations = True
             logger_cfg = self.logger_cfg.copy()
             logger_cfg['name'] += ':annotations'
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self,
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
                                             logger_cfg=logger_cfg)
         else:
             self._annotations = None

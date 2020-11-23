@@ -612,7 +612,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return df[[col for col in df.columns if not col == 'mc_offset']]
 
 
-    def delete_label(self, mc, staff, voice, mc_onset):
+    def delete_label(self, mc, staff, voice, mc_onset, empty_only=False):
         """ Delete a label from a particular position (if there is one).
 
         Parameters
@@ -623,6 +623,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             Notational layer in which to delete the label.
         mc_onset : :obj:`fractions.Fraction`
             mc_onset
+        empty_only : :obj:`bool`, optional
+            Set to True if you want to delete only empty harmonies. Since normally all labels at the defined position
+            are deleted, this flag is needed to prevent non-empty <Harmony> tags.
 
         Returns
         -------
@@ -748,6 +751,16 @@ f"Too many location tags in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice 
         ##### Here the actual removal takes place.
         deletions = []
         delete_location = not (mc_onset == 0 and not is_last)
+        labels = [e for e in elements if e['name'] == 'Harmony']
+        if empty_only:
+            empty = [e for e in labels if e['tag'].find('name') is None or e['tag'].find('name').string is None]
+            if len(empty) == 0:
+                self.logger.info(f"No empty label to delete at MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
+            elif len(empty) < len(labels):
+                # if there are additional non-empty labels, delete nothing but the empty ones
+                elements = empty
+
+
         for i, e in enumerate(elements):
             if e['name'] == 'Harmony' or (e['name']  == 'location' and delete_location):
                 e['tag'].decompose()

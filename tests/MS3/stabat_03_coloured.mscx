@@ -3478,13 +3478,11 @@ e organo</longName>
             <sigD>4</sigD>
             </TimeSig>
           <Harmony>
-            <leftParen/>
             <root>15</root>
             <rootCase>1</rootCase>
             <name>.i{</name>
             <color r="0" g="85" b="0" a="255"/>
             <offset x="-4.91594" y="-5.29159"/>
-            <rightParen/>
             </Harmony>
           <Chord>
             <durationType>quarter</durationType>

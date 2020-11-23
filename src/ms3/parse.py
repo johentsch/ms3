@@ -407,7 +407,7 @@ Continuing with {annotation_key}.""")
         reached, goal = 0, 0
         for id in ids:
             for anno_key in annotation_key:
-                if anno_key in self._parsed_mscx[id]._annotations:
+                if anno_key in self._parsed_mscx[id]._detached_annotations:
                     r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
@@ -513,7 +513,7 @@ Continuing with {annotation_key}.""")
 
         if which == 'detached':
             for id in self._iterids(keys, only_detached_annotations=True):
-                for key, annotations in self._parsed_mscx[id]._annotations.items():
+                for key, annotations in self._parsed_mscx[id]._detached_annotations.items():
                     if key != 'annotations':
                         _, layers = annotations.annotation_layers
                         res_dict[key].update(layers.to_dict())
@@ -917,7 +917,7 @@ Continuing with {annotation_key}.""")
         """
         if simulate is not None:
             self.simulate = simulate
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
@@ -1229,7 +1229,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             if id in self._parsed_mscx:
                 score = self._parsed_mscx[id]
                 if score is not None:
-                    if 'annotations' in score._annotations:
+                    if 'annotations' in score._detached_annotations:
                         updated[id] = score.annotations
                     elif id in self._annotations:
                         del (self._annotations[id])
@@ -1309,7 +1309,7 @@ Load one of the identically named files with a different key using add_dir(key='
                     if id not in self._parsed_mscx:
                         continue
                     if only_attached_annotations:
-                        if 'annotations' in self._parsed_mscx[id]._annotations:
+                        if 'annotations' in self._parsed_mscx[id]._detached_annotations:
                             pass
                         else:
                             continue
