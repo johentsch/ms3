@@ -49,13 +49,22 @@ def check(args):
     if not args.scores_only:
         wrong = p.check_labels()
         if wrong is None:
-            return
+            res = None
         if len(wrong) == 0:
-            p.logger.info("No syntactical errors.")
-            return True
+            msg = "No syntactical errors."
+            res =  True
         else:
-            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
-            return False
+            msg = f"The following labels don't match the regular expression:\n{wrong.to_string()}"
+            res = False
+    if args.assertion:
+        assert res, msg
+        p.logger.info(msg)
+        return
+    if res:
+        p.logger.info(msg)
+    else:
+        p.logger.warning(msg)
+    return res
 
 
 
@@ -192,6 +201,7 @@ working directory except if you pass -f/--file.""")
     check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
     check_parser.add_argument('-S', '--scores_only', action='store_true',
                               help="Don't check DCML labels for syntactic correctness.")
+    check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
     check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
 

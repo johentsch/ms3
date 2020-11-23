@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 0.4.3
+=============
+
+* added 'ms3 check' command
+* support of coloured labels
+* write coloured labels to score comparing attached and detached labels to each other
+
+
 Version 0.4.2
 =============
 
