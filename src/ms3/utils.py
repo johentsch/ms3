@@ -318,8 +318,8 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
-    new_label_col = df[compose_label].fillna('').sum(axis=1).replace('', np.nan)
-    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony')
+    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
+    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony').replace('', np.nan)
 
     if return_series:
         return new_label_col
