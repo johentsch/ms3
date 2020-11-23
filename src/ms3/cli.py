@@ -51,22 +51,38 @@ def check(args):
         if wrong is None:
             res = None
         if len(wrong) == 0:
-            msg = "No syntactical errors."
-            res =  True
+            p.logger.info("No syntactical errors.")
+            res = True
         else:
-            msg = f"The following labels don't match the regular expression:\n{wrong.to_string()}"
+            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
             res = False
     if args.assertion:
-        assert res, msg
-        p.logger.info(msg)
-        return
-    if res:
-        p.logger.info(msg)
-    else:
-        p.logger.warning(msg)
+        assert res, "Contains syntactical errors."
     return res
 
 
+def compare(args):
+    if args.file is None:
+        p = Parse(dir=args.root_dir, key='compare', index='fname', file_re=r'\.mscx$')
+    else:
+        p = Parse(paths=args.file, key='compare', index='fname')
+    if '.mscx' not in p.count_extensions():
+        p.logger.warning("No MSCX files found.")
+        return
+    p.parse_mscx()
+    if not args.scores_only:
+        wrong = p.check_labels()
+        if wrong is None:
+            res = None
+        if len(wrong) == 0:
+            p.logger.info("No syntactical errors.")
+            res = True
+        else:
+            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
+            res = False
+    if args.assertion:
+        assert res, "Contains syntactical errors."
+    return res
 
 
 def extract(args):
@@ -192,6 +208,7 @@ MuseScore files is recreated there. Additionally, you can pass a filename to --l
 subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
+
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
 In particular, check DCML harmony labels for syntactic correctness.""")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
@@ -199,11 +216,26 @@ In particular, check DCML harmony labels for syntactic correctness.""")
                               help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
 working directory except if you pass -f/--file.""")
     check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
-    check_parser.add_argument('-S', '--scores_only', action='store_true',
+    check_parser.add_argument('-s', '--scores_only', action='store_true',
                               help="Don't check DCML labels for syntactic correctness.")
     check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
     check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
+
+
+    compare_parser = subparsers.add_parser('compare',
+        help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.")
+    compare_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
+                              default=os.getcwd(),
+                              help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
+    working directory except if you pass -f/--file.""")
+    compare_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+',
+                              help='Add path(s) of individual file(s) to be checked.')
+    compare_parser.add_argument('-r', '--rel_path', metavar='PATH', default='../harmonies',
+                                help='Path relative to the MSCX file(s) where to look for existing annotation tables.')
+    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX',
+                                help='If existing annotation tables have a particular suffix, pass this suffix.')
+    compare_parser.set_defaults(func=compare)
 
 
     convert_parser = subparsers.add_parser('convert',

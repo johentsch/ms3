@@ -356,6 +356,41 @@ Therefore, the index for this key has been adapted.""")
             self.logger.debug("No files added.")
 
 
+    def add_rel_dir(self, rel_dir, key=None, index=None, suffix=''):
+        """
+        This method can be used for adding particular (TSV) files belonging to all already loaded (MSCX) files.
+
+        Parameters
+        ----------
+        rel_dir : :obj:`str`
+            Path where the files to be added can be found, relative to each loaded MSCX file. They are expected to have
+            the same file name, maybe with an added ``suffix``.
+        key : :obj:`str`, optional
+            | Pass a string to identify the loaded files.
+            | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
+              itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
+            | 'fname' evokes an index level made from file names.
+        suffix : :obj:`str`. optional
+            If the files to be loaded can be identified by adding a suffix to the filename, pass this suffix, e.g. '_labels'.
+        """
+
+        self.last_scanned_dir = rel_dir
+        if file_re in ['tsv', 'csv']:
+            file_re = r"\." + file_re + '$'
+        paths = scan_directory(rel_dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        self.add_files(paths=paths, key=key, index=index)
+
+
+
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, check_for_clashes=True):
         """ Attach all :obj:`~ms3.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
         respective :obj:`~ms3.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
