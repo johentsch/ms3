@@ -6,7 +6,7 @@ import sys, re
 import pandas as pd
 import numpy as np
 
-from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, transform, sort_tpcs
+from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, split_alternatives, transform, sort_tpcs
 from .logger import function_logger
 
 
@@ -71,11 +71,11 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
         Name of the column that holds the harmony labels.
     regex : :obj:`re.Pattern`
         Compiled regular expression used to split the labels. It needs to have named groups.
-        The group names are used as column names unless replaced by `cols`.
+        The group names are used as column names unless replaced by ``cols``.
     cols : :obj:`dict`, optional
         Dictionary to map the regex's group names to deviating column names of your choice.
     dropna : :obj:`bool`, optional
-        Pass True if you want to drop rows where `column` is NaN/<NA>
+        Pass True if you want to drop rows where ``column`` is NaN/<NA>
     propagate: :obj:`bool`, optional
         By default, information about global and local keys and about pedal points is spread throughout
         the DataFrame. Pass False if you only want to split the labels into their features. This ignores
@@ -86,7 +86,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
     chord_tones : :obj:`bool`, optional
         Pass True if you want to add four columns that contain information about each label's
         chord, added, root, and bass tones. The pitches are expressed as intervals
-        relative to the respective chord's local key or, if `relative_to_global=True`,
+        relative to the respective chord's local key or, if ``relative_to_global=True``,
         to the globalkey. The intervals are represented as integers that represent
         stacks of fifths over the tonic, such that 0 = tonic, 1 = dominant, -1 = subdominant,
         2 = supertonic etc.
@@ -196,44 +196,6 @@ def transpose(e, n):
     return map2elements(e, lambda x: x + n)
 
 
-@function_logger
-def split_alternatives(df, column='label', inplace=False):
-    """
-    Splits labels that come with an alternative separated by '-' and adds
-    a new column. Only one alternative is taken into account. `df` is
-    mutated inplace.
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        Dataframe where one column contains DCML chord labels.
-    column : :obj:`str`, optional
-        Name of the column that holds the harmony labels.
-    inplace : :obj:`bool`, optional
-        Pass True if you want to mutate ``df``.
-
-    Example
-    -------
-    >>> import pandas as pd
-    >>> labels = pd.read_csv('labels.csv')
-    >>> split_alternatives(labels, inplace=True)
-    """
-    if not inplace:
-        df = df.copy()
-    regex = r"-(?!(\d|b|\#))"  # <v2.2.0 labels work without lookahead: regex='-'
-    alternatives = df[column].str.split(regex, expand=True)
-    if len(alternatives.columns) > 1:
-        logger.debug("Labels split into alternatives.")
-        alt_name = f"alt_{column}"
-        df.loc[:, column] = alternatives[0]
-        df.insert(df.columns.get_loc(column) + 1, alt_name, alternatives[2].fillna(np.nan))  # replace None by NaN
-        if len(alternatives.columns) > 3:
-            logger.warning(
-                f"More than two alternatives are not taken into account: {alternatives[alternatives[2].notna()]}")
-    else:
-        logger.debug("Contains no alternative labels.")
-    if not inplace:
-        return df
 
 
 @function_logger
@@ -299,7 +261,7 @@ def features2type(numeral, form=None, figbass=None):
     '+7':   Augmented (minor) seventh chord
     '+M7':  Augmented major seventh chord
     """
-    if pd.isnull(numeral):
+    if pd.isnull(numeral) or numeral in ['Fr', 'Ger', 'It']:
         return numeral
     form, figbass = tuple('' if pd.isnull(val) else val for val in (form, figbass))
     # triads

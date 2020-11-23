@@ -10,7 +10,7 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
+from .utils import commonprefix, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
     resolve_dir, scan_directory, string2lines, update_labels_cfg
 
 
@@ -19,7 +19,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, dir=None, paths=[], key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}):
         """
 
@@ -27,7 +27,10 @@ class Parse(LoggedClass):
         ----------
         dir, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
-            If ``dir`` is not passed, no files are added to the new object.
+            If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
+        paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
+            List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
+            WARNING: If you want to use a custom index, don't use both arguments simultaneously.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
@@ -187,6 +190,10 @@ class Parse(LoggedClass):
         """
         if dir is not None:
             self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        if paths is not None:
+            if isinstance(paths, str):
+                paths = [paths]
+            self.add_files(paths, key=key, index=index)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -244,7 +251,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
     def add_dir(self, dir, key=None, index=None, file_re=r'\.mscx$', folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
-        This function scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
+        This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
         e.g. 'mscx' for score, 'harmonies' for chord labels, and 'form' for form labels.
 
@@ -281,9 +288,43 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         self.last_scanned_dir = dir
         if file_re in ['tsv', 'csv']:
             file_re = r"\." + file_re + '$'
-        res = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-        ids = [self._handle_path(p, key) for p in res]
-        if len(ids) > 0:
+        paths = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        self.add_files(paths=paths, key=key, index=index)
+
+
+    def add_files(self, paths, key, index=None):
+        """
+
+        Parameters
+        ----------
+        paths : :obj:`~collections.abc.Collection`
+            The paths of the files you want to add to the object.
+        key : :obj:`str`
+            | Pass a string to identify the loaded files.
+            | If you pass 'rel_path', the keys are automatically assigned relative to the longest common prefix of all paths.
+            | If None is passed, paths relative to :py:prop:`last_scanned_dir` are used as keys, which therefore needs to be
+              set (mainly for use with :py:meth:`add_dir`)
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
+            | 'fname' evokes an index level made from file names.
+        """
+        if isinstance(paths, str):
+            paths = [paths]
+        if key == 'rel_path':
+            if len(paths) > 1:
+                self.last_scanned_dir = commonprefix(paths, os.path.sep)
+            else:
+                key = os.path.basename(os.path.dirname(paths[0]))
+
+        ids = [self._handle_path(p, key) for p in paths]
+        if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             grouped_ids = group_id_tuples(ids)
             exts = {k: self.count_extensions(k, i) for k, i in grouped_ids.items()}
@@ -341,6 +382,10 @@ Therefore, the index for this key has been adapted.""")
             layer) where a new one is attached. Pass False to deactivate this warnings.
         """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
+        if len(layers) == 0:
+            ks = '' if keys is None else ' under the key(s) ' + keys
+            self.logger.warning(f"No detached annotations found{ks}.")
+            return
         if annotation_key is None:
             annotation_key = list(layers.keys())
         elif isinstance(annotation_key, str):
@@ -358,11 +403,11 @@ Currently available annotation keys are {list(layers.keys())}""")
 f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
 Continuing with {annotation_key}.""")
 
-        ids = list(self._iterids(keys, filter_detached_annotations=True))
+        ids = list(self._iterids(keys, only_detached_annotations=True))
         reached, goal = 0, 0
         for id in ids:
             for anno_key in annotation_key:
-                if anno_key in self._parsed_mscx[id]._annotations:
+                if anno_key in self._parsed_mscx[id]._detached_annotations:
                     r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
@@ -390,6 +435,19 @@ Continuing with {annotation_key}.""")
         if len(ids) > 0:
             self.collect_lists(ids=ids, labels=True)
 
+
+    def check_labels(self, keys=None, ids=None):
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            return
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        checks = {id: self._parsed_mscx[id].check_labels() for id in ids}
+        checks = {k: v for k, v in checks.items() if v is not None and len(v) > 0}
+        if len(checks) > 0:
+            idx = self.ids2idx(checks.keys(), pandas_index=True)
+            return pd.concat(checks.values(), keys=idx, names=idx.names)
+        return pd.DataFrame()
 
 
 
@@ -454,8 +512,8 @@ Continuing with {annotation_key}.""")
         res_dict = defaultdict(Counter)
 
         if which == 'detached':
-            for id in self._iterids(keys, filter_detached_annotations=True):
-                for key, annotations in self._parsed_mscx[id]._annotations.items():
+            for id in self._iterids(keys, only_detached_annotations=True):
+                for key, annotations in self._parsed_mscx[id]._detached_annotations.items():
                     if key != 'annotations':
                         _, layers = annotations.annotation_layers
                         res_dict[key].update(layers.to_dict())
@@ -475,7 +533,14 @@ Continuing with {annotation_key}.""")
             if len(counts) == 0:
                 return pd.Series()
             data = counts.values()
-            ix = pd.Index(counts.keys(), names=['staff', 'voice', 'label_type'])
+            ks = list(counts.keys())
+            levels = len(ks[0])
+            names = ['staff', 'voice', 'label_type', 'color'][:levels]
+            try:
+                ix = pd.Index(counts.keys(), names=names)
+            except:
+                print(counts)
+                raise
             return pd.Series(data, ix)
 
         if per_key:
@@ -577,7 +642,7 @@ Continuing with {annotation_key}.""")
         """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
-        ids = list(self._iterids(keys, filter_attached_annotations=True))
+        ids = list(self._iterids(keys, only_attached_annotations=True))
         prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
@@ -639,6 +704,17 @@ Continuing with {annotation_key}.""")
 
 
     def ids2idx(self, ids, pandas_index=False):
+        """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
+
+        Parameters
+        ----------
+        ids
+        pandas_index
+
+        Returns
+        -------
+        :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
+        """
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
         error = False
@@ -841,7 +917,7 @@ Continuing with {annotation_key}.""")
         """
         if simulate is not None:
             self.simulate = simulate
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
@@ -852,7 +928,10 @@ Continuing with {annotation_key}.""")
         else:
             paths = [(key, i) for key, i in self._iterids(keys) if
                      self.fexts[key][i] == '.mscx']
-
+        if len(paths) == 0:
+            reason = 'in the entire object' if keys is None else f"for '{keys}'"
+            self.logger.info(f"No MSCX files found {reason}.")
+            return
         if level is None:
             level = self.logger.logger.level
         cfg = {'level': level}
@@ -995,8 +1074,8 @@ Continuing with {annotation_key}.""")
             try:
                 df = load_tsv(path, **kwargs)
             except:
-                self.logger.error(path)
-                raise
+                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter.\n{path}")
+                continue
             label_col = cols['label'] if 'label' in cols else 'label'
             try:
                 self._parsed_tsv[(key, i)] = df
@@ -1015,7 +1094,7 @@ Continuing with {annotation_key}.""")
                         if label_col in df.columns:
                             logger_name = self.files[key][i]
                             self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                      logger_name=logger_name, level=level)
+                                                                      logger_cfg={'name': logger_name}, level=level)
                             self.logger.debug(
                                 f"{rel_path} parsed as a list of labels and an Annotations object was created.")
                         else:
@@ -1089,13 +1168,13 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
-    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', simulate=False):
+    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
         """
         ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
-            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, simulate=simulate)
+            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path in paths:
                 modus = 'would ' if simulate else ''
                 self.logger.warning(f"The score at {new_path} {modus}have been overwritten.")
@@ -1150,7 +1229,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             if id in self._parsed_mscx:
                 score = self._parsed_mscx[id]
                 if score is not None:
-                    if 'annotations' in score._annotations:
+                    if 'annotations' in score._detached_annotations:
                         updated[id] = score.annotations
                     elif id in self._annotations:
                         del (self._annotations[id])
@@ -1207,15 +1286,15 @@ Load one of the identically named files with a different key using add_dir(key='
                 break
         return res
 
-    def _iterids(self, keys=None, only_parsed_mscx=False, filter_attached_annotations=False, filter_detached_annotations=False):
+    def _iterids(self, keys=None, only_parsed_mscx=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
 
         Parameters
         ----------
         keys
         only_parsed_mscx
-        filter_attached_annotations
-        filter_detached_annotations
+        only_attached_annotations
+        only_detached_annotations
 
         Yields
         ------
@@ -1226,15 +1305,15 @@ Load one of the identically named files with a different key using add_dir(key='
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
             for id in make_id_tuples(key, len(self.fnames[key])):
-                if only_parsed_mscx or filter_attached_annotations or filter_detached_annotations:
+                if only_parsed_mscx or only_attached_annotations or only_detached_annotations:
                     if id not in self._parsed_mscx:
                         continue
-                    if filter_attached_annotations:
-                        if 'annotations' in self._parsed_mscx[id]._annotations:
+                    if only_attached_annotations:
+                        if 'annotations' in self._parsed_mscx[id]._detached_annotations:
                             pass
                         else:
                             continue
-                    if filter_detached_annotations:
+                    if only_detached_annotations:
                         if self._parsed_mscx[id].has_detached_annotations:
                             pass
                         else:
@@ -1255,39 +1334,39 @@ Load one of the identically named files with a different key using add_dir(key='
                 if i in selector:
                     yield e
 
-        def _make_index_level(self, level, ids, selector=None):
-            if level == 'key':
-                return {id: id[0] for id in ids}
-            if level == 'i':
-                return {id: id[1] for id in ids}
-            if level == 'fname':
-                return {(key, i): self.fnames[key][i] for key, i in ids}
-            ll, li = len(level), len(ids)
-            ls = 0 if selector is None else len(selector)
-            if ll < li:
-                self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
-                return {}
-            if ll > li:
-                if ls == 0:
-                    res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
-                    discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
-                    self.logger.warning(
-                        f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
-    Using the first {li} elements, discarding {discarded}""")
-                elif ls != li:
-                    self.logger.error(
-                        f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
-                    res = {}
-                else:
-                    if ls != ll:
-                        discarded = [l for l in self._itersel(level, selector, opposite=True)]
-                        plural_s = 's' if len(discarded) > 1 else ''
-                        self.logger.debug(
-                            f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
-                    res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
+    def _make_index_level(self, level, ids, selector=None):
+        if level == 'key':
+            return {id: id[0] for id in ids}
+        if level == 'i':
+            return {id: id[1] for id in ids}
+        if level == 'fname':
+            return {(key, i): self.fnames[key][i] for key, i in ids}
+        ll, li = len(level), len(ids)
+        ls = 0 if selector is None else len(selector)
+        if ll < li:
+            self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
+            return {}
+        if ll > li:
+            if ls == 0:
+                res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
+                discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
+                self.logger.warning(
+                    f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
+Using the first {li} elements, discarding {discarded}""")
+            elif ls != li:
+                self.logger.error(
+                    f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
+                res = {}
             else:
-                res = {i: l for i, l in zip(ids, level)}
-            return res
+                if ls != ll:
+                    discarded = [l for l in self._itersel(level, selector, opposite=True)]
+                    plural_s = 's' if len(discarded) > 1 else ''
+                    self.logger.debug(
+                        f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
+                res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
+        else:
+            res = {i: l for i, l in zip(ids, level)}
+        return res
 
 
     def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
@@ -1313,7 +1392,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, simulate=False):
+    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
         """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
 
         Parameters
@@ -1352,6 +1431,16 @@ Load one of the identically named files with a different key using add_dir(key='
 
         fname = fname + suffix + '.mscx'
         file_path = os.path.join(path, fname)
+        if os.path.isfile(file_path):
+            if simulate:
+                if overwrite:
+                    self.logger.warning(f"Would have overwritten {file_path}.")
+                    return restore_logger(file_path)
+                self.logger.warning(f"Would have skipped {file_path}.")
+                return restore_logger(None)
+            elif not overwrite:
+                self.logger.warning(f"Skipped {file_path}.")
+                return restore_logger(None)
         if simulate:
             self.logger.debug(f"Would have written score to {file_path}.")
         else:

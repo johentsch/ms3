@@ -27,6 +27,46 @@ __license__ = "gpl3"
 
 
 
+def check(args):
+    labels_cfg = {'decode': True}
+    log = args.log
+    if log is not None:
+        log = os.path.expanduser(log)
+        if not os.path.isabs(log):
+            log = os.path.join(os.getcwd(), log)
+    logger_cfg = {
+        'level': args.level,
+        'file': log,
+    }
+    if args.file is None:
+        p = Parse(dir=args.root_dir, key='check', index='fname', file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+    else:
+        p = Parse(paths=args.file, key='check', index='fname', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+    if '.mscx' not in p.count_extensions():
+        p.logger.warning("No MSCX files found.")
+        return
+    p.parse_mscx()
+    if not args.scores_only:
+        wrong = p.check_labels()
+        if wrong is None:
+            res = None
+        if len(wrong) == 0:
+            msg = "No syntactical errors."
+            res =  True
+        else:
+            msg = f"The following labels don't match the regular expression:\n{wrong.to_string()}"
+            res = False
+    if args.assertion:
+        assert res, msg
+        p.logger.info(msg)
+        return
+    if res:
+        p.logger.info(msg)
+    else:
+        p.logger.warning(msg)
+    return res
+
+
 
 
 def extract(args):
@@ -48,6 +88,7 @@ def extract(args):
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
     else:
         suffixes = {}
+
     logger_cfg = {
         'level': args.level,
         'file': args.logfile,
@@ -114,7 +155,8 @@ def run():
 
 The library offers you the following commands. Add the flag -h to one of them to learn about its parameters. 
 ''')
-
+    parser.add_argument('-l', '--level', metavar='LOG_LEVEL', default='i',
+                                help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
 
     subparsers = parser.add_subparsers(help='The action that you want to perform.')
 
@@ -138,8 +180,6 @@ This setting has no effect on absolute folder paths.""")
                                 help="Select only file names including this regular expression.")
     extract_parser.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
-    extract_parser.add_argument('-l', '--level', metavar='LOG_LEVEL', default='i',
-                                help="Choose how many log messages you want to see: d (maximum), i, w, e, c (none)")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
@@ -152,14 +192,23 @@ MuseScore files is recreated there. Additionally, you can pass a filename to --l
 subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
-    check_parser = subparsers.add_parser('check', help="Check DCML harmony labels.")
+    check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
+In particular, check DCML harmony labels for syntactic correctness.""")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
                               default=os.getcwd(),
-                              help='Folder that will be scanned for MuseScore files (.mscx).')
+                              help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
+working directory except if you pass -f/--file.""")
+    check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
+    check_parser.add_argument('-S', '--scores_only', action='store_true',
+                              help="Don't check DCML labels for syntactic correctness.")
+    check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
+    check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
+    check_parser.set_defaults(func=check)
+
 
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.")
-    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
+    convert_parser.add_argument('dir', metavar='DIR', type=check_dir, default=os.getcwd(),
                                 help='path to folder with files to convert; can be relative to the folder where the script is located.')
     convert_parser.add_argument('target', metavar='TARGET_DIR', nargs='?', type=check_and_create, default=os.getcwd(),
                                 help='Path to folder for converted files. Defaults to current working directory.')
@@ -185,6 +234,7 @@ subdirectory; otherwise, an individual log file is automatically created for eac
         args.func(args)
     else:
         parser.print_help()
+
 
 
 
