@@ -1,8 +1,11 @@
 import os, re
+from contextlib import contextmanager
+from tempfile import NamedTemporaryFile as Temp
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, decode_harmonies, no_collections_no_booleans, resolve_dir, rgba, rgba2attrs, rgba2params, unpack_mscz, update_labels_cfg, update_cfg
+from .utils import check_labels, color2rgba, convert, decode_harmonies, get_ms_version, get_musescore, no_collections_no_booleans,\
+    resolve_dir, rgba, rgba2attrs, rgba2params, test_binary, unpack_mscz, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -76,7 +79,7 @@ class Score(LoggedClass):
     """
 
     def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
-                 parser='bs4'):
+                 parser='bs4', ms=None):
         """
 
         Parameters
@@ -100,6 +103,10 @@ class Score(LoggedClass):
             'file': PATH_TO_LOGFILE to store all log messages under the given path.
         parser : 'bs4', optional
             The only XML parser currently implemented is BeautifulSoup 4.
+        ms : :obj:`str`, optional
+            If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command
+            of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
+            Windows, 'mac' for MacOS, or 'mscore' for Linux.
         """
         super().__init__(subclass='Score', logger_cfg=logger_cfg)
 
@@ -132,6 +139,12 @@ class Score(LoggedClass):
         ``{KEY: {i: file extension}}`` dictionary holding the file extension of each parsed file.
         Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
         """
+
+        if not test_binary(ms, logger=self.logger):
+            ms = get_musescore(ms, logger=self.logger)
+        self.ms = ms
+        """:obj:`str`
+        Path or command of the local MuseScore 3 installation if specified by the user."""
 
         self._mscx = None
         """:obj:`MSCX`
@@ -658,22 +671,45 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         if parser is not None:
             self.parser = parser
-        if musescore_file[-4:] not in ('mscx', 'mscz'):
-            raise ValueError(f"The extension of a MuseScore file should be mscx or mscz, not {extensions}.")
+        native = ('mscx', 'mscz')
+        by_conversion = ('xml', 'musicxml', 'cap')
+        permitted_extensions = native + by_conversion
+        _, ext = os.path.splitext(musescore_file)
+        ext = ext[1:]
+        if ext.lower() not in permitted_extensions:
+            raise ValueError(f"The extension of a MuseScore file should be one of {permitted_extensions} not {ext}.")
+        if ext.lower() in by_conversion and self.ms is None:
+            raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(musescore_file)
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = self.logger_names[extension]
-        if extension == 'mscz':
-            fake_path = musescore_file[:-4] + 'mscx'
-            self._handle_path(fake_path)
-            with unpack_mscz(musescore_file) as tmp_mscx:
+
+        if extension in by_conversion +  ('mscz', ):
+            ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
+            with ctxt_mgr(musescore_file) as tmp_mscx:
+                self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
                 self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
-                                  logger_cfg=logger_cfg)
+                                  logger_cfg=logger_cfg, parent_score=self)
+                self.mscx.mscx_src = musescore_file
         else:
-            self._mscx = MSCX(self.full_paths['mscx'], read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
-                              logger_cfg=logger_cfg)
+            self._mscx = MSCX(musescore_file, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
+                              logger_cfg=logger_cfg, parent_score=self)
         if self.mscx.has_annotations:
             self.mscx._annotations.infer_types(self.get_infer_regex())
+
+    @contextmanager
+    def _tmp_convert(self, file, dir=None):
+        if dir is None:
+            dir = os.path.dirname(file)
+        try:
+            tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
+            convert(file, tmp_file.name, self.ms, logger=self.logger)
+            yield tmp_file.name
+        except:
+            self.logger.error(f"Error while dealing with the temporarily converted {os.path.basename(file)}")
+            raise
+        finally:
+            os.remove(tmp_file.name)
 
 
     def __repr__(self):
@@ -734,13 +770,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
 ########################################################################################################################
 
 
+
+
+
 class MSCX(LoggedClass):
     """ Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a
     :obj:`Score` object and exposed as ``Score.mscx``.
     An object is only created if a score was successfully parsed.
     """
 
-    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None):
+    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None, parent_score=None):
         """ Object for interacting with the XML structure of a MuseScore 3 file.
 
         Parameters
@@ -762,6 +801,8 @@ class MSCX(LoggedClass):
             'file': PATH_TO_LOGFILE to store all log messages under the given path.
         level : :obj:`str` or :obj:`int`
             Quick way to change the logging level which defaults to the one of the parent :obj:`Score`.
+        parent_score : :obj:`Score`, optional
+            Store the Score object to which this MSCX object is attached.
         """
         if level is not None:
             logger_cfg['level'] = level
@@ -770,8 +811,10 @@ class MSCX(LoggedClass):
             self.mscx_src = mscx_src
             """:obj:`str`
             Full path of the parsed MuseScore file."""
+
         else:
             raise ValueError(f"File does not exist: {mscx_src}")
+
 
         self.changed = False
         """:obj:`bool`
@@ -788,6 +831,10 @@ class MSCX(LoggedClass):
         """:py:class:`~ms3.annotations.Annotations` or None
         If the score contains at least one <Harmony> tag, this attribute points to the object representing all
         annotations, otherwise it is None."""
+
+        self.parent_score = parent_score
+        """:obj:`Score`
+        The Score object to which this MSCX object is attached."""
 
         self.parser = parser
         """{'bs4'}
@@ -806,7 +853,19 @@ class MSCX(LoggedClass):
         :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
         """
 
-        self.parse_mscx()
+        ms_version = get_ms_version(self.mscx_src)
+        if ms_version is None:
+            raise ValueError(f"MuseScore version could not be read from {self.mscx_src}")
+        if ms_version[0] == '3':
+            self.parse_mscx()
+        else:
+            if self.parent_score.ms is None:
+                raise ValueError(f"""In order to parse a version {ms_version} file,
+use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
+            with self.parent_score._tmp_convert(self.mscx_src) as tmp:
+                self.logger.debug(f"Using temporally converted file {os.path.basename(tmp)} for parsing the version {ms_version} file.")
+                self.mscx_src = tmp
+                self.parse_mscx()
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 

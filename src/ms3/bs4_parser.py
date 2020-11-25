@@ -78,7 +78,8 @@ class _MSCX_bs4(LoggedClass):
 
         if self.version[0] != '3':
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
-            raise ValueError(f"Cannot parse MuseScore {self.version} file.")
+            raise ValueError(f"""Cannot parse MuseScore {self.version} file.
+Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>

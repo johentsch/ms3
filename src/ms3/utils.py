@@ -1,9 +1,10 @@
-import os, re, shutil
+import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
 from itertools import repeat, takewhile
+from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from zipfile import ZipFile as Zip
 
@@ -334,6 +335,73 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False)
     return df
 
 
+@function_logger
+def convert(old, new, MS='mscore'):
+    process = [MS, '--appimage-extract-and-run', "-o", new, old] if MS.endswith('.AppImage') else [MS, "-o", new, old]
+    if subprocess.run(process):
+        logger.info(f"Converted {old} to {new}")
+    else:
+        logger.warning("Error while converting " + old)
+
+
+def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+                   ms='mscore', overwrite=False, parallel=False):
+    """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
+
+    Parameters
+    ----------
+    dir, new_folder : str
+        Directories
+    extensions : list, optional
+        If you want to convert only certain formats, give those, e.g. ['mscz', 'xml']
+    recursive : bool, optional
+        Subdirectories as well.
+    MS : str, optional
+        Give the path to the MuseScore executable on your system. Need only if
+        the command 'mscore' does not execute MuseScore on your system.
+    """
+    MS = get_musescore(ms)
+    assert MS is not None, f"MuseScore not found: {ms}"
+
+    conversion_params = []
+    for subdir, dirs, files in os.walk(dir):
+        if not recursive:
+            dirs[:] = []
+        else:
+            dirs.sort()
+        old_subdir = os.path.relpath(subdir, dir)
+        new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+
+        for file in files:
+            name, ext = os.path.splitext(file)
+            ext = ext[1:]
+            if re.search(regex, file) and (ext in extensions or extensions == []):
+                if not os.path.isdir(new_subdir):
+                    os.makedirs(new_subdir)
+                if target_extension[0] == '.':
+                    target_extension = target_extension[1:]
+                if suffix is not None:
+                    neu = '%s%s.%s' % (name, suffix, target_extension)
+                else:
+                    neu = '%s.%s' % (name, target_extension)
+                old = os.path.join(subdir, file)
+                new = os.path.join(new_subdir, neu)
+                if overwrite or not os.path.isfile(new):
+                    conversion_params.append((old, new, MS))
+                else:
+                    print(new, 'exists already. Pass -o to overwrite.')
+
+    # TODO: pass filenames as 'logger' argument to convert()
+    if parallel:
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        pool.starmap(convert, conversion_params)
+        pool.close()
+        pool.join()
+    else:
+        for o, n, ms in conversion_params:
+            convert(o, n, ms)
+
+
 
 def dict2oneliner(d):
     """ Turns a dictionary into a single-line string without brackets."""
@@ -468,6 +536,57 @@ def fifths2str(fifths, steps, inverted=False):
     if inverted:
         return steps[fifths % 7] + acc
     return acc + steps[fifths % 7]
+
+
+def get_ms_version(mscx_file):
+    with open(mscx_file) as file:
+        for i, l in enumerate(file):
+            if i < 2:
+                pass
+            if i == 2:
+                m = re.search(r"<programVersion>(.*?)</programVersion>", l)
+                if m is None:
+                    return None
+                else:
+                    return m.group(1)
+
+
+@function_logger
+def get_musescore(MS):
+    """ Tests whether a MuseScore executable can be found on the system.
+    Uses: test_binary()
+
+    Parameters
+    ----------
+    MS : :obj:`str`
+        A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
+
+    Returns
+    -------
+    :obj:`str`
+        Path to the executable if found or None.
+
+    """
+    if MS is None:
+        return MS
+    if MS == 'auto':
+        mapping = {
+            'Windows': 'win',
+            'Darwin': 'mac',
+            'Linux': 'mscore'
+        }
+        system = platform.system()
+        try:
+            MS = mapping[system]
+        except:
+            logger.warning(f"System could not be inferred: {system}")
+            MS = 'mscore'
+    if MS == 'win':
+        program_files = os.environ['PROGRAMFILES']
+        MS = os.path.join(program_files, r"MuseScore 3\bin\MuseScore3.exe")
+    elif MS == 'mac':
+        MS = "/Applications/MuseScore 3.app/Contents/MacOS/mscore"
+    return test_binary(MS, logger=logger)
 
 
 def group_id_tuples(l):
@@ -1110,6 +1229,21 @@ def string2lines(string, length=80):
     return '\n'.join(chunkstring(string, length))
 
 
+@function_logger
+def test_binary(command):
+    if command is None:
+        return command
+    if os.path.isfile(command):
+        logger.debug(f"Found MuseScore binary: {command}")
+        return command
+    if which(command) is None:
+        logger.warning(f"MuseScore binary not found and not an installed command: {command}")
+        return None
+    else:
+        logger.debug(f"Found MuseScore command: {command}")
+        return command
+
+
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
     """ Compute a function for every row of a DataFrame, using several cols as arguments.
         The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
@@ -1177,19 +1311,28 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
+
+
+
 @contextmanager
 def unpack_mscz(mscz, dir=None):
     if dir is None:
         dir = os.path.dirname(mscz)
     tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
     with Zip(mscz) as zip_file:
-        mscx = next(fname for fname in zip_file.namelist() if fname.endswith('.mscx'))
+        mscx_files = [f for f in zip_file.namelist() if f.endswith('.mscx')]
+        if len(mscx_files) > 1:
+            logger.info(f"{mscz} contains several MSCX files. Picking the first one")
+        mscx = mscx_files[0]
         with zip_file.open(mscx) as mscx_file:
             with tmp_file as tmp:
                 for line in mscx_file:
                     tmp.write(line)
     try:
         yield tmp_file.name
+    except:
+        logger.error(f"Error while dealing with the temporarily unpacked {os.path.basename(mscz)}")
+        raise
     finally:
         os.remove(tmp_file.name)
 

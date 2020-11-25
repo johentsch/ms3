@@ -10,7 +10,7 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import commonprefix, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
+from .utils import commonprefix, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
     resolve_dir, scan_directory, string2lines, update_labels_cfg
 
 
@@ -19,8 +19,8 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, paths=[], key=None, index=None, file_re=r"\.(mscx|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}):
+    def __init__(self, dir=None, paths=[], key=None, index=None, file_re=r"\.(mscx|mscz|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
+                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
         Parameters
@@ -41,6 +41,10 @@ class Parse(LoggedClass):
             'file': PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.
                 If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
                 If 'path' is set, the corresponding subdirectory structure is created there.
+        ms : :obj:`str`, optional
+            If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command
+            of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
+            Windows, 'mac' for MacOS, or 'mscore' for Linux.
         """
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
@@ -79,6 +83,11 @@ class Parse(LoggedClass):
         """:obj:`collections.defaultdict`
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
         """
+
+        self.ms = get_musescore(ms, logger=self.logger)
+        """:obj:`str`
+        Path or command of the local MuseScore 3 installation if specified by the user."""
+
 
         self._parsed_mscx = {}
         """:obj:`dict`
@@ -201,7 +210,10 @@ class Parse(LoggedClass):
     def parsed(self):
         """:obj:`dict`
         Returns an overview of the parsed MuseScore files."""
-        return {k: score.full_paths['mscx'] for k, score in self._parsed_mscx.items()}
+        ids = list(self._iterids(only_parsed_mscx=True))
+        ix = self.ids2idx(ids, pandas_index=True)
+        res = pd.Series([self._parsed_mscx[id].mscx.mscx_src for id in ids], index=ix)
+        return res
         # res = {}
         # for k, score in self._parsed.items():
         #     info = score.full_paths['mscx']
@@ -795,11 +807,11 @@ Continuing with {annotation_key}.""")
         parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
         parsed_mscx = len(parsed_mscx_ids)
         ext_counts = self.count_extensions(keys, per_key=False)
-
-        others = sum(v for k, v in ext_counts.items() if k != '.mscx')
+        score_extensions = ['.mscx', '.mscz']
+        others = sum(v for k, v in ext_counts.items() if k not in score_extensions)
 
         if parsed_mscx > 0:
-            mscx = ext_counts['.mscx']
+            mscx = sum([ext_counts[se] for se in score_extensions if se in ext_counts])
             if parsed_mscx == mscx:
                 info += f"\n\nAll {mscx} MSCX files have been parsed."
             else:
@@ -959,10 +971,11 @@ Continuing with {annotation_key}.""")
 
         if only_new:
             paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] == '.mscx' and (key, i) not in self._parsed_mscx]
+                     self.fexts[key][i] in ('.mscx', '.mscz') and (key, i) not in self._parsed_mscx]
         else:
             paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] == '.mscx']
+                     self.fexts[key][i] in ('.mscx', '.mscz')]
+
         if len(paths) == 0:
             reason = 'in the entire object' if keys is None else f"for '{keys}'"
             self.logger.info(f"No MSCX files found {reason}.")
@@ -1410,7 +1423,7 @@ Using the first {li} elements, discarding {discarded}""")
         file = self.files[key][i]
         self.logger.debug(f"Attempting to parse {file}")
         try:
-            score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+            score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=self.ms)
             if score is None:
                 self.logger.debug(f"Encountered errors when parsing {file}")
             else:

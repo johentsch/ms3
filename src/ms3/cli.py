@@ -18,8 +18,7 @@ Note: This skeleton file can be safely removed if not needed!
 import argparse, os
 
 from ms3 import Parse
-from ms3.convert import convert_folder
-from ms3.utils import resolve_dir
+from ms3.utils import convert_folder, resolve_dir
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -110,7 +109,8 @@ def extract(args):
         'file': args.logfile,
         'path': args.logpath,
     }
-    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
+              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
     p.parse_mscx(simulate=args.test)
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
@@ -154,7 +154,7 @@ def convert(args):
                    regex=args.regex,
                    suffix=args.suffix,
                    recursive=args.nonrecursive,
-                   MS=args.musescore,
+                   ms=args.musescore,
                    overwrite=args.overwrite,
                    parallel=args.nonparallel)
 
@@ -192,10 +192,12 @@ The library offers you the following commands. Add the flag -h to one of them to
     extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
                                 help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
 This setting has no effect on absolute folder paths.""")
-    extract_parser.add_argument('-f', '--file', metavar="regex", default=r'\.mscx$',
+    extract_parser.add_argument('-f', '--file', metavar="regex", default=r'(\.mscx|\.mscz)$',
                                 help="Select only file names including this regular expression.")
     extract_parser.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
+    extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
+Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
