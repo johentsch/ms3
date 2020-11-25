@@ -19,7 +19,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, paths=[], key=None, index=None, file_re=r"\.(mscx|mscz|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, dir=None, paths=None, key=None, index=None, file_re=r"\.(mscx|mscz|tsv)$", folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
@@ -84,7 +84,7 @@ class Parse(LoggedClass):
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
         """
 
-        self.ms = get_musescore(ms, logger=self.logger)
+        self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
 
@@ -205,6 +205,14 @@ class Parse(LoggedClass):
             self.add_files(paths, key=key, index=index)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+    @property
+    def ms(self):
+        return self._ms
+
+    @ms.setter
+    def ms(self, ms):
+        self._ms = get_musescore(ms)
 
     @property
     def parsed(self):
@@ -339,8 +347,8 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             grouped_ids = group_id_tuples(ids)
-            exts = {k: self.count_extensions(k, i) for k, i in grouped_ids.items()}
-            self.logger.debug(f"{len(added_ids)} paths stored.\n{pretty_dict(exts, 'EXTENSIONS')}")
+            exts = self.count_extensions(ids=ids, per_key=True)
+            self.logger.debug(f"{len(added_ids)} paths stored:\n{pretty_dict(exts, 'EXTENSIONS')}")
             new_index, level_names = self._treat_index_param(index, ids=added_ids, selector=selector)
             self._index.update(new_index)
             for k in grouped_ids.keys():
@@ -368,38 +376,66 @@ Therefore, the index for this key has been adapted.""")
             self.logger.debug("No files added.")
 
 
-    def add_rel_dir(self, rel_dir, key=None, index=None, suffix=''):
+    def add_rel_dir(self, rel_dir, suffix='', score_extensions=None, keys=None, new_key=None, index=None):
         """
-        This method can be used for adding particular (TSV) files belonging to all already loaded (MSCX) files.
+        This method can be used for adding particular TSV files belonging to already loaded score files. This is useful,
+        for example, to add annotation tables for comparison.
 
         Parameters
         ----------
         rel_dir : :obj:`str`
             Path where the files to be added can be found, relative to each loaded MSCX file. They are expected to have
             the same file name, maybe with an added ``suffix``.
-        key : :obj:`str`, optional
-            | Pass a string to identify the loaded files.
-            | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
-              itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
-            | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
-              index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
-            | 'fname' evokes an index level made from file names.
         suffix : :obj:`str`. optional
             If the files to be loaded can be identified by adding a suffix to the filename, pass this suffix, e.g. '_labels'.
+        score_extensions : :obj:`~collections.abc.Collection`, optional
+            If you want to match only scores with particular extensions, pass a Collection of these extensions.
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which score files are stored. By default, all keys are selected.
+        new_key : :obj:`str`, optional
+            Pass a string to identify the loaded files. By default, the keys of the score files are being used.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i'}
+            | By default, the index levels of the existing scores are used (does not work with custom levels).
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+              If the index levels differ from existing ones, you need to set a ``new_key``.
+            | Every single element ∈ {'key', 'fname', 'i'} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | 'fname', for example, evokes an index level made from file names.
         """
+        if score_extensions is None:
+            score_extensions = Score.native_formats + Score.convertible_formats
+        ids = [(k, i) for k, i in self._iterids(keys) if self.fexts[k][i][1:] in score_extensions]
+        grouped_ids = group_id_tuples(ids)
+        self.logger.debug(f"{len(ids)} scores match the criteria.")
+        expected_paths = {(k, i): os.path.join(self.paths[k][i], rel_dir, self.fnames[k][i] + suffix + '.tsv') for k, i in ids}
+        existing = {k: [] for k in grouped_ids.keys()}
+        for (k, i), path in expected_paths.items():
+            if os.path.isfile(path):
+                existing[k].append(path)
+            else:
+                ids.remove((k, i))
+        existing = {k: v for k, v in existing.items() if len(v) > 0}
+        self.logger.debug(f"{sum(len(paths) for paths in existing.values())} paths found for rel_dir {rel_dir}.")
+        if index is None:
+            if any(any(n is None for n in self._levelnames[k]) for k in existing.keys()):
+                if new_key is None:
+                    raise ValueError(f"There are custom index levels and this function cannot extend them. Pass the 'new_key' argument.")
+                else:
+                    index_levels = {k: None for k in existing.keys()}
+            else:
+                index_levels = {k: self._levelnames[k] for k in existing.keys()}
+        else:
+            index_levels = {k: index for k in existing.keys()}
+        for k, paths in existing.items():
+            key_param = k if new_key is None else new_key
+            self.add_files(paths, key_param, index_levels[k])
 
-        self.last_scanned_dir = rel_dir
-        if file_re in ['tsv', 'csv']:
-            file_re = r"\." + file_re + '$'
-        paths = scan_directory(rel_dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-        self.add_files(paths=paths, key=key, index=index)
+
+
+
+
+
 
 
 
@@ -534,6 +570,45 @@ Continuing with {annotation_key}.""")
                         li[i] = df
 
 
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred',
+                       detached_is_newer=False, store_with_suffix=None):
+        """ Compare detached labels ``key`` to the ones attached to the Score.
+        By default, the attached labels are considered as the reviewed version and changes are colored in green;
+        Changes with respect to the detached labels are attached to the Score in red.
+
+        Parameters
+        ----------
+        detached_key : :obj:`str`
+            Key under which the detached labels that you want to compare have been added to the scores.
+        new_color, old_color : :obj:`str` or :obj:`tuple`, optional
+            The colors by which new and old labels are differentiated. Identical labels remain unchanged.
+        detached_is_newer : :obj:`bool`, optional
+            Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+            will turn ``old_color``, as opposed to the default.
+        store_with_suffix : :obj:`str`, optional
+            If you pass a suffix, the comparison MSCX files are stored with this suffix next to the originals.
+        """
+        assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
+        ids = list(self._iterids(None, only_detached_annotations=True))
+        if len(ids) == 0:
+            if len(self._parsed_mscx) == 0:
+                self.logger.warning("No scores have been parsed so far.")
+                return
+            self.logger.warning("None of the parsed score include detached labels to compare.")
+        available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
+        if detached_key not in available_keys:
+            self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
+Available keys: {available_keys}""")
+            return
+        ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
+        self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
+        for id in ids:
+            self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
+                                                 detached_is_newer=detached_is_newer)
+        if store_with_suffix is not None:
+            self.store_mscx(ids=ids, suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+
+
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
         """ Counts the labels for each annotation layer defined as (staff, voice, label_type).
         By default, only labels attached to a score are counted.
@@ -599,13 +674,15 @@ Continuing with {annotation_key}.""")
         return res
 
 
-    def count_extensions(self, keys=None, per_key=False):
+    def count_extensions(self, keys=None, ids=None, per_key=False):
         """ Count file extensions.
 
         Parameters
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             Key(s) for which to count file extensions.  By default, all keys are selected.
+        ids : :obj:`~collections.abc.Collection`
+            If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.
         per_key : :obj:`bool`, optional
             If set to True, the results are returned as a dict {key: Counter},
             otherwise the counts are summed up in one Counter.
@@ -616,10 +693,16 @@ Continuing with {annotation_key}.""")
             By default, the function returns a Counter of file extensions.
             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
         """
-        keys = self._treat_key_param(keys)
+
         res_dict = {}
-        for key in keys:
-            res_dict[key] = Counter(self.fexts[key])
+        if ids is not None:
+            grouped_ids = group_id_tuples(ids)
+            for k, ixs in grouped_ids.items():
+                res_dict[k] = Counter(self._itersel(self.fexts[k], ixs))
+        else:
+            keys = self._treat_key_param(keys)
+            for key in keys:
+                res_dict[key] = Counter(self.fexts[key])
         if per_key:
             return {k: dict(v) for k, v in res_dict.items()}
         return dict(sum(res_dict.values(), Counter()))
@@ -1216,10 +1299,11 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
-    def store_mscx(self, keys=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
+    def store_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
         """
-        ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+        if ids is None:
+            ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
             new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
@@ -1369,9 +1453,11 @@ Load one of the identically named files with a different key using add_dir(key='
                 yield id
 
 
-    def _itersel(self, collectio, selector, opposite=False):
+    def _itersel(self, collectio, selector=None, opposite=False):
+        """ Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
+        elements -- depending on ``opposite`` """
         if selector is None:
-            for i, e in enumerate(collectio):
+            for e in collectio:
                 yield e
         if opposite:
             for i, e in enumerate(collectio):
@@ -1616,7 +1702,7 @@ Using the first {li} elements, discarding {discarded}""")
             keys = list(self.full_paths.keys())
         elif isinstance(keys, str):
             keys = [keys]
-        return list(set(keys))
+        return [k for k in set(keys) if k in self.files]
 
 
     def _treat_label_type_param(self, label_type):

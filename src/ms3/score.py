@@ -78,6 +78,16 @@ class Score(LoggedClass):
     als DCML harmony annotations.
     """
 
+    native_formats = ('mscx', 'mscz')
+    """:obj:`tuple`
+    Formats that MS3 reads without having to convert.
+    """
+
+    convertible_formats = ('cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml', )
+    """:obj:`tuple`
+    Formats that have to be converted before parsing.
+    """
+
     def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
         """
@@ -441,7 +451,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         df = pd.DataFrame(changes_old, columns=compare_cols)
         for k, v in added_color_params.items():
             df[k] = v
-        added_changes = self.mscx.add_labels(Annotations(df=df))
+        added_changes = self.mscx.add_labels(Annotations(df=df), )
         if added_changes > 0 or added_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
@@ -671,20 +681,19 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         if parser is not None:
             self.parser = parser
-        native = ('mscx', 'mscz')
-        by_conversion = ('xml', 'musicxml', 'cap')
-        permitted_extensions = native + by_conversion
+
+        permitted_extensions = self.native_formats + self.convertible_formats
         _, ext = os.path.splitext(musescore_file)
         ext = ext[1:]
         if ext.lower() not in permitted_extensions:
             raise ValueError(f"The extension of a MuseScore file should be one of {permitted_extensions} not {ext}.")
-        if ext.lower() in by_conversion and self.ms is None:
+        if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(musescore_file)
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = self.logger_names[extension]
 
-        if extension in by_conversion +  ('mscz', ):
+        if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
