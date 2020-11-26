@@ -855,7 +855,7 @@ Available keys: {available_keys}""")
 
 
 
-    def ids2idx(self, ids, pandas_index=False):
+    def ids2idx(self, ids=None, pandas_index=False):
         """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
 
         Parameters
@@ -867,6 +867,8 @@ Available keys: {available_keys}""")
         -------
         :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
         """
+        if ids is None:
+            ids = list(self._iterids())
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
         error = False
@@ -1752,10 +1754,11 @@ Using the first {li} elements, discarding {discarded}""")
         counts = {k: v for k, v in Counter(new_index.values()).items() if v > 1}
         l_counts, l_existing = len(counts), len(existing)
         if l_counts > 0 or l_existing > 0:
-            new_index = self._treat_index_param(None, ids=ids)
+            new_index, names = self._treat_index_param(None, ids=ids)
             if l_counts > 0:
                 plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
-                self.logger.error(f"The generated index is not unique and has been replaced by the standard index (IDs).\n{plural_phrase} several times:\n{pretty_dict(counts)}")
+                self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
+To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")

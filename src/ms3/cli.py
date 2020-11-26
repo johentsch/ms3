@@ -38,9 +38,9 @@ def check(args):
         'file': log,
     }
     if args.file is None:
-        p = Parse(dir=args.root_dir, key='check', index='fname', file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+        p = Parse(dir=args.root_dir, index=['key', 'fname'], file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     else:
-        p = Parse(paths=args.file, key='check', index='fname', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+        p = Parse(paths=args.file, index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     if '.mscx' not in p.count_extensions():
         p.logger.warning("No MSCX files found.")
         return
@@ -53,10 +53,11 @@ def check(args):
             p.logger.info("No syntactical errors.")
             res = True
         else:
-            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
+            if not args.assertion:
+                p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
             res = False
     if args.assertion:
-        assert res, "Contains syntactical errors."
+        assert res, "Contains syntactical errors:\n" + wrong.to_string()
     return res
 
 
