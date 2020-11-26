@@ -302,19 +302,19 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False)
         df.leftParen.replace('/', '(', inplace=True)
         compose_label.append('leftParen')
         drop_cols.append('leftParen')
-    if 'root' in df.columns:
-        df.root = fifths2name(df.root, ms=True)
-        compose_label.append('root')
-        drop_cols.append('root')
+    if 'absolute_root' in df.columns:
+        df.absolute_root = fifths2name(df.absolute_root, ms=True)
+        compose_label.append('absolute_root')
+        drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
             sel = df.rootCase.notna()
-            df.loc[sel, 'root'] = df.loc[sel, 'root'].str.lower()
+            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
             drop_cols.append('rootCase')
     compose_label.append(label_col)
-    if 'base' in df.columns:
-        df.base = '/' + fifths2name(df.base, ms=True)
-        compose_label.append('base')
-        drop_cols.append('base')
+    if 'absolute_base' in df.columns:
+        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
+        compose_label.append('absolute_base')
+        drop_cols.append('absolute_base')
     if 'rightParen' in df.columns:
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
@@ -716,6 +716,8 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'scalar': safe_frac, }
 
     DTYPES = {
+        'absolute_base': 'Int64',
+        'absolute_root': 'Int64',
         'alt_label': str,
         'barline': str,
         'base': 'Int64',

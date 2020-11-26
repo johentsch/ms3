@@ -1344,7 +1344,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                 path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
-            base, _ = os.path.split(root)
+            base = os.path.basename(root)
             if path[:len(base)] != base:
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
                 return None
