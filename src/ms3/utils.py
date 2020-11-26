@@ -1,9 +1,10 @@
-import os, re, shutil
+import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
 from itertools import repeat, takewhile
+from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from zipfile import ZipFile as Zip
 
@@ -12,6 +13,70 @@ import numpy as np
 import webcolors
 
 from .logger import function_logger, update_cfg
+
+DCML_REGEX = re.compile(r"""
+            ^(\.?
+                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                (?P<chord>
+                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                    (?P<form>(%|o|\+|M|\+M))?
+                    (?P<figbass>(7|65|43|42|2|64|6))?
+                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                )
+                (?P<pedalend>\])?
+            )?
+            (?P<phraseend>(\\\\|\}\{|\{|\}))?$
+            """, re.VERBOSE)
+""":obj:`str`
+Constant with a regular expression that recognizes labels conforming to the DCML harmony annotation standard excluding those
+consisting of two alternatives.
+"""
+
+DCML_DOUBLE_REGEX = re.compile(r"""
+                                ^(?P<first>
+                                  (\.?
+                                    ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord>
+                                        (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form>(%|o|\+|M|\+M))?
+                                        (?P<figbass>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend>\])?
+                                  )?
+                                  (?P<phraseend>(\\\\|\}\{|\{|\})
+                                  )?
+                                 )
+                                 (-
+                                  (?P<second>
+                                    ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord2>
+                                        (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form2>(%|o|\+|M|\+M))?
+                                        (?P<figbass2>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes2>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend2>\])?
+                                  )?
+                                  (?P<phraseend2>(\\\\|\}\{|\{|\})
+                                  )?
+                                 )?
+                                $
+                                """,
+                        re.VERBOSE)
+""":obj:`str`
+Constant with a regular expression that recognizes complete labels conforming to the DCML harmony annotation standard 
+including those consisting of two alternatives, without having to split them. It is simply a doubled version of DCML_REGEX.
+"""
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
@@ -202,7 +267,7 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]
-    res = res.apply(lambda c: c.str.replace('/', 'empty_harmony'))
+    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony'))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
@@ -290,7 +355,7 @@ def commonprefix(paths, sep='/'):
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
-def decode_harmonies(df, label_col='label', keep_type=False, return_series=False):
+def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
     if 'nashville' in df.columns:
@@ -301,19 +366,19 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
         df.leftParen.replace('/', '(', inplace=True)
         compose_label.append('leftParen')
         drop_cols.append('leftParen')
-    if 'root' in df.columns:
-        df.root = fifths2name(df.root, ms=True)
-        compose_label.append('root')
-        drop_cols.append('root')
+    if 'absolute_root' in df.columns:
+        df.absolute_root = fifths2name(df.absolute_root, ms=True)
+        compose_label.append('absolute_root')
+        drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
             sel = df.rootCase.notna()
-            df.loc[sel, 'root'] = df.loc[sel, 'root'].str.lower()
+            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
             drop_cols.append('rootCase')
     compose_label.append(label_col)
-    if 'base' in df.columns:
-        df.base = '/' + fifths2name(df.base, ms=True)
-        compose_label.append('base')
-        drop_cols.append('base')
+    if 'absolute_base' in df.columns:
+        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
+        compose_label.append('absolute_base')
+        drop_cols.append('absolute_base')
     if 'rightParen' in df.columns:
         df.rightParen.replace('/', ')', inplace=True)
         compose_label.append('rightParen')
@@ -332,6 +397,73 @@ def decode_harmonies(df, label_col='label', keep_type=False, return_series=False
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
+
+
+@function_logger
+def convert(old, new, MS='mscore'):
+    process = [MS, '--appimage-extract-and-run', "-o", new, old] if MS.endswith('.AppImage') else [MS, "-o", new, old]
+    if subprocess.run(process):
+        logger.info(f"Converted {old} to {new}")
+    else:
+        logger.warning("Error while converting " + old)
+
+
+def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+                   ms='mscore', overwrite=False, parallel=False):
+    """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
+
+    Parameters
+    ----------
+    dir, new_folder : str
+        Directories
+    extensions : list, optional
+        If you want to convert only certain formats, give those, e.g. ['mscz', 'xml']
+    recursive : bool, optional
+        Subdirectories as well.
+    MS : str, optional
+        Give the path to the MuseScore executable on your system. Need only if
+        the command 'mscore' does not execute MuseScore on your system.
+    """
+    MS = get_musescore(ms)
+    assert MS is not None, f"MuseScore not found: {ms}"
+
+    conversion_params = []
+    for subdir, dirs, files in os.walk(dir):
+        if not recursive:
+            dirs[:] = []
+        else:
+            dirs.sort()
+        old_subdir = os.path.relpath(subdir, dir)
+        new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+
+        for file in files:
+            name, ext = os.path.splitext(file)
+            ext = ext[1:]
+            if re.search(regex, file) and (ext in extensions or extensions == []):
+                if not os.path.isdir(new_subdir):
+                    os.makedirs(new_subdir)
+                if target_extension[0] == '.':
+                    target_extension = target_extension[1:]
+                if suffix is not None:
+                    neu = '%s%s.%s' % (name, suffix, target_extension)
+                else:
+                    neu = '%s.%s' % (name, target_extension)
+                old = os.path.join(subdir, file)
+                new = os.path.join(new_subdir, neu)
+                if overwrite or not os.path.isfile(new):
+                    conversion_params.append((old, new, MS))
+                else:
+                    print(new, 'exists already. Pass -o to overwrite.')
+
+    # TODO: pass filenames as 'logger' argument to convert()
+    if parallel:
+        pool = multiprocessing.Pool(multiprocessing.cpu_count())
+        pool.starmap(convert, conversion_params)
+        pool.close()
+        pool.join()
+    else:
+        for o, n, ms in conversion_params:
+            convert(o, n, ms)
 
 
 
@@ -470,6 +602,57 @@ def fifths2str(fifths, steps, inverted=False):
     return acc + steps[fifths % 7]
 
 
+def get_ms_version(mscx_file):
+    with open(mscx_file) as file:
+        for i, l in enumerate(file):
+            if i < 2:
+                pass
+            if i == 2:
+                m = re.search(r"<programVersion>(.*?)</programVersion>", l)
+                if m is None:
+                    return None
+                else:
+                    return m.group(1)
+
+
+@function_logger
+def get_musescore(MS):
+    """ Tests whether a MuseScore executable can be found on the system.
+    Uses: test_binary()
+
+    Parameters
+    ----------
+    MS : :obj:`str`
+        A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
+
+    Returns
+    -------
+    :obj:`str`
+        Path to the executable if found or None.
+
+    """
+    if MS is None:
+        return MS
+    if MS == 'auto':
+        mapping = {
+            'Windows': 'win',
+            'Darwin': 'mac',
+            'Linux': 'mscore'
+        }
+        system = platform.system()
+        try:
+            MS = mapping[system]
+        except:
+            logger.warning(f"System could not be inferred: {system}")
+            MS = 'mscore'
+    if MS == 'win':
+        program_files = os.environ['PROGRAMFILES']
+        MS = os.path.join(program_files, r"MuseScore 3\bin\MuseScore3.exe")
+    elif MS == 'mac':
+        MS = "/Applications/MuseScore 3.app/Contents/MacOS/mscore"
+    return test_binary(MS, logger=logger)
+
+
 def group_id_tuples(l):
     """ Turns a list of (key, ix) into a {key: [ix]}
 
@@ -597,6 +780,8 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'scalar': safe_frac, }
 
     DTYPES = {
+        'absolute_base': 'Int64',
+        'absolute_root': 'Int64',
         'alt_label': str,
         'barline': str,
         'base': 'Int64',
@@ -960,6 +1145,7 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+@function_logger
 def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
     """ Get a list of files.
 
@@ -967,7 +1153,7 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
     ----------
     dir : :obj:`str`
         Directory to be scanned for files.
-    file_re, folder_re : :obj:`str`, optional
+    file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
         Regular expressions for filtering certain file names or folder names.
         The regEx are checked with search(), not match(), allowing for fuzzy search.
     recursive : :obj:`bool`, optional
@@ -983,6 +1169,8 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
         res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
         return res
 
+    if not os.path.isdir(dir):
+        logger.warning("Not an existing directory: " + dir)
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)
@@ -1110,6 +1298,21 @@ def string2lines(string, length=80):
     return '\n'.join(chunkstring(string, length))
 
 
+@function_logger
+def test_binary(command):
+    if command is None:
+        return command
+    if os.path.isfile(command):
+        logger.debug(f"Found MuseScore binary: {command}")
+        return command
+    if which(command) is None:
+        logger.warning(f"MuseScore binary not found and not an installed command: {command}")
+        return None
+    else:
+        logger.debug(f"Found MuseScore command: {command}")
+        return command
+
+
 def transform(df, func, param2col=None, column_wise=False, **kwargs):
     """ Compute a function for every row of a DataFrame, using several cols as arguments.
         The result is the same as using df.apply(lambda r: func(param1=r.col1, param2=r.col2...), axis=1)
@@ -1177,19 +1380,28 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
+
+
+
 @contextmanager
 def unpack_mscz(mscz, dir=None):
     if dir is None:
         dir = os.path.dirname(mscz)
     tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
     with Zip(mscz) as zip_file:
-        mscx = next(fname for fname in zip_file.namelist() if fname.endswith('.mscx'))
+        mscx_files = [f for f in zip_file.namelist() if f.endswith('.mscx')]
+        if len(mscx_files) > 1:
+            logger.info(f"{mscz} contains several MSCX files. Picking the first one")
+        mscx = mscx_files[0]
         with zip_file.open(mscx) as mscx_file:
             with tmp_file as tmp:
                 for line in mscx_file:
                     tmp.write(line)
     try:
         yield tmp_file.name
+    except:
+        logger.error(f"Error while dealing with the temporarily unpacked {os.path.basename(mscz)}")
+        raise
     finally:
         os.remove(tmp_file.name)
 

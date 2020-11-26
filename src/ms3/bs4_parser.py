@@ -78,7 +78,8 @@ class _MSCX_bs4(LoggedClass):
 
         if self.version[0] != '3':
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
-            raise ValueError(f"Cannot parse MuseScore {self.version} file.")
+            raise ValueError(f"""Cannot parse MuseScore {self.version} file.
+Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
@@ -481,8 +482,8 @@ class _MSCX_bs4(LoggedClass):
         cols = {'label_type': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
                 'nashville': 'Harmony/function',
-                'root': 'Harmony/root',
-                'base': 'Harmony/base',
+                'absolute_root': 'Harmony/root',
+                'absolute_base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
                 'rightParen': 'Harmony/rightParen',
                 'offset_x': 'Harmony/offset:x',
@@ -492,7 +493,7 @@ class _MSCX_bs4(LoggedClass):
                 'color_b': 'Harmony/color:b',
                 'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
+        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -858,7 +859,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             old_names = list(names)
             names.insert(ix, 'Harmony')
             if name is None:
-                self.logger.debug(f"""MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} had only these tags:
+                self.logger.debug(f"""MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} had only these tags (and no <Chord> or <Rest>):
 {old_names}\nAfter insertion: {names}""")
             else:
                 self.logger.debug(f"Added {label_name} to {name} in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
@@ -991,6 +992,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
             To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
             to 255.
         """
+        if label == 'empty_harmony':
+            self.logger.debug("Empty harmony was skipped because the color wouldn't change anything.")
+            return True
         params = [color_name, color_html, color_r, color_g, color_b, color_a]
         rgba = color_params2rgba(*params)
         if rgba is None:
@@ -1025,12 +1029,12 @@ and {loc_after} before the subsequent {nxt_name}.""")
         try:
             ix = labels.index(label)
         except:
-            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}.")
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}'.")
             return False
         tag = harmony_tags[ix]
         attrs = rgba2attrs(rgba)
         if tag.color is None:
-            tag_order = ['base', 'function', 'name', 'rootCase', 'root']
+            tag_order = ['absolute_base', 'function', 'name', 'rootCase', 'absolute_root']
             after = next(tag.find(t) for t in tag_order if tag.find(t) is not None)
             self.new_tag('color', attributes=attrs, after=after)
         else:
@@ -1044,8 +1048,8 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
 
-    def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, rootCase=None, base=None,
-                  leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None,
+    def new_label(self, label, label_type=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
+                  leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
                   color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(label_type):
@@ -1059,18 +1063,18 @@ and {loc_after} before the subsequent {nxt_name}.""")
                 _ = self.new_tag('harmonyType', value=label_type, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
-        if not pd.isnull(root):
-            _ = self.new_tag('root', value=root, within=tag)
+        if not pd.isnull(absolute_root):
+            _ = self.new_tag('root', value=absolute_root, within=tag)
         if not pd.isnull(rootCase):
             _ = self.new_tag('rootCase', value=rootCase, within=tag)
         if not pd.isnull(label):
             _ = self.new_tag('name', value=label, within=tag)
         else:
-            assert not pd.isnull(root), "Either label or root need to be specified."
+            assert not pd.isnull(absolute_root), "Either label or root need to be specified."
         if not pd.isnull(nashville):
             _ = self.new_tag('function', value=nashville, within=tag)
-        if not pd.isnull(base):
-            _ = self.new_tag('base', value=base, within=tag)
+        if not pd.isnull(absolute_base):
+            _ = self.new_tag('base', value=absolute_base, within=tag)
 
         rgba = color_params2rgba(color_name, color_html, color_r, color_g, color_b, color_a)
         if rgba is not None:

@@ -18,8 +18,7 @@ Note: This skeleton file can be safely removed if not needed!
 import argparse, os
 
 from ms3 import Parse
-from ms3.convert import convert_folder
-from ms3.utils import resolve_dir
+from ms3.utils import convert_folder, resolve_dir
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -39,9 +38,9 @@ def check(args):
         'file': log,
     }
     if args.file is None:
-        p = Parse(dir=args.root_dir, key='check', index='fname', file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+        p = Parse(dir=args.root_dir, index=['key', 'fname'], file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     else:
-        p = Parse(paths=args.file, key='check', index='fname', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+        p = Parse(paths=args.file, index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     if '.mscx' not in p.count_extensions():
         p.logger.warning("No MSCX files found.")
         return
@@ -51,22 +50,32 @@ def check(args):
         if wrong is None:
             res = None
         if len(wrong) == 0:
-            msg = "No syntactical errors."
-            res =  True
+            p.logger.info("No syntactical errors.")
+            res = True
         else:
-            msg = f"The following labels don't match the regular expression:\n{wrong.to_string()}"
+            if not args.assertion:
+                p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
             res = False
     if args.assertion:
-        assert res, msg
-        p.logger.info(msg)
-        return
-    if res:
-        p.logger.info(msg)
-    else:
-        p.logger.warning(msg)
+        assert res, "Contains syntactical errors:\n" + wrong.to_string()
     return res
 
 
+def compare(args):
+    logger_cfg = {
+        'level': args.level,
+    }
+    if args.file is None:
+        p = Parse(dir=args.root_dir, key='compare', index='fname', file_re=r'\.mscx$', logger_cfg=logger_cfg)
+    else:
+        p = Parse(paths=args.file, key='compare', index='fname', logger_cfg=logger_cfg)
+    if len(p._score_ids()) == 0:
+        p.logger.warning(f"Your selection does not include any scores.")
+        return
+    p.add_rel_dir(args.rel_dir, suffix=args.suffix, score_extensions=args.extensions, new_key='old')
+    p.parse_mscx()
+    p.add_detached_annotations()
+    p.compare_labels('old', store_with_suffix='_reviewed')
 
 
 def extract(args):
@@ -94,7 +103,8 @@ def extract(args):
         'file': args.logfile,
         'path': args.logpath,
     }
-    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg, logger_cfg=logger_cfg, simulate=args.test)
+    p = Parse(args.mscx_dir, file_re=args.file, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
+              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
     p.parse_mscx(simulate=args.test)
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
@@ -138,7 +148,7 @@ def convert(args):
                    regex=args.regex,
                    suffix=args.suffix,
                    recursive=args.nonrecursive,
-                   MS=args.musescore,
+                   ms=args.musescore,
                    overwrite=args.overwrite,
                    parallel=args.nonparallel)
 
@@ -176,10 +186,12 @@ The library offers you the following commands. Add the flag -h to one of them to
     extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
                                 help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
 This setting has no effect on absolute folder paths.""")
-    extract_parser.add_argument('-f', '--file', metavar="regex", default=r'\.mscx$',
+    extract_parser.add_argument('-f', '--file', metavar="regex", default=r'(\.mscx|\.mscz)$',
                                 help="Select only file names including this regular expression.")
     extract_parser.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
+    extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
+Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
@@ -192,6 +204,7 @@ MuseScore files is recreated there. Additionally, you can pass a filename to --l
 subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
     extract_parser.set_defaults(func=extract)
 
+
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
 In particular, check DCML harmony labels for syntactic correctness.""")
     check_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
@@ -199,18 +212,35 @@ In particular, check DCML harmony labels for syntactic correctness.""")
                               help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
 working directory except if you pass -f/--file.""")
     check_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+', help='Add path(s) of individual file(s) to be checked.')
-    check_parser.add_argument('-S', '--scores_only', action='store_true',
+    check_parser.add_argument('-s', '--scores_only', action='store_true',
                               help="Don't check DCML labels for syntactic correctness.")
     check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
     check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
 
 
+    compare_parser = subparsers.add_parser('compare',
+        help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.")
+    compare_parser.add_argument('root_dir', metavar='SCORE_DIR', nargs='?', type=check_dir,
+                              default=os.getcwd(),
+                              help="""Folder that will be scanned for score files. Defaults to the current
+    working directory except if you pass -f/--file.""")
+    compare_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+',
+                              help='Add path(s) of individual file(s) to be compared.')
+    compare_parser.add_argument('-r', '--rel_dir', metavar='PATH', default='../harmonies',
+                                help='Path relative to the score file(s) where to look for existing annotation tables.')
+    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='',
+                                help='If existing annotation tables have a particular suffix, pass this suffix.')
+    compare_parser.add_argument('-e', '--extensions', metavar='EXT', nargs='+',
+                                help='If you only want to compare scores with particular extensions, pass these extensions.')
+    compare_parser.set_defaults(func=compare)
+
+
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.")
-    convert_parser.add_argument('dir', metavar='DIR', type=check_dir, default=os.getcwd(),
-                                help='path to folder with files to convert; can be relative to the folder where the script is located.')
-    convert_parser.add_argument('target', metavar='TARGET_DIR', nargs='?', type=check_and_create, default=os.getcwd(),
+    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
+                                help='Path to folder with files to convert; can be relative to the folder where the script is located.')
+    convert_parser.add_argument('target', metavar='TARGET_DIR', type=check_and_create, default=os.getcwd(),
                                 help='Path to folder for converted files. Defaults to current working directory.')
     convert_parser.add_argument('-e', '--extensions', nargs='+', default=['mscx', 'mscz'],
                                 help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
