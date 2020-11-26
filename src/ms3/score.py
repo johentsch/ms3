@@ -266,21 +266,22 @@ class Score(LoggedClass):
         :obj:`int`
             Number of labels that were to be attached.
         """
+        assert self._mscx is not None, "No score has been parsed yet."
         assert key != 'annotations', "Labels with key 'annotations' are already attached."
         if key not in self._detached_annotations:
-            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
+            self.mscx.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return 0, 0
 
         annotations = self._detached_annotations[key]
         goal = len(annotations.df)
         if goal == 0:
-            self.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
+            self.mscx.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return 0, 0
         df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes)
         reached = len(df)
         if reached == 0:
-            self.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
+            self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return reached, goal
 
         prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict)
@@ -288,9 +289,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if remove_detached:
             if reached == goal:
                 del(self._detached_annotations[key])
-                self.logger.debug(f"Detached annotations '{key}' successfully attached and removed.")
+                self.mscx.logger.debug(f"Detached annotations '{key}' successfully attached and removed.")
             else:
-                self.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
+                self.mscx.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
         return reached, goal
 
 
@@ -317,7 +318,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Labels not matching the regex.
         """
         if keys == 'annotations' and not self.mscx.has_annotations:
-            self.logger.debug("Score contains no Annotations.")
+            self.mscx.logger.debug("Score contains no Annotations.")
             return
         if regex is None:
             if label_type in self._label_regex:
@@ -336,7 +337,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         for k in keys:
             (existing if k in self else missing).append(k)
         if len(missing) > 0:
-            self.logger.warning(f"The following keys are not among the Annotations objects, which are: {list(self)}")
+            self.logger.warning(f"The keys {missing} are not among the Annotations objects, which are: {list(self)}")
         if len(existing) == 0:
             return pd.DataFrame()
         labels_cfg = self.labels_cfg.copy()
@@ -388,8 +389,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         changes_old = old_vals - unchanged
         changes_new = new_vals - unchanged
         if len(changes_new) == 0 and len(changes_old) == 0:
-            self.logger.info(f"Comparison yielded no changes.")
-            return
+            self.mscx.logger.info(f"Comparison yielded no changes.")
+            return False
 
         new_rgba =  color2rgba(new_color)
         new_color_params = rgba2params(new_rgba)
@@ -416,7 +417,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
-            self.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
+            self.mscx.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
+            return True
+        return False
+
 
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
@@ -446,18 +450,18 @@ Use one of the existing keys or load a new set with the method load_annotations(
             of the annotations for storing them separately but without removing the labels from the score.
         """
         if not self.mscx.has_annotations:
-            self.logger.info("No annotations present in score.")
+            self.mscx.logger.info("No annotations present in score.")
             return
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         if not key.isidentifier():
             self.logger.warning(
-                f"'{key}' can not be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
+                f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
         df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=delete)
         if len(df) == 0:
-            self.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
+            self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += f"{self.logger_names['mscx']}:{key}"
+        logger_cfg['name'] += f"{self.mscx.logger.logger.name}:{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:

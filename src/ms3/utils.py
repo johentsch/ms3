@@ -1094,7 +1094,7 @@ def resolve_dir(dir):
         return None
     if '~' in dir:
         return os.path.expanduser(dir)
-    return os.path.abspath(dir)
+    return dir #os.path.abspath(dir)
 
 
 def rgb2format(df, format='html', r_col='color_r', g_col='color_g', b_col='color_b'):
