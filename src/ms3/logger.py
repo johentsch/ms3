@@ -42,11 +42,11 @@ class LoggedClass:
         Dictionaries for keeping track of file information handled by .
     """
     def __init__(self, subclass='root', logger_cfg={}):
+        self.logger_cfg = {'name': subclass}
         if 'name' in logger_cfg:
             name = logger_cfg['name']
         else:
             name = subclass
-            self.logger_cfg = {'name': subclass}
         if name in logging.root.manager.loggerDict:
             del(logging.root.manager.loggerDict[name])
         self.logger_names = {}
