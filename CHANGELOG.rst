@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 0.4.4
+=============
+
+* added 'ms3 compare' command
+* support for parsing cap, capx, midi, musicxml, mxl, and xml files through temporary conversion
+* support for parsing MuseScore 2 files through temporary conversion
+
 Version 0.4.3
 =============
 
