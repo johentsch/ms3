@@ -12,7 +12,7 @@
 .. |size| image:: https://img.shields.io/github/repo-size/johentsch/ms3
     :alt: GitHub repo size
 
-.. |tests| image:: https://img.shields.io/github/workflow/status/johentsch/ms3/run_tests/master   
+.. |tests| image:: https://img.shields.io/github/workflow/status/johentsch/ms3/run_tests/master?label=tests
     :alt: GitHub Workflow Status (branch)
 
 .. |version| image:: https://img.shields.io/pypi/v/ms3?color=%2300
