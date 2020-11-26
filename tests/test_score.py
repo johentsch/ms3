@@ -32,14 +32,19 @@ class TestParser:
 
     def test_parse_and_write_back(self, score_object):
         original_mscx = score_object.full_paths['mscx']
-        tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=self.test_folder)
-        if score_object.mscx.has_annotations:
-            score_object.detach_labels('labels')
-            score_object.attach_labels('labels')
-        score_object.store_mscx(tmp_file.name)
-        original = open(original_mscx).read()
-        after_parsing = tmp_file.read()
-        assert_all_lines_equal(original, after_parsing, original=original_mscx, tmp_file=tmp_file)
+        try:
+            tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=self.test_folder, encoding='utf-8', delete=False)
+            if score_object.mscx.has_annotations:
+                score_object.detach_labels('labels')
+                score_object.attach_labels('labels')
+            score_object.store_mscx(tmp_file.name)
+            original = open(original_mscx, encoding='utf-8').read()
+            after_parsing = tmp_file.read()
+            assert_all_lines_equal(original, after_parsing, original=original_mscx, tmp_file=tmp_file)
+        finally:
+            tmp_file.close()
+            os.remove(tmp_file.name)
+
 
 
     def test_store_and_load_labels(self, score_object):
@@ -49,12 +54,16 @@ class TestParser:
             score_object.load_annotations(fname, key='tsv')
             score_object.detach_labels('labels')
             score_object.attach_labels('tsv')
-            tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.tsv', dir=self.test_folder)
-            score_object.store_mscx(tmp_file.name)
-            original_mscx = score_object.full_paths['mscx']
-            before = open(original_mscx).read()
-            after = tmp_file.read()
-            assert_all_lines_equal(before, after, original=original_mscx, tmp_file=tmp_file)
+            try:
+                tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.tsv', dir=self.test_folder, encoding='utf-8', delete=False)
+                score_object.store_mscx(tmp_file.name)
+                original_mscx = score_object.full_paths['mscx']
+                before = open(original_mscx, encoding='utf-8').read()
+                after = tmp_file.read()
+                assert_all_lines_equal(before, after, original=original_mscx, tmp_file=tmp_file)
+            finally:
+                tmp_file.close()
+                os.remove(tmp_file.name)
 
     def test_expanded_labels(self, score_object):
         if score_object.mscx.has_annotations:
