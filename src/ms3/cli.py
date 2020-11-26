@@ -61,27 +61,20 @@ def check(args):
 
 
 def compare(args):
+    logger_cfg = {
+        'level': args.level,
+    }
     if args.file is None:
-        p = Parse(dir=args.root_dir, key='compare', index='fname', file_re=r'\.mscx$')
+        p = Parse(dir=args.root_dir, key='compare', index='fname', file_re=r'\.mscx$', logger_cfg=logger_cfg)
     else:
-        p = Parse(paths=args.file, key='compare', index='fname')
-    if '.mscx' not in p.count_extensions():
-        p.logger.warning("No MSCX files found.")
+        p = Parse(paths=args.file, key='compare', index='fname', logger_cfg=logger_cfg)
+    if len(p._score_ids()) == 0:
+        p.logger.warning(f"Your selection does not include any scores.")
         return
+    p.add_rel_dir(args.rel_dir, suffix=args.suffix, score_extensions=args.extensions, new_key='old')
     p.parse_mscx()
-    if not args.scores_only:
-        wrong = p.check_labels()
-        if wrong is None:
-            res = None
-        if len(wrong) == 0:
-            p.logger.info("No syntactical errors.")
-            res = True
-        else:
-            p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
-            res = False
-    if args.assertion:
-        assert res, "Contains syntactical errors."
-    return res
+    p.add_detached_annotations()
+    p.compare_labels('old', store_with_suffix='_reviewed')
 
 
 def extract(args):
@@ -227,16 +220,18 @@ working directory except if you pass -f/--file.""")
 
     compare_parser = subparsers.add_parser('compare',
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.")
-    compare_parser.add_argument('root_dir', metavar='MSCX_DIR', nargs='?', type=check_dir,
+    compare_parser.add_argument('root_dir', metavar='SCORE_DIR', nargs='?', type=check_dir,
                               default=os.getcwd(),
-                              help="""Folder that will be scanned for MuseScore files (.mscx). Defaults to the current
+                              help="""Folder that will be scanned for score files. Defaults to the current
     working directory except if you pass -f/--file.""")
     compare_parser.add_argument('-f', '--file', metavar='PATHs', nargs='+',
-                              help='Add path(s) of individual file(s) to be checked.')
-    compare_parser.add_argument('-r', '--rel_path', metavar='PATH', default='../harmonies',
-                                help='Path relative to the MSCX file(s) where to look for existing annotation tables.')
-    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX',
+                              help='Add path(s) of individual file(s) to be compared.')
+    compare_parser.add_argument('-r', '--rel_dir', metavar='PATH', default='../harmonies',
+                                help='Path relative to the score file(s) where to look for existing annotation tables.')
+    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='',
                                 help='If existing annotation tables have a particular suffix, pass this suffix.')
+    compare_parser.add_argument('-e', '--extensions', metavar='EXT', nargs='+',
+                                help='If you only want to compare scores with particular extensions, pass these extensions.')
     compare_parser.set_defaults(func=compare)
 
 

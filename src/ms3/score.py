@@ -4,7 +4,7 @@ from tempfile import NamedTemporaryFile as Temp
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, decode_harmonies, get_ms_version, get_musescore, no_collections_no_booleans,\
+from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, get_ms_version, get_musescore, no_collections_no_booleans,\
     resolve_dir, rgba, rgba2attrs, rgba2params, test_binary, unpack_mscz, update_labels_cfg, update_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
@@ -19,49 +19,6 @@ class Score(LoggedClass):
     """ :obj:`str`
     Class variable with a regular expression that
     recognizes absolute chord symbols in their decoded (string) form; they start with a note name.
-    """
-
-    DCML_REGEX = re.compile(r"""
-                                ^(?P<first>
-                                  (\.?
-                                    ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                    (?P<chord>
-                                        (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                        (?P<form>(%|o|\+|M|\+M))?
-                                        (?P<figbass>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
-                                        (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                    )
-                                    (?P<pedalend>\])?
-                                  )?
-                                  (?P<phraseend>(\\\\|\{|\}|\}\{)
-                                  )?
-                                 )
-                                 (-
-                                  (?P<second>
-                                    ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
-                                    ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                    ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                    (?P<chord2>
-                                        (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                        (?P<form2>(%|o|\+|M|\+M))?
-                                        (?P<figbass2>(7|65|43|42|2|64|6))?
-                                        (\((?P<changes2>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
-                                        (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                    )
-                                    (?P<pedalend2>\])?
-                                  )?
-                                  (?P<phraseend2>(\\\\|\{|\}|\}\{)
-                                  )?
-                                 )?
-                                $
-                                """,
-                            re.VERBOSE)
-    """:obj:`str`
-    Class variable with a regular expression that
-    recognizes labels conforming to the DCML harmony annotation standard.
     """
 
 
@@ -189,14 +146,14 @@ class Score(LoggedClass):
             1: self.RN_REGEX,
             2: self.NASHVILLE_REGEX,
             3: self.ABS_REGEX,
-            'dcml': self.DCML_REGEX,
+            'dcml': DCML_DOUBLE_REGEX,
         }
         """:obj:`dict`
         Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.
-        1: self.rn_regex,
-        2: self.nashville_regex,
-        3: self.abs_regex,
-        'dcml': self.dcml_regex,
+        1: self.RN_REGEX,
+        2: self.NASHVILLE_REGEX,
+        3: self.ABS_REGEX,
+        'dcml': utils.DCML_REGEX,
         """
 
         self.labels_cfg = {
@@ -430,6 +387,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
         unchanged = old_vals.intersection(new_vals)
         changes_old = old_vals - unchanged
         changes_new = new_vals - unchanged
+        if len(changes_new) == 0 and len(changes_old) == 0:
+            self.logger.info(f"Comparison yielded no changes.")
+            return
 
         new_rgba =  color2rgba(new_color)
         new_color_params = rgba2params(new_rgba)
@@ -452,11 +412,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
         for k, v in added_color_params.items():
             df[k] = v
         added_changes = self.mscx.add_labels(Annotations(df=df), )
-        if added_changes > 0 or added_changes > 0:
+        if (added_changes is None or added_changes > 0) or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
-            self.logger.debug(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
+            self.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
 
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
@@ -563,6 +523,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Pass False to not add and not change any label types.
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
+        assert key is not None, "Key cannot be None."
         assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
         inf_dict = self.get_infer_regex() if infer else {}
         mscx = None if self._mscx is None else self._mscx
@@ -655,6 +616,21 @@ Use one of the existing keys or load a new set with the method load_annotations(
             raise ValueError(f"Path not found: {path}.")
             #self.logger.error("No file found at this path: " + full_path)
             return None
+
+    @staticmethod
+    def _make_extension_regex(native=True, convertible=True, tsv=False):
+        assert sum((native, convertible)) > 0, "Select at least one type of extensions."
+        exts = []
+        if native:
+            exts.extend(Score.native_formats)
+        if convertible:
+            exts.extend(Score.convertible_formats)
+        if tsv:
+            exts.append('tsv')
+        dot = r'\.'
+        regex = f"({'|'.join(dot + e for e in exts)})$"
+        return re.compile(regex, re.IGNORECASE)
+
 
     def _parse_mscx(self, musescore_file, read_only=False, parser=None, labels_cfg={}):
         """ 

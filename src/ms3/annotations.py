@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, is_any_row_equal, html2format, load_tsv, map_dict, name2format, resolve_dir, rgb2format, update_cfg
+from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, map_dict, name2format, resolve_dir, rgb2format, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -10,62 +10,6 @@ class Annotations(LoggedClass):
     """
     Class for storing, converting and manipulating annotation labels.
     """
-    dcml_double_re = re.compile(r"""
-                                    ^(?P<first>
-                                      (\.?
-                                        ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                        ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                        ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                        (?P<chord>
-                                            (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                            (?P<form>(%|o|\+|M|\+M))?
-                                            (?P<figbass>(7|65|43|42|2|64|6))?
-                                            (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                            (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                        )
-                                        (?P<pedalend>\])?
-                                      )?
-                                      (?P<phraseend>(\\\\|\{|\}|\}\{)
-                                      )?
-                                     )
-                                     (?P<second>
-                                      (-
-                                        ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
-                                        ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                        ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                        (?P<chord2>
-                                            (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                            (?P<form2>(%|o|\+|M|\+M))?
-                                            (?P<figbass2>(7|65|43|42|2|64|6))?
-                                            (\((?P<changes2>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                            (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                        )
-                                        (?P<pedalend2>\])?
-                                      )?
-                                      (?P<phraseend2>(\\\\|\{|\}|\}\{)
-                                      )?
-                                     )?
-                                    $
-                                    """,
-                            re.VERBOSE)
-
-    dcml_re = re.compile(r"""^(\.?
-                                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                (?P<chord>
-                                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                    (?P<form>(%|o|\+|M|\+M))?
-                                    (?P<figbass>(7|65|43|42|2|64|6))?
-                                    (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                )
-                                (?P<pedalend>\])?
-                              )?
-                              (?P<phraseend>(\\\\|\{|\}|\}\{)
-                              )?$
-                            """,
-                    re.VERBOSE)
 
     main_cols = ['label', 'mc', 'mc_onset', 'staff', 'voice']
     additional_cols = ['label_type', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
@@ -331,7 +275,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             Expanded DCML labels
         """
         if 'dcml' not in self.regex_dict:
-            self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
+            self.regex_dict = dict(dcml=DCML_DOUBLE_REGEX, **self.regex_dict)
             self.infer_types()
         df = self.get_labels(**kwargs)
         sel = df.label_type.str.contains('dcml').fillna(False)
@@ -344,7 +288,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = df[sel]
         try:
-            exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
+            exp = expand_labels(df, column='label', regex=DCML_REGEX, chord_tones=True, logger=self.logger)
             if drop_others:
                 self._expanded = exp
             else:

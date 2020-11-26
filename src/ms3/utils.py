@@ -14,6 +14,70 @@ import webcolors
 
 from .logger import function_logger, update_cfg
 
+DCML_REGEX = re.compile(r"""
+            ^(\.?
+                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                (?P<chord>
+                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                    (?P<form>(%|o|\+|M|\+M))?
+                    (?P<figbass>(7|65|43|42|2|64|6))?
+                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                )
+                (?P<pedalend>\])?
+            )?
+            (?P<phraseend>(\\\\|\}\{|\{|\}))?$
+            """, re.VERBOSE)
+""":obj:`str`
+Constant with a regular expression that recognizes labels conforming to the DCML harmony annotation standard excluding those
+consisting of two alternatives.
+"""
+
+DCML_DOUBLE_REGEX = re.compile(r"""
+                                ^(?P<first>
+                                  (\.?
+                                    ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord>
+                                        (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form>(%|o|\+|M|\+M))?
+                                        (?P<figbass>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend>\])?
+                                  )?
+                                  (?P<phraseend>(\\\\|\}\{|\{|\})
+                                  )?
+                                 )
+                                 (-
+                                  (?P<second>
+                                    ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
+                                    ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+                                    ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    (?P<chord2>
+                                        (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+                                        (?P<form2>(%|o|\+|M|\+M))?
+                                        (?P<figbass2>(7|65|43|42|2|64|6))?
+                                        (\((?P<changes2>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+                                        (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+                                    )
+                                    (?P<pedalend2>\])?
+                                  )?
+                                  (?P<phraseend2>(\\\\|\}\{|\{|\})
+                                  )?
+                                 )?
+                                $
+                                """,
+                        re.VERBOSE)
+""":obj:`str`
+Constant with a regular expression that recognizes complete labels conforming to the DCML harmony annotation standard 
+including those consisting of two alternatives, without having to split them. It is simply a doubled version of DCML_REGEX.
+"""
+
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
             '#aa0000': 'ms3_darkred',
@@ -1081,6 +1145,7 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+@function_logger
 def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
     """ Get a list of files.
 
@@ -1088,7 +1153,7 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
     ----------
     dir : :obj:`str`
         Directory to be scanned for files.
-    file_re, folder_re : :obj:`str`, optional
+    file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
         Regular expressions for filtering certain file names or folder names.
         The regEx are checked with search(), not match(), allowing for fuzzy search.
     recursive : :obj:`bool`, optional
@@ -1104,6 +1169,8 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
         res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
         return res
 
+    if not os.path.isdir(dir):
+        logger.warning("Not an existing directory: " + dir)
     res = []
     for subdir, dirs, files in os.walk(dir):
         _, current_folder = os.path.split(subdir)

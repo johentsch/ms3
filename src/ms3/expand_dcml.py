@@ -6,7 +6,7 @@ import sys, re
 import pandas as pd
 import numpy as np
 
-from .utils import fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, split_alternatives, transform, sort_tpcs
+from .utils import DCML_REGEX, fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, split_alternatives, transform, sort_tpcs
 from .logger import function_logger
 
 
@@ -14,22 +14,7 @@ from .logger import function_logger
 # Constants
 ################################################################################
 
-DCML_REGEX = re.compile(r"""
-            ^(\.?
-                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                (?P<chord>
-                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                    (?P<form>(%|o|\+|M|\+M))?
-                    (?P<figbass>(7|65|43|42|2|64|6))?
-                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
-                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                )
-                (?P<pedalend>\])?
-            )?
-            (?P<phraseend>(\\\\|\{|\}|\}\{))?$
-            """, re.VERBOSE)
+
 
 class SliceMaker(object):
     """ This class serves for storing slice notation such as ``:3`` as a variable or

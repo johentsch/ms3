@@ -992,6 +992,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
             To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
             to 255.
         """
+        if label == 'empty_harmony':
+            self.logger.debug("Empty harmony was skipped because the color wouldn't change anything.")
+            return True
         params = [color_name, color_html, color_r, color_g, color_b, color_a]
         rgba = color_params2rgba(*params)
         if rgba is None:
@@ -1026,7 +1029,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
         try:
             ix = labels.index(label)
         except:
-            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}.")
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}'.")
             return False
         tag = harmony_tags[ix]
         attrs = rgba2attrs(rgba)
