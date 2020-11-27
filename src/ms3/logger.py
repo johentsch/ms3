@@ -15,7 +15,7 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-CURRENT_LEVEL = logging.WARNING
+CURRENT_LEVEL = logging.INFO
 
 class ContextAdapter(logging.LoggerAdapter):
     """ This LoggerAdapter is designed to include the module and function that called the logger."""
