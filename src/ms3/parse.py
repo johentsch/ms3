@@ -625,9 +625,9 @@ Available keys: {available_keys}""")
         ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
         for id in ids:
-            self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
+            res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
                                                  detached_is_newer=detached_is_newer)
-        if store_with_suffix is not None:
+        if res and store_with_suffix is not None:
             self.store_mscx(ids=ids, suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
 
 
@@ -1363,8 +1363,8 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         for key, i in ids:
             new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path in paths:
-                modus = 'would ' if simulate else ''
-                self.logger.warning(f"The score at {new_path} {modus}have been overwritten.")
+                modus = 'would have' if simulate else 'has'
+                self.logger.warning(f"The score at {new_path} {modus} been overwritten.")
             else:
                 paths.append(new_path)
         if simulate:
