@@ -213,9 +213,13 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
     def store_mscx(self, filepath):
-
+        try:
+            mscx_string = bs4_to_mscx(self.soup)
+        except:
+            logging.error(f"BeautifulSoup object is None.")
+            return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
-            file.write(bs4_to_mscx(self.soup))
+            file.write(mscx_string)
         self.logger.info(f"Score written to {filepath}.")
         return True
 
@@ -1436,6 +1440,7 @@ def format_node(node, indent):
 
 def bs4_to_mscx(soup):
     """ Turn the BeautifulSoup into a string representing an MSCX file"""
+    assert soup is not None, "BeautifulSoup XML structure is None"
     initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
