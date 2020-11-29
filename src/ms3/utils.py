@@ -11,6 +11,8 @@ from zipfile import ZipFile as Zip
 import pandas as pd
 import numpy as np
 import webcolors
+from pathos import multiprocessing
+from tqdm import tqdm
 
 from .logger import function_logger, update_cfg
 
@@ -407,7 +409,7 @@ def convert(old, new, MS='mscore'):
     else:
         logger.warning("Error while converting " + old)
 
-
+@function_logger
 def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
@@ -426,34 +428,35 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     """
     MS = get_musescore(ms)
     assert MS is not None, f"MuseScore not found: {ms}"
-
+    if target_extension[0] == '.':
+        target_extension = target_extension[1:]
     conversion_params = []
-    for subdir, dirs, files in os.walk(dir):
-        if not recursive:
-            dirs[:] = []
+    #logger.info(f"Traversing {dir} {'' if recursive else 'non-'}recursively...")
+    if len(extensions) > 0:
+        exclude_re = f"(?<!\.({'|'.join(extensions)}))$"
+    else:
+        exclude_re = ''
+    new_dirs = {}
+    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True):
+        if subdir in new_dirs:
+            new_subdir = new_dirs[subdir]
         else:
-            dirs.sort()
-        old_subdir = os.path.relpath(subdir, dir)
-        new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+            old_subdir = os.path.relpath(subdir, dir)
+            new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+            os.makedirs(new_subdir, exist_ok=True)
+            new_dirs[subdir] = new_subdir
+        name, _ = os.path.splitext(file)
+        if suffix is not None:
+            fname = f"{name}{suffix}.{target_extension}"
+        else:
+            fname = f"{name}.{target_extension}"
+        old = os.path.join(subdir, file)
+        new = os.path.join(new_subdir, fname)
+        if overwrite or not os.path.isfile(new):
+            conversion_params.append((old, new, MS))
+        else:
+            logger.debug(new, 'exists already. Pass -o to overwrite.')
 
-        for file in files:
-            name, ext = os.path.splitext(file)
-            ext = ext[1:]
-            if re.search(regex, file) and (ext in extensions or extensions == []):
-                if not os.path.isdir(new_subdir):
-                    os.makedirs(new_subdir)
-                if target_extension[0] == '.':
-                    target_extension = target_extension[1:]
-                if suffix is not None:
-                    neu = '%s%s.%s' % (name, suffix, target_extension)
-                else:
-                    neu = '%s.%s' % (name, target_extension)
-                old = os.path.join(subdir, file)
-                new = os.path.join(new_subdir, neu)
-                if overwrite or not os.path.isfile(new):
-                    conversion_params.append((old, new, MS))
-                else:
-                    print(new, 'exists already. Pass -o to overwrite.')
 
     # TODO: pass filenames as 'logger' argument to convert()
     if parallel:
@@ -1145,8 +1148,46 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+# @function_logger
+# def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
+#     """ Get a list of files.
+#
+#     Parameters
+#     ----------
+#     dir : :obj:`str`
+#         Directory to be scanned for files.
+#     file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
+#         Regular expressions for filtering certain file names or folder names.
+#         The regEx are checked with search(), not match(), allowing for fuzzy search.
+#     recursive : :obj:`bool`, optional
+#         By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+#
+#     Returns
+#     -------
+#     list
+#         List of full paths meeting the criteria.
+#
+#     """
+#     def check_regex(reg, s):
+#         res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
+#         return res
+#
+#     if not os.path.isdir(dir):
+#         logger.warning("Not an existing directory: " + dir)
+#     res = []
+#     for subdir, dirs, files in os.walk(dir):
+#         _, current_folder = os.path.split(subdir)
+#         if recursive and check_regex('', current_folder):
+#             dirs[:] = [d for d in sorted(dirs)]
+#         else:
+#             dirs[:] = []
+#         if check_regex(folder_re, current_folder):
+#             files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
+#             res.extend(files)
+#     return res
+
 @function_logger
-def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=True):
     """ Get a list of files.
 
     Parameters
@@ -1165,24 +1206,38 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
         List of full paths meeting the criteria.
 
     """
-    def check_regex(reg, s):
-        res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
-        return res
+    def traverse(dir):
+        nonlocal counter
 
-    if not os.path.isdir(dir):
-        logger.warning("Not an existing directory: " + dir)
-    res = []
-    for subdir, dirs, files in os.walk(dir):
-        _, current_folder = os.path.split(subdir)
-        if recursive and check_regex('', current_folder):
-            dirs[:] = [d for d in sorted(dirs)]
-        else:
-            dirs[:] = []
-        if check_regex(folder_re, current_folder):
-            files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
-            res.extend(files)
-    return res
+        def check_regex(reg, s):
+            try:
+                res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
+            except:
+                print(reg)
+                raise
+            return res
 
+        for dir_entry in os.scandir(dir):
+            name = dir_entry.name
+            path = os.path.join(dir, name)
+            if dir_entry.is_dir() and recursive and check_regex(folder_re, name):
+                for res in traverse(path):
+                    yield res
+            else:
+                if pbar is not None:
+                    pbar.update()
+                if dir_entry.is_file() and check_regex(file_re, name):
+                    counter += 1
+                    pbar.set_postfix({'selected': counter})
+                    if subdirs:
+                        yield (dir, name)
+                    else:
+                        yield path
+    counter = 0
+    if not os.path.isdir(directory):
+        logger.warning("Not an existing directory: " + directory)
+    pbar = tqdm(desc='Scanning files', unit=' files') if progress else None
+    return traverse(directory)
 
 
 def sort_tpcs(tpcs, ascending=True, start=None):
@@ -1309,7 +1364,7 @@ def test_binary(command):
         logger.warning(f"MuseScore binary not found and not an installed command: {command}")
         return None
     else:
-        logger.debug(f"Found MuseScore command: {command}")
+        logger.info(f"Found MuseScore command: {command}")
         return command
 
 
