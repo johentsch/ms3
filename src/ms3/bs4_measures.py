@@ -117,7 +117,7 @@ class MeasureList(LoggedClass):
         func_params = {
             make_mn_col: get_cols(['dont_count', 'numbering_offset']),
             make_keysig_col: get_cols(['keysig_col']),
-            make_timesig_col: get_cols(['sigN_col', 'sigD_col']),
+            make_timesig_col: dict(get_cols(['sigN_col', 'sigD_col']), logger=self.logger),
             make_actdur_col: get_cols(['len_col']),
             make_repeat_col: get_cols(['startRepeat', 'endRepeat']),
             make_volta_col: {'volta_structure': self.volta_structure},
@@ -634,7 +634,11 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
 def make_actdur_col(df, len_col, timesig_col='timesig', name='act_dur'):
     actdur = df[len_col]
     actdur = actdur.fillna(df[timesig_col])
-    return actdur.map(frac).rename(name)
+    try:
+        return actdur.map(frac).rename(name)
+    except:
+        print(df.to_dict())
+        raise
 
 
 
@@ -772,7 +776,12 @@ def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
     return repeats.rename(name)
 
 
+@function_logger
 def make_timesig_col(df, sigN_col, sigD_col, name='timesig'):
+    if pd.isnull(df[sigN_col].iloc[0]):
+        logger.warning("No time signature defined in MC 1: Wild-guessing it's 4/4")
+        sigN_pos, sigD_pos = df.columns.get_loc(sigN_col), df.columns.get_loc(sigD_col)
+        df.iloc[0, [sigN_pos, sigD_pos]] = '4'
     n = pd.to_numeric(df[sigN_col].fillna(method='ffill')).astype(str)
     d = pd.to_numeric(df[sigD_col].fillna(method='ffill')).astype(str)
     return (n + '/' + d).rename(name)

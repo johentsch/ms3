@@ -2,7 +2,7 @@ import sys, re
 
 import pandas as pd
 
-from .utils import decode_harmonies, is_any_row_equal, load_tsv, resolve_dir, update_cfg
+from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, map_dict, name2format, resolve_dir, rgb2format, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -10,62 +10,10 @@ class Annotations(LoggedClass):
     """
     Class for storing, converting and manipulating annotation labels.
     """
-    dcml_double_re = re.compile(r"""
-                                    ^(?P<first>
-                                      (\.?
-                                        ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                        ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                        ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                        (?P<chord>
-                                            (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                            (?P<form>(%|o|\+|M|\+M))?
-                                            (?P<figbass>(7|65|43|42|2|64|6))?
-                                            (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                            (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                        )
-                                        (?P<pedalend>\])?
-                                      )?
-                                      (?P<phraseend>(\\\\|\{|\}|\}\{)
-                                      )?
-                                     )
-                                     (?P<second>
-                                      (-
-                                        ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
-                                        ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                        ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                        (?P<chord2>
-                                            (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                            (?P<form2>(%|o|\+|M|\+M))?
-                                            (?P<figbass2>(7|65|43|42|2|64|6))?
-                                            (\((?P<changes2>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                            (/(?P<relativeroot2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                        )
-                                        (?P<pedalend2>\])?
-                                      )?
-                                      (?P<phraseend2>(\\\\|\{|\}|\}\{)
-                                      )?
-                                     )?
-                                    $
-                                    """,
-                            re.VERBOSE)
 
-    dcml_re = re.compile(r"""^(\.?
-                                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                                (?P<chord>
-                                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                                    (?P<form>(%|o|\+|M|\+M))?
-                                    (?P<figbass>(7|65|43|42|2|64|6))?
-                                    (\((?P<changes>((\+|-|\^)?(b*|\#*)\d)+)\))?
-                                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                                )
-                                (?P<pedalend>\])?
-                              )?
-                              (?P<phraseend>(\\\\|\{|\}|\}\{)
-                              )?$
-                            """,
-                    re.VERBOSE)
+    main_cols = ['label', 'mc', 'mc_onset', 'staff', 'voice']
+    additional_cols = ['label_type', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
+                       'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a']
 
     def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
         """
@@ -74,7 +22,9 @@ class Annotations(LoggedClass):
         ----------
         tsv_path
         df
-        cols
+        cols : :obj:`dict`, optional
+            If one or several column names differ, pass a {NAME -> ACTUAL_NAME} dictionary, where NAME can be
+            {'mc', 'mn', 'mc_onset', 'label', 'staff', 'voice', 'volta'}
         index_col
         sep
         mscx_obj
@@ -93,15 +43,8 @@ class Annotations(LoggedClass):
         self.changed = False
         self.read_only = read_only
         self.mscx_obj = mscx_obj
-        self.cols = {
-            'mc': 'mc',
-            'mn': 'mn',
-            'mc_onset': 'mc_onset',
-            'label': 'label',
-            'staff': 'staff',
-            'voice': 'voice',
-            'volta': 'volta',
-        }
+        columns = self.main_cols + self.additional_cols
+        self.cols = {c: c for c in columns}
         self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
 
         if df is not None:
@@ -109,11 +52,12 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        for col in ['label', 'mc_onset']:
+        for col in ['label']:
             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
 Present column names are:\n{self.df.columns.to_list()}."""
-        if 'offset' in self.df.columns:
-            self.df.drop(columns='offset', inplace=True)
+        # if 'offset' in self.df.columns:
+        #     self.df.drop(columns='offset', inplace=True)
+        #self.cols = {k: v for k, v in self.cols.items() if k in self.main_cols + ['label_type'] or v in df.columns}
         self.infer_types()
 
 
@@ -145,8 +89,10 @@ Possible values are {{1, 2, 3, 4}}.""")
         if voice is not None:
             df[voice_col] = voice
         if voice_col in cols and df[voice_col].isna().any():
-            self.logger.warning(f"The following labels don't have staff information: {df[df.voice.isna()]}")
+            self.logger.warning(f"The following labels don't ahve voice information: {df[df.voice.isna()]}")
             error = True
+        if error:
+            return pd.DataFrame()
 
         if self.cols['mc'] not in cols:
             if self.cols['mn'] not in cols:
@@ -167,7 +113,7 @@ Possible values are {{1, 2, 3, 4}}.""")
 
         position_cols = ['mc', 'mc_onset', 'staff', 'voice']
         new_pos_cols = [self.cols[c] for c in position_cols]
-        if all(c in df.columns for c in position_cols):
+        if all(c in df.columns for c in new_pos_cols):
             if check_for_clashes and self.mscx_obj.has_annotations:
                 existing = self.mscx_obj.get_raw_labels()[position_cols]
                 to_be_attached = df[new_pos_cols]
@@ -184,7 +130,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         return df
 
 
-    def n_labels(self):
+    def count(self):
         return len(self.df)
 
 
@@ -200,14 +146,37 @@ Possible values are {{1, 2, 3, 4}}.""")
 
     @property
     def annotation_layers(self):
-        layers = [col for col in ['staff', 'voice', 'label_type'] if col in self.df.columns]
-        return self.n_labels(), self.df.groupby(layers).size()
+        df = self.df.copy()
+        layers = ['staff', 'voice', 'label_type']
+        for c in layers:
+            if self.cols[c] not in df.columns:
+                df[c] = None
+        color_cols = ['color_name', 'color_html', 'color_r']
+        if any(True for c in color_cols if self.cols[c] in df):
+            color_name = self.cols['color_name']
+            if color_name in df.columns:
+                pass
+            elif self.cols['color_html'] in df.columns:
+                df[color_name] = html2format(df, 'name')
+            elif self.cols['color_r'] in df.columns:
+                df[color_name] = rgb2format(df, 'name')
+            df[color_name] = df[color_name].fillna('default')
+            layers += [color_name]
+        type2name = map_dict({
+            0: '0 (Plain Text)',
+            1: '1 (Nashville)',
+            2: '2 (Roman Numeral)',
+            3: '3 (Absolute Chord)',
+            'dcml': 'dcml',
+        })
+        df.label_type = df.label_type.map(type2name)
+        return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None):
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format='html'):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -233,12 +202,15 @@ Possible values are {{1, 2, 3, 4}}.""")
             Set to False to suppress warnings about non-existent label_types.
         column_name : :obj:`str`, optional
             Can be used to rename the columns holding the labels.
+        color_format : {'html', 'rgb', 'rgba', 'name', None}
+            If label colors are encoded, determine how they are displayed.
 
         Returns
         -------
 
         """
         sel = pd.Series(True, index=self.df.index)
+
         if staff is not None:
             sel = sel & (self.df[self.cols['staff']] == staff)
         if voice is not None:
@@ -250,7 +222,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             # (pd.to_numeric(self.df['label_type']).astype('Int64') == label_type).fillna(False)
         res = self.df[sel].copy()
         if not positioning:
-            pos_cols = [c for c in ['minDistance',  'offset', 'offset:x', 'offset:y'] if c in res.columns]
+            pos_cols = [c for c in ['minDistance',  'offset', 'offset_x', 'offset_y'] if c in res.columns]
             res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]
@@ -259,6 +231,28 @@ Possible values are {{1, 2, 3, 4}}.""")
             res = decode_harmonies(res, label_col=label_col)
         if column_name is not None and column_name != label_col:
             res = res.rename(columns={label_col: column_name})
+        color_cols = ['color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'color_name']
+        rgb_cols = ['color_r', 'color_g', 'color_b']
+        if color_format is not None and any(True for c in color_cols if c in res):
+            if color_format == 'html' and 'color_html' not in res.columns:
+                if 'color_name' in res.columns:
+                    html = name2format(res, 'html')
+                elif 'color_r' in res.columns:
+                    if any(True for c in rgb_cols if c not in res.columns):
+                        logger.warning(f"The following columns are missing: {list(c for c in rgb_cols if c not in res.columns)}")
+                    else:
+                        html = rgb2format(res, 'html')
+                res['color_html'] = html
+            elif color_format == 'name' and 'color_name' not in res.columns:
+                if 'color_html' in res.columns:
+                    name = html2format(res, 'name')
+                elif 'color_r' in res.columns:
+                    if any(True for c in rgb_cols if c not in res.columns):
+                        logger.warning(f"The following columns are required")
+                    else:
+                        name = rgb2format(res, 'name')
+                res['color_name'] = name
+
         return res
 
 
@@ -281,10 +275,10 @@ Possible values are {{1, 2, 3, 4}}.""")
             Expanded DCML labels
         """
         if 'dcml' not in self.regex_dict:
-            self.regex_dict = dict(dcml=self.dcml_double_re, **self.regex_dict)
+            self.regex_dict = dict(dcml=DCML_DOUBLE_REGEX, **self.regex_dict)
             self.infer_types()
         df = self.get_labels(**kwargs)
-        sel = df.label_type == 'dcml'
+        sel = df.label_type.str.contains('dcml').fillna(False)
         if not sel.any():
             self.logger.info(f"Score does not contain any DCML harmonic annotations.")
             return
@@ -294,7 +288,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = df[sel]
         try:
-            exp = expand_labels(df, column='label', regex=self.dcml_re, chord_tones=True, logger=self.logger)
+            exp = expand_labels(df, column='label', regex=DCML_REGEX, chord_tones=True, logger=self.logger)
             if drop_others:
                 self._expanded = exp
             else:
@@ -335,10 +329,13 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
         if 'root' in self.df.columns:
             self.df.loc[self.df.root.notna(), 'label_type'] = 3
-        for name, regex in self.regex_dict.items():
-            sel = self.df.label_type == 0
-            mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
-            self.df.loc[sel & mtch, 'label_type'] = name
+        if len(self.regex_dict) > 0:
+            decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
+            for name, regex in self.regex_dict.items():
+                sel = self.df.label_type.isin((0, 1, 2, 3))
+                #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
+                mtch = decoded[sel].str.match(regex)
+                self.df.loc[sel & mtch, 'label_type'] = self.df.loc[sel & mtch, 'label_type'].astype(str) + f" ({name})"
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):

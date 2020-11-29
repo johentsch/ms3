@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import fifths2name, ordinal_suffix, resolve_dir
+from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params
 
 
 class _MSCX_bs4(LoggedClass):
@@ -78,7 +78,8 @@ class _MSCX_bs4(LoggedClass):
 
         if self.version[0] != '3':
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
-            raise ValueError(f"Cannot parse MuseScore {self.version} file. You may want to use 'ms3 convert'.")
+            raise ValueError(f"""Cannot parse MuseScore {self.version} file.
+Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
@@ -212,9 +213,13 @@ class _MSCX_bs4(LoggedClass):
 
 
     def store_mscx(self, filepath):
-
+        try:
+            mscx_string = bs4_to_mscx(self.soup)
+        except:
+            logging.error(f"BeautifulSoup object is None.")
+            return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
-            file.write(bs4_to_mscx(self.soup))
+            file.write(mscx_string)
         self.logger.info(f"Score written to {filepath}.")
         return True
 
@@ -222,8 +227,6 @@ class _MSCX_bs4(LoggedClass):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
-        if self.logger.logger.file_handler is not None:
-            logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
         return MeasureList(self._measures, sections=sections, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 
@@ -483,12 +486,18 @@ class _MSCX_bs4(LoggedClass):
         cols = {'label_type': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
                 'nashville': 'Harmony/function',
-                'root': 'Harmony/root',
-                'base': 'Harmony/base',
+                'absolute_root': 'Harmony/root',
+                'absolute_base': 'Harmony/base',
                 'leftParen': 'Harmony/leftParen',
-                'rightParen': 'Harmony/rightParen'}
+                'rightParen': 'Harmony/rightParen',
+                'offset_x': 'Harmony/offset:x',
+                'offset_y': 'Harmony/offset:y',
+                'color_r': 'Harmony/color:r',
+                'color_g': 'Harmony/color:g',
+                'color_b': 'Harmony/color:b',
+                'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'root', 'base', 'leftParen', 'rightParen', 'label_type']
+        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -497,7 +506,7 @@ class _MSCX_bs4(LoggedClass):
         if 'label_type' in df.columns:
             df.label_type.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
-        additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' if c[8:] not in main_cols}
+        additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' and c not in cols.values()}
         df.rename(columns=additional_cols, inplace=True)
         columns += list(additional_cols.values())
         return df[columns]
@@ -608,7 +617,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return df[[col for col in df.columns if not col == 'mc_offset']]
 
 
-    def delete_label(self, mc, staff, voice, mc_onset):
+    def delete_label(self, mc, staff, voice, mc_onset, empty_only=False):
         """ Delete a label from a particular position (if there is one).
 
         Parameters
@@ -619,6 +628,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             Notational layer in which to delete the label.
         mc_onset : :obj:`fractions.Fraction`
             mc_onset
+        empty_only : :obj:`bool`, optional
+            Set to True if you want to delete only empty harmonies. Since normally all labels at the defined position
+            are deleted, this flag is needed to prevent non-empty <Harmony> tags.
 
         Returns
         -------
@@ -744,6 +756,16 @@ f"Too many location tags in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice 
         ##### Here the actual removal takes place.
         deletions = []
         delete_location = not (mc_onset == 0 and not is_last)
+        labels = [e for e in elements if e['name'] == 'Harmony']
+        if empty_only:
+            empty = [e for e in labels if e['tag'].find('name') is None or e['tag'].find('name').string is None]
+            if len(empty) == 0:
+                self.logger.info(f"No empty label to delete at MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
+            elif len(empty) < len(labels):
+                # if there are additional non-empty labels, delete nothing but the empty ones
+                elements = empty
+
+
         for i, e in enumerate(elements):
             if e['name'] == 'Harmony' or (e['name']  == 'location' and delete_location):
                 e['tag'].decompose()
@@ -841,12 +863,12 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             old_names = list(names)
             names.insert(ix, 'Harmony')
             if name is None:
-                self.logger.debug(f"""MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} had only these tags:
+                self.logger.debug(f"""MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} had only these tags (and no <Chord> or <Rest>):
 {old_names}\nAfter insertion: {names}""")
             else:
                 self.logger.debug(f"Added {label_name} to {name} in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
             if 'Harmony' in old_names:
-                self.logger.warning(
+                self.logger.debug(
                     f"The chord in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} was already carrying a label.")
             return True
 
@@ -953,24 +975,116 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return remember
 
 
-    def new_label(self, label, label_type=None, after=None, before=None, within=None, root=None, base=None, leftParen=None, rightParen=None,  offset_x=None, offset_y=None, nashville=None, decoded=None):
+    def change_label_color(self, mc, mc_onset, staff, voice, label, color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+        """  Change the color of an existing label.
+
+        Parameters
+        ----------
+        mc : :obj:`int`
+            Measure count of the label
+        mc_onset : :obj:`fractions.Fraction`
+            Onset position to which the label is attached.
+        staff : :obj:`int`
+            Staff to which the label is attached.
+        voice : :obj:`int`
+            Notational layer to which the label is attached.
+        label : :obj:`str`
+            (Decoded) label.
+        color_name, color_html : :obj:`str`, optional
+            Two ways of specifying the color.
+        color_r, color_g, color_b, color_a : :obj:`int` or :obj:`str`, optional
+            To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
+            to 255.
+        """
+        if label == 'empty_harmony':
+            self.logger.debug("Empty harmony was skipped because the color wouldn't change anything.")
+            return True
+        params = [color_name, color_html, color_r, color_g, color_b, color_a]
+        rgba = color_params2rgba(*params)
+        if rgba is None:
+            given_params = [p for p in params if p is not None]
+            self.logger.warning(f"Parameters could not be turned into a RGBA color: {given_params}")
+            return False
+        self.make_writeable()
+        if mc not in self.tags:
+            self.logger.error(f"MC {mc} not found.")
+            return False
+        if staff not in self.tags[mc]:
+            self.logger.error(f"Staff {staff} not found.")
+            return False
+        if voice not in [1, 2, 3, 4]:
+            self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
+            return False
+        if voice not in self.tags[mc][staff]:
+            self.logger.error(f"Staff {staff}, MC {mc} has no voice {voice}.")
+            return False
+        measure = self.tags[mc][staff][voice]
+        mc_onset = frac(mc_onset)
+        if mc_onset not in measure:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice} has no event on mc_onset {mc_onset}.")
+            return False
+        elements = measure[mc_onset]
+        harmony_tags = [e['tag'] for e in elements if e['name'] == 'Harmony']
+        n_labels = len(harmony_tags)
+        if n_labels == 0:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no labels.")
+            return False
+        labels = [decode_harmony_tag(t) for t in harmony_tags]
+        try:
+            ix = labels.index(label)
+        except:
+            self.logger.error(f"Staff {staff}, MC {mc}, voice {voice}, mc_onset {mc_onset} has no label '{label}'.")
+            return False
+        tag = harmony_tags[ix]
+        attrs = rgba2attrs(rgba)
+        if tag.color is None:
+            tag_order = ['absolute_base', 'function', 'name', 'rootCase', 'absolute_root']
+            after = next(tag.find(t) for t in tag_order if tag.find(t) is not None)
+            self.new_tag('color', attributes=attrs, after=after)
+        else:
+            for k, v in attrs.items():
+                tag.color[k] = v
+        return True
+
+
+
+
+
+
+
+    def new_label(self, label, label_type=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
+                  leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
+                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(label_type):
+            try:
+                label_type = int(label_type)
+            except:
+                if label_type[0] in ('1', '2'):
+                    label_type = int(label_type[0])
             # only include <harmonyType> tag for label_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            if label_type in [1, 2, '1', '2']:
+            if label_type in (1, 2):
                 _ = self.new_tag('harmonyType', value=label_type, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
-        if not pd.isnull(root):
-            _ = self.new_tag('root', value=root, within=tag)
+        if not pd.isnull(absolute_root):
+            _ = self.new_tag('root', value=absolute_root, within=tag)
+        if not pd.isnull(rootCase):
+            _ = self.new_tag('rootCase', value=rootCase, within=tag)
         if not pd.isnull(label):
             _ = self.new_tag('name', value=label, within=tag)
         else:
-            assert not pd.isnull(root), "Either label or root need to be specified."
+            assert not pd.isnull(absolute_root), "Either label or root need to be specified."
         if not pd.isnull(nashville):
             _ = self.new_tag('function', value=nashville, within=tag)
-        if not pd.isnull(base):
-            _ = self.new_tag('base', value=base, within=tag)
+        if not pd.isnull(absolute_base):
+            _ = self.new_tag('base', value=absolute_base, within=tag)
+
+        rgba = color_params2rgba(color_name, color_html, color_r, color_g, color_b, color_a)
+        if rgba is not None:
+            attrs = rgba2attrs(rgba)
+            _ = self.new_tag('color', attributes=attrs, within=tag)
+
         if not pd.isnull(offset_x) or not pd.isnull(offset_y):
             if pd.isnull(offset_x):
                 offset_x = '0'
@@ -1249,12 +1363,37 @@ def bs4_rest_duration(node, duration_multiplier=1):
     return bs4_chord_duration(node, duration_multiplier)
 
 
+def decode_harmony_tag(tag):
+    """ Decode a <Harmony> tag into a string."""
+    label = ''
+    if tag.function is not None:
+        label = str(tag.function.string)
+    if tag.leftParen is not None:
+        label = '('
+    if tag.root is not None:
+        root = fifths2name(tag.root.string, ms=True)
+        if str(tag.rootCase) == '1':
+            root = root.lower()
+        label += root
+    name = tag.find('name')
+    if name is not None:
+        label += str(name.string)
+    if tag.base is not None:
+        label += '/' + str(tag.base.string)
+    if tag.rightParen is not None:
+        label += ')'
+    return label
+
+
+############ Functions for writing BeautifulSoup to MSCX file
+
+
 def opening_tag(node, closed=False):
-    closing = '/' if closed else ''
     result = f"<{node.name}"
-    attributes = node.attrs.items()
+    attributes = node.attrs
     if len(attributes) > 0:
-        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes)
+        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes.items())
+    closing = '/' if closed else ''
     return f"{result}{closing}>"
 
 
@@ -1263,6 +1402,7 @@ def closing_tag(node_name):
 
 
 def make_oneliner(node):
+    """ Pass a tag of which the layout does not spread over several lines. """
     result = opening_tag(node)
     for c in node.children:
         if isinstance(c, bs4.element.Tag):
@@ -1276,27 +1416,31 @@ def make_oneliner(node):
     return result
 
 
-def bs4_to_mscx(soup):
-    def format_node(node, indent):
-        nxt_indent = indent + 2
-        space = indent * ' '
-        node_name = node.name
-        # The following tags are exceptionally not abbreviated when empty,
-        # so for instance you get <metaTag></metaTag> and not <metaTag/>
-        if node_name in ['continueAt', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
-            return f"{space}{make_oneliner(node)}\n"
-        children = node.find_all(recursive=False)
-        if len(children) > 0:
-            result = f"{space}{opening_tag(node)}\n"
-            result += ''.join(format_node(child, nxt_indent) for child in children)
-            result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
-            return result
-        if node.string == '\n':
-            return f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
-        if node.string is None:
-            return f"{space}{opening_tag(node, closed=True)}\n"
+def format_node(node, indent):
+    """ Recursively format Beautifulsoup tag as in an MSCX file."""
+    nxt_indent = indent + 2
+    space = indent * ' '
+    node_name = node.name
+    # The following tags are exceptionally not abbreviated when empty,
+    # so for instance you get <metaTag></metaTag> and not <metaTag/>
+    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
         return f"{space}{make_oneliner(node)}\n"
+    children = node.find_all(recursive=False)
+    if len(children) > 0:
+        result = f"{space}{opening_tag(node)}\n"
+        result += ''.join(format_node(child, nxt_indent) for child in children)
+        result += f"{nxt_indent * ' '}{closing_tag(node_name)}\n"
+        return result
+    if node.string == '\n':
+        return f"{space}{opening_tag(node)}\n{nxt_indent * ' '}{closing_tag(node_name)}\n"
+    if node.string is None:
+        return f"{space}{opening_tag(node, closed=True)}\n"
+    return f"{space}{make_oneliner(node)}\n"
 
+
+def bs4_to_mscx(soup):
+    """ Turn the BeautifulSoup into a string representing an MSCX file"""
+    assert soup is not None, "BeautifulSoup XML structure is None"
     initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)

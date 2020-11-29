@@ -1,0 +1,842 @@
+mc	mn	mc_onset	mn_onset	event	timesig	staff	voice	duration	scalar	volta	chord_id	Beam/Fragment/y1	Beam/Fragment/y2	Beam/StemDirection	Beam/noSlope	Chord/Articulation/offset	Chord/Articulation/offset:x	Chord/Articulation/offset:y	Chord/Articulation/play	Chord/Articulation/subtype	Chord/BeamMode	Chord/Lyrics/syllabic	Chord/Lyrics/text	Chord/Spanner/Slur	Chord/Spanner/Slur/SlurSegment/o1	Chord/Spanner/Slur/SlurSegment/o1:x	Chord/Spanner/Slur/SlurSegment/o1:y	Chord/Spanner/Slur/SlurSegment/o2	Chord/Spanner/Slur/SlurSegment/o2:x	Chord/Spanner/Slur/SlurSegment/o2:y	Chord/Spanner/Slur/SlurSegment/o3	Chord/Spanner/Slur/SlurSegment/o3:x	Chord/Spanner/Slur/SlurSegment/o3:y	Chord/Spanner/Slur/SlurSegment/offset	Chord/Spanner/Slur/SlurSegment/offset:x	Chord/Spanner/Slur/SlurSegment/offset:y	Chord/Spanner/Slur/SlurSegment:no	Chord/Spanner/Slur/up	Chord/Spanner/next/location/fractions	Chord/Spanner/next/location/measures	Chord/Spanner/next/location/voices	Chord/Spanner/prev/location/fractions	Chord/Spanner/prev/location/measures	Chord/Spanner/prev/location/voices	Chord/Spanner:type	Chord/StemDirection	Chord/dots	Chord/durationType	Chord/offset	Chord/offset:x	Chord/offset:y	Dynamic/minDistance	Dynamic/offset	Dynamic/offset:x	Dynamic/offset:y	Dynamic/placement	Dynamic/subtype	Dynamic/text	Dynamic/text/font	Dynamic/text/font:face	Dynamic/text/i	Dynamic/text/i/font	Dynamic/text/i/font:face	Dynamic/velocity	Dynamic/visible	Fermata/offset	Fermata/offset:x	Fermata/offset:y	Fermata/subtype	Fermata/timeStretch	Harmony/base	Harmony/color	Harmony/color:a	Harmony/color:b	Harmony/color:g	Harmony/color:r	Harmony/function	Harmony/harmonyType	Harmony/name	Harmony/offset	Harmony/offset:x	Harmony/offset:y	Harmony/root	Harmony/rootCase	Rest/duration	Rest/durationType	Rest/offset	Rest/offset:x	Rest/offset:y	Rest/visible	Spanner/HairPin/Segment/autoplace	Spanner/HairPin/Segment/minDistance	Spanner/HairPin/Segment/off2	Spanner/HairPin/Segment/off2:x	Spanner/HairPin/Segment/off2:y	Spanner/HairPin/Segment/offset	Spanner/HairPin/Segment/offset:x	Spanner/HairPin/Segment/offset:y	Spanner/HairPin/Segment/subtype	Spanner/HairPin/continueText	Spanner/HairPin/diagonal	Spanner/HairPin/endText	Spanner/HairPin/lineVisible	Spanner/HairPin/placement	Spanner/HairPin/subtype	Spanner/HairPin/veloChange	Spanner/next/location/fractions	Spanner/next/location/measures	Spanner/prev/location/fractions	Spanner/prev/location/measures	Spanner:type	StaffText/offset	StaffText/offset:x	StaffText/offset:y	StaffText/style	StaffText/text	Tempo/followText	Tempo/tempo	Tempo/text	location/fractions
+1	1	0	0	Dynamic	4/4	1	1	0																																																	p							49																																																								
+1	1	0	0	Tempo	4/4	1	1	0																																																																																																													1	0.733333	Larghetto	
+1	1	0	0	Spanner	4/4	1	1	0																																																																																																	0	20	1/2				HairPin									
+1	1	0	0	Chord	4/4	1	1	1/4	1		0										begin		O																							down		quarter																																																																								
+1	1	1/4	1/4	Chord	4/4	1	1	1/4	1		1										begin		quam																							down		quarter																																																																								
+1	1	1/2	1/2	Spanner	4/4	1	1	0																																																																																																					-1/2		HairPin									
+1	1	1/2	1/2	Spanner	4/4	1	1	0																																																																																																	1	20	-1/2	1			HairPin									
+1	1	1/2	1/2	Chord	4/4	1	1	1/4	1		2										begin	begin	tris																							down		quarter																																																																								
+1	1	3/4	3/4	Chord	4/4	1	1	1/4	1		3										begin	end	tis																							down		quarter																																																																								
+1	1	0	0	Dynamic	4/4	2	1	0																																												-0.09063					p							49																																																								
+1	1	0	0	Spanner	4/4	2	1	0																																																																																																	0	20	1/2				HairPin									
+1	1	0	0	Chord	4/4	2	1	1/4	1		4										begin		O																							up		quarter																																																																								
+1	1	1/4	1/4	Chord	4/4	2	1	1/4	1		5										begin		quam																							up		quarter																																																																								
+1	1	1/2	1/2	Spanner	4/4	2	1	0																																																																																																					-1/2		HairPin									
+1	1	1/2	1/2	Spanner	4/4	2	1	0																																																																																																	1	20	-1/2	1			HairPin									
+1	1	1/2	1/2	Chord	4/4	2	1	1/4	1		6										begin	begin	tris																							up		quarter																																																																								
+1	1	3/4	3/4	Chord	4/4	2	1	1/4	1		7										begin	end	tis																							up		quarter																																																																								
+1	1	0	0	Harmony	4/4	3	1	0																																																																/	255	0	85	0			.i{	/	-4.91594	-5.29159	15	1																																				
+1	1	0	0	Chord	4/4	3	1	1/4	1		8																																			up		quarter																																																																								
+1	1	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	0	0	170	1	2	m																																									
+1	1	1/4	1/4	Chord	4/4	3	1	1/4	1		9																																					quarter																																																																								
+1	1	1/2	1/2	Harmony	4/4	3	1	0																																																															13	/	255	0	0	170				/	0	-4.37859	19																																					
+1	1	1/2	1/2	Chord	4/4	3	1	1/4	1		10																																			up		quarter																																																																								
+1	1	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	0	85	170			V6																																									
+1	1	3/4	3/4	Chord	4/4	3	1	1/4	1		11																																			up		quarter																																																																								
+1	1	0	0	Dynamic	4/4	4	1	0																																													/	-1.25935	-3.19937		p							49																																																								
+1	1	0	0	Spanner	4/4	4	1	0																																																																																																	0	20	1/2				HairPin									
+1	1	0	0	Chord	4/4	4	1	1/4	1		12																																			up		quarter																																																																								
+1	1	1/4	1/4	Chord	4/4	4	1	1/4	1		13																																			up		quarter																																																																								
+1	1	1/2	1/2	Spanner	4/4	4	1	0																																																																																																					-1/2		HairPin									
+1	1	1/2	1/2	Spanner	4/4	4	1	0																																																																																					/	1.88902	0	/	0	-1.5	0						1	20	1/4				HairPin									
+1	1	1/2	1/2	Chord	4/4	4	1	1/4	1		14																																			up		quarter																																																																								
+1	1	3/4	3/4	Spanner	4/4	4	1	0																																																																																																					-1/4		HairPin									
+1	1	3/4	3/4	Chord	4/4	4	1	1/4	1		15																																			up		quarter																																																																								
+2	2	0	0	Dynamic	4/4	1	1	0																																																	pp							33	0																																																							
+2	2	0	0	Spanner	4/4	1	1	0																																																																																																					1/2	-1	HairPin									
+2	2	0	0	Rest	4/4	1	1	1/2	1																																																																													half																																		
+2	2	1/2	1/2	Spanner	4/4	1	1	0																																																																																																	0	20	-1/2	1			HairPin									
+2	2	1/2	1/2	Chord	4/4	1	1	1/4	1		16										begin		et																							down		quarter																																																																								
+2	2	3/4	3/4	Chord	4/4	1	1	1/4	1		17										begin	begin	af																							down		quarter																																																																								
+2	2	0	0	Dynamic	4/4	2	1	0																																																	pp							33	0																																																							
+2	2	0	0	Spanner	4/4	2	1	0																																																																																																					1/2	-1	HairPin									
+2	2	0	0	Rest	4/4	2	1	1/2	1																																																																													half																																		
+2	2	1/2	1/2	Spanner	4/4	2	1	0																																																																																																	0	20	-1/2	1			HairPin									
+2	2	1/2	1/2	Chord	4/4	2	1	1/4	1		18										begin		et																							up		quarter																																																																								
+2	2	3/4	3/4	Chord	4/4	2	1	1/4	1		19										begin	begin	af																							up		quarter																																																																								
+2	2	0	0	Harmony	4/4	3	1	0																																																																/	255	0	170	0			viio7																																									
+2	2	0	0	Beam	4/4	3	1	0						down																																																																																																										
+2	2	0	0	Chord	4/4	3	1	1/8	1		20										begin																	up	3/8						Slur			eighth																																																																								
+2	2	1/8	1/8	Chord	4/4	3	1	1/8	1		21										mid																											eighth																																																																								
+2	2	1/4	1/4	Chord	4/4	3	1	1/8	1		22										mid																											eighth																																																																								
+2	2	3/8	3/8	Chord	4/4	3	1	1/8	1		23																															-3/8			Slur			eighth																																																																								
+2	2	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	0	170	170			V7																																									
+2	2	1/2	1/2	Beam	4/4	3	1	0						up	1																																																																																																									
+2	2	1/2	1/2	Chord	4/4	3	1	1/8	1		24										begin																	up	3/8						Slur			eighth																																																																								
+2	2	5/8	5/8	Chord	4/4	3	1	1/8	1		25										mid																											eighth																																																																								
+2	2	3/4	3/4	Chord	4/4	3	1	1/8	1		26										mid																											eighth																																																																								
+2	2	7/8	7/8	Chord	4/4	3	1	1/8	1		27																															-3/8			Slur			eighth																																																																								
+2	2	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+2	2	1/2	1/2	Chord	4/4	3	2	1/4	1		28																																			down		quarter																																																																								
+2	2	3/4	3/4	Chord	4/4	3	2	1/4	1		29																																			down		quarter																																																																								
+2	2	0	0	Rest	4/4	4	1	1/2	1																																																																													half																																		
+2	2	1/2	1/2	location	4/4	4	1	-3/8																																																																																																																-3/8
+2	2	1/8	1/8	Dynamic	4/4	4	1	0																																													/	1.34076	-1.6829		other-dynamics		/	ScoreText	/ &  sempre	/	FreeSerif	40																																																								
+2	2	1/8	1/8	location	4/4	4	1	3/8																																																																																																																3/8
+2	2	1/2	1/2	Spanner	4/4	4	1	0																																																																																																	0	20	-1/2	1			HairPin									
+2	2	1/2	1/2	Chord	4/4	4	1	1/4	1		30																																			down		quarter																																																																								
+2	2	3/4	3/4	Chord	4/4	4	1	1/4	1		31																																			down		quarter																																																																								
+3	3	0	0	Spanner	4/4	1	1	0																																																																																																					1/2	-1	HairPin									
+3	3	0	0	Spanner	4/4	1	1	0																																																																																																	1	20	1/2				HairPin									
+3	3	0	0	Chord	4/4	1	1	1/4	1		32										begin	middle	fli																							down		quarter																																																																								
+3	3	1/4	1/4	Chord	4/4	1	1	1/4	1		33										begin	end	cta,																							up		quarter																																																																								
+3	3	1/2	1/2	Spanner	4/4	1	1	0																																																																																																					-1/2		HairPin									
+3	3	1/2	1/2	Rest	4/4	1	1	1/2	1																																																																													half																																		
+3	3	0	0	Spanner	4/4	2	1	0																																																																																																					1/2	-1	HairPin									
+3	3	0	0	Spanner	4/4	2	1	0																																																																																																	1	20	1/2				HairPin									
+3	3	0	0	Chord	4/4	2	1	1/4	1		34										begin	middle	fli																							up		quarter																																																																								
+3	3	1/4	1/4	Chord	4/4	2	1	1/4	1		35										begin	end	cta,																							up		quarter																																																																								
+3	3	1/2	1/2	Spanner	4/4	2	1	0																																																																																																					-1/2		HairPin									
+3	3	1/2	1/2	Rest	4/4	2	1	1/2	1																																																																													half																																		
+3	3	0	0	Harmony	4/4	3	1	0																																																																/	255	0	255	0			i(9#74)																																									
+3	3	0	0	Beam	4/4	3	1	0						up																																																																																																										
+3	3	0	0	Chord	4/4	3	1	1/8	1		36										begin			∅															3/8						Slur			eighth																																																																								
+3	3	1/8	1/8	Chord	4/4	3	1	1/8	1		37										mid																											eighth																																																																								
+3	3	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	0	255	170			i																																									
+3	3	1/4	1/4	Chord	4/4	3	1	1/8	1		38										mid																											eighth																																																																								
+3	3	3/8	3/8	Chord	4/4	3	1	1/8	1		39																															-3/8			Slur			eighth																																																																								
+3	3	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+3	3	1/2	1/2	Chord	4/4	3	1	1/8	1		40										begin													/	0.0640791	0.121981	0	up	3/8						Slur			eighth																																																																								
+3	3	5/8	5/8	Chord	4/4	3	1	1/8	1		41										mid																											eighth																																																																								
+3	3	3/4	3/4	Chord	4/4	3	1	1/8	1		42										mid																											eighth																																																																								
+3	3	7/8	7/8	Chord	4/4	3	1	1/8	1		43																															-3/8			Slur			eighth																																																																								
+3	3	0	0	Chord	4/4	3	2	1/2	1		44																																			down		half																																																																								
+3	3	1/2	1/2	Rest	4/4	3	2	1/2	1																																																																													half	/	0	1.15164																															
+3	3	0	0	Spanner	4/4	4	1	0																																																																																																					1/2	-1	HairPin									
+3	3	0	0	Spanner	4/4	4	1	0																																																																																																	1	20	1/2				HairPin									
+3	3	0	0	Chord	4/4	4	1	1/4	1		45																																			down		quarter																																																																								
+3	3	1/4	1/4	Chord	4/4	4	1	1/4	1		46																																			up		quarter																																																																								
+3	3	1/2	1/2	Spanner	4/4	4	1	0																																																																																																					-1/2		HairPin									
+3	3	1/2	1/2	Spanner	4/4	4	1	0																																																																																																	0	20	-1/2	1			HairPin									
+3	3	1/2	1/2	Rest	4/4	4	1	1/2	1																																																																													half																																		
+4	4	0	0	Dynamic	4/4	1	1	0																																												-1.63811	/	-1.83744	-2.02498		mf							80																																																								
+4	4	0	0	Chord	4/4	1	1	1/4	1		47										begin		et																							down		quarter																																																																								
+4	4	1/4	1/4	Chord	4/4	1	1	1/4	1		48										begin	begin	af																							up		quarter																																																																								
+4	4	1/2	1/2	Spanner	4/4	1	1	0																																																																																																	1	20	-1/2	1			HairPin									
+4	4	1/2	1/2	Chord	4/4	1	1	1/4	1		49										begin	middle	fli																							up		quarter																																																																								
+4	4	3/4	3/4	Fermata	4/4	1	1	0																																																													fermataAbove	2																																																		
+4	4	3/4	3/4	Chord	4/4	1	1	1/4	1		50										begin	end	cta																							up		quarter																																																																								
+4	4	0	0	Chord	4/4	2	1	1/4	1		51										begin		et																							up		quarter																																																																								
+4	4	1/4	1/4	Chord	4/4	2	1	1/4	1		52										begin	begin	af																							up		quarter																																																																								
+4	4	1/2	1/2	Chord	4/4	2	1	1/4	1		53										begin	middle	fli																							up		quarter																																																																								
+4	4	3/4	3/4	Chord	4/4	2	1	1/4	1		54										begin	end	cta																							up		quarter																																																																								
+4	4	0	0	Harmony	4/4	3	1	0																																																																/	255	127	0	0			viio7/V																																									
+4	4	0	0	Beam	4/4	3	1	0						up																																																																																																										
+4	4	0	0	Chord	4/4	3	1	1/8	1		55										begin													/	0	-0.0123473	0	up	3/8						Slur			eighth																																																																								
+4	4	1/8	1/8	Chord	4/4	3	1	1/8	1		56										mid																											eighth																																																																								
+4	4	1/4	1/4	Chord	4/4	3	1	1/8	1		57										mid																											eighth																																																																								
+4	4	3/8	3/8	Chord	4/4	3	1	1/8	1		58																															-3/8			Slur			eighth																																																																								
+4	4	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	127	0	170			V(64)																																									
+4	4	1/2	1/2	Fermata	4/4	3	1	0																																																													fermataAbove	2																																																		
+4	4	1/2	1/2	Chord	4/4	3	1	1/4	1		59																							/	0	1.15164	0		1/4						Slur	up		quarter																																																																								
+4	4	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	127	85	0			V}																																									
+4	4	3/4	3/4	Chord	4/4	3	1	1/4	1		60																															-1/4			Slur	up		quarter																																																																								
+4	4	0	0	Chord	4/4	3	2	3/8	3/2		61																																			down	1	quarter																																																																								
+4	4	3/8	3/8	Chord	4/4	3	2	1/8	1		62																																			down		eighth																																																																								
+4	4	1/2	1/2	Chord	4/4	3	2	1/2	1		63																																			down		half																																																																								
+4	4	0	0	Dynamic	4/4	4	1	0																																																	mf							80																																																								
+4	4	0	0	Spanner	4/4	4	1	0																																																																																																					1/2	-1	HairPin									
+4	4	0	0	Chord	4/4	4	1	1/4	1		64																																			up		quarter																																																																								
+4	4	1/4	1/4	Spanner	4/4	4	1	0																																																																																				0.280218	/	-5.03739	0	/	5.24728	-2.15458	0						1	20	-1/4	1			HairPin									
+4	4	1/4	1/4	Chord	4/4	4	1	1/4	1		65																																			up		quarter																																																																								
+4	4	1/2	1/2	Fermata	4/4	4	1	0																																																										/	1.01901	-1.52976	fermataAbove	2																																																		
+4	4	1/2	1/2	Chord	4/4	4	1	1/2	1		66																																			up		half																																																																								
+5	5	0	0	Dynamic	4/4	1	1	0																																												-0.589365					p							49																																																								
+5	5	0	0	Spanner	4/4	1	1	0																																																																																																					1/2	-1	HairPin									
+5	5	0	0	Chord	4/4	1	1	1/8	1		67										begin	begin	fu																							down		eighth																																																																								
+5	5	1/8	1/8	Chord	4/4	1	1	3/8	3/2		68										begin	end	it																							down	1	quarter																																																																								
+5	5	1/2	1/2	Chord	4/4	1	1	1/8	1		69										begin	begin	il																							down		eighth																																																																								
+5	5	5/8	5/8	Chord	4/4	1	1	3/8	3/2		70										begin	end	la																							down	1	quarter																																																																								
+5	5	0	0	Dynamic	4/4	2	1	0																																																	p							49																																																								
+5	5	0	0	Chord	4/4	2	1	1/8	1		71										begin	begin	fu																							down		eighth																																																																								
+5	5	1/8	1/8	Chord	4/4	2	1	3/8	3/2		72										begin	end	it																							down	1	quarter																																																																								
+5	5	1/2	1/2	Chord	4/4	2	1	1/8	1		73										begin	begin	il																							down		eighth																																																																								
+5	5	5/8	5/8	Chord	4/4	2	1	3/8	3/2		74										begin	end	la																							down	1	quarter																																																																								
+5	5	0	0	Harmony	4/4	3	1	0																																																																/	255	127	85	170			III.I{																																									
+5	5	0	0	Chord	4/4	3	1	1/8	1		75								0	articStaccatissimoAbove																										down		eighth																																																																								
+5	5	1/8	1/8	Chord	4/4	3	1	3/8	3/2		76																																			down	1	quarter																																																																								
+5	5	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	127	170	0			V7																																									
+5	5	1/2	1/2	Chord	4/4	3	1	1/8	1		77								0	articStaccatissimoAbove																										down		eighth																																																																								
+5	5	5/8	5/8	Chord	4/4	3	1	3/8	3/2		78																																			down	1	quarter																																																																								
+5	5	0	0	Dynamic	4/4	4	1	0																																																	p							49																																																								
+5	5	0	0	Spanner	4/4	4	1	0																																																																																																					1/4	-1	HairPin									
+5	5	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+5	5	1/8	1/8	Beam	4/4	4	1	0						up																																																																																																										
+5	5	1/8	1/8	Chord	4/4	4	1	1/8	1		79									articStaccatoBelow	begin																											eighth																																																																								
+5	5	1/4	1/4	Chord	4/4	4	1	1/8	1		80									articStaccatoBelow	mid																											eighth																																																																								
+5	5	3/8	3/8	Chord	4/4	4	1	1/8	1		81									articStaccatoBelow																												eighth																																																																								
+5	5	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+5	5	5/8	5/8	Beam	4/4	4	1	0						up																																																																																																										
+5	5	5/8	5/8	Chord	4/4	4	1	1/8	1		82									articStaccatoBelow	begin																											eighth																																																																								
+5	5	3/4	3/4	Chord	4/4	4	1	1/8	1		83									articStaccatoBelow	mid																											eighth																																																																								
+5	5	7/8	7/8	Chord	4/4	4	1	1/8	1		84									articStaccatoBelow																												eighth																																																																								
+6	6	0	0	Chord	4/4	1	1	1/8	1		85										begin	begin	be															up	1/8						Slur	down		eighth																																																																								
+6	6	1/8	1/8	Chord	4/4	1	1	1/4	1		86																															-1/8			Slur	down		quarter																																																																								
+6	6	3/8	3/8	Chord	4/4	1	1	1/8	1		87										begin	middle	ne																							down		eighth																																																																								
+6	6	1/2	1/2	Chord	4/4	1	1	1/8	1		88										begin	middle	di																							down		eighth																																																																								
+6	6	5/8	5/8	Chord	4/4	1	1	1/8	1		89										begin	end	cta																							down		eighth																																																																								
+6	6	3/4	3/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+6	6	0	0	Chord	4/4	2	1	1/4	1		90										begin	begin	be																							up		quarter																																																																								
+6	6	1/4	1/4	Chord	4/4	2	1	1/4	1		91										begin	middle	ne																							up		quarter																																																																								
+6	6	1/2	1/2	Chord	4/4	2	1	1/8	1		92										begin	middle	di																							down		eighth																																																																								
+6	6	5/8	5/8	Chord	4/4	2	1	1/8	1		93										begin	end	cta																							up		eighth																																																																								
+6	6	3/4	3/4	Rest	4/4	2	1	1/4	1																																																																													quarter																																		
+6	6	0	0	Harmony	4/4	3	1	0																																																																/	255	127	170	170			I																																									
+6	6	0	0	Chord	4/4	3	1	1/8	1		94																																			up		eighth																																																																								
+6	6	1/8	1/8	Chord	4/4	3	1	1/4	1		95																											up	1/4						Slur	up		quarter																																																																								
+6	6	3/8	3/8	location	4/4	3	1	-1/8																																																																																																																-1/8
+6	6	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	127	255	0			I6																																									
+6	6	1/4	1/4	location	4/4	3	1	1/8																																																																																																																1/8
+6	6	3/8	3/8	Harmony	4/4	3	1	0																																																																/	255	127	255	170			vii%7/V																																									
+6	6	3/8	3/8	Chord	4/4	3	1	1/8	1		96																															-1/4			Slur	up		eighth																																																																								
+6	6	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	255	0	0			V(64)																																									
+6	6	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+6	6	1/2	1/2	Chord	4/4	3	1	1/8	1		97										begin																											eighth																																																																								
+6	6	5/8	5/8	Harmony	4/4	3	1	0																																																																/	255	255	0	170			V}																																									
+6	6	5/8	5/8	Chord	4/4	3	1	1/8	1		98										mid																	down	1/4						Slur			eighth																																																																								
+6	6	3/4	3/4	Chord	4/4	3	1	1/8	1		99										mid																											eighth																																																																								
+6	6	7/8	7/8	Chord	4/4	3	1	1/8	1		100																															-1/4			Slur			eighth																																																																								
+6	6	0	0	location	4/4	3	2	1/8																																																																																																																1/8
+6	6	1/8	1/8	Chord	4/4	3	2	3/8	3/2		101																																			down	1	quarter																																																																								
+6	6	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+6	6	1/8	1/8	Beam	4/4	4	1	0						down																																																																																																										
+6	6	1/8	1/8	Chord	4/4	4	1	1/8	1		102										begin																											eighth																																																																								
+6	6	1/4	1/4	Chord	4/4	4	1	1/8	1		103									articStaccatoAbove	mid																											eighth																																																																								
+6	6	3/8	3/8	Chord	4/4	4	1	1/8	1		104									articStaccatoAbove																												eighth																																																																								
+6	6	1/2	1/2	Spanner	4/4	4	1	0																																																																																																	1		-1/2	1			HairPin									
+6	6	1/2	1/2	Chord	4/4	4	1	1/4	1		105																																			down		quarter																																																																								
+6	6	3/4	3/4	Rest	4/4	4	1	1/4	1																																																																													quarter																																		
+7	7	0	0	Dynamic	4/4	1	1	0																																																	other-dynamics	dol.						40																																																								
+7	7	0	0	Chord	4/4	1	1	1/2	1		106										begin	begin	ma																							down		half																																																																								
+7	7	1/2	1/2	Chord	4/4	1	1	1/2	1		107										begin	end	ter																							down		half																																																																								
+7	7	0	0	Dynamic	4/4	2	1	0																																																	other-dynamics	dol.						40																																																								
+7	7	0	0	Chord	4/4	2	1	1/2	1		108										begin	begin	ma																							down		half																																																																								
+7	7	1/2	1/2	Chord	4/4	2	1	1/2	1		109										begin	end	ter																							up		half																																																																								
+7	7	0	0	Harmony	4/4	3	1	0																																																																/	255	255	85	0			ii{																																									
+7	7	0	0	Chord	4/4	3	1	1/2	1		110																																					half																																																																								
+7	7	1/2	1/2	location	4/4	3	1	-1/4																																																																																																																-1/4
+7	7	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	255	85	170			V7																																									
+7	7	1/4	1/4	location	4/4	3	1	1/4																																																																																																																1/4
+7	7	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	255	170	0			I																																									
+7	7	1/2	1/2	Chord	4/4	3	1	1/2	1		111																																					half																																																																								
+7	7	0	0	Chord	4/4	3	2	1/4	1		112													∅															1/4						Slur			quarter																																																																								
+7	7	1/4	1/4	Chord	4/4	3	2	1/4	1		113																															-1/4			Slur			quarter																																																																								
+7	7	0	0	Dynamic	4/4	4	1	0																																													/	0.822604	-1.33548		other-dynamics	dol.						40																																																								
+7	7	0	0	Spanner	4/4	4	1	0																																																																																																					1/2	-1	HairPin									
+7	7	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+7	7	1/8	1/8	Beam	4/4	4	1	0						up																																																																																																										
+7	7	1/8	1/8	Chord	4/4	4	1	1/8	1		114										begin																											eighth																																																																								
+7	7	1/4	1/4	Chord	4/4	4	1	1/8	1		115									articStaccatoBelow	mid																											eighth																																																																								
+7	7	3/8	3/8	Chord	4/4	4	1	1/8	1		116									articStaccatoBelow																												eighth																																																																								
+7	7	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+7	7	5/8	5/8	Beam	4/4	4	1	0						up																																																																																																										
+7	7	5/8	5/8	Chord	4/4	4	1	1/8	1		117										begin																											eighth																																																																								
+7	7	3/4	3/4	Chord	4/4	4	1	1/8	1		118									articStaccatoBelow	mid																											eighth																																																																								
+7	7	7/8	7/8	Chord	4/4	4	1	1/8	1		119									articStaccatoBelow																												eighth																																																																								
+8	8	0	0	Dynamic	4/4	1	1	0																																												-2.21349					mf							80																																																								
+8	8	0	0	Rest	4/4	1	1	1/8	1																																																																													eighth																																		
+8	8	1/8	1/8	Beam	4/4	1	1	0						down																																																																																																										
+8	8	1/8	1/8	Chord	4/4	1	1	1/8	1		120										begin	begin	u															up	1/8						Slur			eighth																																																																								
+8	8	1/4	1/4	Chord	4/4	1	1	1/8	1		121																															-1/8			Slur			eighth																																																																								
+8	8	3/8	3/8	Chord	4/4	1	1	1/8	1		122										begin	middle	ni																							down		eighth																																																																								
+8	8	1/2	1/2	Chord	4/4	1	1	1/4	1		123										begin	middle	ge															up	1/4						Slur	down		quarter																																																																								
+8	8	3/4	3/4	Chord	4/4	1	1	3/16	3/2		124																															-1/4			Slur	up	1	eighth																																																																								
+8	8	15/16	15/16	Chord	4/4	1	1	1/16	1		125										begin	middle	ni																							down		16th																																																																								
+8	8	0	0	Dynamic	4/4	2	1	0																																																	mf							80																																																								
+8	8	0	0	Rest	4/4	2	1	1/8	1																																																																													eighth																																		
+8	8	1/8	1/8	Beam	4/4	2	1	0						up																																																																																																										
+8	8	1/8	1/8	Chord	4/4	2	1	1/8	1		126										begin	begin	u															up	1/8						Slur			eighth																																																																								
+8	8	1/4	1/4	Chord	4/4	2	1	1/8	1		127																															-1/8			Slur			eighth																																																																								
+8	8	3/8	3/8	Chord	4/4	2	1	1/8	1		128										begin	middle	ni																							up		eighth																																																																								
+8	8	1/2	1/2	Beam	4/4	2	1	0						up																																																																																																										
+8	8	1/2	1/2	Chord	4/4	2	1	1/16	1		129										begin	middle	ge															up	1/8						Slur			16th																																																																								
+8	8	9/16	9/16	Chord	4/4	2	1	1/16	1		130																																					16th																																																																								
+8	8	5/8	5/8	Chord	4/4	2	1	1/8	1		131																															-1/8			Slur			eighth																																																																								
+8	8	3/4	3/4	Chord	4/4	2	1	1/4	1		132										begin	middle	ni																							up		quarter																																																																								
+8	8	0	0	Harmony	4/4	3	1	0																																																																/	255	255	170	170			ii6																																									
+8	8	0	0	Rest	4/4	3	1	1/8	1																																																																													eighth																																		
+8	8	1/8	1/8	Beam	4/4	3	1	0						up																																																																																																										
+8	8	1/8	1/8	Chord	4/4	3	1	1/8	1		133										begin																	down	1/4						Slur			eighth																																																																								
+8	8	1/4	1/4	Chord	4/4	3	1	1/8	1		134										mid																											eighth																																																																								
+8	8	3/8	3/8	Chord	4/4	3	1	1/8	1		135																															-1/4			Slur			eighth																																																																								
+8	8	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	255	255	0			I																																									
+8	8	1/2	1/2	Chord	4/4	3	1	1/4	1		136																											down	1/4						Slur	up		quarter																																																																								
+8	8	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	255	255	170			V																																									
+8	8	3/4	3/4	Chord	4/4	3	1	1/4	1		137																															-1/4			Slur	up		quarter																																																																								
+8	8	0	0	Dynamic	4/4	4	1	0																																																	mf							80																																																								
+8	8	0	0	Chord	4/4	4	1	1/2	1		138																																			up		half																																																																								
+8	8	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+8	8	5/8	5/8	Beam	4/4	4	1	0						down																																																																																																										
+8	8	5/8	5/8	Chord	4/4	4	1	1/8	1		139										begin																	up	1/4						Slur			eighth																																																																								
+8	8	3/4	3/4	Chord	4/4	4	1	1/8	1		140										mid																											eighth																																																																								
+8	8	7/8	7/8	Chord	4/4	4	1	1/8	1		141																															-1/4			Slur			eighth																																																																								
+9	9	0	0	Chord	4/4	1	1	1/4	1		142										begin	end	ti,																							down		quarter																																																																								
+9	9	1/4	1/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+9	9	1/2	1/2	Dynamic	4/4	1	1	0																																																	p							49																																																								
+9	9	1/2	1/2	Chord	4/4	1	1	1/2	1		143										begin	begin	ma																							down		half																																																																								
+9	9	0	0	Chord	4/4	2	1	1/4	1		144										begin	end	ti,																							up		quarter																																																																								
+9	9	1/4	1/4	Rest	4/4	2	1	1/4	1																																																																													quarter																																		
+9	9	1/2	1/2	Dynamic	4/4	2	1	0																																																	p							49																																																								
+9	9	1/2	1/2	Chord	4/4	2	1	1/2	1		145										begin	begin	ma																							down		half																																																																								
+9	9	0	0	Harmony	4/4	3	1	0																																																																/	255	0	0	85			I}																																									
+9	9	0	0	Rest	4/4	3	1	1/8	1																																																																													eighth																																		
+9	9	1/8	1/8	Chord	4/4	3	1	1/8	1		146																											down	1/4						Slur			eighth																																																																								
+9	9	1/4	1/4	Chord	4/4	3	1	1/8	1		147																																					eighth																																																																								
+9	9	3/8	3/8	Chord	4/4	3	1	1/8	1		148																															-1/4			Slur			eighth																																																																								
+9	9	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	0	0	255			ii{																																									
+9	9	1/2	1/2	Chord	4/4	3	1	1/2	1		149																																			up		half																																																																								
+9	9	1	1	location	4/4	3	1	-1/4																																																																																																																-1/4
+9	9	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	0	85	85			V7																																									
+9	9	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+9	9	1/2	1/2	Chord	4/4	3	2	1/4	1		150																											down	1/4						Slur	down		quarter																																																																								
+9	9	3/4	3/4	Chord	4/4	3	2	1/4	1		151																															-1/4			Slur	down		quarter																																																																								
+9	9	0	0	Spanner	4/4	4	1	0																																																																																																	1		1/2				HairPin									
+9	9	0	0	Chord	4/4	4	1	1/4	1		152																																			up		quarter																																																																								
+9	9	1/4	1/4	Rest	4/4	4	1	1/4	1																																																																													quarter																																		
+9	9	1/2	1/2	Dynamic	4/4	4	1	0																																												-999	/	0	-1		p							49																																																								
+9	9	1/2	1/2	Spanner	4/4	4	1	0																																																																																																					-1/2		HairPin									
+9	9	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+9	9	5/8	5/8	Beam	4/4	4	1	0						up																																																																																																										
+9	9	5/8	5/8	Chord	4/4	4	1	1/8	1		153									articStaccatoBelow	begin																											eighth																																																																								
+9	9	3/4	3/4	Chord	4/4	4	1	1/8	1		154									articStaccatoBelow	mid																											eighth																																																																								
+9	9	7/8	7/8	Chord	4/4	4	1	1/8	1		155																																					eighth																																																																								
+10	10	0	0	Chord	4/4	1	1	1/2	1		156										begin	end	ter																							down		half																																																																								
+10	10	1/2	1/2	Dynamic	4/4	1	1	0																																																	f							96																																																								
+10	10	1/2	1/2	Rest	4/4	1	1	1/8	1																																																																													eighth																																		
+10	10	5/8	5/8	Beam	4/4	1	1	0						down																																																																																																										
+10	10	5/8	5/8	Chord	4/4	1	1	1/8	1		157										begin	begin	u															up	1/8						Slur			eighth																																																																								
+10	10	3/4	3/4	Chord	4/4	1	1	1/8	1		158																															-1/8			Slur			eighth																																																																								
+10	10	7/8	7/8	Chord	4/4	1	1	1/8	1		159										begin	middle	ni																							down		eighth																																																																								
+10	10	0	0	Chord	4/4	2	1	1/2	1		160										begin	end	ter																							down		half																																																																								
+10	10	1/2	1/2	Dynamic	4/4	2	1	0																																																	f							96																																																								
+10	10	1/2	1/2	Rest	4/4	2	1	1/8	1																																																																													eighth																																		
+10	10	5/8	5/8	Beam	4/4	2	1	0						down																																																																																																										
+10	10	5/8	5/8	Chord	4/4	2	1	1/8	1		161										begin	begin	u															up	1/8						Slur			eighth																																																																								
+10	10	3/4	3/4	Chord	4/4	2	1	1/8	1		162																															-1/8			Slur			eighth																																																																								
+10	10	7/8	7/8	Chord	4/4	2	1	1/8	1		163										begin	middle	ni																							down		eighth																																																																								
+10	10	0	0	Harmony	4/4	3	1	0																																																																/	255	0	85	255			I																																									
+10	10	0	0	Chord	4/4	3	1	1/2	1		164																																			up		half																																																																								
+10	10	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	0	170	85			ii6																																									
+10	10	1/2	1/2	Rest	4/4	3	1	1/8	1																																																																													eighth																																		
+10	10	5/8	5/8	Beam	4/4	3	1	0						up																																																																																																										
+10	10	5/8	5/8	Chord	4/4	3	1	1/8	1		165										begin																	up	1/4						Slur			eighth																																																																								
+10	10	3/4	3/4	Chord	4/4	3	1	1/8	1		166										mid																											eighth																																																																								
+10	10	7/8	7/8	Chord	4/4	3	1	1/8	1		167																															-1/4			Slur			eighth																																																																								
+10	10	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+10	10	1/2	1/2	Chord	4/4	3	2	1/2	1		168																																			down		half																																																																								
+10	10	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+10	10	1/8	1/8	Beam	4/4	4	1	0						up																																																																																																										
+10	10	1/8	1/8	Chord	4/4	4	1	1/8	1		169										begin																											eighth																																																																								
+10	10	1/4	1/4	Chord	4/4	4	1	1/8	1		170									articStaccatoBelow	mid																											eighth																																																																								
+10	10	3/8	3/8	Chord	4/4	4	1	1/8	1		171																																					eighth																																																																								
+10	10	1/2	1/2	Dynamic	4/4	4	1	0																																																	f							96																																																								
+10	10	1/2	1/2	Chord	4/4	4	1	1/2	1		172																																			up		half																																																																								
+11	11	0	0	Beam	4/4	1	1	0						down																																																																																																										
+11	11	0	0	Chord	4/4	1	1	1/32	1		173										begin	middle	ge															up	1/16						Slur			32nd																																																																								
+11	11	1/32	1/32	Chord	4/4	1	1	1/32	1		174																																					32nd																																																																								
+11	11	1/16	1/16	Chord	4/4	1	1	3/16	3/2		175																															-1/16			Slur		1	eighth																																																																								
+11	11	1/4	1/4	Spanner	4/4	1	1	0																																																																																																	1		1/4				HairPin									
+11	11	1/4	1/4	Chord	4/4	1	1	1/4	1		176					/	0	1	0	ornamentTrill	begin	middle	ni																							down		quarter																																																																								
+11	11	1/2	1/2	Spanner	4/4	1	1	0																																																																																																					-1/4		HairPin									
+11	11	1/2	1/2	Chord	4/4	1	1	1/4	1		177										begin	end	ti!																							down		quarter																																																																								
+11	11	3/4	3/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+11	11	0	0	Chord	4/4	2	1	1/4	1		178										begin	middle	ge															up	1/4						Slur	down		quarter																																																																								
+11	11	1/4	1/4	Spanner	4/4	2	1	0																																																																																				0.370959	/	1.64521	0	/	-1.15164	-2.12032	0						1		1/4				HairPin									
+11	11	1/4	1/4	Chord	4/4	2	1	3/16	3/2		179																															-1/4			Slur	up	1	eighth																																																																								
+11	11	7/16	7/16	Chord	4/4	2	1	1/16	1		180										begin	middle	ni																							down		16th																																																																								
+11	11	1/2	1/2	Spanner	4/4	2	1	0																																																																																																					-1/4		HairPin									
+11	11	1/2	1/2	Chord	4/4	2	1	1/4	1		181										begin	end	ti!																							down		quarter																																																																								
+11	11	3/4	3/4	Rest	4/4	2	1	1/4	1																																																																													quarter																																		
+11	11	0	0	Harmony	4/4	3	1	0																																																																/	255	0	170	255			I																																									
+11	11	0	0	Chord	4/4	3	1	1/4	1		182																											up	1/4						Slur	up		quarter																																																																								
+11	11	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	0	255	85			V7																																									
+11	11	1/4	1/4	Chord	4/4	3	1	1/4	1		183																															-1/4			Slur	up		quarter																																																																								
+11	11	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	0	255	255			I}{																																									
+11	11	1/2	1/2	Chord	4/4	3	1	1/8	1		184																																			up		eighth																																																																								
+11	11	5/8	5/8	Dynamic	4/4	3	1	0																																																below	f							96																																																								
+11	11	5/8	5/8	Chord	4/4	3	1	1/4	1		185																																			down		quarter																																																																								
+11	11	7/8	7/8	location	4/4	3	1	-1/8																																																																																																																-1/8
+11	11	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	127	0	85			I6																																									
+11	11	3/4	3/4	location	4/4	3	1	1/8																																																																																																																1/8
+11	11	7/8	7/8	Chord	4/4	3	1	1/8	1		186																											up	-11/16	1					Slur	down		eighth																																																																								
+11	11	0	0	Rest	4/4	3	2	1/4	1																																																																													quarter				0																														
+11	11	1/4	1/4	Rest	4/4	3	2	1/8	1																																																																													eighth	/	0	0.329041																															
+11	11	3/8	3/8	Chord	4/4	3	2	1/8	1		187																																			down		eighth																																																																								
+11	11	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+11	11	1/8	1/8	Spanner	4/4	4	1	0																																																																																					/	1.97425	0	/	0	-1.5	0						1		1/4				HairPin									
+11	11	1/8	1/8	Beam	4/4	4	1	0						down																																																																																																										
+11	11	1/8	1/8	Chord	4/4	4	1	1/8	1		188										begin																	up	1/4						Slur			eighth																																																																								
+11	11	1/4	1/4	Chord	4/4	4	1	1/8	1		189										mid																											eighth																																																																								
+11	11	3/8	3/8	Spanner	4/4	4	1	0																																																																																																					-1/4		HairPin									
+11	11	3/8	3/8	Chord	4/4	4	1	1/8	1		190																															-1/4			Slur			eighth																																																																								
+11	11	1/2	1/2	Chord	4/4	4	1	1/4	1		191																																			down		quarter																																																																								
+11	11	3/4	3/4	Chord	4/4	4	1	1/4	1		192																																			down		quarter																																																																								
+12	12	0	0	Rest	4/4	1	1	1	1																																																																												4/4	measure																																		
+12	12	0	0	Rest	4/4	2	1	1	1																																																																												4/4	measure																																		
+12	12	0	0	Harmony	4/4	3	1	0																																																																/	255	127	0	255			V43(4)																																									
+12	12	0	0	Beam	4/4	3	1	0						up																																																																																																										
+12	12	0	0	Chord	4/4	3	1	1/8	1		193										begin																											eighth																																																																								
+12	12	1/8	1/8	Harmony	4/4	3	1	0																																																																/	255	127	85	85			V43																																									
+12	12	1/8	1/8	Chord	4/4	3	1	1/16	1		194										mid																											16th																																																																								
+12	12	3/16	3/16	Chord	4/4	3	1	1/16	1		195																															11/16	-1		Slur			16th																																																																								
+12	12	1/4	1/4	Chord	4/4	3	1	1/8	1		196										begin																	up	1/8						Slur			eighth																																																																								
+12	12	3/8	3/8	Harmony	4/4	3	1	0																																																																/	255	127	85	255			V2/V																																									
+12	12	3/8	3/8	Chord	4/4	3	1	1/8	1		197																															-1/8			Slur			eighth																																																																								
+12	12	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	127	170	85			V6	/	0	-5.91806																																						
+12	12	1/2	1/2	Chord	4/4	3	1	1/8	1		198										begin																											eighth																																																																								
+12	12	5/8	5/8	Harmony	4/4	3	1	0																																																																/	255	127	170	255			vi6																																									
+12	12	5/8	5/8	Chord	4/4	3	1	1/8	1		199																																					eighth																																																																								
+12	12	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	127	255	85			IV6																																									
+12	12	3/4	3/4	Beam	4/4	3	1	0						up																																																																																																										
+12	12	3/4	3/4	Chord	4/4	3	1	1/32	1		200										begin																	up	1/32						Slur			32nd																																																																								
+12	12	25/32	25/32	Chord	4/4	3	1	3/32	3/2		201										mid																					-1/32			Slur		1	16th																																																																								
+12	12	7/8	7/8	Harmony	4/4	3	1	0																																																																/	255	127	255	255			ii6	/	0	-6.29737																																						
+12	12	7/8	7/8	Chord	4/4	3	1	1/32	1		202										mid																	up	1/32						Slur			32nd																																																																								
+12	12	29/32	29/32	Chord	4/4	3	1	3/32	3/2		203																															-1/32			Slur		1	16th																																																																								
+12	12	0	0	Chord	4/4	3	2	1/2	1		204																																					half																																																																								
+12	12	1/2	1/2	Beam	4/4	3	2	0						up																																																																																																										
+12	12	1/2	1/2	Chord	4/4	3	2	3/16	3/2		205										begin																										1	eighth																																																																								
+12	12	11/16	11/16	Chord	4/4	3	2	1/16	1		206																																					16th																																																																								
+12	12	3/4	3/4	Beam	4/4	3	2	0						down																																																																																																										
+12	12	3/4	3/4	Chord	4/4	3	2	1/8	1		207										begin																											eighth																																																																								
+12	12	7/8	7/8	Chord	4/4	3	2	1/8	1		208																																					eighth																																																																								
+12	12	0	0	Chord	4/4	4	1	1/4	1		209																																			up		quarter																																																																								
+12	12	1/4	1/4	Chord	4/4	4	1	1/4	1		210																																			up		quarter																																																																								
+12	12	1/2	1/2	Beam	4/4	4	1	0						up																																																																																																										
+12	12	1/2	1/2	Chord	4/4	4	1	1/8	1		211										begin																											eighth																																																																								
+12	12	5/8	5/8	Chord	4/4	4	1	1/8	1		212																																					eighth																																																																								
+12	12	3/4	3/4	Chord	4/4	4	1	1/4	1		213																																			up		quarter																																																																								
+12	12	0	0	Chord	4/4	4	2	3/8	3/2		214																											down	7/8						Slur	down	1	quarter																																																																								
+12	12	3/8	3/8	Chord	4/4	4	2	1/8	1		215																																			up		eighth																																																																								
+12	12	1/2	1/2	Beam	4/4	4	2	0						down																																																																																																										
+12	12	1/2	1/2	Chord	4/4	4	2	1/8	1		216										begin																											eighth																																																																								
+12	12	5/8	5/8	Chord	4/4	4	2	1/8	1		217																																					eighth																																																																								
+12	12	3/4	3/4	Beam	4/4	4	2	0						down																																																																																																										
+12	12	3/4	3/4	Chord	4/4	4	2	1/8	1		218										begin																											eighth																																																																								
+12	12	7/8	7/8	Chord	4/4	4	2	1/8	1		219																															-7/8			Slur			eighth																																																																								
+13	13	0	0	Rest	4/4	1	1	1	1																																																																												4/4	measure																																		
+13	13	0	0	Rest	4/4	2	1	1	1																																																																												4/4	measure																																		
+13	13	0	0	Harmony	4/4	3	1	0																																																																/	255	255	0	85			I6																																									
+13	13	0	0	Chord	4/4	3	1	3/16	3/2		220					/	0	0.658083	0	ornamentTrill				∅															7/32						Slur		1	eighth																																																																								
+13	13	3/16	3/16	location	4/4	3	1	-1/16																																																																																																																-1/16
+13	13	1/8	1/8	Harmony	4/4	3	1	0																																																																/	255	255	0	255			vi	/	0	-6.44982																																						
+13	13	1/8	1/8	location	4/4	3	1	1/16																																																																																																																1/16
+13	13	3/16	3/16	Chord	4/4	3	1	1/32	1		221																																					32nd																																																																								
+13	13	7/32	7/32	Chord	4/4	3	1	1/32	1		222																															-7/32			Slur			32nd																																																																								
+13	13	1/4	1/4	Harmony	4/4	3	1	0																																																																/	255	255	85	85			ii6																																									
+13	13	1/4	1/4	Chord	4/4	3	1	3/16	3/2		223					/	-0.164521	0.987124	0	ornamentTrill				∅															3/16						Slur		1	eighth																																																																								
+13	13	7/16	7/16	location	4/4	3	1	-1/16																																																																																																																-1/16
+13	13	3/8	3/8	Harmony	4/4	3	1	0																																																																/	255	255	85	255			V	/	0	-6.23675																																						
+13	13	3/8	3/8	location	4/4	3	1	1/16																																																																																																																1/16
+13	13	7/16	7/16	Chord	4/4	3	1	1/16	1		224																															-3/16			Slur			16th																																																																								
+13	13	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	255	170	85			I}	/	-0.145375	-5.98901																																						
+13	13	1/2	1/2	Chord	4/4	3	1	1/4	1		225																																					quarter																																																																								
+13	13	3/4	3/4	Chord	4/4	3	1	1/4	1		226																																					quarter																																																																								
+13	13	0	0	Chord	4/4	3	2	1/8	1		227																																					eighth																																																																								
+13	13	1/8	1/8	Chord	4/4	3	2	1/8	1		228																																					eighth																																																																								
+13	13	1/4	1/4	Chord	4/4	3	2	1/8	1		229										begin			∅															1/8						Slur			eighth																																																																								
+13	13	3/8	3/8	Chord	4/4	3	2	1/8	1		230																															-1/8			Slur			eighth																																																																								
+13	13	1/2	1/2	Chord	4/4	3	2	1/8	1		231																																					eighth																																																																								
+13	13	5/8	5/8	Chord	4/4	3	2	1/8	1		232																																					eighth																																																																								
+13	13	3/4	3/4	Chord	4/4	3	2	1/4	1		233																																					quarter																																																																								
+13	13	0	0	Beam	4/4	4	1	0						down																																																																																																										
+13	13	0	0	Chord	4/4	4	1	1/8	1		234										begin			∅															3/8						Slur			eighth																																																																								
+13	13	1/8	1/8	Chord	4/4	4	1	1/8	1		235																																					eighth																																																																								
+13	13	1/4	1/4	Beam	4/4	4	1	0						down																																																																																																										
+13	13	1/4	1/4	Chord	4/4	4	1	1/8	1		236										begin																											eighth																																																																								
+13	13	3/8	3/8	Chord	4/4	4	1	1/8	1		237																															-3/8			Slur			eighth																																																																								
+13	13	1/2	1/2	Chord	4/4	4	1	1/4	1		238																																			down		quarter																																																																								
+13	13	3/4	3/4	Rest	4/4	4	1	1/4	1																																																																													quarter	/	0	0.310171																															
+13	13	0	0	Chord	4/4	4	2	3/8	3/2		239																																			up	1	quarter																																																																								
+13	13	3/8	3/8	Chord	4/4	4	2	1/8	1		240																																			up		eighth																																																																								
+13	13	1/2	1/2	Chord	4/4	4	2	1/4	1		241																																			up		quarter																																																																								
+14	14	0	0	Dynamic	4/4	1	1	0																																												0.40376					p							49																																																								
+14	14	0	0	Spanner	4/4	1	1	0																																																																																																	0		1/2				HairPin									
+14	14	0	0	Chord	4/4	1	1	1/4	1		242										begin		O																							down		quarter																																																																								
+14	14	1/4	1/4	Chord	4/4	1	1	1/4	1		243										begin		quam																							down		quarter																																																																								
+14	14	1/2	1/2	Dynamic	4/4	1	1	0																																												-0.604762					f							96																																																								
+14	14	1/2	1/2	Spanner	4/4	1	1	0																																																																																																					-1/2		HairPin									
+14	14	1/2	1/2	Chord	4/4	1	1	1/4	1		244										begin	begin	tri																							down		quarter																																																																								
+14	14	3/4	3/4	Chord	4/4	1	1	1/4	1		245										begin	end	stis																							down		quarter																																																																								
+14	14	0	0	Dynamic	4/4	2	1	0																																																	p							49																																																								
+14	14	0	0	Spanner	4/4	2	1	0																																																																																																	0		1/2				HairPin									
+14	14	0	0	Chord	4/4	2	1	1/4	1		246										begin		O																							down		quarter																																																																								
+14	14	1/4	1/4	Chord	4/4	2	1	1/4	1		247										begin		quam																							down		quarter																																																																								
+14	14	1/2	1/2	Dynamic	4/4	2	1	0																																																	f							96																																																								
+14	14	1/2	1/2	Spanner	4/4	2	1	0																																																																																																					-1/2		HairPin									
+14	14	1/2	1/2	Chord	4/4	2	1	1/4	1		248										begin	begin	tri																							down		quarter																																																																								
+14	14	3/4	3/4	Chord	4/4	2	1	1/4	1		249										begin	end	stis																							up		quarter																																																																								
+14	14	0	0	Harmony	4/4	3	1	0																																																																/	255	255	170	255			{																																									
+14	14	0	0	Chord	4/4	3	1	1/4	1		250																																			down		quarter																																																																								
+14	14	1/4	1/4	Chord	4/4	3	1	1/4	1		251																																			down		quarter																																																																								
+14	14	1/2	1/2	Harmony	4/4	3	1	0																																																																/	255	255	255	85			i.#viio6																																									
+14	14	1/2	1/2	Chord	4/4	3	1	1/4	1		252																																			down		quarter																																																																								
+14	14	3/4	3/4	Harmony	4/4	3	1	0																																																																/	255	255	255	255			i																																									
+14	14	3/4	3/4	Chord	4/4	3	1	1/4	1		253																																			down		quarter																																																																								
+14	14	0	0	Dynamic	4/4	4	1	0																																													/	0.164521	-2.48069		mf							80																																																								
+14	14	0	0	Spanner	4/4	4	1	0																																																																																																	0		1/2				HairPin									
+14	14	0	0	Chord	4/4	4	1	1/4	1		254																																			down		quarter																																																																								
+14	14	1/4	1/4	Chord	4/4	4	1	1/4	1		255																																			down		quarter																																																																								
+14	14	1/2	1/2	Dynamic	4/4	4	1	0																																													/	0.493562	-2.80973		f							96																																																								
+14	14	1/2	1/2	Spanner	4/4	4	1	0																																																																																																					-1/2		HairPin									
+14	14	1/2	1/2	Chord	4/4	4	1	1/4	1		256																																			down		quarter																																																																								
+14	14	3/4	3/4	Chord	4/4	4	1	1/4	1		257																																			up		quarter																																																																								
+15	15	0	0	Rest	4/4	1	1	1/2	1																																																																													half																																		
+15	15	1/2	1/2	Dynamic	4/4	1	1	0																																																	p							49																																																								
+15	15	1/2	1/2	Spanner	4/4	1	1	0																																																																																				0.175016	/	0	0	/	2.62492	-2.07126	0						1	20	-1/4	1			HairPin									
+15	15	1/2	1/2	Chord	4/4	1	1	1/4	1		258										begin		et																							down		quarter																																																																								
+15	15	3/4	3/4	Chord	4/4	1	1	1/4	1		259										begin	begin	af																							up		quarter																																																																								
+15	15	0	0	Rest	4/4	2	1	1/2	1																																																																													half																																		
+15	15	1/2	1/2	Dynamic	4/4	2	1	0																																																	p							49																																																								
+15	15	1/2	1/2	Spanner	4/4	2	1	0																																																																																				0.175016	/	0	0	/	1.57495	-2.21938	0						1	20	-1/4	1			HairPin									
+15	15	1/2	1/2	Chord	4/4	2	1	1/4	1		260										begin		et																							up		quarter																																																																								
+15	15	3/4	3/4	Chord	4/4	2	1	1/4	1		261										begin	begin	af																							up		quarter																																																																								
+15	15	0	0	Dynamic	4/4	3	1	0																																																below	p							49																																																								
+15	15	0	0	Beam	4/4	3	1	0						down																																																																																																										
+15	15	0	0	Chord	4/4	3	1	1/8	1		262										begin													/	-0.396825	-1.19048	0	up	3/8						Slur			eighth																																																																								
+15	15	1/8	1/8	Chord	4/4	3	1	1/8	1		263										mid																											eighth																																																																								
+15	15	1/4	1/4	Chord	4/4	3	1	1/8	1		264										mid																											eighth																																																																								
+15	15	3/8	3/8	Chord	4/4	3	1	1/8	1		265																															-3/8			Slur			eighth																																																																								
+15	15	1/2	1/2	Harmony	4/4	3	1	0																																																																							viio7/V																																									
+15	15	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+15	15	1/2	1/2	Chord	4/4	3	1	1/8	1		266										begin													/	0.595238	-0.992063	0	up	3/8						Slur			eighth																																																																								
+15	15	5/8	5/8	Chord	4/4	3	1	1/8	1		267										mid																											eighth																																																																								
+15	15	3/4	3/4	Chord	4/4	3	1	1/8	1		268										mid																											eighth																																																																								
+15	15	7/8	7/8	Chord	4/4	3	1	1/8	1		269																															-3/8			Slur			eighth																																																																								
+15	15	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+15	15	1/2	1/2	Chord	4/4	3	2	3/8	3/2		270																																			down	1	quarter																																																																								
+15	15	7/8	7/8	Chord	4/4	3	2	1/8	1		271																																					eighth																																																																								
+15	15	0	0	Rest	4/4	4	1	1/2	1																																																																													half																																		
+15	15	1/2	1/2	Chord	4/4	4	1	1/4	1		272																																			up		quarter																																																																								
+15	15	3/4	3/4	Chord	4/4	4	1	1/4	1		273																																			up		quarter																																																																								
+16	16	0	0	Chord	4/4	1	1	1/4	1		274										begin	middle	fli																							up		quarter																																																																								
+16	16	1/4	1/4	Spanner	4/4	1	1	0																																																																																																					1/4	-1	HairPin									
+16	16	1/4	1/4	Chord	4/4	1	1	1/4	1		275										begin	end	cta																							up		quarter																																																																								
+16	16	1/2	1/2	Dynamic	4/4	1	1	0																																																	p							49																																																								
+16	16	1/2	1/2	Chord	4/4	1	1	1/4	1		276										begin	begin	fu																							down		quarter																																																																								
+16	16	3/4	3/4	Chord	4/4	1	1	1/4	1		277										begin	end	it																							down		quarter																																																																								
+16	16	0	0	Chord	4/4	2	1	1/4	1		278										begin	middle	fli																							up		quarter																																																																								
+16	16	1/4	1/4	Spanner	4/4	2	1	0																																																																																																					1/4	-1	HairPin									
+16	16	1/4	1/4	Chord	4/4	2	1	1/4	1		279										begin	end	cta																							up		quarter																																																																								
+16	16	1/2	1/2	Dynamic	4/4	2	1	0																																																	p							49																																																								
+16	16	1/2	1/2	Chord	4/4	2	1	1/4	1		280										begin	begin	fu																							up		quarter																																																																								
+16	16	3/4	3/4	Chord	4/4	2	1	1/4	1		281										begin	end	it																							up		quarter																																																																								
+16	16	0	0	Harmony	4/4	3	1	0																																																																							V[V(64)																																									
+16	16	0	0	Chord	4/4	3	1	1/2	1		282																																			down		half																																																																								
+16	16	1/2	1/2	location	4/4	3	1	-1/4																																																																																																																-1/4
+16	16	1/4	1/4	Harmony	4/4	3	1	0																																																																							V}																																									
+16	16	1/4	1/4	location	4/4	3	1	1/4																																																																																																																1/4
+16	16	1/2	1/2	Dynamic	4/4	3	1	0																																																below	p							49																																																								
+16	16	1/2	1/2	Harmony	4/4	3	1	0																																																																							{																																									
+16	16	1/2	1/2	Chord	4/4	3	1	1/2	1		283														/	0	1.31617	/	0.329041	1.48069	/	0.329041	1.48069				0			2	1				Slur	up		half																																																																								
+16	16	0	0	Chord	4/4	3	2	1/4	1		284																																			up		quarter																																																																								
+16	16	1/4	1/4	Chord	4/4	3	2	1/4	1		285																																			up		quarter																																																																								
+16	16	1/2	1/2	Chord	4/4	3	2	1/2	1		286																																			down		half																																																																								
+16	16	0	0	Chord	4/4	4	1	1	1		287																																					whole																																																																								
+17	17	0	0	Chord	4/4	1	1	1/4	1		288										begin	begin	il																							down		quarter																																																																								
+17	17	1/4	1/4	Chord	4/4	1	1	1/4	1		289										begin	end	la																							down		quarter																																																																								
+17	17	1/2	1/2	Chord	4/4	1	1	1/4	1		290										begin	begin	be																							down		quarter																																																																								
+17	17	3/4	3/4	Chord	4/4	1	1	1/4	1		291										begin	middle	ne																							down		quarter																																																																								
+17	17	0	0	Chord	4/4	2	1	1/4	1		292										begin	begin	il																							up		quarter																																																																								
+17	17	1/4	1/4	Chord	4/4	2	1	1/4	1		293										begin	end	la																							up		quarter																																																																								
+17	17	1/2	1/2	Chord	4/4	2	1	1/4	1		294										begin	begin	be																							up		quarter																																																																								
+17	17	3/4	3/4	Chord	4/4	2	1	1/4	1		295										begin	middle	ne																							up		quarter																																																																								
+17	17	0	0	Harmony	4/4	3	1	0																																																																							iv6(2)																																									
+17	17	0	0	Chord	4/4	3	1	1/4	1		296																																			up		quarter	/	1	0																																																																					
+17	17	1/4	1/4	Harmony	4/4	3	1	0																																																																							IV6																																									
+17	17	1/4	1/4	Chord	4/4	3	1	1/2	1		297																																			up		half																																																																								
+17	17	3/4	3/4	location	4/4	3	1	-1/4																																																																																																																-1/4
+17	17	1/2	1/2	Harmony	4/4	3	1	0																																																																							V7																																									
+17	17	1/2	1/2	location	4/4	3	1	1/4																																																																																																																1/4
+17	17	3/4	3/4	Chord	4/4	3	1	1/4	1		298																																			up		quarter																																																																								
+17	17	0	0	Chord	4/4	3	2	1/2	1		299																																			down		half																																																																								
+17	17	1/2	1/2	Chord	4/4	3	2	1/2	1		300																																			down		half																																																																								
+17	17	0	0	location	4/4	3	3	1/4																																																																																																																1/4
+17	17	1/4	1/4	Chord	4/4	3	3	1/4	1		301																																			down		quarter																																																																								
+17	17	0	0	Chord	4/4	4	1	1	1		302																																					whole																																																																								
+18	18	0	0	Chord	4/4	1	1	1/4	1		303										begin	middle	di																							down		quarter																																																																								
+18	18	1/4	1/4	Chord	4/4	1	1	1/4	1		304										begin	end	cta,																							up		quarter																																																																								
+18	18	1/2	1/2	Spanner	4/4	1	1	0																																																																																				0.535479	/	-3.35493	0	/	4.27754	-2.40984	0						1	20	-1/2	1			HairPin									
+18	18	1/2	1/2	Chord	4/4	1	1	1/4	1		305										begin	begin	be																							down		quarter																																																																								
+18	18	3/4	3/4	Chord	4/4	1	1	1/4	1		306										begin	middle	ne																							up		quarter																																																																								
+18	18	0	0	Chord	4/4	2	1	1/4	1		307										begin	middle	di																							up		quarter																																																																								
+18	18	1/4	1/4	Chord	4/4	2	1	1/4	1		308										begin	end	cta,																							up		quarter																																																																								
+18	18	1/2	1/2	Spanner	4/4	2	1	0																																																																																					/	-2.96137	0	/	4.11302	-2.57437	0						1	20	-1/2	1			HairPin									
+18	18	1/2	1/2	Chord	4/4	2	1	1/4	1		309										begin	begin	be																							up		quarter																																																																								
+18	18	3/4	3/4	Chord	4/4	2	1	1/4	1		310										begin	middle	ne																							up		quarter																																																																								
+18	18	0	0	Harmony	4/4	3	1	0																																																																							V(v74)																																									
+18	18	0	0	Chord	4/4	3	1	1/4	1		311																																			up		quarter																																																																								
+18	18	1/4	1/4	Harmony	4/4	3	1	0																																																																							V(64)]																																									
+18	18	1/4	1/4	Chord	4/4	3	1	1/4	1		312																																			up		quarter																																																																								
+18	18	1/2	1/2	Harmony	4/4	3	1	0																																																																							viio7/V																																									
+18	18	1/2	1/2	Beam	4/4	3	1	0				-3.84192	-2.59192	up																																																																																																										
+18	18	1/2	1/2	Chord	4/4	3	1	1/8	1		313										begin																											eighth																																																																								
+18	18	5/8	5/8	Chord	4/4	3	1	1/8	1		314								0	articStaccatoAbove	mid																											eighth																																																																								
+18	18	3/4	3/4	Chord	4/4	3	1	1/8	1		315								0	articStaccatoBelow	mid																											eighth																																																																								
+18	18	7/8	7/8	Chord	4/4	3	1	1/8	1		316								0	articStaccatoBelow																												eighth																																																																								
+18	18	0	0	Chord	4/4	3	2	1/2	1		317																																			down		half																																																																								
+18	18	1/2	1/2	Chord	4/4	3	2	1/4	1		318																																-2	-1	Slur	down		quarter																																																																								
+18	18	0	0	Chord	4/4	4	1	1/2	1		319																																			up		half																																																																								
+18	18	1/2	1/2	Spanner	4/4	4	1	0																																																																																																	1	20	-1/4	1			HairPin									
+18	18	1/2	1/2	Chord	4/4	4	1	1/2	1		320																																			up		half																																																																								
+19	19	0	0	Spanner	4/4	1	1	0																																																																																																					1/2	-1	HairPin									
+19	19	0	0	Chord	4/4	1	1	1/8	1		321										begin	middle	di																							down		eighth																																																																								
+19	19	1/8	1/8	Chord	4/4	1	1	1/8	1		322										begin	end	cta																							up		eighth																																																																								
+19	19	1/4	1/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+19	19	1/2	1/2	Dynamic	4/4	1	1	0																																																	mf							80																																																								
+19	19	1/2	1/2	Chord	4/4	1	1	1/2	1		323										begin	begin	ma																							down		half																																																																								
+19	19	0	0	Spanner	4/4	2	1	0																																																																																																					1/2	-1	HairPin									
+19	19	0	0	Chord	4/4	2	1	1/8	1		324										begin	middle	di																							up		eighth																																																																								
+19	19	1/8	1/8	Chord	4/4	2	1	1/8	1		325										begin	end	cta																							up		eighth																																																																								
+19	19	1/4	1/4	Rest	4/4	2	1	1/4	1																																																																													quarter																																		
+19	19	1/2	1/2	Dynamic	4/4	2	1	0																																												0.0802381					mf							80																																																								
+19	19	1/2	1/2	Chord	4/4	2	1	1/2	1		326										begin	begin	ma																							up		half																																																																								
+19	19	0	0	Harmony	4/4	3	1	0																																																																							V(64)																																									
+19	19	0	0	Beam	4/4	3	1	0						up																																																																																																										
+19	19	0	0	Chord	4/4	3	1	1/8	1		327										begin																	up	1/8						Slur			eighth																																																																								
+19	19	1/8	1/8	Harmony	4/4	3	1	0																																																																							V}																																									
+19	19	1/8	1/8	Chord	4/4	3	1	1/8	1		328																															-1/8			Slur			eighth																																																																								
+19	19	1/4	1/4	Rest	4/4	3	1	1/4	1																																																																													quarter																																		
+19	19	1/2	1/2	Harmony	4/4	3	1	0																																																																							V7{																																									
+19	19	1/2	1/2	Chord	4/4	3	1	1/2	1		329																																			up		half																																																																								
+19	19	0	0	Chord	4/4	3	2	1/4	1		330																																			down		quarter																																																																								
+19	19	0	0	Chord	4/4	4	1	1/4	1		331																																			up		quarter																																																																								
+19	19	1/4	1/4	Spanner	4/4	4	1	0																																																																																																					1/4	-1	HairPin									
+19	19	1/4	1/4	Rest	4/4	4	1	1/4	1																																																																													quarter																																		
+19	19	1/2	1/2	Dynamic	4/4	4	1	0																																																	mf							80																																																								
+19	19	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+19	19	5/8	5/8	Beam	4/4	4	1	0						down																																																																																																										
+19	19	5/8	5/8	Chord	4/4	4	1	1/8	1		332										begin																											eighth																																																																								
+19	19	3/4	3/4	Chord	4/4	4	1	1/8	1		333										mid																											eighth																																																																								
+19	19	7/8	7/8	Chord	4/4	4	1	1/8	1		334																																					eighth																																																																								
+20	20	0	0	Chord	4/4	1	1	1/2	1		335										begin	end	ter																							up		half																																																																								
+20	20	1/2	1/2	Dynamic	4/4	1	1	0																																																	p							49																																																								
+20	20	1/2	1/2	Rest	4/4	1	1	1/8	1																																																																													eighth																																		
+20	20	5/8	5/8	Beam	4/4	1	1	0						down																																																																																																										
+20	20	5/8	5/8	Chord	4/4	1	1	1/8	1		336										begin	begin	u	∅															1/8						Slur			eighth																																																																								
+20	20	3/4	3/4	Chord	4/4	1	1	1/8	1		337																															-1/8			Slur			eighth																																																																								
+20	20	7/8	7/8	Chord	4/4	1	1	1/8	1		338										begin	middle	ni																							down		eighth																																																																								
+20	20	0	0	Chord	4/4	2	1	1/2	1		339										begin	end	ter																							up		half																																																																								
+20	20	1/2	1/2	Dynamic	4/4	2	1	0																																																	p							49																																																								
+20	20	1/2	1/2	Rest	4/4	2	1	1/8	1																																																																													eighth																																		
+20	20	5/8	5/8	Beam	4/4	2	1	0						down																																																																																																										
+20	20	5/8	5/8	Chord	4/4	2	1	1/8	1		340										begin	begin	u	∅															1/8						Slur			eighth																																																																								
+20	20	3/4	3/4	Chord	4/4	2	1	1/8	1		341																															-1/8			Slur			eighth																																																																								
+20	20	7/8	7/8	Chord	4/4	2	1	1/8	1		342										begin	middle	ni																							up		eighth																																																																								
+20	20	0	0	Harmony	4/4	3	1	0																																																																							i																																									
+20	20	0	0	Chord	4/4	3	1	1/2	1		343																																			up		half																																																																								
+20	20	1/2	1/2	Harmony	4/4	3	1	0																																																																							iv6																																									
+20	20	1/2	1/2	Rest	4/4	3	1	1/8	1																																																																													eighth																																		
+20	20	5/8	5/8	Beam	4/4	3	1	0						up																																																																																																										
+20	20	5/8	5/8	Chord	4/4	3	1	1/8	1		344										begin																	up	1/4						Slur			eighth																																																																								
+20	20	3/4	3/4	Chord	4/4	3	1	1/8	1		345										mid																											eighth																																																																								
+20	20	7/8	7/8	Chord	4/4	3	1	1/8	1		346																															-1/4			Slur			eighth																																																																								
+20	20	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+20	20	1/2	1/2	Chord	4/4	3	2	1/2	1		347																																			down		half																																																																								
+20	20	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+20	20	1/8	1/8	Beam	4/4	4	1	0						down																																																																																																										
+20	20	1/8	1/8	Chord	4/4	4	1	1/8	1		348										begin																											eighth																																																																								
+20	20	1/4	1/4	Chord	4/4	4	1	1/8	1		349										mid																											eighth																																																																								
+20	20	3/8	3/8	Chord	4/4	4	1	1/8	1		350																																					eighth																																																																								
+20	20	1/2	1/2	Dynamic	4/4	4	1	0																																																	p							49																																																								
+20	20	1/2	1/2	Chord	4/4	4	1	1/2	1		351																																			down		half																																																																								
+21	21	0	0	Chord	4/4	1	1	1/4	1		352										begin	middle	ge															up	1/4						Slur	down		quarter																																																																								
+21	21	1/4	1/4	Chord	4/4	1	1	3/16	3/2		353																															-1/4			Slur	up	1	eighth																																																																								
+21	21	7/16	7/16	Chord	4/4	1	1	1/16	1		354										begin	middle	ni																							up		16th																																																																								
+21	21	1/2	1/2	Chord	4/4	1	1	1/4	1		355										begin	end	ti,																							up		quarter																																																																								
+21	21	3/4	3/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+21	21	0	0	Chord	4/4	2	1	1/4	1		356										begin	middle	ge															down	1/4						Slur	up		quarter																																																																								
+21	21	1/4	1/4	Chord	4/4	2	1	3/16	3/2		357																															-1/4			Slur	up	1	eighth																																																																								
+21	21	7/16	7/16	Chord	4/4	2	1	1/16	1		358										begin	middle	ni																							up		16th																																																																								
+21	21	1/2	1/2	Chord	4/4	2	1	1/2	1		359										begin	end	ti,																							up		half																																																																								
+21	21	0	0	Harmony	4/4	3	1	0																																																																							iv65(-1)																																									
+21	21	0	0	Chord	4/4	3	1	1/4	1		360																											up	1/4						Slur	up		quarter																																																																								
+21	21	1/4	1/4	Harmony	4/4	3	1	0																																																																							V7																																									
+21	21	1/4	1/4	Chord	4/4	3	1	1/4	1		361																															-1/4			Slur	up		quarter																																																																								
+21	21	1/2	1/2	Harmony	4/4	3	1	0																																																																							i}																																									
+21	21	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+21	21	1/2	1/2	Chord	4/4	3	1	1/8	1		362										begin																											eighth																																																																								
+21	21	5/8	5/8	Spanner	4/4	3	1	0																																																																																			0		/	-0.822604	-2.30329	/	1.64521	5.14521	0		1			below	0		-5/8	1			HairPin									
+21	21	5/8	5/8	Chord	4/4	3	1	1/8	1		363										mid																	down	1/4						Slur			eighth																																																																								
+21	21	3/4	3/4	Chord	4/4	3	1	1/8	1		364										mid																											eighth																																																																								
+21	21	7/8	7/8	Chord	4/4	3	1	1/8	1		365																															-1/4			Slur			eighth																																																																								
+21	21	0	0	location	4/4	3	2	1/4																																																																																																																1/4
+21	21	1/4	1/4	Rest	4/4	3	2	1/8	1																																																																													eighth	/	0.164521	1.80973																															
+21	21	3/8	3/8	Chord	4/4	3	2	1/8	1		366																																			down		eighth																																																																								
+21	21	1/2	1/2	Rest	4/4	3	2	1/2	1																																																																													half																																		
+21	21	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+21	21	1/8	1/8	Beam	4/4	4	1	0						down																																																																																																										
+21	21	1/8	1/8	Chord	4/4	4	1	1/8	1		367										begin			∅															1/4						Slur			eighth																																																																								
+21	21	1/4	1/4	Chord	4/4	4	1	1/8	1		368										mid																											eighth																																																																								
+21	21	3/8	3/8	Chord	4/4	4	1	1/8	1		369																															-1/4			Slur			eighth																																																																								
+21	21	1/2	1/2	Chord	4/4	4	1	1/4	1		370																																			up		quarter																																																																								
+21	21	3/4	3/4	Rest	4/4	4	1	1/4	1																																																																													quarter																																		
+22	22	0	0	Dynamic	4/4	1	1	0																																																	f							96																																																								
+22	22	0	0	Chord	4/4	1	1	1/2	1		371										begin	begin	ma																							down		half																																																																								
+22	22	1/2	1/2	Chord	4/4	1	1	1/2	1		372										begin	end	ter																							up		half																																																																								
+22	22	0	0	Dynamic	4/4	2	1	0																																												0.0802381					f							96																																																								
+22	22	0	0	Chord	4/4	2	1	1/2	1		373										begin	begin	ma																							up		half																																																																								
+22	22	1/2	1/2	Chord	4/4	2	1	1/2	1		374										begin	end	ter																							up		half																																																																								
+22	22	0	0	Dynamic	4/4	3	1	0																																												0.381838	/	-0.493562	3.34192	below	f							96																																																								
+22	22	0	0	Harmony	4/4	3	1	0																																																																							V7{																																									
+22	22	0	0	Spanner	4/4	3	1	0																																																																																																					5/8	-1	HairPin									
+22	22	0	0	Chord	4/4	3	1	1/2	1		375																																			up		half																																																																								
+22	22	1/2	1/2	Harmony	4/4	3	1	0																																																																							i																																									
+22	22	1/2	1/2	Chord	4/4	3	1	1/2	1		376																																			up		half																																																																								
+22	22	0	0	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+22	22	1/8	1/8	Beam	4/4	4	1	0						down																																																																																																										
+22	22	1/8	1/8	Chord	4/4	4	1	1/8	1		377									articStaccatoAbove	begin																											eighth																																																																								
+22	22	1/4	1/4	Chord	4/4	4	1	1/8	1		378									articStaccatoAbove	mid																											eighth																																																																								
+22	22	3/8	3/8	Chord	4/4	4	1	1/8	1		379																																					eighth																																																																								
+22	22	1/2	1/2	Rest	4/4	4	1	1/8	1																																																																													eighth																																		
+22	22	5/8	5/8	Beam	4/4	4	1	0						down																																																																																																										
+22	22	5/8	5/8	Chord	4/4	4	1	1/8	1		380									articStaccatoAbove	begin																											eighth																																																																								
+22	22	3/4	3/4	Chord	4/4	4	1	1/8	1		381									articStaccatoAbove	mid																											eighth																																																																								
+22	22	7/8	7/8	Chord	4/4	4	1	1/8	1		382									articStaccatoAbove																												eighth																																																																								
+23	23	0	0	Dynamic	4/4	1	1	0																																																	p							49																																																								
+23	23	0	0	Rest	4/4	1	1	1/8	1																																																																													eighth																																		
+23	23	1/8	1/8	Spanner	4/4	1	1	0																																																																																												/		/	0		3		-1/8	1			HairPin									
+23	23	1/8	1/8	Beam	4/4	1	1	0						down																																																																																																										
+23	23	1/8	1/8	Chord	4/4	1	1	1/8	1		383										begin	begin	u	∅															1/8						Slur			eighth																																																																								
+23	23	1/4	1/4	Chord	4/4	1	1	1/8	1		384																															-1/8			Slur			eighth																																																																								
+23	23	3/8	3/8	Chord	4/4	1	1	1/8	1		385										begin	middle	ni																							down		eighth																																																																								
+23	23	1/2	1/2	Chord	4/4	1	1	1/4	1		386										begin	middle	ge	∅															1/4						Slur	down		quarter																																																																								
+23	23	3/4	3/4	StaffText	4/4	1	1	0																																																																																																								/	-0.493562	-1.6154	Expression	al				
+23	23	3/4	3/4	Chord	4/4	1	1	3/16	3/2		387																															-1/4			Slur	up	1	eighth																																																																								
+23	23	15/16	15/16	Chord	4/4	1	1	1/16	1		388										begin	middle	ni																							up		16th																																																																								
+23	23	0	0	Dynamic	4/4	2	1	0																																																	p							49																																																								
+23	23	0	0	Rest	4/4	2	1	1/8	1																																																																													eighth																																		
+23	23	1/8	1/8	Spanner	4/4	2	1	0																																																																																												/		/	0		3		-1/8	1			HairPin									
+23	23	1/8	1/8	Beam	4/4	2	1	0						down																																																																																																										
+23	23	1/8	1/8	Chord	4/4	2	1	1/8	1		389										begin	begin	u	∅															1/8						Slur			eighth																																																																								
+23	23	1/4	1/4	Chord	4/4	2	1	1/8	1		390																															-1/8			Slur			eighth																																																																								
+23	23	3/8	3/8	Chord	4/4	2	1	1/8	1		391										begin	middle	ni																							up		eighth																																																																								
+23	23	1/2	1/2	Chord	4/4	2	1	1/4	1		392										begin	middle	ge	∅															1/4						Slur	down		quarter																																																																								
+23	23	3/4	3/4	StaffText	4/4	2	1	0																																																																																																								/	-0.493562	-1.6154	Expression	al				
+23	23	3/4	3/4	Chord	4/4	2	1	3/16	3/2		393										no																					-1/4			Slur	up	1	eighth																																																																								
+23	23	15/16	15/16	Chord	4/4	2	1	1/16	1		394											middle	ni																							up		16th																																																																								
+23	23	0	0	Harmony	4/4	3	1	0																																																																							iv6																																									
+23	23	0	0	Rest	4/4	3	1	1/8	1																																																																													eighth																																		
+23	23	1/8	1/8	Beam	4/4	3	1	0						up																																																																																																										
+23	23	1/8	1/8	Chord	4/4	3	1	1/8	1		395										begin																	up	1/4						Slur			eighth																																																																								
+23	23	1/4	1/4	Chord	4/4	3	1	1/8	1		396										mid																											eighth																																																																								
+23	23	3/8	3/8	Chord	4/4	3	1	1/8	1		397																															-1/4			Slur			eighth																																																																								
+23	23	1/2	1/2	Harmony	4/4	3	1	0																																																																							V(64)																																									
+23	23	1/2	1/2	Chord	4/4	3	1	1/4	1		398																							/	0	1.31617	0	up	1/4						Slur	up		quarter																																																																								
+23	23	3/4	3/4	Harmony	4/4	3	1	0																																																																							V																																									
+23	23	3/4	3/4	Chord	4/4	3	1	1/4	1		399																															-1/4			Slur	up		quarter																																																																								
+23	23	0	0	Chord	4/4	3	2	1/2	1		400																																			down		half																																																																								
+23	23	1/2	1/2	Chord	4/4	3	2	1/2	1		401																																			down		half																																																																								
+23	23	0	0	Dynamic	4/4	4	1	0																																													/	-0.164521	-4.08005		p							49																																																								
+23	23	0	0	Chord	4/4	4	1	1/2	1		402																																			down		half																																																																								
+23	23	1/2	1/2	Spanner	4/4	4	1	0																																																																																																	1		-1/2	1			HairPin									
+23	23	1/2	1/2	Chord	4/4	4	1	1/2	1		403																																			down		half																																																																								
+24	24	0	0	Dynamic	4/4	1	1	0																																												-2.1127					pp							33																																																								
+24	24	0	0	Spanner	4/4	1	1	0																																																																																																					1/8	-1	HairPin									
+24	24	0	0	Chord	4/4	1	1	1/4	1		404										no	end	ti!																							up		quarter																																																																								
+24	24	1/4	1/4	Rest	4/4	1	1	1/4	1																																																																													quarter																																		
+24	24	1/2	1/2	Rest	4/4	1	1	1/2	1																																																																													half																																		
+24	24	0	0	Dynamic	4/4	2	1	0																																																	pp							33																																																								
+24	24	0	0	Spanner	4/4	2	1	0																																																																																																					1/8	-1	HairPin									
+24	24	0	0	Chord	4/4	2	1	1/4	1		405										no	end	ti!																							up		quarter																																																																								
+24	24	1/4	1/4	Rest	4/4	2	1	1/4	1																																																																													quarter																																		
+24	24	1/2	1/2	Rest	4/4	2	1	1/2	1																																																																													half																																		
+24	24	0	0	Harmony	4/4	3	1	0																																																																							i}{																																									
+24	24	0	0	Chord	4/4	3	1	1/8	1		406																																			up		eighth																																																																								
+24	24	1/8	1/8	Spanner	4/4	3	1	0																																																																																																below	0		3/8				HairPin									
+24	24	1/8	1/8	Chord	4/4	3	1	1/4	1		407																																			down		quarter																																																																								
+24	24	3/8	3/8	location	4/4	3	1	-1/8																																																																																																																-1/8
+24	24	1/4	1/4	Harmony	4/4	3	1	0																																																																							i6																																									
+24	24	1/4	1/4	location	4/4	3	1	1/8																																																																																																																1/8
+24	24	3/8	3/8	Chord	4/4	3	1	1/8	1		408														/	-0.396825	-1.5873							/	0.0338923	0.0967371	0	up	5/16						Slur	down		eighth																																																																								
+24	24	1/2	1/2	Dynamic	4/4	3	1	0																																																below	f							96																																																								
+24	24	1/2	1/2	Harmony	4/4	3	1	0																																																																							V43(4)																																									
+24	24	1/2	1/2	Spanner	4/4	3	1	0																																																																																																					-3/8		HairPin									
+24	24	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+24	24	1/2	1/2	Chord	4/4	3	1	1/8	1		409										begin																											eighth																																																																								
+24	24	5/8	5/8	Harmony	4/4	3	1	0																																																																							V43																																									
+24	24	5/8	5/8	Chord	4/4	3	1	1/16	1		410										mid																											16th																																																																								
+24	24	11/16	11/16	Chord	4/4	3	1	1/16	1		411																															-5/16			Slur			16th																																																																								
+24	24	3/4	3/4	Beam	4/4	3	1	0						up																																																																																																										
+24	24	3/4	3/4	Chord	4/4	3	1	1/8	1		412										begin																	up	1/8						Slur			eighth																																																																								
+24	24	7/8	7/8	Harmony	4/4	3	1	0																																																																							viio43/V	/	-1.59913	-6.03758																																						
+24	24	7/8	7/8	Chord	4/4	3	1	1/8	1		413																															-1/8			Slur			eighth																																																																								
+24	24	0	0	location	4/4	3	2	1/2																																																																																																																1/2
+24	24	1/2	1/2	Chord	4/4	3	2	3/8	3/2		414																																			down	1	quarter																																																																								
+24	24	7/8	7/8	Chord	4/4	3	2	1/8	1		415																																			down		eighth																																																																								
+24	24	0	0	Dynamic	4/4	4	1	0																																																	pp							33																																																								
+24	24	0	0	Spanner	4/4	4	1	0																																																																																																					1/2	-1	HairPin									
+24	24	0	0	Chord	4/4	4	1	1/4	1		416																																			up		quarter																																																																								
+24	24	1/4	1/4	Chord	4/4	4	1	1/4	1		417																																			down		quarter																																																																								
+24	24	1/2	1/2	Chord	4/4	4	1	3/8	3/2		418																																			up	1	quarter																																																																								
+24	24	7/8	7/8	Chord	4/4	4	1	1/8	1		419																																			up		eighth																																																																								
+24	24	0	0	location	4/4	4	2	1/2																																																																																																																1/2
+24	24	1/2	1/2	Chord	4/4	4	2	3/8	3/2		420														/	-0.164521	2.46781	/	0.164521	1.97425	/	0.164521	1.97425				0		3/8	1					Slur	down	1	quarter																																																																								
+24	24	7/8	7/8	Chord	4/4	4	2	1/8	1		421																																			down		eighth																																																																								
+25	25	0	0	Rest	4/4	1	1	1	1																																																																												4/4	measure																																		
+25	25	0	0	Rest	4/4	2	1	1	1																																																																												4/4	measure																																		
+25	25	0	0	Harmony	4/4	3	1	0																																																																							V6																																									
+25	25	0	0	Beam	4/4	3	1	0						down																																																																																																										
+25	25	0	0	Chord	4/4	3	1	1/8	1		422										begin																											eighth																																																																								
+25	25	1/8	1/8	Harmony	4/4	3	1	0																																																																							VI6																																									
+25	25	1/8	1/8	Chord	4/4	3	1	1/8	1		423																																					eighth																																																																								
+25	25	1/4	1/4	Harmony	4/4	3	1	0																																																																							iv6																																									
+25	25	1/4	1/4	Beam	4/4	3	1	0				5.85317	6.60317	down																																																																																																										
+25	25	1/4	1/4	Chord	4/4	3	1	1/8	1		424										begin																											eighth																																																																								
+25	25	3/8	3/8	Harmony	4/4	3	1	0																																																																							iio6	/	0	-5.72932																																						
+25	25	3/8	3/8	Chord	4/4	3	1	1/8	1		425																																					eighth																																																																								
+25	25	1/2	1/2	Harmony	4/4	3	1	0																																																																							i6	/	0.145375	-5.63056																																						
+25	25	1/2	1/2	Beam	4/4	3	1	0						up																																																																																																										
+25	25	1/2	1/2	Chord	4/4	3	1	3/16	3/2		426										begin																	up	3/16						Slur		1	eighth																																																																								
+25	25	11/16	11/16	location	4/4	3	1	-1/16																																																																																																																-1/16
+25	25	5/8	5/8	Harmony	4/4	3	1	0																																																																							iv6	/	-0.290751	-5.87152																																						
+25	25	5/8	5/8	location	4/4	3	1	1/16																																																																																																																1/16
+25	25	11/16	11/16	Chord	4/4	3	1	1/16	1		427																															-3/16			Slur			16th																																																																								
+25	25	3/4	3/4	Harmony	4/4	3	1	0																																																																							iio6	/	0	-5.47864																																						
+25	25	3/4	3/4	Chord	4/4	3	1	1/4	1		428					/	-0.164521	1.15164	0	ornamentTrill																										up		quarter																																																																								
+25	25	1	1	location	4/4	3	1	-1/8																																																																																																																-1/8
+25	25	7/8	7/8	Harmony	4/4	3	1	0																																																																							V	/	0.145375	-5.26213																																						
+25	25	0	0	Beam	4/4	3	2	0						up																																																																																																										
+25	25	0	0	Chord	4/4	3	2	3/16	3/2		429										begin																	up	3/16						Slur		1	eighth																																																																								
+25	25	3/16	3/16	Chord	4/4	3	2	1/16	1		430																															-3/16			Slur			16th																																																																								
+25	25	1/4	1/4	Beam	4/4	3	2	0						up																																																																																																										
+25	25	1/4	1/4	Chord	4/4	3	2	1/32	1		431										begin																	up	1/32						Slur			32nd																																																																								
+25	25	9/32	9/32	Chord	4/4	3	2	3/32	3/2		432										mid																					-1/32			Slur		1	16th																																																																								
+25	25	3/8	3/8	Chord	4/4	3	2	1/32	1		433										mid																	up	1/32						Slur			32nd																																																																								
+25	25	13/32	13/32	Chord	4/4	3	2	3/32	3/2		434																															-1/32			Slur		1	16th																																																																								
+25	25	1/2	1/2	Beam	4/4	3	2	0				7.55159	7.55159	down																																																																																																										
+25	25	1/2	1/2	Chord	4/4	3	2	1/8	1		435										begin																											eighth																																																																								
+25	25	5/8	5/8	Chord	4/4	3	2	1/8	1		436										mid																											eighth																																																																								
+25	25	3/4	3/4	Chord	4/4	3	2	1/8	1		437										begin			∅															1/8						Slur			eighth																																																																								
+25	25	7/8	7/8	Chord	4/4	3	2	1/8	1		438																															-1/8			Slur			eighth																																																																								
+25	25	0	0	Beam	4/4	4	1	0						up																																																																																																										
+25	25	0	0	Chord	4/4	4	1	1/8	1		439										begin																											eighth																																																																								
+25	25	1/8	1/8	Chord	4/4	4	1	1/8	1		440																																					eighth																																																																								
+25	25	1/4	1/4	Beam	4/4	4	1	0				-3.4127	-2.36111	up																																																																																																										
+25	25	1/4	1/4	Chord	4/4	4	1	1/8	1		441										begin																											eighth																																																																								
+25	25	3/8	3/8	Chord	4/4	4	1	1/8	1		442																																					eighth																																																																								
+25	25	1/2	1/2	Chord	4/4	4	1	1/8	1		443																																			up		eighth																																																																								
+25	25	5/8	5/8	Chord	4/4	4	1	1/4	1		444																																			up		quarter																																																																								
+25	25	7/8	7/8	Chord	4/4	4	1	1/8	1		445																																			up		eighth																																																																								
+25	25	0	0	Beam	4/4	4	2	0						down																																																																																																										
+25	25	0	0	Chord	4/4	4	2	1/8	1		446										begin			∅															1/8						Slur			eighth																																																																								
+25	25	1/8	1/8	Chord	4/4	4	2	1/8	1		447																															-1/8			Slur			eighth																																																																								
+25	25	1/4	1/4	Beam	4/4	4	2	0						down																																																																																																										
+25	25	1/4	1/4	Chord	4/4	4	2	1/8	1		448										begin			∅															1/8						Slur			eighth																																																																								
+25	25	3/8	3/8	Chord	4/4	4	2	1/8	1		449																															-1/8			Slur			eighth																																																																								
+25	25	1/2	1/2	Beam	4/4	4	2	0						down																																																																																																										
+25	25	1/2	1/2	Chord	4/4	4	2	1/8	1		450										begin			∅															1/8						Slur			eighth																																																																								
+25	25	5/8	5/8	Chord	4/4	4	2	1/8	1		451																															-1/8			Slur			eighth																																																																								
+25	25	3/4	3/4	Spanner	4/4	4	2	0																																																																																					/	2.13877	0	/	0	-1.5	0						1		-1/2	1			HairPin									
+25	25	3/4	3/4	Beam	4/4	4	2	0						down																																																																																																										
+25	25	3/4	3/4	Chord	4/4	4	2	1/8	1		452										begin			∅															1/8						Slur			eighth																																																																								
+25	25	7/8	7/8	Chord	4/4	4	2	1/8	1		453																															-1/8	-1		Slur			eighth																																																																								
+26	26	0	0	Fermata	4/4	1	1	0																																																													fermataAbove	2																																																		
+26	26	0	0	Rest	4/4	1	1	1	1																																																																												4/4	measure																																		
+26	26	0	0	Fermata	4/4	2	1	0																																																													fermataAbove	2																																																		
+26	26	0	0	Rest	4/4	2	1	1	1																																																																												4/4	measure																																		
+26	26	0	0	Harmony	4/4	3	1	0																																																																							i}	/	-0.290751	-5.40751																																						
+26	26	0	0	Beam	4/4	3	1	0						up																																																																																																										
+26	26	0	0	Chord	4/4	3	1	1/8	1		454										begin																											eighth																																																																								
+26	26	1/8	1/8	Chord	4/4	3	1	1/8	1		455																																					eighth																																																																								
+26	26	1/4	1/4	Chord	4/4	3	1	1/4	1		456																																			up		quarter																																																																								
+26	26	1/2	1/2	Fermata	4/4	3	1	0																																																													fermataAbove	2																																																		
+26	26	1/2	1/2	Rest	4/4	3	1	1/2	1																																																																													half																																		
+26	26	0	0	Chord	4/4	4	1	1/4	1		457																																			up		quarter																																																																								
+26	26	1/4	1/4	Rest	4/4	4	1	1/4	1																																																																													quarter	/	0.595238	1.16667																															
+26	26	1/2	1/2	Dynamic	4/4	4	1	0																																																	ppp							16	0																																																							
+26	26	1/2	1/2	Fermata	4/4	4	1	0																																																													fermataAbove	2																																																		
+26	26	1/2	1/2	Rest	4/4	4	1	1/2	1																																																																													half	/	0	1.36508																															
+26	26	0	0	Chord	4/4	4	2	1/4	1		458																																			down		quarter																																																																								
+26	26	1/4	1/4	Spanner	4/4	4	2	0																																																																																																					1/2	-1	HairPin									

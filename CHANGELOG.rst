@@ -2,11 +2,22 @@
 Changelog
 =========
 
+Version 0.4.5
+=============
+
+* added 'ms3 compare' command
+* support for parsing cap, capx, midi, musicxml, mxl, and xml files through temporary conversion
+* support for parsing MuseScore 2 files through temporary conversion
+
 Version 0.4.3
 =============
 
+* added 'ms3 check' command
+* support of coloured labels
+* write coloured labels to score comparing attached and detached labels to each other
 * better interface for defining log file paths (more options, now conforming to the Parse.store_lists() interface)
 * fixed erroneous separation of alternative labels
+
 
 Version 0.4.2
 =============
