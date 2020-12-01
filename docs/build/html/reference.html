@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Developers’ Reference &#8212; ms3 0.4.1.post0.dev4+g619dcae documentation</title>
+    <title>Developers’ Reference &#8212; ms3 0.4.5 documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="manual.html" title="Manual"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.5 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
@@ -93,7 +93,7 @@ starts with this central class.</p>
 <h2>The Score class<a class="headerlink" href="#the-score-class" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt id="ms3.score.Score">
-<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">musescore_file</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">musescore_file</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">ms</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Object representing a score.</p>
 <dl class="py attribute">
 <dt id="ms3.score.Score.ABS_REGEX">
@@ -101,14 +101,6 @@ starts with this central class.</p>
 <dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
 Class variable with a regular expression that
 recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="ms3.score.Score.DCML_REGEX">
-<code class="sig-name descname">DCML_REGEX</code><em class="property"> = re.compile('\n                                ^(?P&lt;first&gt;\n                                  (\\.?\n                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\\#*))\\.)?\n                                   , re.VERBOSE)</em><a class="headerlink" href="#ms3.score.Score.DCML_REGEX" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
-Class variable with a regular expression that
-recognizes labels conforming to the DCML harmony annotation standard.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -126,6 +118,20 @@ recognizes labels representing a Nashville numeral, which MuseScore is able to e
 Class variable with a regular expression for Roman numerals that
 romentarily matches nothing because ms3 tries interpreting Roman Numerals
 als DCML harmony annotations.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.native_formats">
+<code class="sig-name descname">native_formats</code><em class="property"> = ('mscx', 'mscz')</em><a class="headerlink" href="#ms3.score.Score.native_formats" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>
+Formats that MS3 reads without having to convert.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.convertible_formats">
+<code class="sig-name descname">convertible_formats</code><em class="property"> = ('cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml')</em><a class="headerlink" href="#ms3.score.Score.convertible_formats" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>
+Formats that have to be converted before parsing.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -169,6 +175,23 @@ Handled internally by <code class="xref py py-meth docutils literal notranslate"
 </dd></dl>
 
 <dl class="py attribute">
+<dt id="ms3.score.Score.ms">
+<code class="sig-name descname">ms</code><a class="headerlink" href="#ms3.score.Score.ms" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Path or command of the local MuseScore 3 installation if specified by the user.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.Score.labels_cfg">
+<code class="sig-name descname">labels_cfg</code><a class="headerlink" href="#ms3.score.Score.labels_cfg" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+Configuration dictionary to determine the output format of the <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
+objects contained in <code class="xref py py-obj docutils literal notranslate"><span class="pre">_annotations`</span></code>.
+The default options correspond to the default parameters of
+<a class="reference internal" href="#ms3.annotations.Annotations.get_labels" title="ms3.annotations.Annotations.get_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Annotations.get_labels()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py attribute">
 <dt id="ms3.score.Score.parser">
 <code class="sig-name descname">parser</code><a class="headerlink" href="#ms3.score.Score.parser" title="Permalink to this definition">¶</a></dt>
 <dd><p>{‘bs4’}
@@ -209,7 +232,7 @@ Shows the mapping of label types to their descriptions.</p>
 
 <dl class="py method">
 <dt id="ms3.score.Score.attach_labels">
-<code class="sig-name descname">attach_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">check_for_clashes</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.attach_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.attach_labels" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">attach_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">check_for_clashes</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">remove_detached</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.attach_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.attach_labels" title="Permalink to this definition">¶</a></dt>
 <dd><p>Insert detached labels <code class="docutils literal notranslate"><span class="pre">key</span></code> into this score’s <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a> object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -219,6 +242,8 @@ Shows the mapping of label types to their descriptions.</p>
 <li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>, optional) – Pass one or both of these arguments to change the original annotation layer or if there was none.</p></li>
 <li><p><strong>check_for_clashes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
 labels.</p></li>
+<li><p><strong>remove_detached</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, the detached <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object is removed after successfully attaching it.
+Pass False to have it remain in detached state.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -227,6 +252,50 @@ labels.</p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> – Number of labels that were to be attached.</p></li>
 </ul>
 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.check_labels">
+<code class="sig-name descname">check_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">'annotations'</span></em>, <em class="sig-param"><span class="n">regex</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">'dcml'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.check_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.check_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Tries to match the labels <code class="docutils literal notranslate"><span class="pre">keys</span></code> against the given <code class="docutils literal notranslate"><span class="pre">regex</span></code> or the one of the registered <code class="docutils literal notranslate"><span class="pre">label_type</span></code>.
+Returns wrong labels.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code>, optional) – The key(s) of the Annotation objects you want to check. Defaults to ‘annotations’, the attached labels.</p></li>
+<li><p><strong>regex</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Pass a regular expression against which to check the labels if you don’t want to use the one of an existing
+<code class="docutils literal notranslate"><span class="pre">label_type</span></code> or in order to register a new one on the fly by passing the new name as <code class="docutils literal notranslate"><span class="pre">label_type</span></code>.</p></li>
+<li><p><strong>label_type</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To use the regular expression of a registered type, pass its name, defaults to ‘dcml’. Pass a new name and
+a <code class="docutils literal notranslate"><span class="pre">regex</span></code> to register a new label type on the fly.</p></li>
+<li><p><strong>kwargs</strong> – Parameters passed to <code class="xref py py-func docutils literal notranslate"><span class="pre">check_labels()</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Labels not matching the regex.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.Score.compare_labels">
+<code class="sig-name descname">compare_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">detached_key</span></em>, <em class="sig-param"><span class="n">new_color</span><span class="o">=</span><span class="default_value">'ms3_darkgreen'</span></em>, <em class="sig-param"><span class="n">old_color</span><span class="o">=</span><span class="default_value">'ms3_darkred'</span></em>, <em class="sig-param"><span class="n">detached_is_newer</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.compare_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.compare_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare detached labels <code class="docutils literal notranslate"><span class="pre">key</span></code> to the ones attached to the Score.
+By default, the attached labels are considered as the reviewed version and changes are colored in green;
+Changes with respect to the detached labels are attached to the Score in red.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detached_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Key of the detached labels you want to compare to the ones in the score.</p></li>
+<li><p><strong>new_color</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>, optional) – The colors by which new and old labels are differentiated. Identical labels remain unchanged.</p></li>
+<li><p><strong>old_color</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>, optional) – The colors by which new and old labels are differentiated. Identical labels remain unchanged.</p></li>
+<li><p><strong>detached_is_newer</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if the detached labels are to be added with <code class="docutils literal notranslate"><span class="pre">new_color</span></code> whereas the attached changed labels
+will turn <code class="docutils literal notranslate"><span class="pre">old_color</span></code>, as opposed to the default.</p></li>
+</ul>
 </dd>
 </dl>
 </dd></dl>
@@ -315,7 +384,7 @@ Pass False to not add and not change any label types.</p></li>
 
 <dl class="py method">
 <dt id="ms3.score.Score.store_annotations">
-<code class="sig-name descname">store_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tsv_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.store_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.store_annotations" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">store_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">'annotations'</span></em>, <em class="sig-param"><span class="n">tsv_path</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score.store_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score.store_annotations" title="Permalink to this definition">¶</a></dt>
 <dd><p>Save a set of annotations as TSV file. While <code class="docutils literal notranslate"><span class="pre">store_list</span></code> stores attached labels only, this method
 can also store detached labels by passing a <code class="docutils literal notranslate"><span class="pre">key</span></code>.</p>
 <dl class="field-list simple">
@@ -352,15 +421,15 @@ Uncompressed files (‘.mscz’) are not supported.</p>
 <h3>The MSCX class<a class="headerlink" href="#the-mscx-class" title="Permalink to this headline">¶</a></h3>
 <dl class="py class">
 <dt id="ms3.score.MSCX">
-<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parent_score</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
 <dd><p>Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a
 <a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code></a> object and exposed as <code class="docutils literal notranslate"><span class="pre">Score.mscx</span></code>.
 An object is only created if a score was successfully parsed.</p>
 <dl class="py attribute">
-<dt id="ms3.score.MSCX.mscx_src">
-<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
-Full path of the parsed MuseScore file.</p>
+<dt id="ms3.score.MSCX.changed">
+<code class="sig-name descname">changed</code><a class="headerlink" href="#ms3.score.MSCX.changed" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
+Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -370,6 +439,13 @@ Full path of the parsed MuseScore file.</p>
 Shortcut for <code class="docutils literal notranslate"><span class="pre">MSCX.parsed.read_only</span></code>.
 Defaults to <code class="docutils literal notranslate"><span class="pre">False</span></code>, meaning that the parsing is slower and uses more memory in order to allow for manipulations
 of the score, such as adding and deleting labels. Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if you’re only extracting information.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.parent_score">
+<code class="sig-name descname">parent_score</code><a class="headerlink" href="#ms3.score.MSCX.parent_score" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code></a>
+The Score object to which this MSCX object is attached.</p>
 </dd></dl>
 
 <dl class="py attribute">
@@ -385,16 +461,15 @@ The currently used parser.</p>
 <dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
 Configuration dictionary to determine the output format of the <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
 object representing the labels that are attached to a score (stored as <code class="xref py py-obj docutils literal notranslate"><span class="pre">_annotations`</span></code>).
-The default options correspond to the default parameters of
+The options correspond to the parameters of
 <a class="reference internal" href="#ms3.annotations.Annotations.get_labels" title="ms3.annotations.Annotations.get_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Annotations.get_labels()</span></code></a>.</p>
 </dd></dl>
 
-<dl class="py method">
-<dt id="ms3.score.MSCX.changed">
-<em class="property">property </em><code class="sig-name descname">changed</code><a class="headerlink" href="#ms3.score.MSCX.changed" title="Permalink to this definition">¶</a></dt>
-<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
-Shortcut for <code class="docutils literal notranslate"><span class="pre">MSCX.parsed.changed</span></code>.
-Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.</p>
+<dl class="py attribute">
+<dt id="ms3.score.MSCX.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.score.MSCX.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Full path of the parsed MuseScore file.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -505,24 +580,17 @@ MuseScore version that the file was created with.</p>
 
 <dl class="py method">
 <dt id="ms3.score.MSCX.add_labels">
-<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">label</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">mc</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">mc_onset</span><span class="o">=</span><span class="default_value">'mc_onset'</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">'staff'</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">'voice'</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.add_labels" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">annotations_object</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.add_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.add_labels" title="Permalink to this definition">¶</a></dt>
 <dd><p>Receives the labels from an <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object and adds them to the XML structure
 representing the MuseScore file that might be written to a file afterwards.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – DataFrame with labels to be added.</p></li>
-<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
-<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
-<li><p><strong>mc_onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
-<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
-<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Names of the DataFrame columns for the five required parameters.</p></li>
-<li><p><strong>kwargs</strong> – <dl class="simple">
-<dt>label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville</dt><dd><p>For these parameters, the standard column names are used automatically if the columns are present.
-If the column names have changed, pass them as kwargs, e.g. <code class="docutils literal notranslate"><span class="pre">base='name_of_the_base_column'</span></code></p>
-</dd>
-</dl>
-</p></li>
+<li><p><strong>columns</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>) – If your columns don’t have standard names, pass a {NAME -&gt; ACTUAL_NAME} dictionary.
+Required columns: label, mc, mc_onset, staff, voice
+Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
+color_html, color_r, color_g, color_b, color_a</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -535,8 +603,35 @@ If the column names have changed, pass them as kwargs, e.g. <code class="docutil
 </dd></dl>
 
 <dl class="py method">
+<dt id="ms3.score.MSCX.change_label_color">
+<code class="sig-name descname">change_label_color</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">mc_onset</span></em>, <em class="sig-param"><span class="n">staff</span></em>, <em class="sig-param"><span class="n">voice</span></em>, <em class="sig-param"><span class="n">label</span></em>, <em class="sig-param"><span class="n">color_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_html</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_r</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_g</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_b</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_a</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.change_label_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.change_label_color" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut for :py:meth:<code class="docutils literal notranslate"><span class="pre">MSCX.parsed.change_label_color</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Measure count of the label</p></li>
+<li><p><strong>mc_onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a>) – Onset position to which the label is attached.</p></li>
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Staff to which the label is attached.</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Notational layer to which the label is attached.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – (Decoded) label.</p></li>
+<li><p><strong>color_name</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Two ways of specifying the color.</p></li>
+<li><p><strong>color_html</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Two ways of specifying the color.</p></li>
+<li><p><strong>color_r</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_g</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_b</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_a</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="ms3.score.MSCX.change_labels_cfg">
-<code class="sig-name descname">change_labels_cfg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.change_labels_cfg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.change_labels_cfg" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">change_labels_cfg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_format</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.change_labels_cfg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.change_labels_cfg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update <a class="reference internal" href="#ms3.score.MSCX.labels_cfg" title="ms3.score.MSCX.labels_cfg"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -561,6 +656,12 @@ If the column names have changed, pass them as kwargs, e.g. <code class="docutil
 <dd class="field-odd"><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – A DataFrame with the columns [‘mc’, ‘mc_onset’, ‘staff’, ‘voice’]</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.score.MSCX.delete_empty_labels">
+<code class="sig-name descname">delete_empty_labels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX.delete_empty_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX.delete_empty_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all empty labels from the attached annotations.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -708,7 +809,7 @@ If ‘sep’ is changed to a different separator, the file extension(s) will be 
 
 <dl class="py method">
 <dt id="ms3.annotations.Annotations.get_labels">
-<code class="sig-name descname">get_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">drop</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">warnings</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">column_name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.get_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.get_labels" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">get_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">label_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positioning</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">decode</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">drop</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">warnings</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">column_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_format</span><span class="o">=</span><span class="default_value">'html'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/annotations.html#Annotations.get_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.annotations.Annotations.get_labels" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a DataFrame of annotation labels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -730,6 +831,7 @@ bass as TPC (tonal pitch class) where C = 14).</p></li>
 <li><p><strong>drop</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True to delete the returned labels from this object.</p></li>
 <li><p><strong>warnings</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to False to suppress warnings about non-existent label_types.</p></li>
 <li><p><strong>column_name</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Can be used to rename the columns holding the labels.</p></li>
+<li><p><strong>color_format</strong> (<em>{'html'</em><em>, </em><em>'rgb'</em><em>, </em><em>'rgba'</em><em>, </em><em>'name'</em><em>, </em><em>None}</em>) – If label colors are encoded, determine how they are displayed.</p></li>
 </ul>
 </dd>
 </dl>
@@ -764,7 +866,7 @@ Is automatically set to False if <code class="docutils literal notranslate"><spa
 <span id="the-parse-class"></span><h2>The Parse class<a class="headerlink" href="#module-ms3.parse" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
 <dt id="ms3.parse.Parse">
-<em class="property">class </em><code class="sig-prename descclassname">ms3.parse.</code><code class="sig-name descname">Parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_re</span><span class="o">=</span><span class="default_value">'\\.(mscx|tsv)$'</span></em>, <em class="sig-param"><span class="n">folder_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">exclude_re</span><span class="o">=</span><span class="default_value">'^(\\.|_)'</span></em>, <em class="sig-param"><span class="n">recursive</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">simulate</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">ms3.parse.</code><code class="sig-name descname">Parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">paths</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_re</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">folder_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">exclude_re</span><span class="o">=</span><span class="default_value">'^(\\.|_)'</span></em>, <em class="sig-param"><span class="n">recursive</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">simulate</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">ms</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Class for storing and manipulating the information from multiple parses (i.e. <a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code></a> objects).</p>
 <dl class="py attribute">
 <dt id="ms3.parse.Parse.full_paths">
@@ -839,14 +941,16 @@ Returns an overview of the parsed MuseScore files.</p>
 
 <dl class="py method">
 <dt id="ms3.parse.Parse.add_detached_annotations">
-<code class="sig-name descname">add_detached_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_key</span></em>, <em class="sig-param"><span class="n">tsv_key</span></em>, <em class="sig-param"><span class="n">new_key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">match_dict</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_detached_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_detached_annotations" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">add_detached_annotations</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tsv_key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">new_key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">match_dict</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_detached_annotations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_detached_annotations" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Annotations</span></code></a> objects generated from TSV files to the <a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code></a>
 objects to which they are being matched based on their filenames or on <code class="docutils literal notranslate"><span class="pre">match_dict</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>mscx_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – A key under which parsed MuseScore files are stored.</p></li>
-<li><p><strong>tsv_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – A key under which parsed TSV files are stored of which the type has been inferred as ‘labels’.</p></li>
+<li><p><strong>mscx_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – A key under which parsed MuseScore files are stored.
+If one of <code class="docutils literal notranslate"><span class="pre">mscx_key</span></code> and <code class="docutils literal notranslate"><span class="pre">tsv_key</span></code> is None, no matching is performed and already matched files are used.</p></li>
+<li><p><strong>tsv_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – A key under which parsed TSV files are stored of which the type has been inferred as ‘labels’.
+If one of <code class="docutils literal notranslate"><span class="pre">mscx_key</span></code> and <code class="docutils literal notranslate"><span class="pre">tsv_key</span></code> is None, no matching is performed and already matched files are used.</p></li>
 <li><p><strong>new_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – The key under which the <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Annotations</span></code></a> objects will be available after attaching
 them to the <a class="reference internal" href="#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code></a> objects (<code class="docutils literal notranslate"><span class="pre">Parsed.parsed_mscx[ID].key</span></code>). By default, <code class="docutils literal notranslate"><span class="pre">tsv_key</span></code>
 is used.</p></li>
@@ -859,8 +963,8 @@ objects.</p></li>
 
 <dl class="py method">
 <dt id="ms3.parse.Parse.add_dir">
-<code class="sig-name descname">add_dir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_re</span><span class="o">=</span><span class="default_value">'\\.mscx$'</span></em>, <em class="sig-param"><span class="n">folder_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">exclude_re</span><span class="o">=</span><span class="default_value">'^(\\.|__)'</span></em>, <em class="sig-param"><span class="n">recursive</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_dir" title="Permalink to this definition">¶</a></dt>
-<dd><p>This function scans the directory <code class="docutils literal notranslate"><span class="pre">dir</span></code> for files matching the criteria and adds them (i.e. paths and file names)
+<code class="sig-name descname">add_dir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dir</span></em>, <em class="sig-param"><span class="n">key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">file_re</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">folder_re</span><span class="o">=</span><span class="default_value">'.*'</span></em>, <em class="sig-param"><span class="n">exclude_re</span><span class="o">=</span><span class="default_value">'^(\\.|__)'</span></em>, <em class="sig-param"><span class="n">recursive</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method scans the directory <code class="docutils literal notranslate"><span class="pre">dir</span></code> for files matching the criteria and adds them (i.e. paths and file names)
 to the Parse object without looking at them. It is recommended to add different types of files with different keys,
 e.g. ‘mscx’ for score, ‘harmonies’ for chord labels, and ‘form’ for form labels.</p>
 <dl class="field-list simple">
@@ -886,11 +990,76 @@ index level itself and needs to have at least as many elements as the number of 
 </div>
 </p></li>
 <li><p><strong>dir</strong> – Directory to be scanned for files.</p></li>
-<li><p><strong>file_re</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Regular expression for filtering certain file names.
+<li><p><strong>file_re</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected.
 The regEx is checked with search(), not match(), allowing for fuzzy search.</p></li>
 <li><p><strong>folder_re</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Regular expression for filtering certain folder names.
 The regEx is checked with search(), not match(), allowing for fuzzy search.</p></li>
 <li><p><strong>recursive</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, sub-directories are recursively scanned. Pass False to scan only <code class="docutils literal notranslate"><span class="pre">dir</span></code>.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.parse.Parse.add_files">
+<code class="sig-name descname">add_files</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">paths</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_files" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>paths</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>) – The paths of the files you want to add to the object.</p></li>
+<li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – <div class="line-block">
+<div class="line">Pass a string to identify the loaded files.</div>
+<div class="line">If None is passed, paths relative to <a href="#id1"><span class="problematic" id="id2">:py:prop:`last_scanned_dir`</span></a> are used as keys. If <a class="reference internal" href="#ms3.parse.Parse.add_dir" title="ms3.parse.Parse.add_dir"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_dir()</span></code></a>
+hasn’t been used before, the longest common prefix of all paths is used.</div>
+</div>
+</p></li>
+<li><p><strong>index</strong> (element or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a> of {‘key’, ‘fname’, ‘i’, <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>}) – <div class="line-block">
+<div class="line">Change this parameter if you want to create particular indices for multi-piece DataFrames.</div>
+<div class="line">The resulting index must be unique (for identification) and have as many elements as added files.</div>
+<div class="line">Every single element or Collection of elements ∈ {‘key’, ‘fname’, ‘i’, <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>} stands for an index level.</div>
+<div class="line">In other words, a single level will result in a single index and a collection of levels will result in a
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiIndex</span></code>.</div>
+<div class="line">If you pass a Collection that does not start with one of {‘key’, ‘fname’, ‘i’}, it is interpreted as an
+index level itself and needs to have at least as many elements as the number of added files.</div>
+<div class="line">The default <code class="docutils literal notranslate"><span class="pre">None</span></code> is equivalent to passing <code class="docutils literal notranslate"><span class="pre">(key,</span> <span class="pre">i)</span></code>, i.e. a MultiIndex of IDs.</div>
+<div class="line">’fname’ evokes an index level made from file names.</div>
+</div>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The IDs of the added files.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.parse.Parse.add_rel_dir">
+<code class="sig-name descname">add_rel_dir</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rel_dir</span></em>, <em class="sig-param"><span class="n">suffix</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">score_extensions</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">new_key</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">index</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.add_rel_dir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.add_rel_dir" title="Permalink to this definition">¶</a></dt>
+<dd><p>This method can be used for adding particular TSV files belonging to already loaded score files. This is useful,
+for example, to add annotation tables for comparison.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rel_dir</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Path where the files to be added can be found, relative to each loaded MSCX file. They are expected to have
+the same file name, maybe with an added <code class="docutils literal notranslate"><span class="pre">suffix</span></code>.</p></li>
+<li><p><strong>suffix</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>. optional) – If the files to be loaded can be identified by adding a suffix to the filename, pass this suffix, e.g. ‘_labels’.</p></li>
+<li><p><strong>score_extensions</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – If you want to match only scores with particular extensions, pass a Collection of these extensions.</p></li>
+<li><p><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – Key(s) under which score files are stored. By default, all keys are selected.</p></li>
+<li><p><strong>new_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Pass a string to identify the loaded files. By default, the keys of the score files are being used.</p></li>
+<li><p><strong>index</strong> (element or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a> of {‘key’, ‘fname’, ‘i’}) – <div class="line-block">
+<div class="line">By default, the index levels of the existing scores are used (does not work with custom levels).</div>
+<div class="line">Change this parameter if you want to create particular indices for multi-piece DataFrames.
+If the index levels differ from existing ones, you need to set a <code class="docutils literal notranslate"><span class="pre">new_key</span></code>.</div>
+<div class="line">Every single element ∈ {‘key’, ‘fname’, ‘i’} stands for an index level.</div>
+<div class="line">In other words, a single level will result in a single index and a collection of levels will result in a
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiIndex</span></code>.</div>
+<div class="line">’fname’, for example, evokes an index level made from file names.</div>
+</div>
+</p></li>
 </ul>
 </dd>
 </dl>
@@ -964,6 +1133,26 @@ layer) where a new one is attached. Pass False to deactivate this warnings.</p><
 </dd></dl>
 
 <dl class="py method">
+<dt id="ms3.parse.Parse.compare_labels">
+<code class="sig-name descname">compare_labels</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">detached_key</span></em>, <em class="sig-param"><span class="n">new_color</span><span class="o">=</span><span class="default_value">'ms3_darkgreen'</span></em>, <em class="sig-param"><span class="n">old_color</span><span class="o">=</span><span class="default_value">'ms3_darkred'</span></em>, <em class="sig-param"><span class="n">detached_is_newer</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">store_with_suffix</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.compare_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.compare_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare detached labels <code class="docutils literal notranslate"><span class="pre">key</span></code> to the ones attached to the Score.
+By default, the attached labels are considered as the reviewed version and changes are colored in green;
+Changes with respect to the detached labels are attached to the Score in red.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>detached_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Key under which the detached labels that you want to compare have been added to the scores.</p></li>
+<li><p><strong>new_color</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>, optional) – The colors by which new and old labels are differentiated. Identical labels remain unchanged.</p></li>
+<li><p><strong>old_color</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#tuple" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>, optional) – The colors by which new and old labels are differentiated. Identical labels remain unchanged.</p></li>
+<li><p><strong>detached_is_newer</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if the detached labels are to be added with <code class="docutils literal notranslate"><span class="pre">new_color</span></code> whereas the attached changed labels
+will turn <code class="docutils literal notranslate"><span class="pre">old_color</span></code>, as opposed to the default.</p></li>
+<li><p><strong>store_with_suffix</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – If you pass a suffix, the comparison MSCX files are stored with this suffix next to the originals.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="ms3.parse.Parse.count_annotation_layers">
 <code class="sig-name descname">count_annotation_layers</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">which</span><span class="o">=</span><span class="default_value">'attached'</span></em>, <em class="sig-param"><span class="n">per_key</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.count_annotation_layers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.count_annotation_layers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Counts the labels for each annotation layer defined as (staff, voice, label_type).
@@ -991,12 +1180,13 @@ If <code class="docutils literal notranslate"><span class="pre">per_key</span></
 
 <dl class="py method">
 <dt id="ms3.parse.Parse.count_extensions">
-<code class="sig-name descname">count_extensions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_key</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.count_extensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.count_extensions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">count_extensions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_key</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.count_extensions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.count_extensions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Count file extensions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – Key(s) for which to count file extensions.  By default, all keys are selected.</p></li>
+<li><p><strong>ids</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>) – If you pass a collection of IDs, <code class="docutils literal notranslate"><span class="pre">keys</span></code> is ignored and only the selected extensions are counted.</p></li>
 <li><p><strong>per_key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – If set to True, the results are returned as a dict {key: Counter},
 otherwise the counts are summed up in one Counter.</p></li>
 </ul>
@@ -1068,8 +1258,50 @@ If <code class="docutils literal notranslate"><span class="pre">per_key</span></
 </dd></dl>
 
 <dl class="py method">
+<dt id="ms3.parse.Parse.ids2idx">
+<code class="sig-name descname">ids2idx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">pandas_index</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.ids2idx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.ids2idx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receives a list of IDs and returns a list of index tuples or a pandas index created from it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ids</strong> – </p></li>
+<li><p><strong>pandas_index</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Index.html#pandas.Index" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.Index</span></code></a> or <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.MultiIndex.html#pandas.MultiIndex" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.MultiIndex</span></code></a> or ( list(tuple()), tuple() )</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.parse.Parse.match_files">
+<code class="sig-name descname">match_files</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">what</span><span class="o">=</span><span class="default_value">['scores', 'labels', 'extended']</span></em>, <em class="sig-param"><span class="n">only_new</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.match_files"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.match_files" title="Permalink to this definition">¶</a></dt>
+<dd><p>Match files based on their file names.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – Which key(s) to consider for matching files.</p></li>
+<li><p><strong>what</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#list" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">list</span></code></a> or ∈ {‘scores’, ‘notes’, ‘rests’, ‘notes_and_rests’, ‘measures’, ‘events’, ‘labels’, ‘chords’, ‘expanded’}) – If you pass only one element, the corresponding files will be matched to all other types.
+If you pass several elements the first type will be matched to the following types.</p></li>
+<li><p><strong>only_new</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Try matching only where matches are still missing.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Those files that were matched. This is a subsection of self._matches</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="ms3.parse.Parse.parse">
-<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parallel</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">only_new</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">fexts</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">infer_types</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">simulate</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.parse" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">parse</code><span class="sig-paren">(</span><em class="sig-param">keys=None</em>, <em class="sig-param">read_only=True</em>, <em class="sig-param">level=None</em>, <em class="sig-param">parallel=True</em>, <em class="sig-param">only_new=True</em>, <em class="sig-param">labels_cfg={}</em>, <em class="sig-param">fexts=None</em>, <em class="sig-param">cols={}</em>, <em class="sig-param">infer_types={'dcml': re.compile('\n                                ^(?P&lt;first&gt;\n                                  (\\.?\n                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\\#*))\\.)?\n</em>, <em class="sig-param">re.VERBOSE)}</em>, <em class="sig-param">simulate=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.parse" title="Permalink to this definition">¶</a></dt>
 <dd><p>Shorthand for executing parse_mscx and parse_tsv at a time.</p>
 </dd></dl>
 
@@ -1102,12 +1334,13 @@ during parsing. Set to False to parse one score after the other.</p></li>
 
 <dl class="py method">
 <dt id="ms3.parse.Parse.parse_tsv">
-<code class="sig-name descname">parse_tsv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fexts</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cols</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">infer_types</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.parse_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.parse_tsv" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">parse_tsv</code><span class="sig-paren">(</span><em class="sig-param">keys=None</em>, <em class="sig-param">ids=None</em>, <em class="sig-param">fexts=None</em>, <em class="sig-param">cols={}</em>, <em class="sig-param">infer_types={'dcml': re.compile('\n                                ^(?P&lt;first&gt;\n                                  (\\.?\n                                    ((?P&lt;globalkey&gt;[a-gA-G](b*|\\#*))\\.)?\n</em>, <em class="sig-param">re.VERBOSE)}</em>, <em class="sig-param">level=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.parse_tsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.parse_tsv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>keys</strong> (: <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – Key(s) for which to parse all non-MSCX files.  By default, all keys are selected.</p></li>
+<li><p><strong>keys</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – Key(s) for which to parse all non-MSCX files.  By default, all keys are selected.</p></li>
+<li><p><strong>ids</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>) – To parse only particular files, pass there IDs. <code class="docutils literal notranslate"><span class="pre">keys</span></code> and <code class="docutils literal notranslate"><span class="pre">fexts</span></code> are ignored in this case.</p></li>
 <li><p><strong>fexts</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – If you want to parse only files with one or several particular file extension(s), pass the extension(s)</p></li>
 <li><p><strong>annotations</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>, optional) – By default, if a column called <code class="docutils literal notranslate"><span class="pre">'label'</span></code> is found, the TSV is treated as an annotation table and turned into
 an Annotations object. Pass one or several column name(s) to treat <em>them</em> as label columns instead. If you
@@ -1129,7 +1362,7 @@ you might want to update the default dictionaries for <code class="docutils lite
 
 <dl class="py method">
 <dt id="ms3.parse.Parse.store_mscx">
-<code class="sig-name descname">store_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">root_dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">folder</span><span class="o">=</span><span class="default_value">'.'</span></em>, <em class="sig-param"><span class="n">suffix</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">simulate</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.store_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.store_mscx" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">store_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">root_dir</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">folder</span><span class="o">=</span><span class="default_value">'.'</span></em>, <em class="sig-param"><span class="n">suffix</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">overwrite</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">simulate</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.store_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.parse.Parse.store_mscx" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.</p>
 </dd></dl>
 
@@ -1163,7 +1396,7 @@ passing it as function argument.</p>
 <dd><p>Split harmony labels complying with the DCML syntax into columns holding their various features
 and allows for additional computations and transformations.</p>
 <p>Uses: <a class="reference internal" href="#ms3.expand_dcml.compute_chord_tones" title="ms3.expand_dcml.compute_chord_tones"><code class="xref py py-func docutils literal notranslate"><span class="pre">compute_chord_tones()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.features2type" title="ms3.expand_dcml.features2type"><code class="xref py py-func docutils literal notranslate"><span class="pre">features2type()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.labels2global_tonic" title="ms3.expand_dcml.labels2global_tonic"><code class="xref py py-func docutils literal notranslate"><span class="pre">labels2global_tonic()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.propagate_keys" title="ms3.expand_dcml.propagate_keys"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_keys()</span></code></a>,
-<a class="reference internal" href="#ms3.expand_dcml.propagate_pedal" title="ms3.expand_dcml.propagate_pedal"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_pedal()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.replace_special" title="ms3.expand_dcml.replace_special"><code class="xref py py-func docutils literal notranslate"><span class="pre">replace_special()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.rn2tpc" title="ms3.expand_dcml.rn2tpc"><code class="xref py py-func docutils literal notranslate"><span class="pre">rn2tpc()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.split_alternatives" title="ms3.expand_dcml.split_alternatives"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_alternatives()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.split_labels" title="ms3.expand_dcml.split_labels"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_labels()</span></code></a>,
+<a class="reference internal" href="#ms3.expand_dcml.propagate_pedal" title="ms3.expand_dcml.propagate_pedal"><code class="xref py py-func docutils literal notranslate"><span class="pre">propagate_pedal()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.replace_special" title="ms3.expand_dcml.replace_special"><code class="xref py py-func docutils literal notranslate"><span class="pre">replace_special()</span></code></a>, <a class="reference internal" href="#ms3.expand_dcml.rn2tpc" title="ms3.expand_dcml.rn2tpc"><code class="xref py py-func docutils literal notranslate"><span class="pre">rn2tpc()</span></code></a>, <code class="xref py py-func docutils literal notranslate"><span class="pre">split_alternatives()</span></code>, <a class="reference internal" href="#ms3.expand_dcml.split_labels" title="ms3.expand_dcml.split_labels"><code class="xref py py-func docutils literal notranslate"><span class="pre">split_labels()</span></code></a>,
 <code class="xref py py-func docutils literal notranslate"><span class="pre">transform()</span></code>, <a class="reference internal" href="#ms3.expand_dcml.transpose" title="ms3.expand_dcml.transpose"><code class="xref py py-func docutils literal notranslate"><span class="pre">transpose()</span></code></a></p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1171,9 +1404,9 @@ and allows for additional computations and transformations.</p>
 <li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe where one column contains DCML chord labels.</p></li>
 <li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Name of the column that holds the harmony labels.</p></li>
 <li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regular expression used to split the labels. It needs to have named groups.
-The group names are used as column names unless replaced by <cite>cols</cite>.</p></li>
+The group names are used as column names unless replaced by <code class="docutils literal notranslate"><span class="pre">cols</span></code>.</p></li>
 <li><p><strong>cols</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>, optional) – Dictionary to map the regex’s group names to deviating column names of your choice.</p></li>
-<li><p><strong>dropna</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to drop rows where <cite>column</cite> is NaN/&lt;NA&gt;</p></li>
+<li><p><strong>dropna</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to drop rows where <code class="docutils literal notranslate"><span class="pre">column</span></code> is NaN/&lt;NA&gt;</p></li>
 <li><p><strong>propagate</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – By default, information about global and local keys and about pedal points is spread throughout
 the DataFrame. Pass False if you only want to split the labels into their features. This ignores
 all following parameters because their expansions depend on information about keys.</p></li>
@@ -1181,7 +1414,7 @@ all following parameters because their expansions depend on information about ke
 This levels and eliminates the features <cite>localkey</cite> and <cite>relativeroot</cite>.</p></li>
 <li><p><strong>chord_tones</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to add four columns that contain information about each label’s
 chord, added, root, and bass tones. The pitches are expressed as intervals
-relative to the respective chord’s local key or, if <cite>relative_to_global=True</cite>,
+relative to the respective chord’s local key or, if <code class="docutils literal notranslate"><span class="pre">relative_to_global=True</span></code>,
 to the globalkey. The intervals are represented as integers that represent
 stacks of fifths over the tonic, such that 0 = tonic, 1 = dominant, -1 = subdominant,
 2 = supertonic etc.</p></li>
@@ -1207,31 +1440,6 @@ the labels, too. This option clashes with <cite>absolute=True</cite>.</p></li>
 <dt id="ms3.expand_dcml.transpose">
 <code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">transpose</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">e</span></em>, <em class="sig-param"><span class="n">n</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#transpose"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.transpose" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add <cite>n</cite> to all elements <cite>e</cite> recursively.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt id="ms3.expand_dcml.split_alternatives">
-<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">split_alternatives</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">column</span><span class="o">=</span><span class="default_value">'label'</span></em>, <em class="sig-param"><span class="n">inplace</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#split_alternatives"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.split_alternatives" title="Permalink to this definition">¶</a></dt>
-<dd><p>Splits labels that come with an alternative separated by ‘-‘ and adds
-a new column. Only one alternative is taken into account. <cite>df</cite> is
-mutated inplace.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>df</strong> (<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>) – Dataframe where one column contains DCML chord labels.</p></li>
-<li><p><strong>column</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Name of the column that holds the harmony labels.</p></li>
-<li><p><strong>inplace</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Pass True if you want to mutate <code class="docutils literal notranslate"><span class="pre">df</span></code>.</p></li>
-</ul>
-</dd>
-</dl>
-<div class="admonition-example admonition">
-<p class="admonition-title">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;labels.csv&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">split_alternatives</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
 </dd></dl>
 
 <dl class="py function">
@@ -1489,7 +1697,7 @@ expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>numeral</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Roman numeral of the chord’s root</p></li>
-<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id1"><span class="problematic" id="id2">`</span></a>form`is None).
+<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id3"><span class="problematic" id="id4">`</span></a>form`is None).
 ‘%’ and ‘M’ can only occur as tetrads, not as triads.</p></li>
 <li><p><strong>figbass</strong> (<em>{None</em><em>, </em><em>'6'</em><em>, </em><em>'64'</em><em>, </em><em>'7'</em><em>, </em><em>'65'</em><em>, </em><em>'43'</em><em>, </em><em>'2'}</em><em>, </em><em>optional</em>) – Indicates chord’s inversion. Pass None for triad root position.</p></li>
 <li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Added steps such as ‘+6’ or suspensions such as ‘4’ or any combination such as (9+64).
@@ -1736,14 +1944,15 @@ Changes do not express absolute intervals but instead depend on the numeral and 
 
 <dl class="py function">
 <dt id="ms3.expand_dcml.chord2tpcs">
-<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">chord2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chord</span></em>, <em class="sig-param"><span class="n">regex</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#chord2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.chord2tpcs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">ms3.expand_dcml.</code><code class="sig-name descname">chord2tpcs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">chord</span></em>, <em class="sig-param"><span class="n">regex</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/expand_dcml.html#chord2tpcs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.expand_dcml.chord2tpcs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Split a chord label into its features and apply features2tpcs().</p>
 <p>Uses: features2tpcs()</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>chord</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Chord label that can be split into the features [‘numeral’, ‘form’, ‘figbass’, ‘changes’, ‘relativeroot’].</p></li>
-<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>) – Compiled regex with named groups for the five features.</p></li>
+<li><p><strong>regex</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">re.Pattern</span></code>, optional) – Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
+annotation standard is used.</p></li>
 <li><p><strong>**kwargs</strong> – arguments for features2tpcs (pass MC to show it in warnings!)</p></li>
 </ul>
 </dd>
@@ -1947,7 +2156,7 @@ Changes do not express absolute intervals but instead depend on the numeral and 
         <li class="right" >
           <a href="manual.html" title="Manual"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.1.post0.dev4+g619dcae documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.5 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Developers’ Reference</a></li> 
       </ul>
