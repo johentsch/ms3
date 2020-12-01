@@ -286,4 +286,17 @@ intersphinx_mapping = {
     'sklearn': ('http://scikit-learn.org/stable', None),
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'bs4': ('https://www.crummy.com/software/BeautifulSoup/bs4/doc/', '_intersphinx/bs4_objects.inv'),
 }
+"""HOW MAKE INTERSPHINX WORK FOR BEAUTIFUL SOUP
+* get bs4_objects.inv from https://www.crummy.com/software/BeautifulSoup/bs4/doc/objects.inv and store it to _intersphinx
+* ``pip install sphobjinv``
+* convert the .inv file to .txt:
+  ``sphobjinv convert plain bs4_objects.inv bs4_objects.txt``
+* add the objects you want to reference to the text file, e.g. 
+    bs4.BeautifulSoup py:class 1 index.html#beautifulsoup -
+    bs4.BeautifulSoup.get_text py:method 1 index.html#get-text -
+    bs4.element.Tag py:class 1 index.html#tag -
+* convert the .txt file back: ``sphobjinv convert zlib bs4_objects.txt bs4_objects.inv``
+* be specific with :py:class: etc. rather than :obj:
+"""

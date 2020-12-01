@@ -952,7 +952,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     @property
     def parsed(self):
-        """{:obj:`_MSCX_bs4`}
+        """:obj:`~._MSCX_bs4`
         Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object's
         interface for requesting manipulations of and information from the source XML."""
         if self._parsed is None:

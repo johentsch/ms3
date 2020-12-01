@@ -748,7 +748,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     numeral: :obj:`str`
         Roman numeral of the chord's root
     form: {None, 'M', 'o', '+' '%'}, optional
-        Indicates the chord type if not a major or minor triad (for which `form`is None).
+        Indicates the chord type if not a major or minor triad (for which ``form`` is None).
         '%' and 'M' can only occur as tetrads, not as triads.
     figbass: {None, '6', '64', '7', '65', '43', '2'}, optional
         Indicates chord's inversion. Pass None for triad root position.

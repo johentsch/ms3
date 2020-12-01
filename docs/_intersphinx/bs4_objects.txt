@@ -1,0 +1,34 @@
+# Sphinx inventory version 2
+# Project: Beautiful Soup
+# Version: 4
+# The remainder of this file is compressed using zlib.
+.parent std:label -1 index.html#parent -
+.parents std:label -1 index.html#parents -
+.prettyprinting std:label -1 index.html#prettyprinting Pretty-printing
+.string std:label -1 index.html#string -
+attrs std:label -1 index.html#$ Searching by CSS class
+diagnose std:label -1 index.html#$ diagnose()
+element-generators std:label -1 index.html#$ .next_element and .previous_element
+genindex std:label -1 genindex.html Index
+index std:doc -1 index.html Beautiful Soup Documentation
+kwargs std:label -1 index.html#$ The keyword arguments
+limit std:label -1 index.html#$ The limit argument
+manual std:label -1 index.html#$ Beautiful Soup Documentation
+misc std:label -1 index.html#$ Miscellaneous
+modindex std:label -1 py-modindex.html Module Index
+multivalue std:label -1 index.html#$ Multi-valued attributes
+name std:label -1 index.html#id12 The name argument
+output_formatters std:label -1 index.html#output-formatters Output formatters
+parser-installation std:label -1 index.html#$ Installing a parser
+parsing-xml std:label -1 index.html#$ Parsing XML
+py-modindex std:label -1 py-modindex.html Python Module Index
+recursive std:label -1 index.html#$ The recursive argument
+replace_with() std:label -1 index.html#replace-with -
+search std:label -1 search.html Search Page
+sibling-generators std:label -1 index.html#$ .next_siblings and .previous_siblings
+string std:label -1 index.html#id13 The string argument
+string-generators std:label -1 index.html#$ .strings and stripped_strings
+tag std:label -1 index.html#$ Tag
+bs4.BeautifulSoup py:class 1 index.html#beautifulsoup -
+bs4.BeautifulSoup.get_text py:method 1 index.html#get-text -
+bs4.element.Tag py:class 1 index.html#tag -

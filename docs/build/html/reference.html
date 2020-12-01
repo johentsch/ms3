@@ -91,6 +91,14 @@ objects are always attached to a <a class="reference internal" href="#ms3.score.
 starts with this central class.</p>
 <div class="section" id="the-score-class">
 <h2>The Score class<a class="headerlink" href="#the-score-class" title="Permalink to this headline">¶</a></h2>
+<p>Objects of this class contain a parsed MuseScore file and may contain so-called <em>detached</em> <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
+objects. Attached annotations are those currently included in the parsed MuseScore file and can be accessed via
+the shortcut <code class="xref py py-attr docutils literal notranslate"><span class="pre">Score.annotations</span></code> The detached annotations can either represent a subset
+of the attached labels created with <a class="reference internal" href="#ms3.score.Score.detach_labels" title="ms3.score.Score.detach_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Score.detach_labels()</span></code></a> or a complete set loaded from
+a TSV file using <a class="reference internal" href="#ms3.score.Score.load_annotations" title="ms3.score.Score.load_annotations"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Score.load_annotations()</span></code></a>. Detached annotations are stored in
+the <code class="docutils literal notranslate"><span class="pre">{key</span> <span class="pre">-&gt;</span> <span class="pre">Annotations}</span></code> dictionary exposed as <code class="xref py py-attr docutils literal notranslate"><span class="pre">_annotations</span></code> but the <a class="reference internal" href="#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a>
+objects can conviently be accessed by using the keys as properties, in the sense of <code class="docutils literal notranslate"><span class="pre">Score.key</span></code>.</p>
+<p>Information from the parsed score itself can be accessed via <a class="reference internal" href="#ms3.score.Score.mscx" title="ms3.score.Score.mscx"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Score.mscx</span></code></a>.</p>
 <dl class="py class">
 <dt id="ms3.score.Score">
 <em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">Score</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">musescore_file</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">infer_label_types</span><span class="o">=</span><span class="default_value">['dcml']</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">ms</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#Score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.Score" title="Permalink to this definition">¶</a></dt>
@@ -417,8 +425,12 @@ Uncompressed files (‘.mscz’) are not supported.</p>
 
 </dd></dl>
 
+</div>
 <div class="section" id="the-mscx-class">
-<h3>The MSCX class<a class="headerlink" href="#the-mscx-class" title="Permalink to this headline">¶</a></h3>
+<h2>The MSCX class<a class="headerlink" href="#the-mscx-class" title="Permalink to this headline">¶</a></h2>
+<p>The function of this class is exposing an interface to the sister class that implements an actual score parser. Currently,
+the only implemented parser uses <a class="reference external" href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/">BeautifulSoup</a> and the
+corresponding sister class is <a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4" title="ms3.bs4_parser._MSCX_bs4"><code class="xref py py-class docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></a>. It can be directly accessed via <a class="reference internal" href="#ms3.score.MSCX.parsed" title="ms3.score.MSCX.parsed"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MSCX.parsed</span></code></a>.</p>
 <dl class="py class">
 <dt id="ms3.score.MSCX">
 <em class="property">class </em><code class="sig-prename descclassname">ms3.score.</code><code class="sig-name descname">MSCX</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">parser</span><span class="o">=</span><span class="default_value">'bs4'</span></em>, <em class="sig-param"><span class="n">labels_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em>, <em class="sig-param"><span class="n">level</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">parent_score</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/score.html#MSCX"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.score.MSCX" title="Permalink to this definition">¶</a></dt>
@@ -552,7 +564,7 @@ The union of <a class="reference internal" href="#ms3.score.MSCX.notes" title="m
 <dl class="py method">
 <dt id="ms3.score.MSCX.parsed">
 <em class="property">property </em><code class="sig-name descname">parsed</code><a class="headerlink" href="#ms3.score.MSCX.parsed" title="Permalink to this definition">¶</a></dt>
-<dd><p>{<code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code>}
+<dd><p><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4" title="ms3.bs4_parser._MSCX_bs4"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></a>
 Standard way of accessing the object exposed by the current parser. <a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MSCX</span></code></a> uses this object’s
 interface for requesting manipulations of and information from the source XML.</p>
 </dd></dl>
@@ -794,7 +806,6 @@ If ‘sep’ is changed to a different separator, the file extension(s) will be 
 </dd></dl>
 
 </div>
-</div>
 <div class="section" id="module-ms3.annotations">
 <span id="the-annotations-class"></span><h2>The Annotations class<a class="headerlink" href="#module-ms3.annotations" title="Permalink to this headline">¶</a></h2>
 <dl class="py class">
@@ -1009,7 +1020,7 @@ The regEx is checked with search(), not match(), allowing for fuzzy search.</p><
 <li><p><strong>paths</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>) – The paths of the files you want to add to the object.</p></li>
 <li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – <div class="line-block">
 <div class="line">Pass a string to identify the loaded files.</div>
-<div class="line">If None is passed, paths relative to <a href="#id1"><span class="problematic" id="id2">:py:prop:`last_scanned_dir`</span></a> are used as keys. If <a class="reference internal" href="#ms3.parse.Parse.add_dir" title="ms3.parse.Parse.add_dir"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_dir()</span></code></a>
+<div class="line">If None is passed, paths relative to <a class="reference internal" href="#ms3.parse.Parse.last_scanned_dir" title="ms3.parse.Parse.last_scanned_dir"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_scanned_dir</span></code></a> are used as keys. If <a class="reference internal" href="#ms3.parse.Parse.add_dir" title="ms3.parse.Parse.add_dir"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_dir()</span></code></a>
 hasn’t been used before, the longest common prefix of all paths is used.</div>
 </div>
 </p></li>
@@ -1697,7 +1708,7 @@ expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>numeral</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Roman numeral of the chord’s root</p></li>
-<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id3"><span class="problematic" id="id4">`</span></a>form`is None).
+<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <code class="docutils literal notranslate"><span class="pre">form</span></code> is None).
 ‘%’ and ‘M’ can only occur as tetrads, not as triads.</p></li>
 <li><p><strong>figbass</strong> (<em>{None</em><em>, </em><em>'6'</em><em>, </em><em>'64'</em><em>, </em><em>'7'</em><em>, </em><em>'65'</em><em>, </em><em>'43'</em><em>, </em><em>'2'}</em><em>, </em><em>optional</em>) – Indicates chord’s inversion. Pass None for triad root position.</p></li>
 <li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Added steps such as ‘+6’ or suspensions such as ‘4’ or any combination such as (9+64).
@@ -1960,6 +1971,396 @@ annotation standard is used.</p></li>
 </dd></dl>
 
 </div>
+<div class="section" id="the-beautifulsoup-parser">
+<h2>The BeautifulSoup parser<a class="headerlink" href="#the-beautifulsoup-parser" title="Permalink to this headline">¶</a></h2>
+<p>This section is relevant for developers who want to implement new features for the existing BeautifulSoup (bs4) parser.</p>
+<span class="target" id="module-ms3.bs4_parser"></span><dl class="py class">
+<dt id="ms3.bs4_parser._MSCX_bs4">
+<em class="property">class </em><code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">_MSCX_bs4</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mscx_src</span></em>, <em class="sig-param"><span class="n">read_only</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">logger_cfg</span><span class="o">=</span><span class="default_value">{}</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4" title="Permalink to this definition">¶</a></dt>
+<dd><p>This sister class implements MSCX’s methods for a score parsed with BeautifulSoup4.</p>
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.soup">
+<code class="sig-name descname">soup</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.soup" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/index.html#beautifulsoup" title="(in Beautiful Soup v4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bs4.BeautifulSoup</span></code></a>
+The parsed XML structure.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.metadata">
+<code class="sig-name descname">metadata</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+Dictionary with the metadata included in the MuseScore file and some computed from the score.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4._measures">
+<code class="sig-name descname">_measures</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._measures" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+Raw tabular representation of all &lt;Measure&gt; tags.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4._events">
+<code class="sig-name descname">_events</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._events" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+Raw tabular representation of all score elements down to &lt;Chord&gt; and &lt;Rest&gt; tags.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4._notes">
+<code class="sig-name descname">_notes</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._notes" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+Raw tabular representation of all &lt;Note&gt; tags.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.mscx_src">
+<code class="sig-name descname">mscx_src</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.mscx_src" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>
+Full path of the parsed score.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.read_only">
+<code class="sig-name descname">read_only</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.read_only" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
+Read-only mode enables the object to be pickled. For this, all BeautifulSoup tags are removed.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.first_mc">
+<code class="sig-name descname">first_mc</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.first_mc" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>
+Where to start counting &lt;Measure&gt; tags. MuseScore starts counting at 1.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.measure_nodes">
+<code class="sig-name descname">measure_nodes</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.measure_nodes" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+{staff -&gt; {mc -&gt; <a class="reference external" href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/index.html#tag" title="(in Beautiful Soup v4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bs4.element.Tag</span></code></a>}} For accessing (or iterating over) &lt;Measure&gt; nodes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.tags">
+<code class="sig-name descname">tags</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.tags" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a>
+{mc -&gt; {staff -&gt; {voice -&gt; {onset -&gt; [element]}}}} Accessing individual elements down to the &lt;Chord&gt; level based
+on their onsets, where each onset is a <a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a> each element is a <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a> of</p>
+<blockquote>
+<div><dl class="simple">
+<dt>name: <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>tag name</p>
+</dd>
+<dt>duration: <a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></dt><dd><p>event duration (only non-zero for ‘durational events’, i.e. &lt;Chord&gt; and &lt;Rest&gt; tags)</p>
+</dd>
+<dt>tag: <a class="reference external" href="https://www.crummy.com/software/BeautifulSoup/bs4/doc/index.html#tag" title="(in Beautiful Soup v4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">bs4.element.Tag</span></code></a></dt><dd><p>The tag itself.</p>
+</dd>
+</dl>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4.has_annotations">
+<code class="sig-name descname">has_annotations</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.has_annotations" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>
+Is True if the parsed score contains at least one &lt;Harmony&gt; tag.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="ms3.bs4_parser._MSCX_bs4._ml">
+<code class="sig-name descname">_ml</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._ml" title="Permalink to this definition">¶</a></dt>
+<dd><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>
+The processed measure list.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.parse_mscx">
+<code class="sig-name descname">parse_mscx</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.parse_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.parse_mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the XML structure from the score in self.mscx_src and store references to staves and measures.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.parse_measures">
+<code class="sig-name descname">parse_measures</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.parse_measures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.parse_measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the score into the three DataFrame self._measures, self._events, and self._notes</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4._make_measure_list">
+<code class="sig-name descname">_make_measure_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sections</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">secure</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">reset_index</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4._make_measure_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._make_measure_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Regenerate the measure list from the parsed score with advanced options.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.chords">
+<em class="property">property </em><code class="sig-name descname">chords</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.chords" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of &lt;chord&gt; tags (all &lt;note&gt; tags come within one) and attached score information such as
+lyrics, dynamics, articulations, slurs, etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.cl">
+<em class="property">property </em><code class="sig-name descname">cl</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.cl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getting self._cl but without recomputing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.measures">
+<em class="property">property </em><code class="sig-name descname">measures</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.measures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve a standard measure list from the parsed score.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.ml">
+<em class="property">property </em><code class="sig-name descname">ml</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.ml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like property <cite>measures</cite> but without recomputing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.notes">
+<em class="property">property </em><code class="sig-name descname">notes</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.notes" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of all notes with their features.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.nl">
+<em class="property">property </em><code class="sig-name descname">nl</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.nl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like property <cite>notes</cite> but without recomputing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.notes_and_rests">
+<em class="property">property </em><code class="sig-name descname">notes_and_rests</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.notes_and_rests" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a combination of properties <cite>notes</cite> and <cite>rests</cite></p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.nrl">
+<em class="property">property </em><code class="sig-name descname">nrl</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.nrl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like property <cite>notes_and_rests</cite> but without recomputing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.rests">
+<em class="property">property </em><code class="sig-name descname">rests</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.rests" title="Permalink to this definition">¶</a></dt>
+<dd><p>A list of all rests with their features.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.rl">
+<em class="property">property </em><code class="sig-name descname">rl</code><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.rl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Like property <cite>rests</cite> but without recomputing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.make_standard_chordlist">
+<code class="sig-name descname">make_standard_chordlist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.make_standard_chordlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.make_standard_chordlist" title="Permalink to this definition">¶</a></dt>
+<dd><p>This chord list has chords only as opposed to the one yielded by selr.get_chords()</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.get_chords">
+<code class="sig-name descname">get_chords</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">'auto'</span></em>, <em class="sig-param"><span class="n">lyrics</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">staff_text</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">dynamics</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">articulation</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">spanners</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.get_chords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.get_chords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut for <code class="docutils literal notranslate"><span class="pre">MSCX.parsed.get_chords()</span></code>.
+Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
+unprocessed ones.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Get information from a particular staff only (1 = upper staff)</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Get information from a particular voice only (1 = only the first layer of every staff)</p></li>
+<li><p><strong>mode</strong> (<em>{'auto'</em><em>, </em><em>'all'</em><em>, </em><em>'strict'}</em><em>, </em><em>optional</em>) – <dl class="simple">
+<dt>‘auto’ (default)</dt><dd><p>meaning that those aspects are automatically included that occur in the score; the resulting
+DataFrame has no empty columns except for those parameters that are set to True.</p>
+</dd>
+<dt>’all’</dt><dd><p>Columns for all aspects are created, even if they don’t occur in the score (e.g. lyrics).</p>
+</dd>
+<dt>’strict’</dt><dd><p>Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.</p>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>lyrics</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Include lyrics.</p></li>
+<li><p><strong>staff_text</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Include staff text such as tempo markings.</p></li>
+<li><p><strong>dynamics</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Include dynamic markings such as f or p.</p></li>
+<li><p><strong>articulation</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Include articulation such as arpeggios.</p></li>
+<li><p><strong>spanners</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Include spanners such as slurs, 8va lines, pedal lines etc.</p></li>
+<li><p><strong>**kwargs</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set a particular keyword to True in order to include all columns from the _events DataFrame
+whose names include that keyword. Column names include the tag names from the MSCX source code.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>DataFrame representing all &lt;Chord&gt; tags in the score with the selected features.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.get_raw_labels">
+<code class="sig-name descname">get_raw_labels</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.get_raw_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.get_raw_labels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of &lt;harmony&gt; tags from the parsed score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.1.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.infer_mc">
+<code class="sig-name descname">infer_mc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mn</span></em>, <em class="sig-param"><span class="n">mn_onset</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">volta</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.infer_mc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.infer_mc" title="Permalink to this definition">¶</a></dt>
+<dd><p>mn_onset and needs to be converted to mc_onset</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4._get_metadata">
+<code class="sig-name descname">_get_metadata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4._get_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4._get_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary with the metadata included in the MuseScore file and some computed from the score.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#dict" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.delete_label">
+<code class="sig-name descname">delete_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">staff</span></em>, <em class="sig-param"><span class="n">voice</span></em>, <em class="sig-param"><span class="n">mc_onset</span></em>, <em class="sig-param"><span class="n">empty_only</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.delete_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.delete_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Delete a label from a particular position (if there is one).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Measure count.</p></li>
+<li><p><strong>staff</strong> – Notational layer in which to delete the label.</p></li>
+<li><p><strong>voice</strong> – Notational layer in which to delete the label.</p></li>
+<li><p><strong>mc_onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a>) – mc_onset</p></li>
+<li><p><strong>empty_only</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>, optional) – Set to True if you want to delete only empty harmonies. Since normally all labels at the defined position
+are deleted, this flag is needed to prevent non-empty &lt;Harmony&gt; tags.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether a label was deleted or not.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.8/library/functions.html#bool" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.add_label">
+<code class="sig-name descname">add_label</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">label</span></em>, <em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">mc_onset</span></em>, <em class="sig-param"><span class="n">staff</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">voice</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.add_label"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.add_label" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a single label to the current XML in form of a new
+&lt;Harmony&gt; (and maybe also &lt;location&gt;) tag.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>label</strong> – </p></li>
+<li><p><strong>mc</strong> – </p></li>
+<li><p><strong>mc_onset</strong> – </p></li>
+<li><p><strong>staff</strong> – </p></li>
+<li><p><strong>voice</strong> – </p></li>
+<li><p><strong>kwargs</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="ms3.bs4_parser._MSCX_bs4.change_label_color">
+<code class="sig-name descname">change_label_color</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mc</span></em>, <em class="sig-param"><span class="n">mc_onset</span></em>, <em class="sig-param"><span class="n">staff</span></em>, <em class="sig-param"><span class="n">voice</span></em>, <em class="sig-param"><span class="n">label</span></em>, <em class="sig-param"><span class="n">color_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_html</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_r</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_g</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_b</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">color_a</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#_MSCX_bs4.change_label_color"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser._MSCX_bs4.change_label_color" title="Permalink to this definition">¶</a></dt>
+<dd><p>Change the color of an existing label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mc</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Measure count of the label</p></li>
+<li><p><strong>mc_onset</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a>) – Onset position to which the label is attached.</p></li>
+<li><p><strong>staff</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Staff to which the label is attached.</p></li>
+<li><p><strong>voice</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>) – Notational layer to which the label is attached.</p></li>
+<li><p><strong>label</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – (Decoded) label.</p></li>
+<li><p><strong>color_name</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Two ways of specifying the color.</p></li>
+<li><p><strong>color_html</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Two ways of specifying the color.</p></li>
+<li><p><strong>color_r</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_g</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_b</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+<li><p><strong>color_a</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/functions.html#int" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a> or <a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – To specify a RGB color instead, pass at least, the first three. <code class="docutils literal notranslate"><span class="pre">color_a</span></code> (alpha = opacity) defaults
+to 255.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.get_duration_event">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">get_duration_event</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">elements</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#get_duration_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.get_duration_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Receives a list of dicts representing the events for a given mc_onset and returns the index and name of
+the first event that has a duration, so either a Chord or a Rest.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.make_spanner_cols">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">make_spanner_cols</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">spanner_types</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#make_spanner_cols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.make_spanner_cols" title="Permalink to this definition">¶</a></dt>
+<dd><p>From a raw chord list as returned by <code class="docutils literal notranslate"><span class="pre">get_chords(spanners=True)</span></code>
+create a DataFrame with Spanner IDs for all chords for all spanner
+types they are associated with.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>spanner_types</strong> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">collection</span></code>) – If this parameter is passed, only the enlisted
+spanner types (e.g. <code class="docutils literal notranslate"><span class="pre">Slur</span></code> or <code class="docutils literal notranslate"><span class="pre">Pedal</span></code>) are included.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.sort_note_list">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">sort_note_list</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">df</span></em>, <em class="sig-param"><span class="n">mc_col</span><span class="o">=</span><span class="default_value">'mc'</span></em>, <em class="sig-param"><span class="n">mc_onset_col</span><span class="o">=</span><span class="default_value">'mc_onset'</span></em>, <em class="sig-param"><span class="n">midi_col</span><span class="o">=</span><span class="default_value">'midi'</span></em>, <em class="sig-param"><span class="n">duration_col</span><span class="o">=</span><span class="default_value">'duration'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#sort_note_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.sort_note_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort every measure (MC) by [‘mc_onset’, ‘midi’, ‘duration’] while leaving gracenotes’ order (duration=0) intact</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.safe_update">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">safe_update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">old</span></em>, <em class="sig-param"><span class="n">new</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#safe_update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.safe_update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update dict without replacing values.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.decode_harmony_tag">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">decode_harmony_tag</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tag</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#decode_harmony_tag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.decode_harmony_tag" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decode a &lt;Harmony&gt; tag into a string.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.make_oneliner">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">make_oneliner</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#make_oneliner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.make_oneliner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pass a tag of which the layout does not spread over several lines.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.format_node">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">format_node</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">node</span></em>, <em class="sig-param"><span class="n">indent</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#format_node"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.format_node" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively format Beautifulsoup tag as in an MSCX file.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="ms3.bs4_parser.bs4_to_mscx">
+<code class="sig-prename descclassname">ms3.bs4_parser.</code><code class="sig-name descname">bs4_to_mscx</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">soup</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/bs4_parser.html#bs4_to_mscx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#ms3.bs4_parser.bs4_to_mscx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turn the BeautifulSoup into a string representing an MSCX file</p>
+</dd></dl>
+
+</div>
 <div class="section" id="developing-a-new-parser">
 <h2>Developing a new parser<a class="headerlink" href="#developing-a-new-parser" title="Permalink to this headline">¶</a></h2>
 <p>Every new parser needs to fulfil the following interface requirements.</p>
@@ -2073,13 +2474,12 @@ annotation standard is used.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Developers' Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#the-score-class">The Score class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#the-mscx-class">The MSCX class</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="#the-score-class">The Score class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-mscx-class">The MSCX class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The Annotations class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.parse">The Parse class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.expand_dcml">The expand_dcml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-beautifulsoup-parser">The BeautifulSoup parser</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#developing-a-new-parser">Developing a new parser</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#methods">Methods</a></li>
 </ul>

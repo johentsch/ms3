@@ -13,12 +13,7 @@ from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, r
 
 
 class _MSCX_bs4(LoggedClass):
-    """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
-
-    Attributes
-    ----------
-    mscx_src : :obj:`str`
-        Path to the uncompressed MuseScore 3 file (MSCX) to be parsed.
+    """ This sister class implements MSCX's methods for a score parsed with BeautifulSoup4.
 
     """
 
@@ -51,15 +46,70 @@ class _MSCX_bs4(LoggedClass):
         """
         super().__init__(subclass='_MSCX_bs4', logger_cfg=logger_cfg)
         self.soup = None
+        """:py:class:`bs4.BeautifulSoup`
+        The parsed XML structure.
+        """
+
         self.metadata = None
-        self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        """:obj:`dict`
+        Dictionary with the metadata included in the MuseScore file and some computed from the score.
+        """
+
+        self._measures = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        Raw tabular representation of all <Measure> tags.
+        """
+
+        self._events = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        Raw tabular representation of all score elements down to <Chord> and <Rest> tags.
+        """
+
+        self._notes = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        Raw tabular representation of all <Note> tags.
+        """
+
         self.mscx_src = mscx_src
+        """:obj:`str`
+        Full path of the parsed score."""
+
         self.read_only = read_only
+        """:obj:`bool`
+        Read-only mode enables the object to be pickled. For this, all BeautifulSoup tags are removed."""
+
         self.first_mc = 1
+        """:obj:`int`
+        Where to start counting <Measure> tags. MuseScore starts counting at 1."""
+
         self.measure_nodes = {}
+        """:obj:`dict`
+        {staff -> {mc -> :py:class:`bs4.element.Tag`}} For accessing (or iterating over) <Measure> nodes.
+        """
+
         self.tags = {} # only used if not self.read_only
+        """:obj:`dict`
+        {mc -> {staff -> {voice -> {onset -> [element]}}}} Accessing individual elements down to the <Chord> level based
+        on their onsets, where each onset is a :obj:`fractions.Fraction` each element is a :obj:`dict` of
+        
+            name: :obj:`str`
+                tag name
+            duration: :obj:`fractions.Fraction`
+                event duration (only non-zero for 'durational events', i.e. <Chord> and <Rest> tags)
+            tag: :py:class:`bs4.element.Tag`
+                The tag itself.
+        """
+
         self.has_annotations = False
+        """:obj:`bool`
+        Is True if the parsed score contains at least one <Harmony> tag.
+        """
+
         self._ml = None
+        """:obj:`pandas.DataFrame`
+        The processed measure list.
+        """
+
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(
             columns=cols), pd.DataFrame(columns=cols)
@@ -362,10 +412,13 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         voice : :obj:`int`
             Get information from a particular voice only (1 = only the first layer of every staff)
         mode : {'auto', 'all', 'strict'}, optional
-            Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+            'auto' (default)
+                meaning that those aspects are automatically included that occur in the score; the resulting
                 DataFrame has no empty columns except for those parameters that are set to True.
-            'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+            'all'
+                Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+            'strict'
+                Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
         lyrics : :obj:`bool`, optional
             Include lyrics.
         staff_text : :obj:`bool`, optional
@@ -564,6 +617,12 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return mc, mc_onset
 
     def _get_metadata(self):
+        """ Returns a dictionary with the metadata included in the MuseScore file and some computed from the score.
+
+        Returns
+        -------
+        :obj:`dict`
+        """
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
@@ -1160,8 +1219,8 @@ def get_duration_event(elements):
 @function_logger
 def make_spanner_cols(df, spanner_types=None):
     """ From a raw chord list as returned by ``get_chords(spanners=True)``
-        create a DataFrame with Spanner IDs for all chords for all spanner
-        types they are associated with.
+    create a DataFrame with Spanner IDs for all chords for all spanner
+    types they are associated with.
 
     Parameters
     ----------
