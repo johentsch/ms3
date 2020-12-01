@@ -246,6 +246,7 @@ class NextColumnMaker(LoggedClass):
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
         last_row = df.iloc[-1]
         end_mc = last_row.mc
+        assert end_mc == df.mc.max(), f"The last MC is different from the highest MC number:\n{df.mc.iloc[self.mc.idxmax():]}"
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
 
         section_breaks = df.loc[df.breaks == 'section', 'mc'].to_list()
@@ -363,7 +364,7 @@ class NextColumnMaker(LoggedClass):
                     if len(mcs) > 1:
                         if untilll:
                             self.logger.warning(
-                                f"After jumping from MC {mc} to {marker}, the music is supposed to play until label {m} but there are {len(mcs)} of them: {mcs}. Picking the last one.")
+f"After jumping from MC {mc} to {marker}, the music is supposed to play until label {m} but there are {len(mcs)} of them: {mcs}. Picking the first one.")
                         else:
                             self.logger.warning(
                                 f"MC {mc} is supposed to jump to label {m} but there are {len(mcs)} of them: {mcs}. Picking the last one.")
@@ -406,7 +407,7 @@ class NextColumnMaker(LoggedClass):
                         f"The jump from MC {mc} to {jump_to_mc} is supposed to jump forward from {until} to {jumpf}, but {reason}")
                 elif pd.isnull(jumpf):
                     if repeat == '1' and jump_to_mc in self.repeated_sections.index:
-                        
+                        pass
                 else:
                     to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                     self.append_next_mc(jump_to_mc, to_mc)
