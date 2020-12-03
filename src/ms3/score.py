@@ -107,9 +107,7 @@ class Score(LoggedClass):
         Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
         """
 
-        if not test_binary(ms, logger=self.logger):
-            ms = get_musescore(ms, logger=self.logger)
-        self.ms = ms
+        self.ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
 

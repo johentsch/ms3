@@ -1364,7 +1364,7 @@ def test_binary(command):
         logger.warning(f"MuseScore binary not found and not an installed command: {command}")
         return None
     else:
-        logger.info(f"Found MuseScore command: {command}")
+        logger.debug(f"Found MuseScore command: {command}")
         return command
 
 

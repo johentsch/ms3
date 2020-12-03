@@ -206,6 +206,7 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+
     @property
     def ms(self):
         return self._ms
@@ -215,20 +216,42 @@ class Parse(LoggedClass):
         self._ms = get_musescore(ms)
 
     @property
-    def parsed(self):
-        """:obj:`dict`
-        Returns an overview of the parsed MuseScore files."""
+    def parsed_mscx(self):
+        """:obj:`pandas.DataFrame`
+        Returns an overview of the parsed scores."""
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed yet. Use parse() or parse_mscx()")
+            return None
         ids = list(self._iterids(only_parsed_mscx=True))
         ix = self.ids2idx(ids, pandas_index=True)
-        res = pd.Series([self._parsed_mscx[id].mscx.mscx_src for id in ids], index=ix)
+        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+        attached = pd.Series([len(self._parsed_mscx[id].annotations.df) if self._parsed_mscx[id].annotations is not None else 0 for id in ids],
+                             index=ix, name='labels')
+        detached_keys = [', '.join(self._parsed_mscx[id]._detached_annotations.keys()) if len(
+            self._parsed_mscx[id]._detached_annotations) > 0 else None for id in ids]
+        if all(k is None for k in detached_keys):
+            res = pd.concat([paths, attached], axis=1)
+        else:
+            detached_keys = pd.Series(detached_keys, index=ix,
+                                  name='detached_annotations')
+            res = pd.concat([paths, attached, detached_keys], axis=1)
         return res
-        # res = {}
-        # for k, score in self._parsed.items():
-        #     info = score.full_paths['mscx']
-        #     if 'annotations' in score._annotations:
-        #         info += f" -> {score.annotations.n_labels()} labels"
-        #     res[k] = info
-        # return res
+
+    @property
+    def parsed_tsv(self):
+        """:obj:`pandas.DataFrame`
+        Returns an overview of the parsed TSV files."""
+        if len(self._parsed_tsv) == 0:
+            self.logger.info("No TSV files have been parsed yet. Use parse() or parse_tsv()")
+            return None
+        ids = list(self._iterids(only_parsed_tsv=True))
+        ix = self.ids2idx(ids, pandas_index=True)
+        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+        types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
+        res = pd.concat([paths, types], axis=1)
+        return res
+
+
 
 
     def add_detached_annotations(self, mscx_key=None, tsv_key=None, new_key=None, match_dict=None):
@@ -869,6 +892,10 @@ Available keys: {available_keys}""")
         """
         if ids is None:
             ids = list(self._iterids())
+        elif ids == []:
+            if pandas_index:
+                return pd.Index([])
+            return list(), tuple()
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
         error = False
@@ -1473,7 +1500,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 break
         return res
 
-    def _iterids(self, keys=None, only_parsed_mscx=False, only_attached_annotations=False, only_detached_annotations=False):
+    def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
 
         Parameters
@@ -1492,7 +1519,7 @@ Load one of the identically named files with a different key using add_dir(key='
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
             for id in make_id_tuples(key, len(self.fnames[key])):
-                if only_parsed_mscx or only_attached_annotations or only_detached_annotations:
+                if only_parsed_mscx  or only_attached_annotations or only_detached_annotations:
                     if id not in self._parsed_mscx:
                         continue
                     if only_attached_annotations:
@@ -1500,11 +1527,17 @@ Load one of the identically named files with a different key using add_dir(key='
                             pass
                         else:
                             continue
-                    if only_detached_annotations:
+                    elif only_detached_annotations:
                         if self._parsed_mscx[id].has_detached_annotations:
                             pass
                         else:
                             continue
+                elif only_parsed_tsv:
+                    if id in self._parsed_tsv:
+                        pass
+                    else:
+                        continue
+
                 yield id
 
 
@@ -1842,6 +1875,14 @@ To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} severa
     #             print(f"{ix}{val}\n")
     #     else:
     #         raise AttributeError(item)
+
+    # def __getattr__(self, item):
+    #     ext = f".{item}"
+    #     ids = [(k, i) for k, i in self._iterids() if self.fexts[k][i] == ext]
+    #     if len(ids) == 0:
+    #         self.logger.info(f"Includes no files with the extension {ext}")
+    #     return ids
+
 
 
     def __getitem__(self, item):
