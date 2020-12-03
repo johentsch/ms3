@@ -1265,7 +1265,7 @@ def sort_tpcs(tpcs, ascending=True, start=None):
 
 
 @function_logger
-def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#))", max=2, inplace=False, alternatives_only=False):
+def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2, inplace=False, alternatives_only=False):
     """
     Splits labels that come with an alternative separated by '-' and adds
     a new column. Only one alternative is taken into account. `df` is
