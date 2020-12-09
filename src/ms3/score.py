@@ -664,12 +664,13 @@ Use one of the existing keys or load a new set with the method load_annotations(
         _, ext = os.path.splitext(musescore_file)
         ext = ext[1:]
         if ext.lower() not in permitted_extensions:
-            raise ValueError(f"The extension of a MuseScore file should be one of {permitted_extensions} not {ext}.")
+            raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(musescore_file)
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = self.logger_names[extension]
+        musescore_file = resolve_dir(musescore_file)
 
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
@@ -677,7 +678,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
                 self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
                                   logger_cfg=logger_cfg, parent_score=self)
-                self.mscx.mscx_src = musescore_file
+                self.mscx.mscx_src = (musescore_file)
         else:
             self._mscx = MSCX(musescore_file, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
                               logger_cfg=logger_cfg, parent_score=self)

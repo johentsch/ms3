@@ -433,11 +433,11 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     conversion_params = []
     #logger.info(f"Traversing {dir} {'' if recursive else 'non-'}recursively...")
     if len(extensions) > 0:
-        exclude_re = f"(?<!\.({'|'.join(extensions)}))$"
+        exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
     else:
         exclude_re = ''
     new_dirs = {}
-    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True):
+    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
         else:
@@ -1187,8 +1187,8 @@ def rgba2params(named_tuple):
 #     return res
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=True):
-    """ Get a list of files.
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=True, exclude_files_only=False):
+    """ Generator of file names in ``directory``.
 
     Parameters
     ----------
@@ -1199,9 +1199,16 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         The regEx are checked with search(), not match(), allowing for fuzzy search.
     recursive : :obj:`bool`, optional
         By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+    subdirs : :obj:`bool`, optional
+        By default, full file paths are returned. Pass True to return (path, name) tuples instead.
+    progress : :obj:`bool`, optional
+        By default, the scanning process is shown. Pass False to prevent.
+    exclude_files_only : :obj:`bool`, optional
+        By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
 
-    Returns
-    -------
+
+    Yields
+    ------
     list
         List of full paths meeting the criteria.
 
@@ -1209,9 +1216,9 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
     def traverse(dir):
         nonlocal counter
 
-        def check_regex(reg, s):
+        def check_regex(reg, s, excl=exclude_re):
             try:
-                res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
+                res = re.search(reg, s) is not None and re.search(excl, s) is None
             except:
                 print(reg)
                 raise
@@ -1220,19 +1227,23 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         for dir_entry in os.scandir(dir):
             name = dir_entry.name
             path = os.path.join(dir, name)
-            if dir_entry.is_dir() and recursive and check_regex(folder_re, name):
-                for res in traverse(path):
-                    yield res
+            if dir_entry.is_dir() and recursive:
+                if (exclude_files_only and check_regex(folder_re, name, excl='^$')) or (not exclude_files_only and check_regex(folder_re, name)):
+                    for res in traverse(path):
+                        yield res
             else:
                 if pbar is not None:
                     pbar.update()
                 if dir_entry.is_file() and check_regex(file_re, name):
                     counter += 1
-                    pbar.set_postfix({'selected': counter})
+                    if pbar is not None:
+                        pbar.set_postfix({'selected': counter})
                     if subdirs:
                         yield (dir, name)
                     else:
                         yield path
+
+    directory = resolve_dir(directory)
     counter = 0
     if not os.path.isdir(directory):
         logger.warning("Not an existing directory: " + directory)

@@ -80,8 +80,8 @@ def compare(args):
 
 def extract(args):
     labels_cfg = {
-        'positioning': args.positioning,
-        'decode': args.raw,
+        'positioning': args.positioning,    # default=False
+        'decode': args.raw,                 # default=True
     }
     if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
         print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")

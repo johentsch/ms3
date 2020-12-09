@@ -1077,7 +1077,10 @@ Available keys: {available_keys}""")
         return self._matches.loc[res_ix]
 
 
-    def metadata(self, keys=None):
+    def metadata(self, keys=None, ids=None):
+        """ Returns a DataFrame containing the metadata of all parsed scores. """
+        if ids is None:
+            ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         if len(parsed_ids) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
@@ -1379,6 +1382,16 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         if simulate:
             return list(set(paths.keys()))
 
+
+    def store_metadata(self, keys=None, ids=None, file='metadata.tsv', index=True):
+        """ Store the metadata of all parsed files as the TSV file ``file``."""
+        df = self.metadata(keys=keys, ids=ids)
+        if len(df) == 0:
+            self.logger.info("No scores have been parsed yet. Use parse() or parse_mscx()")
+            return
+        path = resolve_dir(file)
+        df.to_csv(path, sep='\t', index=index)
+        self.logger.info(f"Metadata stored as {path}")
 
 
     def store_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
