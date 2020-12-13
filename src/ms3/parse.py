@@ -46,7 +46,7 @@ class Parse(LoggedClass):
             of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux.
         """
-        if 'file' in logger_cfg and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
+        if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
             # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
             # if `dir` is also None, Parse.log will not be created and a warning will be shown.
             logger_cfg['path'] = dir
@@ -57,12 +57,12 @@ class Parse(LoggedClass):
         """:obj:`collections.defaultdict`
         ``{key: [full_path]}`` dictionary of the full paths of all detected files.
         """
-        
+
         self.rel_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
         """
-        
+
         self.scan_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [scan_path]}`` dictionary of the scan_paths from which each file was detected.
@@ -97,7 +97,7 @@ class Parse(LoggedClass):
         """:obj:`dict`
         ``{(key, i): :obj:`~ms3.score.Score`}`` dictionary of parsed scores.
         """
-        
+
         self._annotations = {}
         """:obj:`dict`
         {(key, i): :obj:`~ms3.annotations.Annotations`} dictionary of parsed sets of annotations.
@@ -1405,7 +1405,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
-    def _calculate_path(self, key, i, root_dir, folder):
+    def _calculate_path(self, key, i, root_dir, folder, enforce_below_root=False):
         """ Constructs a path and file name from a loaded file based on the arguments.
 
         Parameters
@@ -1421,6 +1421,8 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             Defaults to None, meaning that the original root directory is used that was added to the Parse object.
             Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
             ``root_dir`` is ignored.
+        enforce_below_root : :obj:`bool`, optional
+            If True is passed, the computed paths are checked to be within ``root_dir`` or ``folder`` respectively.
         """
         if folder is not None and (os.path.isabs(folder) or '~' in folder):
             folder = resolve_dir(folder)
@@ -1434,7 +1436,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
             base = os.path.basename(root)
-            if path[:len(base)] != base:
+            if enforce_below_root and path[:len(base)] != base:
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
                 return None
         return path
