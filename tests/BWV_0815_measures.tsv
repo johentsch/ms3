@@ -9,7 +9,7 @@ mc	mn	keysig	timesig	act_dur	mc_offset	volta	numbering_offset	dont_count	barline
 8	8	-3	4/4	1	0							9
 9	9	-3	4/4	1	0					line		10
 10	10	-3	4/4	1	0							11
-11	11	-3	4/4	15/16	0					line	end	10, 12
+11	11	-3	4/4	15/16	0					line	end	1, 12
 12	11	-3	4/4	1/16	15/16			1			start	13
 13	12	-3	4/4	1	0							14
 14	13	-3	4/4	1	0					line		15
@@ -135,7 +135,7 @@ mc	mn	keysig	timesig	act_dur	mc_offset	volta	numbering_offset	dont_count	barline
 134	153	-3	4/4	1	0					line		135
 135	154	-3	4/4	1	0							136
 136	155	-3	4/4	1	0					line		137, 138
-137	156	-3	4/4	1/2	1/2	1					end	137
+137	156	-3	4/4	1/2	0	1					end	131
 138	157	-3	4/4	1/2	0	2						139
 139	158	-3	4/4	1/2	1/2					line	start	140
 140	159	-3	4/4	1	0							141
@@ -179,7 +179,7 @@ mc	mn	keysig	timesig	act_dur	mc_offset	volta	numbering_offset	dont_count	barline
 178	197	-3	6/8	3/4	0							179
 179	198	-3	6/8	3/4	0							180
 180	199	-3	6/8	3/4	0							181
-181	200	-3	6/8	3/4	0					line	end	178, 182
+181	200	-3	6/8	3/4	0					line	end	156, 182
 182	201	-3	6/8	3/4	0						start	183
 183	202	-3	6/8	3/4	0							184
 184	203	-3	6/8	3/4	0							185
