@@ -1,4 +1,4 @@
-import re
+import os, re
 import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries

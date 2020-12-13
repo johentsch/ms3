@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <museScore version="3.01">
-  <programVersion>3.5.0</programVersion>
-  <programRevision>43c5553</programRevision>
+  <programVersion>3.5.2</programVersion>
+  <programRevision>465e7b6</programRevision>
   <Score>
     <LayerTag id="0" tag="default"></LayerTag>
     <currentLayer>0</currentLayer>
@@ -7870,7 +7870,7 @@ Text: Pietro Metastasio (1689-1782)</text>
           <style>Repeat Text Right</style>
           <text>D.C.</text>
           <jumpTo>start</jumpTo>
-          <playUntil>end</playUntil>
+          <playUntil>fine</playUntil>
           <continueAt></continueAt>
           </Jump>
         <voice>

@@ -44,7 +44,7 @@ mc	mn	mc_onset	mn_onset	event	timesig	staff	voice	duration	gracenote	scalar	volt
 5	4	0	0	Chord	3/4	2	1	1/4		1		39											quarter																									
 5	4	1/4	1/4	Chord	3/4	2	1	1/4		1		40											quarter																									
 5	4	1/2	1/2	Rest	3/4	2	1	1/4		1																									quarter													
-6	5	0	0	Chord	3/4	1	1	1/8		1		41	articAccentAbove										eighth																									
+6	5	0	0	Chord	3/4	1	1	1/8		1		41	articAccentBelow										eighth																									
 6	5	1/8	1/8	Chord	3/4	1	1	1/8		1		42											eighth																									
 6	5	1/4	1/4	Chord	3/4	1	1	1/4		1		43											quarter																									
 6	5	1/2	1/2	Chord	3/4	1	1	1/4		1		44											quarter																									
