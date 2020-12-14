@@ -205,8 +205,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._notes = sort_cols(pd.DataFrame(note_list))
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
-        elif 'Harmony' in self._events.event.values:
-            self.has_annotations = True
+        else:
+            self.has_annotations = 'Harmony' in self._events.event.values
         self.metadata = self._get_metadata()
 
 

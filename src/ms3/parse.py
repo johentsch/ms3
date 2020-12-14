@@ -694,7 +694,9 @@ Available keys: {available_keys}""")
                     ext = self.fexts[key][i]
                     if (which == 'attached' and ext == '.mscx') or (which == 'tsv' and ext != '.mscx'):
                         _, layers = self._annotations[(key, i)].annotation_layers
-                        res_dict[key].update(layers.to_dict())
+                        layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
+                                       layers.to_dict().items()}
+                        res_dict[key].update(layers_dict)
         else:
             self.logger.error(f"Parameter 'which' needs to be one of {{'attached', 'detached', 'tsv'}}, not {which}.")
             return {} if per_key else pd.Series()
