@@ -1105,6 +1105,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
 
 
+
     def delete_empty_labels(self):
         """ Remove all empty labels from the attached annotations. """
         if self._annotations is None:

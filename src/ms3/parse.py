@@ -192,7 +192,7 @@ class Parse(LoggedClass):
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
         """
 
-        self._matches = pd.DataFrame(columns=['mscx', 'annotations']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['annotations']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -258,18 +258,18 @@ class Parse(LoggedClass):
 
 
 
-    def add_detached_annotations(self, mscx_key=None, tsv_key=None, new_key=None, match_dict=None):
+    def add_detached_annotations(self, score_key=None, tsv_key=None, new_key=None, match_dict=None):
         """ Add :obj:`~ms3.annotations.Annotations` objects generated from TSV files to the :obj:`~ms3.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
         Parameters
         ----------
-        mscx_key : :obj:`str`, optional
+        score_key : :obj:`str`, optional
             A key under which parsed MuseScore files are stored.
-            If one of ``mscx_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
+            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
         tsv_key : :obj:`str`, optional
             A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
-            If one of ``mscx_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
+            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
         new_key : :obj:`str`, optional
             The key under which the :obj:`~ms3.annotations.Annotations` objects will be available after attaching
             them to the :obj:`~ms3.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
@@ -281,17 +281,24 @@ class Parse(LoggedClass):
         if new_key is None:
             new_key = tsv_key
         if match_dict is None:
-            if mscx_key is not None and tsv_key is not None:
-                matches = self.match_files(keys=[mscx_key, tsv_key])
+            if score_key is not None and tsv_key is not None:
+                matches = self.match_files(keys=[score_key, tsv_key])
             else:
                 matches = self._matches[self._matches.labels.notna() | self._matches.expanded.notna()]
             matches.labels.fillna(matches.expanded)
-            match_dict = dict(matches[['mscx', 'labels']].values)
+            match_dict = dict(matches[['scores', 'labels']].values)
+        if len(match_dict) == 0:
+            self.logger.info(f"No files could be matched. You may want to use the method match_files() before or pass the match_dict argument.")
+            return
         for score_id, labels_id in match_dict.items():
             if score_id in self._parsed_mscx and not pd.isnull(labels_id):
                 if labels_id in self._annotations:
-                    k = labels_id[0] if new_key is None else new_key
-                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=k)
+                    k = labels_id[0] if pd.isnull(new_key) else new_key
+                    try:
+                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=k)
+                    except:
+                        print(f"score_id: {score_id}, labels_id: {labels_id}")
+                        raise
                 else:
                     k, i = labels_id
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
@@ -687,7 +694,9 @@ Available keys: {available_keys}""")
                 for key, annotations in self._parsed_mscx[id]._detached_annotations.items():
                     if key != 'annotations':
                         _, layers = annotations.annotation_layers
-                        res_dict[key].update(layers.to_dict())
+                        layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
+                                       layers.to_dict().items()}
+                        res_dict[key].update(layers_dict)
         elif which in ['attached', 'tsv']:
             for key, i in self._iterids(keys):
                 if (key, i) in self._annotations:
@@ -1001,7 +1010,7 @@ Available keys: {available_keys}""")
 
 
 
-    def match_files(self, keys=None, what=['scores', 'labels', 'extended'], only_new=True):
+    def match_files(self, keys=None, what=['scores', 'labels', 'expanded'], only_new=True):
         """ Match files based on their file names.
 
         Parameters

@@ -1148,46 +1148,9 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
-# @function_logger
-# def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
-#     """ Get a list of files.
-#
-#     Parameters
-#     ----------
-#     dir : :obj:`str`
-#         Directory to be scanned for files.
-#     file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
-#         Regular expressions for filtering certain file names or folder names.
-#         The regEx are checked with search(), not match(), allowing for fuzzy search.
-#     recursive : :obj:`bool`, optional
-#         By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-#
-#     Returns
-#     -------
-#     list
-#         List of full paths meeting the criteria.
-#
-#     """
-#     def check_regex(reg, s):
-#         res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
-#         return res
-#
-#     if not os.path.isdir(dir):
-#         logger.warning("Not an existing directory: " + dir)
-#     res = []
-#     for subdir, dirs, files in os.walk(dir):
-#         _, current_folder = os.path.split(subdir)
-#         if recursive and check_regex('', current_folder):
-#             dirs[:] = [d for d in sorted(dirs)]
-#         else:
-#             dirs[:] = []
-#         if check_regex(folder_re, current_folder):
-#             files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
-#             res.extend(files)
-#     return res
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=True, exclude_files_only=False):
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False):
     """ Generator of file names in ``directory``.
 
     Parameters
