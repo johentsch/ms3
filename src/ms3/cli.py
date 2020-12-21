@@ -152,6 +152,11 @@ def convert(args):
                    overwrite=args.overwrite,
                    parallel=args.nonparallel)
 
+
+def repair(args):
+    pass
+
+
 def run():
     """Entry point for console_scripts
     """
@@ -258,6 +263,10 @@ working directory except if you pass -f/--file.""")
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
     convert_parser.set_defaults(func=convert)
+
+    repair_parser = subparsers.add_parser('repair',
+                                          help="Apply automatic repairs to your uncompressed MuseScore files.")
+    repair_parser.set_defaults(func=repair)
 
     args = parser.parse_args()
     if 'func' in args:
