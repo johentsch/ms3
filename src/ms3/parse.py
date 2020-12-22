@@ -192,7 +192,7 @@ class Parse(LoggedClass):
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
         """
 
-        self._matches = pd.DataFrame(columns=['annotations']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['scores', 'annotations']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -484,7 +484,7 @@ Therefore, the index for this key has been adapted.""")
             if ix in self._matches.index:
                 self._matches.loc[ix, tsv_type] = tsv_id
             else:
-                row = pd.DataFrame.from_dict({ix: {'mscx': score_id, tsv_type: tsv_id}}, orient='index')
+                row = pd.DataFrame.from_dict({ix: {'scores': score_id, tsv_type: tsv_id}}, orient='index')
                 self._matches = pd.concat([self._matches, row])
 
 
