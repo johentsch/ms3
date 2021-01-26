@@ -357,6 +357,18 @@ def commonprefix(paths, sep='/'):
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
+def compute_mn(df):
+    """ Compute measure numbers from a measure list with columns ['dont_count', 'numbering_offset']
+    """
+    excluded = df['dont_count'].fillna(0).astype(bool)
+    offset = df['numbering_offset']
+    mn = (~excluded).cumsum()
+    if offset.notna().any():
+        offset = offset.fillna(0).astype(int).cumsum()
+        mn += offset
+    return mn.rename('mn')
+
+
 def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
@@ -1409,7 +1421,24 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
+def unfold_repeats(df, mc_sequence):
+    """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame needs to have the columns 'mc' and 'mn'.
+    mc_sequence : :obj:`pandas.Series`
+        A Series of the format ``{playthrough: mc}`` where ``playthrough`` corresponds
+        to continuous MN
+    """
+    vc = df.mc.value_counts()
+    res = df.set_index('mc')
+    seq = mc_sequence[mc_sequence.isin(res.index)]
+    playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
+    res = res.loc[seq.values]
+    res.insert(res.columns.get_loc('mn') + 1, 'playthrough', playthrough_col)
+    return res.reset_index()
 
 
 @contextmanager

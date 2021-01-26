@@ -10,8 +10,8 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import commonprefix, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
-    resolve_dir, scan_directory, string2lines, update_labels_cfg
+from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series,\
+    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg
 
 
 class Parse(LoggedClass):
@@ -162,6 +162,11 @@ class Parse(LoggedClass):
         """:obj:`dict`
         {(key, i): :obj:`str`} dictionary of TSV types as inferred by :py:meth:`._infer_tsv_type`, i.e. one of
         ``None, 'notes', 'events', 'chords', 'rests', 'measures', 'labels'}``
+        """
+
+        self._unfolded_mcs = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
         """
 
         self.labels_cfg = {
@@ -602,7 +607,7 @@ Continuing with {annotation_key}.""")
             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
         notes, rests, notes_and_rests, measures, events, labels, chords, expanded : :obj:`bool`, optional
         only_new : :obj:`bool`, optional
-            Set to True to also retrieve lists that had already been retrieved.
+            Set to False to also retrieve lists that had already been retrieved.
         """
         if len(self._parsed_mscx) == 0:
             self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
@@ -876,6 +881,25 @@ Available keys: {available_keys}""")
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False, simulate=False):
+        """ Retrieve a dictionary with the selected feature matrices.
+
+        Parameters
+        ----------
+        keys
+        notes
+        rests
+        notes_and_rests
+        measures
+        events
+        labels
+        chords
+        expanded
+        simulate
+
+        Returns
+        -------
+
+        """
         if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
             self.logger.error("No scores or annotation files have been parsed so far.")
             return {}
@@ -891,6 +915,19 @@ Available keys: {available_keys}""")
                     res[id + (param,)] = li[id]
         return res
 
+
+    def get_unfolded_mcs(self, key, i):
+        id = (key, i)
+        if id in self._unfolded_mcs:
+            return self._unfolded_mcs[id]
+        if not id in self._measurelists:
+            self.collect_lists(ids=[id], measures=True)
+        ml = self._measurelists[id].set_index('mc')
+        seq = next2sequence(ml.next)
+        playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+        res = pd.Series(seq, index=playthrough)
+        self._unfolded_mcs[id] = res
+        return res
 
 
     def ids2idx(self, ids=None, pandas_index=False):
@@ -1347,7 +1384,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
-                                                    simulate=None):
+                                                    simulate=None, unfold=False):
         if simulate is None:
             simulate = self.simulate
         else:
@@ -1361,6 +1398,9 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
+        if unfold:
+            suffix_params = {k: v + '_unfolded' for k, v in suffix_params.items()}
+            self.collect_lists(keys, measures=True)
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
         modus = 'would ' if simulate else ''
@@ -1372,6 +1412,9 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
+            if unfold:
+                mc_seq = self.get_unfolded_mcs(key, i)
+                li = unfold_repeats(li, mc_seq)
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
