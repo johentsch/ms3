@@ -11,24 +11,26 @@ from zipfile import ZipFile as Zip
 import pandas as pd
 import numpy as np
 import webcolors
+from pathos import multiprocessing
+from tqdm import tqdm
 
 from .logger import function_logger, update_cfg
 
 DCML_REGEX = re.compile(r"""
-            ^(\.?
-                ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
-                (?P<chord>
-                    (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
-                    (?P<form>(%|o|\+|M|\+M))?
-                    (?P<figbass>(7|65|43|42|2|64|6))?
-                    (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
-                    (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
-                )
-                (?P<pedalend>\])?
-            )?
-            (?P<phraseend>(\\\\|\}\{|\{|\}))?$
+^(\.?
+    ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
+    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
+    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+    (?P<chord>
+        (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
+        (?P<form>(%|o|\+|M|\+M))?
+        (?P<figbass>(7|65|43|42|2|64|6))?
+        (\((?P<changes>((\+|-|\^|v)?(b*|\#*)\d)+)\))?
+        (/(?P<relativeroot>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?
+    )
+    (?P<pedalend>\])?
+)?
+(?P<phraseend>(\\\\|\}\{|\{|\}))?$
             """, re.VERBOSE)
 """:obj:`str`
 Constant with a regular expression that recognizes labels conforming to the DCML harmony annotation standard excluding those
@@ -355,6 +357,18 @@ def commonprefix(paths, sep='/'):
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
+def compute_mn(df):
+    """ Compute measure numbers from a measure list with columns ['dont_count', 'numbering_offset']
+    """
+    excluded = df['dont_count'].fillna(0).astype(bool)
+    offset = df['numbering_offset']
+    mn = (~excluded).cumsum()
+    if offset.notna().any():
+        offset = offset.fillna(0).astype(int).cumsum()
+        mn += offset
+    return mn.rename('mn')
+
+
 def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
     df = df.copy()
     drop_cols, compose_label = [], []
@@ -407,7 +421,7 @@ def convert(old, new, MS='mscore'):
     else:
         logger.warning("Error while converting " + old)
 
-
+@function_logger
 def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
@@ -426,34 +440,35 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     """
     MS = get_musescore(ms)
     assert MS is not None, f"MuseScore not found: {ms}"
-
+    if target_extension[0] == '.':
+        target_extension = target_extension[1:]
     conversion_params = []
-    for subdir, dirs, files in os.walk(dir):
-        if not recursive:
-            dirs[:] = []
+    #logger.info(f"Traversing {dir} {'' if recursive else 'non-'}recursively...")
+    if len(extensions) > 0:
+        exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
+    else:
+        exclude_re = ''
+    new_dirs = {}
+    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
+        if subdir in new_dirs:
+            new_subdir = new_dirs[subdir]
         else:
-            dirs.sort()
-        old_subdir = os.path.relpath(subdir, dir)
-        new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+            old_subdir = os.path.relpath(subdir, dir)
+            new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+            os.makedirs(new_subdir, exist_ok=True)
+            new_dirs[subdir] = new_subdir
+        name, _ = os.path.splitext(file)
+        if suffix is not None:
+            fname = f"{name}{suffix}.{target_extension}"
+        else:
+            fname = f"{name}.{target_extension}"
+        old = os.path.join(subdir, file)
+        new = os.path.join(new_subdir, fname)
+        if overwrite or not os.path.isfile(new):
+            conversion_params.append((old, new, MS))
+        else:
+            logger.debug(new, 'exists already. Pass -o to overwrite.')
 
-        for file in files:
-            name, ext = os.path.splitext(file)
-            ext = ext[1:]
-            if re.search(regex, file) and (ext in extensions or extensions == []):
-                if not os.path.isdir(new_subdir):
-                    os.makedirs(new_subdir)
-                if target_extension[0] == '.':
-                    target_extension = target_extension[1:]
-                if suffix is not None:
-                    neu = '%s%s.%s' % (name, suffix, target_extension)
-                else:
-                    neu = '%s.%s' % (name, target_extension)
-                old = os.path.join(subdir, file)
-                new = os.path.join(new_subdir, neu)
-                if overwrite or not os.path.isfile(new):
-                    conversion_params.append((old, new, MS))
-                else:
-                    print(new, 'exists already. Pass -o to overwrite.')
 
     # TODO: pass filenames as 'logger' argument to convert()
     if parallel:
@@ -1145,9 +1160,10 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+
 @function_logger
-def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True):
-    """ Get a list of files.
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False):
+    """ Generator of file names in ``directory``.
 
     Parameters
     ----------
@@ -1158,31 +1174,56 @@ def scan_directory(dir, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", r
         The regEx are checked with search(), not match(), allowing for fuzzy search.
     recursive : :obj:`bool`, optional
         By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+    subdirs : :obj:`bool`, optional
+        By default, full file paths are returned. Pass True to return (path, name) tuples instead.
+    progress : :obj:`bool`, optional
+        By default, the scanning process is shown. Pass False to prevent.
+    exclude_files_only : :obj:`bool`, optional
+        By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
 
-    Returns
-    -------
+
+    Yields
+    ------
     list
         List of full paths meeting the criteria.
 
     """
-    def check_regex(reg, s):
-        res = re.search(reg, s) is not None and re.search(exclude_re, s) is None
-        return res
+    def traverse(dir):
+        nonlocal counter
 
-    if not os.path.isdir(dir):
-        logger.warning("Not an existing directory: " + dir)
-    res = []
-    for subdir, dirs, files in os.walk(dir):
-        _, current_folder = os.path.split(subdir)
-        if recursive and check_regex('', current_folder):
-            dirs[:] = [d for d in sorted(dirs)]
-        else:
-            dirs[:] = []
-        if check_regex(folder_re, current_folder):
-            files = [os.path.join(subdir, f) for f in sorted(files) if check_regex(file_re, f)]
-            res.extend(files)
-    return res
+        def check_regex(reg, s, excl=exclude_re):
+            try:
+                res = re.search(reg, s) is not None and re.search(excl, s) is None
+            except:
+                print(reg)
+                raise
+            return res
 
+        for dir_entry in os.scandir(dir):
+            name = dir_entry.name
+            path = os.path.join(dir, name)
+            if dir_entry.is_dir() and recursive:
+                if (exclude_files_only and check_regex(folder_re, name, excl='^$')) or (not exclude_files_only and check_regex(folder_re, name)):
+                    for res in traverse(path):
+                        yield res
+            else:
+                if pbar is not None:
+                    pbar.update()
+                if dir_entry.is_file() and check_regex(file_re, name):
+                    counter += 1
+                    if pbar is not None:
+                        pbar.set_postfix({'selected': counter})
+                    if subdirs:
+                        yield (dir, name)
+                    else:
+                        yield path
+
+    directory = resolve_dir(directory)
+    counter = 0
+    if not os.path.isdir(directory):
+        logger.warning("Not an existing directory: " + directory)
+    pbar = tqdm(desc='Scanning files', unit=' files') if progress else None
+    return traverse(directory)
 
 
 def sort_tpcs(tpcs, ascending=True, start=None):
@@ -1210,7 +1251,7 @@ def sort_tpcs(tpcs, ascending=True, start=None):
 
 
 @function_logger
-def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#))", max=2, inplace=False, alternatives_only=False):
+def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2, inplace=False, alternatives_only=False):
     """
     Splits labels that come with an alternative separated by '-' and adds
     a new column. Only one alternative is taken into account. `df` is
@@ -1380,7 +1421,24 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
+def unfold_repeats(df, mc_sequence):
+    """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame needs to have the columns 'mc' and 'mn'.
+    mc_sequence : :obj:`pandas.Series`
+        A Series of the format ``{playthrough: mc}`` where ``playthrough`` corresponds
+        to continuous MN
+    """
+    vc = df.mc.value_counts()
+    res = df.set_index('mc')
+    seq = mc_sequence[mc_sequence.isin(res.index)]
+    playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
+    res = res.loc[seq.values]
+    res.insert(res.columns.get_loc('mn') + 1, 'playthrough', playthrough_col)
+    return res.reset_index()
 
 
 @contextmanager

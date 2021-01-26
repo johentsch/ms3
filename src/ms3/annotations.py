@@ -95,7 +95,8 @@ Possible values are {{1, 2, 3, 4}}.""")
             return pd.DataFrame()
 
         if self.cols['mc'] not in cols:
-            if self.cols['mn'] not in cols:
+            mn_col = self.cols['mn'] if 'mn' in self.cols else 'mn'
+            if mn_col not in cols:
                 self.logger.warning(f"Annotations are lacking 'mn' and 'mc' columns.")
                 error = True
             else:
@@ -278,7 +279,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.regex_dict = dict(dcml=DCML_DOUBLE_REGEX, **self.regex_dict)
             self.infer_types()
         df = self.get_labels(**kwargs)
-        sel = df.label_type.str.contains('dcml').fillna(False)
+        sel = df.label_type.astype(str).str.contains('dcml').fillna(False)
         if not sel.any():
             self.logger.info(f"Score does not contain any DCML harmonic annotations.")
             return
@@ -310,7 +311,8 @@ Possible values are {{1, 2, 3, 4}}.""")
             return False
 
         mscx = mscx_obj if mscx_obj is not None else self.mscx_obj
-        cols = [self.cols[c] for c in ['mn', 'mc_onset', 'volta'] if c in self.df.columns]
+        column_names = [self.cols[c] if c in self.cols else c for c in ['mn', 'mn_onset', 'volta']]
+        cols = [c for c in column_names if c in self.df.columns]
         inferred_positions = [mscx.infer_mc(**dict(zip(cols, t))) for t in self.df[cols].values]
         return pd.DataFrame(inferred_positions, index=self.df.index, columns=['mc', 'mc_onset'])
 

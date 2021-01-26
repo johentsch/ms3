@@ -107,9 +107,7 @@ class Score(LoggedClass):
         Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
         """
 
-        if not test_binary(ms, logger=self.logger):
-            ms = get_musescore(ms, logger=self.logger)
-        self.ms = ms
+        self.ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
 
@@ -462,6 +460,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += f"{self.mscx.logger.logger.name}:{key}"
+        if self.logger.logger.file_handler is not None:
+            logger_cfg['file'] = self.logger.logger.file_handler.baseFilename
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:
@@ -666,12 +666,13 @@ Use one of the existing keys or load a new set with the method load_annotations(
         _, ext = os.path.splitext(musescore_file)
         ext = ext[1:]
         if ext.lower() not in permitted_extensions:
-            raise ValueError(f"The extension of a MuseScore file should be one of {permitted_extensions} not {ext}.")
+            raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(musescore_file)
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = self.logger_names[extension]
+        musescore_file = resolve_dir(musescore_file)
 
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
@@ -679,7 +680,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
                 self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
                                   logger_cfg=logger_cfg, parent_score=self)
-                self.mscx.mscx_src = musescore_file
+                self.mscx.mscx_src = (musescore_file)
         else:
             self._mscx = MSCX(musescore_file, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
                               logger_cfg=logger_cfg, parent_score=self)
@@ -1102,6 +1103,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
                 self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
+
 
 
     def delete_empty_labels(self):

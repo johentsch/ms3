@@ -28,7 +28,7 @@ class TestBasic:
 
 class TestParser:
 
-    test_folder = os.path.basename(os.path.realpath(__file__))
+    test_folder = os.path.dirname(os.path.realpath(__file__))
 
     def test_parse_and_write_back(self, score_object):
         original_mscx = score_object.full_paths['mscx']

@@ -152,10 +152,14 @@ but no 'path' has been configured.""")
         dir, _ = os.path.split(log_file)
         if not os.path.isdir(dir):
             os.makedirs(dir, exist_ok=True)
+        logger.debug(f"Storing logs as {log_file}")
         fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
         file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
         fileHandler.setFormatter(file_formatter)
         logger.addHandler(fileHandler)
+        logger.file_handler = fileHandler
+    else:
+        logger.file_handler = None
 
 
 def function_logger(f):

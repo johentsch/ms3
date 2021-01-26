@@ -10,8 +10,8 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import commonprefix, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series, no_collections_no_booleans, pretty_dict,\
-    resolve_dir, scan_directory, string2lines, update_labels_cfg
+from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series,\
+    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg
 
 
 class Parse(LoggedClass):
@@ -46,6 +46,10 @@ class Parse(LoggedClass):
             of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux.
         """
+        if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
+            # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
+            # if `dir` is also None, Parse.log will not be created and a warning will be shown.
+            logger_cfg['path'] = dir
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
@@ -53,12 +57,12 @@ class Parse(LoggedClass):
         """:obj:`collections.defaultdict`
         ``{key: [full_path]}`` dictionary of the full paths of all detected files.
         """
-        
+
         self.rel_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
         """
-        
+
         self.scan_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [scan_path]}`` dictionary of the scan_paths from which each file was detected.
@@ -93,7 +97,7 @@ class Parse(LoggedClass):
         """:obj:`dict`
         ``{(key, i): :obj:`~ms3.score.Score`}`` dictionary of parsed scores.
         """
-        
+
         self._annotations = {}
         """:obj:`dict`
         {(key, i): :obj:`~ms3.annotations.Annotations`} dictionary of parsed sets of annotations.
@@ -160,6 +164,11 @@ class Parse(LoggedClass):
         ``None, 'notes', 'events', 'chords', 'rests', 'measures', 'labels'}``
         """
 
+        self._unfolded_mcs = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
+        """
+
         self.labels_cfg = {
             'staff': None,
             'voice': None,
@@ -188,7 +197,7 @@ class Parse(LoggedClass):
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
         """
 
-        self._matches = pd.DataFrame(columns=['mscx', 'annotations']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['scores', 'annotations']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -206,6 +215,7 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+
     @property
     def ms(self):
         return self._ms
@@ -215,34 +225,56 @@ class Parse(LoggedClass):
         self._ms = get_musescore(ms)
 
     @property
-    def parsed(self):
-        """:obj:`dict`
-        Returns an overview of the parsed MuseScore files."""
+    def parsed_mscx(self):
+        """:obj:`pandas.DataFrame`
+        Returns an overview of the parsed scores."""
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed yet. Use parse() or parse_mscx()")
+            return None
         ids = list(self._iterids(only_parsed_mscx=True))
         ix = self.ids2idx(ids, pandas_index=True)
-        res = pd.Series([self._parsed_mscx[id].mscx.mscx_src for id in ids], index=ix)
+        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+        attached = pd.Series([len(self._parsed_mscx[id].annotations.df) if self._parsed_mscx[id].annotations is not None else 0 for id in ids],
+                             index=ix, name='labels')
+        detached_keys = [', '.join(self._parsed_mscx[id]._detached_annotations.keys()) if len(
+            self._parsed_mscx[id]._detached_annotations) > 0 else None for id in ids]
+        if all(k is None for k in detached_keys):
+            res = pd.concat([paths, attached], axis=1)
+        else:
+            detached_keys = pd.Series(detached_keys, index=ix,
+                                  name='detached_annotations')
+            res = pd.concat([paths, attached, detached_keys], axis=1)
         return res
-        # res = {}
-        # for k, score in self._parsed.items():
-        #     info = score.full_paths['mscx']
-        #     if 'annotations' in score._annotations:
-        #         info += f" -> {score.annotations.n_labels()} labels"
-        #     res[k] = info
-        # return res
+
+    @property
+    def parsed_tsv(self):
+        """:obj:`pandas.DataFrame`
+        Returns an overview of the parsed TSV files."""
+        if len(self._parsed_tsv) == 0:
+            self.logger.info("No TSV files have been parsed yet. Use parse() or parse_tsv()")
+            return None
+        ids = list(self._iterids(only_parsed_tsv=True))
+        ix = self.ids2idx(ids, pandas_index=True)
+        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+        types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
+        res = pd.concat([paths, types], axis=1)
+        return res
 
 
-    def add_detached_annotations(self, mscx_key=None, tsv_key=None, new_key=None, match_dict=None):
+
+
+    def add_detached_annotations(self, score_key=None, tsv_key=None, new_key=None, match_dict=None):
         """ Add :obj:`~ms3.annotations.Annotations` objects generated from TSV files to the :obj:`~ms3.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
         Parameters
         ----------
-        mscx_key : :obj:`str`, optional
+        score_key : :obj:`str`, optional
             A key under which parsed MuseScore files are stored.
-            If one of ``mscx_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
+            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
         tsv_key : :obj:`str`, optional
             A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
-            If one of ``mscx_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
+            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
         new_key : :obj:`str`, optional
             The key under which the :obj:`~ms3.annotations.Annotations` objects will be available after attaching
             them to the :obj:`~ms3.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
@@ -254,17 +286,24 @@ class Parse(LoggedClass):
         if new_key is None:
             new_key = tsv_key
         if match_dict is None:
-            if mscx_key is not None and tsv_key is not None:
-                matches = self.match_files(keys=[mscx_key, tsv_key])
+            if score_key is not None and tsv_key is not None:
+                matches = self.match_files(keys=[score_key, tsv_key])
             else:
                 matches = self._matches[self._matches.labels.notna() | self._matches.expanded.notna()]
             matches.labels.fillna(matches.expanded)
-            match_dict = dict(matches[['mscx', 'labels']].values)
+            match_dict = dict(matches[['scores', 'labels']].values)
+        if len(match_dict) == 0:
+            self.logger.info(f"No files could be matched. You may want to use the method match_files() before or pass the match_dict argument.")
+            return
         for score_id, labels_id in match_dict.items():
             if score_id in self._parsed_mscx and not pd.isnull(labels_id):
                 if labels_id in self._annotations:
-                    k = labels_id[0] if new_key is None else new_key
-                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=k)
+                    k = labels_id[0] if pd.isnull(new_key) else new_key
+                    try:
+                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=k)
+                    except:
+                        print(f"score_id: {score_id}, labels_id: {labels_id}")
+                        raise
                 else:
                     k, i = labels_id
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
@@ -450,7 +489,7 @@ Therefore, the index for this key has been adapted.""")
             if ix in self._matches.index:
                 self._matches.loc[ix, tsv_type] = tsv_id
             else:
-                row = pd.DataFrame.from_dict({ix: {'mscx': score_id, tsv_type: tsv_id}}, orient='index')
+                row = pd.DataFrame.from_dict({ix: {'scores': score_id, tsv_type: tsv_id}}, orient='index')
                 self._matches = pd.concat([self._matches, row])
 
 
@@ -535,7 +574,7 @@ Continuing with {annotation_key}.""")
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         ids = list(self._labellists.keys())
         if len(ids) > 0:
             self.collect_lists(ids=ids, labels=True)
@@ -568,7 +607,7 @@ Continuing with {annotation_key}.""")
             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
         notes, rests, notes_and_rests, measures, events, labels, chords, expanded : :obj:`bool`, optional
         only_new : :obj:`bool`, optional
-            Set to True to also retrieve lists that had already been retrieved.
+            Set to False to also retrieve lists that had already been retrieved.
         """
         if len(self._parsed_mscx) == 0:
             self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
@@ -660,14 +699,18 @@ Available keys: {available_keys}""")
                 for key, annotations in self._parsed_mscx[id]._detached_annotations.items():
                     if key != 'annotations':
                         _, layers = annotations.annotation_layers
-                        res_dict[key].update(layers.to_dict())
+                        layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
+                                       layers.to_dict().items()}
+                        res_dict[key].update(layers_dict)
         elif which in ['attached', 'tsv']:
             for key, i in self._iterids(keys):
                 if (key, i) in self._annotations:
                     ext = self.fexts[key][i]
                     if (which == 'attached' and ext == '.mscx') or (which == 'tsv' and ext != '.mscx'):
                         _, layers = self._annotations[(key, i)].annotation_layers
-                        res_dict[key].update(layers.to_dict())
+                        layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
+                                       layers.to_dict().items()}
+                        res_dict[key].update(layers_dict)
         else:
             self.logger.error(f"Parameter 'which' needs to be one of {{'attached', 'detached', 'tsv'}}, not {which}.")
             return {} if per_key else pd.Series()
@@ -838,6 +881,25 @@ Available keys: {available_keys}""")
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False, simulate=False):
+        """ Retrieve a dictionary with the selected feature matrices.
+
+        Parameters
+        ----------
+        keys
+        notes
+        rests
+        notes_and_rests
+        measures
+        events
+        labels
+        chords
+        expanded
+        simulate
+
+        Returns
+        -------
+
+        """
         if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
             self.logger.error("No scores or annotation files have been parsed so far.")
             return {}
@@ -854,6 +916,19 @@ Available keys: {available_keys}""")
         return res
 
 
+    def get_unfolded_mcs(self, key, i):
+        id = (key, i)
+        if id in self._unfolded_mcs:
+            return self._unfolded_mcs[id]
+        if not id in self._measurelists:
+            self.collect_lists(ids=[id], measures=True)
+        ml = self._measurelists[id].set_index('mc')
+        seq = next2sequence(ml.next)
+        playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+        res = pd.Series(seq, index=playthrough)
+        self._unfolded_mcs[id] = res
+        return res
+
 
     def ids2idx(self, ids=None, pandas_index=False):
         """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
@@ -869,6 +944,10 @@ Available keys: {available_keys}""")
         """
         if ids is None:
             ids = list(self._iterids())
+        elif ids == []:
+            if pandas_index:
+                return pd.Index([])
+            return list(), tuple()
         idx = [self._index[id] for id in ids]
         levels = [len(ix) for ix in idx]
         error = False
@@ -968,7 +1047,7 @@ Available keys: {available_keys}""")
 
 
 
-    def match_files(self, keys=None, what=['scores', 'labels', 'extended'], only_new=True):
+    def match_files(self, keys=None, what=['scores', 'labels', 'expanded'], only_new=True):
         """ Match files based on their file names.
 
         Parameters
@@ -1123,47 +1202,48 @@ Available keys: {available_keys}""")
             path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
             if file is not None:
                 file_path, file_name = os.path.split(file)
-                _, fext = os.path.splitext(file_name)
-                if fext == '':
-                    file_path = file
-                    file_name = None
-                    self.logger.debug(f"{file} was interpreted as a directory rather than as a file name.")
+                if file_path == '':
+                    if file_name in ['.', '..']:
+                        file_path = file_name
+                        file_name = None
+                    else:
+                        file_path = None
             else:
                 file_path, file_name = None, None
 
-            if file_path is not None:
-                if os.path.isabs(file_path):
-                    if file_name is None:
-                        self.logger.error(f"Logger is configured with 'file' = '{file}' which is an absolute directory without specified file name. Make directory relative or add file name.")
-                        configs = [cfg for i in range(len(paths))]
-                    else:
-                        cfg['file'] = file
-                        configs = [cfg for i in range(len(paths))]
-                elif file_name is None:
-                    if path is None:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(self.paths[k][i], file_path, f"{self.fnames[k][i]}.log")
-                                                  )) for k, i in paths]
-                    else:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(path, self.rel_paths[k][i], file_path, f"{self.fnames[k][i]}.log")
-                                                  )) for k, i in paths]
+            if file_path is not None and os.path.isabs(file_path):
+                if os.path.isdir(file):
+                    self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
+                    configs = [cfg for i in range(len(paths))]
                 else:
-                    if path is None:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(self.paths[k][i], file_path, file_name)
-                                                  )) for k, i in paths]
-                    else:
-                        configs = [dict(cfg, file=os.path.abspath(
-                                                    os.path.join(path, self.rel_paths[k][i], file_path, file_name)
-                                                  )) for k, i in paths]
+                    cfg['file'] = file
+                    configs = [cfg for i in range(len(paths))]
+            elif not (file_path is None and file_name is None):
+                root_dir = None if path is None else path
+                if file_name is None:
+                    log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in paths]
+                else:
+                    log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+                                                             file_name)) for k, i in paths}
+                    are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
+                    if len(are_dirs) > 0:
+                        NL = '\n'
+                        self.logger.info(
+                        f"""The following file paths are actually existing directories, individual log files are created:
+                        {NL.join(are_dirs)}""")
+                        log_paths = {id: os.path.join(p, self.logger_names[id]) if os.path.isdir(p) else p for id, p in log_paths.items()}
+                    log_paths = list(log_paths.values())
+                configs = [dict(cfg, file=p) for p in log_paths]
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
-                                            os.path.join(path, f"{self.fnames[k][i]}.log")
+                                            os.path.join(path, f"{self.logger_names[(k, i)]}.log")
                                           )) for k, i in paths]
             else:
                 configs = [cfg for i in range(len(paths))]
         else:
+            if self.logger.logger.file_handler is not None:
+                cfg['file'] = self.logger.logger.file_handler.baseFilename
             configs = [cfg for i in range(len(paths))]
 
         ### collect argument tuples for calling self._parse
@@ -1304,7 +1384,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
-                                                    simulate=None):
+                                                    simulate=None, unfold=False):
         if simulate is None:
             simulate = self.simulate
         else:
@@ -1318,17 +1398,23 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
+        if unfold:
+            suffix_params = {k: v + '_unfolded' for k, v in suffix_params.items()}
+            self.collect_lists(keys, measures=True)
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
         modus = 'would ' if simulate else ''
         if len(lists) == 0:
             self.logger.info(f"No files {modus}have been written.")
-            return [] if simulate  else None
+            return [] if simulate else None
         paths = {}
         warnings, infos = [], []
         prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
+            if unfold:
+                mc_seq = self.get_unfolded_mcs(key, i)
+                li = unfold_repeats(li, mc_seq)
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
@@ -1373,7 +1459,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
 
 
 
-    def _calculate_path(self, key, i, root_dir, folder):
+    def _calculate_path(self, key, i, root_dir, folder, enforce_below_root=False):
         """ Constructs a path and file name from a loaded file based on the arguments.
 
         Parameters
@@ -1389,18 +1475,22 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             Defaults to None, meaning that the original root directory is used that was added to the Parse object.
             Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
             ``root_dir`` is ignored.
+        enforce_below_root : :obj:`bool`, optional
+            If True is passed, the computed paths are checked to be within ``root_dir`` or ``folder`` respectively.
         """
-        if os.path.isabs(folder) or '~' in folder:
+        if folder is not None and (os.path.isabs(folder) or '~' in folder):
             folder = resolve_dir(folder)
             path = folder
         else:
             root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
-            if folder[0] == '.':
+            if folder is None:
+                path = root
+            elif folder[0] == '.':
                 path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
             else:
                 path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
             base = os.path.basename(root)
-            if path[:len(base)] != base:
+            if enforce_below_root and path[:len(base)] != base:
                 self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
                 return None
         return path
@@ -1473,7 +1563,7 @@ Load one of the identically named files with a different key using add_dir(key='
                 break
         return res
 
-    def _iterids(self, keys=None, only_parsed_mscx=False, only_attached_annotations=False, only_detached_annotations=False):
+    def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
 
         Parameters
@@ -1492,7 +1582,7 @@ Load one of the identically named files with a different key using add_dir(key='
         keys = self._treat_key_param(keys)
         for key in sorted(keys):
             for id in make_id_tuples(key, len(self.fnames[key])):
-                if only_parsed_mscx or only_attached_annotations or only_detached_annotations:
+                if only_parsed_mscx  or only_attached_annotations or only_detached_annotations:
                     if id not in self._parsed_mscx:
                         continue
                     if only_attached_annotations:
@@ -1500,11 +1590,17 @@ Load one of the identically named files with a different key using add_dir(key='
                             pass
                         else:
                             continue
-                    if only_detached_annotations:
+                    elif only_detached_annotations:
                         if self._parsed_mscx[id].has_detached_annotations:
                             pass
                         else:
                             continue
+                elif only_parsed_tsv:
+                    if id in self._parsed_tsv:
+                        pass
+                    else:
+                        continue
+
                 yield id
 
 
@@ -1576,7 +1672,7 @@ Using the first {li} elements, discarding {discarded}""")
             self.logger.info("Process aborted.")
             raise
         except:
-            self.logger.exception(traceback.format_exc())
+            self.logger.error(traceback.format_exc())
             return None
 
 
@@ -1685,7 +1781,9 @@ Using the first {li} elements, discarding {discarded}""")
 
         prev_logger = self.logger
         fname = self.fnames[key][i]
-        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}")
+        # make sure all subloggers store their information into Parse.log if it is being used
+        file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
+        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
         if df is None:
             self.logger.debug(f"No DataFrame for {what}.")
             return restore_logger(None)
@@ -1842,6 +1940,14 @@ To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} severa
     #             print(f"{ix}{val}\n")
     #     else:
     #         raise AttributeError(item)
+
+    # def __getattr__(self, item):
+    #     ext = f".{item}"
+    #     ids = [(k, i) for k, i in self._iterids() if self.fexts[k][i] == ext]
+    #     if len(ids) == 0:
+    #         self.logger.info(f"Includes no files with the extension {ext}")
+    #     return ids
+
 
 
     def __getitem__(self, item):

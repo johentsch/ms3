@@ -80,8 +80,8 @@ def compare(args):
 
 def extract(args):
     labels_cfg = {
-        'positioning': args.positioning,
-        'decode': args.raw,
+        'positioning': args.positioning,    # default=False
+        'decode': args.raw,                 # default=True
     }
     if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
         print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
@@ -115,6 +115,7 @@ def extract(args):
                   chords_folder=args.chords,
                   expanded_folder=args.expanded,
                   simulate=args.test,
+                  unfold=args.unfold,
                   **suffixes)
 
 
@@ -151,6 +152,11 @@ def convert(args):
                    ms=args.musescore,
                    overwrite=args.overwrite,
                    parallel=args.nonparallel)
+
+
+def repair(args):
+    pass
+
 
 def run():
     """Entry point for console_scripts
@@ -194,8 +200,9 @@ This setting has no effect on absolute folder paths.""")
 Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
-    extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into strings.")
+    extract_parser.add_argument('-r', '--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
     extract_parser.add_argument('-n', '--nonrecursive', action='store_false', help="Don't scan folders recursively, i.e. parse only files in MSCX_DIR.")
+    extract_parser.add_argument('-u', '--unfold', action='store_true', help="Unfold the repeats for all stored DataFrames.")
     extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
 or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
 In the former case, --logpath will be disregarded.""")
@@ -258,6 +265,10 @@ working directory except if you pass -f/--file.""")
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
     convert_parser.set_defaults(func=convert)
+
+    repair_parser = subparsers.add_parser('repair',
+                                          help="Apply automatic repairs to your uncompressed MuseScore files.")
+    repair_parser.set_defaults(func=repair)
 
     args = parser.parse_args()
     if 'func' in args:

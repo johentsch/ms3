@@ -255,17 +255,21 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._notes = sort_cols(pd.DataFrame(note_list))
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
-        elif 'Harmony' in self._events.event.values:
-            self.has_annotations = True
+        else:
+            self.has_annotations = 'Harmony' in self._events.event.values
         self.metadata = self._get_metadata()
 
 
 
 
     def store_mscx(self, filepath):
-
+        try:
+            mscx_string = bs4_to_mscx(self.soup)
+        except:
+            logging.error(f"BeautifulSoup object is None.")
+            return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
-            file.write(bs4_to_mscx(self.soup))
+            file.write(mscx_string)
         self.logger.info(f"Score written to {filepath}.")
         return True
 
@@ -955,19 +959,19 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 loc_after = nxt_pos - mc_onset
                 remember = self.insert_label(label=label, loc_before=-loc_after, loc_after=loc_after,
                                              after=prv[prv_ix]['tag'], **kwargs)
-                self.logger.debug(f"Added {label_name} at {loc_after} before the {nxt_name} at mc_onset {nxt_pos}.")
+                self.logger.debug(f"MC {mc}: Added {label_name} at {loc_after} before the {nxt_name} at mc_onset {nxt_pos}.")
             else:
                 # nxt has location tag(s)
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
-                assert loc_dur < 0, f"Positive location tag at MC {mc}, when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
+                assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
                 loc_before = loc_dur - nxt_pos + mc_onset
                 remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
                 loc_after = nxt_pos - mc_onset
                 nxt[loc_ix]['tag'].fractions.string = str(loc_after)
                 nxt[loc_ix]['duration'] = loc_after
                 nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
-                self.logger.debug(f"""Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
+                self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
         else:
@@ -1495,6 +1499,7 @@ def format_node(node, indent):
 
 def bs4_to_mscx(soup):
     """ Turn the BeautifulSoup into a string representing an MSCX file"""
+    assert soup is not None, "BeautifulSoup XML structure is None"
     initial_tag = """<?xml version="1.0" encoding="UTF-8"?>\n"""
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)

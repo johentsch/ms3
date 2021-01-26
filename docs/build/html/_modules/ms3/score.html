@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.4.5 documentation</title>
+    <title>ms3.score &#8212; ms3 0.4.6 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.5 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -173,9 +173,7 @@
 <span class="sd">        Handled internally by :py:meth:`~ms3.score.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">test_binary</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">):</span>
-            <span class="n">ms</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ms</span> <span class="o">=</span> <span class="n">ms</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ms</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">        Path or command of the local MuseScore 3 installation if specified by the user.&quot;&quot;&quot;</span>
 
@@ -528,6 +526,8 @@
             <span class="k">return</span>
         <span class="n">logger_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_cfg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">file_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;file&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">file_handler</span><span class="o">.</span><span class="n">baseFilename</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_infer_regex</span><span class="p">(),</span> <span class="n">mscx_obj</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span><span class="p">,</span>
                                                       <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">delete</span><span class="p">:</span>
@@ -732,12 +732,13 @@
         <span class="n">_</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">musescore_file</span><span class="p">)</span>
         <span class="n">ext</span> <span class="o">=</span> <span class="n">ext</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
         <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">permitted_extensions</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The extension of a MuseScore file should be one of </span><span class="si">{</span><span class="n">permitted_extensions</span><span class="si">}</span><span class="s2"> not </span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The extension of a score should be one of </span><span class="si">{</span><span class="n">permitted_extensions</span><span class="si">}</span><span class="s2"> not </span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertible_formats</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;To open a </span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2"> file, use &#39;ms3 convert&#39; command or pass parameter &#39;ms&#39; to Score to temporally convert.&quot;</span><span class="p">)</span>
         <span class="n">extension</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_path</span><span class="p">(</span><span class="n">musescore_file</span><span class="p">)</span>
         <span class="n">logger_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_cfg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="n">extension</span><span class="p">]</span>
+        <span class="n">musescore_file</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">musescore_file</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">extension</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertible_formats</span> <span class="o">+</span>  <span class="p">(</span><span class="s1">&#39;mscz&#39;</span><span class="p">,</span> <span class="p">):</span>
             <span class="n">ctxt_mgr</span> <span class="o">=</span> <span class="n">unpack_mscz</span> <span class="k">if</span> <span class="n">extension</span> <span class="o">==</span> <span class="s1">&#39;mscz&#39;</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tmp_convert</span>
@@ -745,7 +746,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using temporary file </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">tmp_mscx</span><span class="p">)</span><span class="si">}</span><span class="s2"> in order to parse </span><span class="si">{</span><span class="n">musescore_file</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="n">MSCX</span><span class="p">(</span><span class="n">tmp_mscx</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span>
                                   <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">,</span> <span class="n">parent_score</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">musescore_file</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="p">(</span><span class="n">musescore_file</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="o">=</span> <span class="n">MSCX</span><span class="p">(</span><span class="n">musescore_file</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="n">read_only</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span>
                               <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">,</span> <span class="n">parent_score</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
@@ -1018,7 +1019,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">parsed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`~._MSCX_bs4`</span>
+        <span class="sd">&quot;&quot;&quot;{:obj:`_MSCX_bs4`}</span>
 <span class="sd">        Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object&#39;s</span>
 <span class="sd">        interface for requesting manipulations of and information from the source XML.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1168,6 +1169,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">changes</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> labels successfully deleted.&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">changes</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span> <span class="o">-</span> <span class="n">changes</span><span class="si">}</span><span class="s2"> labels could not be deleted:</span><span class="se">\n</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">changed</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="MSCX.delete_empty_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.delete_empty_labels">[docs]</a>    <span class="k">def</span> <span class="nf">delete_empty_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1475,7 +1477,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.5 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
