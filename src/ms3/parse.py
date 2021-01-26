@@ -1366,7 +1366,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         modus = 'would ' if simulate else ''
         if len(lists) == 0:
             self.logger.info(f"No files {modus}have been written.")
-            return [] if simulate  else None
+            return [] if simulate else None
         paths = {}
         warnings, infos = [], []
         prev_logger = self.logger.name

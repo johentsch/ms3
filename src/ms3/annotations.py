@@ -279,7 +279,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.regex_dict = dict(dcml=DCML_DOUBLE_REGEX, **self.regex_dict)
             self.infer_types()
         df = self.get_labels(**kwargs)
-        sel = df.label_type.str.contains('dcml').fillna(False)
+        sel = df.label_type.astype(str).str.contains('dcml').fillna(False)
         if not sel.any():
             self.logger.info(f"Score does not contain any DCML harmonic annotations.")
             return
