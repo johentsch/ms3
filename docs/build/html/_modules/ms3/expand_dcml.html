@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.expand_dcml &#8212; ms3 0.4.2 documentation</title>
+    <title>ms3.expand_dcml &#8212; ms3 0.4.6 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.2 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 
@@ -72,7 +72,7 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2tpc</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">sort_tpcs</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">DCML_REGEX</span><span class="p">,</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2tpc</span><span class="p">,</span> <span class="n">split_alternatives</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">sort_tpcs</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
 
 
@@ -80,22 +80,7 @@
 <span class="c1"># Constants</span>
 <span class="c1">################################################################################</span>
 
-<span class="n">DCML_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">            ^(\.?</span>
-<span class="s2">                ((?P&lt;globalkey&gt;[a-gA-G](b*|\#*))\.)?</span>
-<span class="s2">                ((?P&lt;localkey&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?</span>
-<span class="s2">                ((?P&lt;pedal&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?</span>
-<span class="s2">                (?P&lt;chord&gt;</span>
-<span class="s2">                    (?P&lt;numeral&gt;(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))</span>
-<span class="s2">                    (?P&lt;form&gt;(%|o|\+|M|\+M))?</span>
-<span class="s2">                    (?P&lt;figbass&gt;(7|65|43|42|2|64|6))?</span>
-<span class="s2">                    (\((?P&lt;changes&gt;((\+|-|\^|v)?(b*|\#*)\d)+)\))?</span>
-<span class="s2">                    (/(?P&lt;relativeroot&gt;((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)*))?</span>
-<span class="s2">                )</span>
-<span class="s2">                (?P&lt;pedalend&gt;\])?</span>
-<span class="s2">            )?</span>
-<span class="s2">            (?P&lt;phraseend&gt;(\\\\|\{|\}|\}\{))?$</span>
-<span class="s2">            &quot;&quot;&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">VERBOSE</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="SliceMaker"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.SliceMaker">[docs]</a><span class="k">class</span> <span class="nc">SliceMaker</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; This class serves for storing slice notation such as ``:3`` as a variable or</span>
@@ -137,11 +122,11 @@
 <span class="sd">        Name of the column that holds the harmony labels.</span>
 <span class="sd">    regex : :obj:`re.Pattern`</span>
 <span class="sd">        Compiled regular expression used to split the labels. It needs to have named groups.</span>
-<span class="sd">        The group names are used as column names unless replaced by `cols`.</span>
+<span class="sd">        The group names are used as column names unless replaced by ``cols``.</span>
 <span class="sd">    cols : :obj:`dict`, optional</span>
 <span class="sd">        Dictionary to map the regex&#39;s group names to deviating column names of your choice.</span>
 <span class="sd">    dropna : :obj:`bool`, optional</span>
-<span class="sd">        Pass True if you want to drop rows where `column` is NaN/&lt;NA&gt;</span>
+<span class="sd">        Pass True if you want to drop rows where ``column`` is NaN/&lt;NA&gt;</span>
 <span class="sd">    propagate: :obj:`bool`, optional</span>
 <span class="sd">        By default, information about global and local keys and about pedal points is spread throughout</span>
 <span class="sd">        the DataFrame. Pass False if you only want to split the labels into their features. This ignores</span>
@@ -152,7 +137,7 @@
 <span class="sd">    chord_tones : :obj:`bool`, optional</span>
 <span class="sd">        Pass True if you want to add four columns that contain information about each label&#39;s</span>
 <span class="sd">        chord, added, root, and bass tones. The pitches are expressed as intervals</span>
-<span class="sd">        relative to the respective chord&#39;s local key or, if `relative_to_global=True`,</span>
+<span class="sd">        relative to the respective chord&#39;s local key or, if ``relative_to_global=True``,</span>
 <span class="sd">        to the globalkey. The intervals are represented as integers that represent</span>
 <span class="sd">        stacks of fifths over the tonic, such that 0 = tonic, 1 = dominant, -1 = subdominant,</span>
 <span class="sd">        2 = supertonic etc.</span>
@@ -262,44 +247,6 @@
     <span class="k">return</span> <span class="n">map2elements</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">n</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="split_alternatives"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.split_alternatives">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">split_alternatives</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Splits labels that come with an alternative separated by &#39;-&#39; and adds</span>
-<span class="sd">    a new column. Only one alternative is taken into account. `df` is</span>
-<span class="sd">    mutated inplace.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    df : :obj:`pandas.DataFrame`</span>
-<span class="sd">        Dataframe where one column contains DCML chord labels.</span>
-<span class="sd">    column : :obj:`str`, optional</span>
-<span class="sd">        Name of the column that holds the harmony labels.</span>
-<span class="sd">    inplace : :obj:`bool`, optional</span>
-<span class="sd">        Pass True if you want to mutate ``df``.</span>
-
-<span class="sd">    Example</span>
-<span class="sd">    -------</span>
-<span class="sd">    &gt;&gt;&gt; import pandas as pd</span>
-<span class="sd">    &gt;&gt;&gt; labels = pd.read_csv(&#39;labels.csv&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; split_alternatives(labels, inplace=True)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="n">regex</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;-(?!(\d|b|\#))&quot;</span>  <span class="c1"># &lt;v2.2.0 labels work without lookahead: regex=&#39;-&#39;</span>
-    <span class="n">alternatives</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alternatives</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Labels split into alternatives.&quot;</span><span class="p">)</span>
-        <span class="n">alt_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;alt_</span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="n">column</span><span class="p">]</span> <span class="o">=</span> <span class="n">alternatives</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">column</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">alt_name</span><span class="p">,</span> <span class="n">alternatives</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">))</span>  <span class="c1"># replace None by NaN</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">alternatives</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;More than two alternatives are not taken into account: </span><span class="si">{</span><span class="n">alternatives</span><span class="p">[</span><span class="n">alternatives</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Contains no alternative labels.&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">inplace</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">df</span></div>
 
 
 <div class="viewcode-block" id="split_labels"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.split_labels">[docs]</a><span class="nd">@function_logger</span>
@@ -365,7 +312,7 @@
 <span class="sd">    &#39;+7&#39;:   Augmented (minor) seventh chord</span>
 <span class="sd">    &#39;+M7&#39;:  Augmented major seventh chord</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">numeral</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">numeral</span><span class="p">)</span> <span class="ow">or</span> <span class="n">numeral</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Fr&#39;</span><span class="p">,</span> <span class="s1">&#39;Ger&#39;</span><span class="p">,</span> <span class="s1">&#39;It&#39;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">numeral</span>
     <span class="n">form</span><span class="p">,</span> <span class="n">figbass</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">figbass</span><span class="p">))</span>
     <span class="c1"># triads</span>
@@ -942,7 +889,7 @@
     <span class="n">tpcs</span> <span class="o">=</span> <span class="n">tpcs</span><span class="p">[</span><span class="n">root</span><span class="p">:]</span> <span class="o">+</span> <span class="n">tpcs</span><span class="p">[:</span><span class="n">root</span><span class="p">]</span>
     <span class="n">root</span> <span class="o">=</span> <span class="n">tpcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">*</span> <span class="n">root_alteration</span>
     <span class="n">tpcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>  <span class="c1"># octave stays diatonic, is not altered</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="s1">&#39;minor&#39;</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="s1">&#39;major&#39;</span><span class="si">}</span><span class="s2"> scale starting from the root: </span><span class="si">{</span><span class="n">tpcs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_degree</span><span class="si">}</span><span class="s2">: The </span><span class="si">{</span><span class="s1">&#39;minor&#39;</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="s1">&#39;major&#39;</span><span class="si">}</span><span class="s2"> scale starting from the root: </span><span class="si">{</span><span class="n">tpcs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set_iv</span><span class="p">(</span><span class="n">chord_interval</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).</span>
@@ -1639,7 +1586,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.2 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 
