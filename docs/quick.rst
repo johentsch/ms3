@@ -151,11 +151,11 @@ Metadata
 
 The metadata contains the data that can be accessed and altered in MuseScore 3 through the menu ``File -> Score Properties``
 as well as information computed from the score, such as the names and ambitus of the contained staves. Note that the
-ambitus here pertain to the first page only.
+ambitus in the example here pertain to the first page only.
 
 .. code-block:: python
 
-    >>> s.mscx.get_metadata()
+    >>> s.mscx.metadata
     {'arranger': None,
      'composer': 'Giovanni Battista Pergolesi',
      'copyright': 'Editions FREDIPI',
