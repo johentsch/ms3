@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.bs4_parser &#8212; ms3 0.4.5 documentation</title>
+    <title>ms3.bs4_parser &#8212; ms3 0.4.6 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.5 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.bs4_parser</a></li> 
@@ -321,17 +321,21 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_notes</span> <span class="o">=</span> <span class="n">sort_cols</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">note_list</span><span class="p">))</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Empty score?&quot;</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="s1">&#39;Harmony&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">values</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="s1">&#39;Harmony&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">event</span><span class="o">.</span><span class="n">values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_metadata</span><span class="p">()</span></div>
 
 
 
 
     <span class="k">def</span> <span class="nf">store_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
-
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">mscx_string</span> <span class="o">=</span> <span class="n">bs4_to_mscx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BeautifulSoup object is None.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">resolve_dir</span><span class="p">(</span><span class="n">filepath</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
-            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">bs4_to_mscx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="p">))</span>
+            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mscx_string</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Score written to </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">True</span>
 
@@ -1021,19 +1025,19 @@
                 <span class="n">loc_after</span> <span class="o">=</span> <span class="n">nxt_pos</span> <span class="o">-</span> <span class="n">mc_onset</span>
                 <span class="n">remember</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_label</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">loc_before</span><span class="o">=-</span><span class="n">loc_after</span><span class="p">,</span> <span class="n">loc_after</span><span class="o">=</span><span class="n">loc_after</span><span class="p">,</span>
                                              <span class="n">after</span><span class="o">=</span><span class="n">prv</span><span class="p">[</span><span class="n">prv_ix</span><span class="p">][</span><span class="s1">&#39;tag&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Added </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">loc_after</span><span class="si">}</span><span class="s2"> before the </span><span class="si">{</span><span class="n">nxt_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">nxt_pos</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">: Added </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="n">loc_after</span><span class="si">}</span><span class="s2"> before the </span><span class="si">{</span><span class="n">nxt_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">nxt_pos</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># nxt has location tag(s)</span>
                 <span class="n">loc_ix</span> <span class="o">=</span> <span class="n">nxt_names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;location&#39;</span><span class="p">)</span>
                 <span class="n">loc_dur</span> <span class="o">=</span> <span class="n">nxt</span><span class="p">[</span><span class="n">loc_ix</span><span class="p">][</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span>
-                <span class="k">assert</span> <span class="n">loc_dur</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Positive location tag at MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">, when trying to insert </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">mc_onset</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">assert</span> <span class="n">loc_dur</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Positive location tag at MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">, mc_onset </span><span class="si">{</span><span class="n">nxt_pos</span><span class="si">}</span><span class="s2"> when trying to insert </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">mc_onset</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">nxt</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="n">loc_before</span> <span class="o">=</span> <span class="n">loc_dur</span> <span class="o">-</span> <span class="n">nxt_pos</span> <span class="o">+</span> <span class="n">mc_onset</span>
                 <span class="n">remember</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">insert_label</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">,</span> <span class="n">loc_before</span><span class="o">=</span><span class="n">loc_before</span><span class="p">,</span> <span class="n">before</span><span class="o">=</span><span class="n">nxt</span><span class="p">[</span><span class="n">loc_ix</span><span class="p">][</span><span class="s1">&#39;tag&#39;</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
                 <span class="n">loc_after</span> <span class="o">=</span> <span class="n">nxt_pos</span> <span class="o">-</span> <span class="n">mc_onset</span>
                 <span class="n">nxt</span><span class="p">[</span><span class="n">loc_ix</span><span class="p">][</span><span class="s1">&#39;tag&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">fractions</span><span class="o">.</span><span class="n">string</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">loc_after</span><span class="p">)</span>
                 <span class="n">nxt</span><span class="p">[</span><span class="n">loc_ix</span><span class="p">][</span><span class="s1">&#39;duration&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loc_after</span>
                 <span class="n">nxt_name</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&gt;&quot;</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">nxt_names</span> <span class="k">if</span> <span class="n">e</span> <span class="o">!=</span> <span class="s1">&#39;location&#39;</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;Added </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="o">-</span><span class="n">loc_before</span><span class="si">}</span><span class="s2"> before the ending of the </span><span class="si">{</span><span class="n">prv_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">prv_pos</span><span class="si">}</span><span class="s2"></span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">: Added </span><span class="si">{</span><span class="n">label_name</span><span class="si">}</span><span class="s2"> at </span><span class="si">{</span><span class="o">-</span><span class="n">loc_before</span><span class="si">}</span><span class="s2"> before the ending of the </span><span class="si">{</span><span class="n">prv_name</span><span class="si">}</span><span class="s2"> at mc_onset </span><span class="si">{</span><span class="n">prv_pos</span><span class="si">}</span><span class="s2"></span>
 <span class="s2">and </span><span class="si">{</span><span class="n">loc_after</span><span class="si">}</span><span class="s2"> before the subsequent </span><span class="si">{</span><span class="n">nxt_name</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
@@ -1561,6 +1565,7 @@
 
 <div class="viewcode-block" id="bs4_to_mscx"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser.bs4_to_mscx">[docs]</a><span class="k">def</span> <span class="nf">bs4_to_mscx</span><span class="p">(</span><span class="n">soup</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Turn the BeautifulSoup into a string representing an MSCX file&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">soup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;BeautifulSoup XML structure is None&quot;</span>
     <span class="n">initial_tag</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;</span><span class="se">\n</span><span class="s2">&quot;&quot;&quot;</span>
     <span class="n">first_tag</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">initial_tag</span> <span class="o">+</span> <span class="n">format_node</span><span class="p">(</span><span class="n">first_tag</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
@@ -1627,7 +1632,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.5 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.bs4_parser</a></li> 
