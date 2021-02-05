@@ -1160,6 +1160,18 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+def roman_numeral2tpc(rn, global_minor=False):
+    """ Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
+        Uses: split_scale_degree()
+    """
+    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
+    rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
+    accidentals, rn_step = split_scale_degree(rn, count=True)
+    rn_step = rn_step.upper()
+    step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
+    return step_tpc + 7 * accidentals
+
+
 
 @function_logger
 def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False):
@@ -1326,6 +1338,25 @@ def split_note_name(nn, count=False):
     if count:
         accidentals = accidentals.count('#') - accidentals.count('b')
     return accidentals, note_name
+
+
+@function_logger
+def split_scale_degree(sd, count=False):
+    """ Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
+
+    sd : :obj:`str`
+        Scale degree.
+    count : :obj:`bool`, optional
+        Pass True to get the accidentals as integer rather than as string.
+    """
+    m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
+    if m is None:
+        logger.error(sd + " is not a valid scale degree.")
+        return None, None
+    acc, num = m.group(1), m.group(2)
+    if count:
+        acc = acc.count('#') - acc.count('b')
+    return acc, num
 
 
 def chunkstring(string, length=80):

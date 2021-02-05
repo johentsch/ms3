@@ -6,7 +6,7 @@ import sys, re
 import pandas as pd
 import numpy as np
 
-from .utils import DCML_REGEX, fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, split_alternatives, transform, sort_tpcs
+from .utils import DCML_REGEX, fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, map2elements, name2tpc, roman_numeral2tpc, split_alternatives, split_scale_degree, transform, sort_tpcs
 from .logger import function_logger
 
 
@@ -44,7 +44,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
     and allows for additional computations and transformations.
 
     Uses: :py:func:`compute_chord_tones`, :py:func:`features2type`, :py:func:`labels2global_tonic`, :py:func:`propagate_keys`,
-    :py:func:`propagate_pedal`, :py:func:`replace_special`, :py:func:`rn2tpc`, :py:func:`split_alternatives`, :py:func:`split_labels`,
+    :py:func:`propagate_pedal`, :py:func:`replace_special`, :py:func:`roman_numeral2tpc`, :py:func:`split_alternatives`, :py:func:`split_labels`,
     :py:func:`transform`, :py:func:`transpose`
 
 
@@ -157,7 +157,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
             if relative_to_global or absolute or all_in_c:
-                transpose_by = transform(df, rn2tpc, [cols['localkey'], global_minor])
+                transpose_by = transform(df, roman_numeral2tpc, [cols['localkey'], global_minor])
                 if absolute:
                     transpose_by += transform(df, name2tpc, [cols['globalkey']])
                 ct = pd.DataFrame([transpose(tpcs, fifths) for tpcs, fifths in
@@ -564,7 +564,7 @@ def abs2rel_key(absolute, localkey, global_minor=False):
     The result changes depending on whether Roman numeral and localkey are
     interpreted within a global major or minor key.
 
-    Uses: :py:func:`split_sd`
+    Uses: :py:func:`split_scale_degree`
 
     Parameters
     ----------
@@ -608,8 +608,8 @@ def abs2rel_key(absolute, localkey, global_minor=False):
                        [0, 0, 0, 0, 0, 0, 1],
                        [0, 0, 1, 0, 0, 1, 1],
                        [0, 1, 1, 0, 1, 1, 1]])
-    abs_acc, absolute = split_sd(absolute, count=True, logger=logger)
-    localkey_acc, localkey = split_sd(localkey, count=True, logger=logger)
+    abs_acc, absolute = split_scale_degree(absolute, count=True, logger=logger)
+    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
     shift = abs_acc - localkey_acc
     steps = maj_rn if absolute.isupper() else min_rn
     key_num = maj_rn.index(localkey.upper())
@@ -740,7 +740,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     in the order of the inversion, starting from the bass note. The tones are
     expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.
 
-    Uses: :py:func:`changes2list`, :py:func:`name2tpc`, :py:func:`resolve_relative_keys`, :py:func:`rn2tpc`,
+    Uses: :py:func:`changes2list`, :py:func:`name2tpc`, :py:func:`resolve_relative_keys`, :py:func:`roman_numeral2tpc`,
     :py:func:`sort_tpcs`, :py:func:`str_is_minor`
 
     Parameters
@@ -803,7 +803,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     if relativeroot != '':
         resolved = resolve_relative_keys(relativeroot, minor)
         rel_minor = str_is_minor(resolved, is_name=False)
-        transp = rn2tpc(resolved, minor)
+        transp = roman_numeral2tpc(resolved, minor)
         logger.debug(
             f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
         return features2tpcs(numeral=numeral, form=form, figbass=figbass, relativeroot=None, changes=changes,
@@ -814,7 +814,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         logger.warning(
             f"{MC}{label} in a major context is most probably an annotation error.")
 
-    root_alteration, num_degree = split_sd(numeral, count=True, logger=logger)
+    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
 
     # build 2-octave diatonic scale on C major/minor
     root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
@@ -921,7 +921,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         elif added:
             added_notes.append(new_val)
         elif chord_interval in [1, 3, 5, 8, 10,
-                                12]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a #
+                                12]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
             tpcs[chord_interval] = new_val
             if not replacing_lower and ('#' in acc or replacing_upper):
                 if '#' in acc and replacing_upper:
@@ -968,7 +968,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                 selector.remove(chord_interval)
 
     chord_tones = [tpcs[i] for i in selector]
-
+    print(f"tpcs: {tpcs} selector: {selector}")
     figbass2bass = {
         '': 0,
         '7': 0,
@@ -1004,40 +1004,6 @@ def str_is_minor(tone, is_name=True):
     return tone.islower()
 
 
-@function_logger
-def rn2tpc(rn, global_minor=False):
-    """
-    Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
-
-    Uses: :py:func:`split_sd`
-    """
-    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
-    rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
-    accidentals, rn_step = split_sd(rn, count=True, logger=logger)
-    rn_step = rn_step.upper()
-    step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
-    return step_tpc + 7 * accidentals
-
-
-@function_logger
-def split_sd(sd, count=False):
-    """ Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
-
-    Parameters
-    ----------
-    sd : :obj:`str`
-        Scale degree.
-    count : :obj:`bool`, optional
-        Pass True to get the accidentals as integer rather than as string.
-    """
-    m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
-    if m is None:
-        logger.error(sd + " is not a valid scale degree.")
-        return None, None
-    acc, num = m.group(1), m.group(2)
-    if count:
-        acc = acc.count('#') - acc.count('b')
-    return acc, num
 
 
 
@@ -1149,7 +1115,7 @@ def rel2abs_key(rel, localkey, global_minor=False):
     as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
     the result changes depending on whether the global key is major or minor.
 
-    Uses: :py:func:`split_sd`
+    Uses: :py:func:`split_scale_degree`
 
     Parameters
     ----------
@@ -1189,8 +1155,8 @@ def rel2abs_key(rel, localkey, global_minor=False):
                        [0, 0, 0, 0, 0, 0, 1],
                        [0, 0, 1, 0, 0, 1, 1],
                        [0, 1, 1, 0, 1, 1, 1]])
-    rel_acc, rel = split_sd(rel, count=True, logger=logger)
-    localkey_acc, localkey = split_sd(localkey, count=True, logger=logger)
+    rel_acc, rel = split_scale_degree(rel, count=True, logger=logger)
+    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
     shift = rel_acc + localkey_acc
     steps = maj_rn if rel.isupper() else min_rn
     rel_num = steps.index(rel)
@@ -1403,7 +1369,7 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False):
     Given a numeral and changes, computes the intervals that the changes represent.
     Changes do not express absolute intervals but instead depend on the numeral and the mode.
 
-    Uses: split_sd(), changes2list()
+    Uses: split_scale_degree(), changes2list()
 
     Parameters
     ----------
@@ -1417,7 +1383,7 @@ def changes2tpc(changes, numeral, minor=False, root_alterations=False):
     root_alterations : :obj:`bool`, optional
         Set to True if accidentals of the root should change the result.
     """
-    root_alteration, num_degree = split_sd(numeral, count=True, logger=logger)
+    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
     # build 2-octave diatonic scale on C major/minor
     root = ['I','II','III','IV','V','VI','VII'].index(num_degree.upper())
     tpcs = 2 * [i for i in (0,2,-3,-1,1,-4,-2)] if minor else 2 * [i for i in (0,2,4,-1,1,3,5)]
