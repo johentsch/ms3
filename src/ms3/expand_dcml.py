@@ -839,8 +839,11 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         iv = root + interval_size
         tpcs[chord_interval] = iv
         tpcs[chord_interval + 7] = iv
-        
+
+    is_triad = figbass in ['', '6', '64']
     is_seventh_chord = figbass in ['7', '65', '43', '2']
+    if not is_triad and not is_seventh_chord:
+        raise ValueError(f"{MC}{figbass} is not a valid chord inversion.")
 
     if form == 'o':
         set_iv(2, -3)
@@ -871,38 +874,22 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         elif is_seventh_chord:
             set_iv(6, -2)
 
-    if figbass in ['', '6', '64']:
-        # for triads, select root, third and fifth
-        selector = [0, 2, 4]
-    elif is_seventh_chord:
-        # for seventh chords, select root, third, fifth and seventh
-        selector = [0, 2, 4, 6]
-    else:
-        raise ValueError(f"{MC}{figbass} is not a valid chord inversion.")
+    tone_functions = (0, 2, 4, 6) if is_seventh_chord else (0, 2, 4)
+    root_position = {i: [tpcs[i]] for i in tone_functions}
+    replacements  = {i: [] for i in tone_functions}
 
-    def replace_chord_tone(ct, replacement, fixed_position=None):
-        nonlocal selector
-        if ct in selector:
-            selector.remove(ct)
-        if not replacement in selector:
-            if fixed_position is None:
-                    selector.append(replacement)
-                    selector = list(sorted(selector))
-            else:
-                selector.insert(fixed_position, replacement)
-
-
+    def replace_chord_tone(which, by):
+        nonlocal root_position, replacements
+        if which in root_position:
+            root_position[which] = []
+            replacements[which].insert(0, by)
+        else:
+            logger.warning(f"Only chord tones [0,2,4,(6)] can be replaced, not {which}")
 
     # apply changes
     alts = changes2list(changes, sort=False)
     added_notes = []
-#    changed_intervals = {}
     for full, add_remove, acc, chord_interval in alts:
-#         if chord_interval in changed_intervals:
-#             logger.warning(
-# f"{MC}There is more than one change to {chord_interval}. Applying only the first, {changed_intervals[chord_interval]}, not {full}.")
-#         else:
-#             changed_intervals[chord_interval] = full
         added = add_remove == '+'
         substracted = add_remove == '-'
         replacing_upper = add_remove == '^'
@@ -911,43 +898,43 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         ### From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in `tpcs`)
         if (chord_interval == 0 and not substracted) or chord_interval > 13:
             logger.warning(
-                f"{MC}Alteration of scale degree {chord_interval + 1} is meaningless and ignored.")
+                f"{MC}Change {full} is meaningless and ignored because it concerns chord tone {chord_interval + 1}.")
             continue
         next_octave = chord_interval > 7
         shift = 7 * (acc.count('#') - acc.count('b'))
         new_val = tpcs[chord_interval] + shift
         if substracted:
-            pass
+            if chord_interval not in tone_functions:
+                logger.warning(
+                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by {numeral}{form}{figbass}.")
+            else:
+                root_position[chord_interval] = []
         elif added:
             added_notes.append(new_val)
-        elif chord_interval in [1, 3, 5, 8, 10,
-                                12]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
-            tpcs[chord_interval] = new_val
-            if not replacing_lower and ('#' in acc or replacing_upper):
+        elif next_octave:
+            if any((replacing_lower, replacing_upper, substracted)):
+                logger.warning(f"{MC}{full[0]} has no effect in {full}  because the interval is larger than an octave.")
+            added_notes.append(new_val)
+        elif chord_interval in [1, 3, 5]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
+            if '#' in acc or replacing_upper:
                 if '#' in acc and replacing_upper:
                     logger.warning(f"{MC}^ is redundant in {full}.")
-                if chord_interval in [1, 3, 5]:
-                    if chord_interval == 5 and not is_seventh_chord:  # leading tone to 7 but not in seventh chord
-                        added_notes.append(new_val)
-                    else:
-                        replace_chord_tone(chord_interval + 1, chord_interval)
+                if chord_interval == 5 and is_triad:  # leading tone to 7 but not in seventh chord
+                    added_notes.append(new_val)
+                else:
+                    replace_chord_tone(chord_interval + 1, new_val)
             else:
                 if replacing_lower:
                     logger.warning(f"{MC}v is redundant in {full}.")
-                if chord_interval in [1, 3, 5]:
-                    replace_chord_tone(chord_interval - 1, chord_interval)
+                replace_chord_tone(chord_interval - 1, new_val)
         else:  # chord tone alterations
             if replacing_lower:
-                tpcs[chord_interval] = new_val
-                replace_chord_tone(chord_interval - 1, chord_interval)
+                logger.warning(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
             elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
                 if figbass == '':  # in root position triads they are added
                     added_notes.append(new_val)
-                elif figbass in ['6', '64']:  # in inverted triads they replace the root
-                    tpcs[chord_interval] = new_val
-                    replace_chord_tone(0, 6, 0)
-                elif '#' in acc:  # in an inverted seventh chord, they might retardate the 8
-                    added_notes.append(new_val)
+                elif figbass in ['6', '64'] or '#' in acc:  # in inverted triads they replace the root, as does #7
+                    replace_chord_tone(0, new_val)
                 else:  # otherwise they are unclear
                     logger.warning(
                         f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.")
@@ -955,20 +942,8 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                 logger.warning(
                     f"{MC}The change {full} has no effect in {numeral}{form}{figbass}")
             else:
-                tpcs[chord_interval] = new_val
-        if next_octave and not (added or substracted):
-            added_notes.append(new_val)
+                root_position[chord_interval] = [new_val]
 
-
-        if substracted:
-            if chord_interval not in selector:
-                logger.warning(
-                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by {numeral}{form}{figbass}.")
-            else:
-                selector.remove(chord_interval)
-
-    chord_tones = [tpcs[i] for i in selector]
-    print(f"tpcs: {tpcs} selector: {selector}")
     figbass2bass = {
         '': 0,
         '7': 0,
@@ -979,15 +954,25 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         '2': 3
     }
     bass = figbass2bass[figbass]
-    bass_tpc = chord_tones[bass]
+    chord_tones = []
+    for tf in tone_functions[bass:] + tone_functions[:bass]:
+        chord_tone, replacing_tones = root_position[tf], replacements[tf]
+        if chord_tone == replacing_tones == []:
+            logger.debug(f"{MC}{label} results in a chord without {tf + 1}.")
+        if chord_tone != []:
+            chord_tones.append(chord_tone[0])
+            if replacing_tones != []:
+                logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.")
+        chord_tones.extend(replacing_tones)
 
+    bass_tpc = chord_tones[0]
     if bass_only:
         return bass_tpc
     elif merge_tones:
         return tuple(sort_tpcs(chord_tones + added_notes, start=bass_tpc))
     else:
         return {
-            'chord_tones': tuple(chord_tones[bass:] + chord_tones[:bass]),
+            'chord_tones': tuple(chord_tones),
             'added_tones': tuple(added_notes),
             'root': root,
         }
