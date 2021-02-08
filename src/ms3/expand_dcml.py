@@ -811,8 +811,10 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                              logger=logger)
 
     if numeral.lower() == '#vii' and not minor:
-        logger.warning(
-            f"{MC}{label} in a major context is most probably an annotation error.")
+        # logger.warning(
+        #     f"{MC}{label} in a major context is most probably an annotation error.")
+        logger.warning(f"{MC}{numeral} in major context corrected to {numeral[1:]}.")
+        numeral = numeral[1:]
 
     root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
 
