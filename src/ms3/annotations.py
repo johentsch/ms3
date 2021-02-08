@@ -61,7 +61,7 @@ Present column names are:\n{self.df.columns.to_list()}."""
         self.infer_types()
 
 
-    def prepare_for_attaching(self, staff=None, voice=None, check_for_clashes=True):
+    def prepare_for_attaching(self, staff=None, voice=None, label_type=None, check_for_clashes=True):
         if self.mscx_obj is None:
             self.logger.warning(f"Annotations object not aware to which MSCX object it is attached.")
             return pd.DataFrame()
@@ -89,10 +89,13 @@ Possible values are {{1, 2, 3, 4}}.""")
         if voice is not None:
             df[voice_col] = voice
         if voice_col in cols and df[voice_col].isna().any():
-            self.logger.warning(f"The following labels don't ahve voice information: {df[df.voice.isna()]}")
+            self.logger.warning(f"The following labels don't have voice information: {df[df.voice.isna()]}")
             error = True
         if error:
             return pd.DataFrame()
+
+        if label_type is not None:
+            df[self.cols['label_type']] = label_type
 
         if self.cols['mc'] not in cols:
             mn_col = self.cols['mn'] if 'mn' in self.cols else 'mn'
