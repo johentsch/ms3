@@ -824,9 +824,14 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         if mc not in self.tags:
             self.logger.error(f"MC {mc} not found.")
             return False
-        if staff not in self.tags[mc]:
-            self.logger.error(f"Staff {staff} not found.")
-            return False
+        if staff not in self.measure_nodes:
+            try:
+                # maybe a negative integer?
+                staff = list(self.measure_nodes.keys())[staff]
+                self.logger.debug(f"Parameter staff changed to {staff}")
+            except:
+                self.logger.error(f"Staff {staff} not found.")
+                return False
         if voice not in [1, 2, 3, 4]:
             self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
             return False
@@ -856,9 +861,16 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             _, name = get_duration_event(elements)
             # insert before the first tag that is not in the tags_before_label list
             tags_before_label = ['BarLine', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
-            ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
-                          tags_before_label )
-            remember = self.insert_label(label=label, before=before, **kwargs)
+            try:
+                ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
+                              tags_before_label )
+                remember = self.insert_label(label=label, before=before, **kwargs)
+            except:
+                self.logger.debug(f"""'{label}' is to be inserted at MC {mc}, onset {mc_onset}, staff {staff}, voice {voice},
+where there is no Chord or Rest, just: {elements}.""")
+                if 'FiguredBass' in names:
+                    ix, after = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] == 'FiguredBass')
+                    remember = self.insert_label(label=label, after=after, **kwargs)
             measure[mc_onset].insert(ix, remember[0])
             old_names = list(names)
             names.insert(ix, 'Harmony')
