@@ -60,6 +60,15 @@ Present column names are:\n{self.df.columns.to_list()}."""
         #self.cols = {k: v for k, v in self.cols.items() if k in self.main_cols + ['label_type'] or v in df.columns}
         self.infer_types()
 
+    def add_initial_dots(self):
+        if self.read_only:
+            self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
+            return
+        label_col = self.cols['label']
+        notes = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+        add_dots = lambda s: '.' + s if s[0].lower() in notes else s
+        self.df[label_col] = self.df[label_col].map(add_dots)
+
 
     def prepare_for_attaching(self, staff=None, voice=None, label_type=None, check_for_clashes=True):
         if self.mscx_obj is None:
@@ -341,6 +350,15 @@ Possible values are {{1, 2, 3, 4}}.""")
                 #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
                 mtch = decoded[sel].str.match(regex)
                 self.df.loc[sel & mtch, 'label_type'] = self.df.loc[sel & mtch, 'label_type'].astype(str) + f" ({name})"
+
+
+    def remove_initial_dots(self):
+        if self.read_only:
+            self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
+            return
+        label_col = self.cols['label']
+        rem_dots = lambda s: s[1:] if s[0] == '.' else s
+        self.df[label_col] = self.df[label_col].map(rem_dots)
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):

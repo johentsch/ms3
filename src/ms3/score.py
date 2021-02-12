@@ -118,7 +118,8 @@ class Score(LoggedClass):
 
         self._detached_annotations = {}
         """:obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.            """
+        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.
+        """
 
         self._types_to_infer = []
         """:obj:`list`

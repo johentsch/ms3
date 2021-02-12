@@ -523,7 +523,7 @@ Therefore, the index for this key has been adapted.""")
             :obj:`ms3.annotations.Annotations.df` will be used.
         check_for_clashes : :obj:`bool`, optional
             By default, warnings are thrown when there already exists a label at a position (and in a notational
-            layer) where a new one is attached. Pass False to deactivate this warnings.
+            layer) where a new one is attached. Pass False to deactivate these warnings.
         """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
         if len(layers) == 0:
