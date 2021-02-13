@@ -332,11 +332,12 @@ Possible values are {{1, 2, 3, 4}}.""")
 
 
     def infer_types(self, regex_dict=None):
+        recognized = [0, 1, 2, 3, '0', '1', '2', '3']
         if regex_dict is not None:
             self.regex_dict = regex_dict
         if 'label_type' in self.df.columns:
             self.df.label_type.fillna(0, inplace=True)
-            self.df.loc[~self.df.label_type.isin([0, 1, 2, 3, '0', '1', '2', '3']), 'label_type'] = 0
+            self.df.loc[~self.df.label_type.isin(recognized), 'label_type'] = 0
         else:
             self.df['label_type'] = pd.Series(0, index=self.df.index, dtype='object')
         if 'nashville' in self.df.columns:
@@ -346,7 +347,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         if len(self.regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
             for name, regex in self.regex_dict.items():
-                sel = self.df.label_type.isin((0, 1, 2, 3))
+                sel = self.df.label_type.isin(recognized)
                 #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
                 mtch = decoded[sel].str.match(regex)
                 self.df.loc[sel & mtch, 'label_type'] = self.df.loc[sel & mtch, 'label_type'].astype(str) + f" ({name})"
