@@ -1164,6 +1164,8 @@ def roman_numeral2tpc(rn, global_minor=False):
     """ Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
         Uses: split_scale_degree()
     """
+    if pd.isnull(rn):
+        return rn
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
     accidentals, rn_step = split_scale_degree(rn, count=True)
@@ -1351,7 +1353,7 @@ def split_scale_degree(sd, count=False):
     """
     m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
-        logger.error(sd + " is not a valid scale degree.")
+        logger.error(f"{sd} is not a valid scale degree.")
         return None, None
     acc, num = m.group(1), m.group(2)
     if count:

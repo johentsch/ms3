@@ -137,7 +137,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
         c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        logger.warning(f"Phrse beginning and endings don't match:\n{compare}")
+        logger.warning(f"Phrase beginning and endings don't match:\n{compare}")
 
     if propagate or chord_tones:
         if not propagate:
@@ -931,9 +931,11 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                 replace_chord_tone(chord_interval - 1, new_val)
         else:  # chord tone alterations
             if replacing_lower:
+                # TODO: This must be possible, e.g. V(6v5) where 5 is suspension of 4
                 logger.warning(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
             elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
                 if figbass == '':  # in root position triads they are added
+                    # TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced from below!
                     added_notes.append(new_val)
                 elif figbass in ['6', '64'] or '#' in acc:  # in inverted triads they replace the root, as does #7
                     replace_chord_tone(0, new_val)
@@ -1095,7 +1097,7 @@ def labels2global_tonic(df, cols={}, inplace=False):
         return res
 
 
-
+@function_logger
 def rel2abs_key(rel, localkey, global_minor=False):
     """
     Expresses a Roman numeral that is expressed relative to a localkey
@@ -1169,6 +1171,8 @@ def resolve_relative_keys(relativeroot, minor=False):
     minor : :obj:`bool`, optional
         Pass True if the last of the relative keys is to be interpreted within a minor context.
     """
+    if pd.isnull(relativeroot):
+        return relativeroot
     spl = relativeroot.split('/')
     if len(spl) < 2:
         return relativeroot
