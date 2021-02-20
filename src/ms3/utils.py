@@ -230,8 +230,11 @@ def assert_dfs_equal(old, new, exclude=[]):
 
 def ambitus2oneliner(ambitus):
     """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
-    return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
-
+    if 'min_midi' in ambitus:
+        return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
+    if 'max_midi' in ambitus:
+        return f"{ambitus['max_midi']}-{ambitus['max_midi']} ({ambitus['max_name']}-{ambitus['max_name']})"
+    return ''
 
 def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
     """  Checks the labels in ``column`` against ``regex`` and returns those that don't match.
@@ -388,7 +391,8 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False)
             sel = df.rootCase.notna()
             df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
             drop_cols.append('rootCase')
-    compose_label.append(label_col)
+    if label_col in df.columns:
+        compose_label.append(label_col)
     if 'absolute_base' in df.columns:
         df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
         compose_label.append('absolute_base')

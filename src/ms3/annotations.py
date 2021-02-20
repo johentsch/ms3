@@ -52,9 +52,9 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        for col in ['label']:
-            assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
-Present column names are:\n{self.df.columns.to_list()}."""
+#         for col in ['label']:
+#             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
+# Present column names are:\n{self.df.columns.to_list()}."""
         # if 'offset' in self.df.columns:
         #     self.df.drop(columns='offset', inplace=True)
         #self.cols = {k: v for k, v in self.cols.items() if k in self.main_cols + ['label_type'] or v in df.columns}
@@ -342,8 +342,8 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.df['label_type'] = pd.Series(0, index=self.df.index, dtype='object')
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
-        if 'root' in self.df.columns:
-            self.df.loc[self.df.root.notna(), 'label_type'] = 3
+        if 'absolute_root' in self.df.columns:
+            self.df.loc[self.df.absolute_root.notna(), 'label_type'] = 3
         if len(self.regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
             for name, regex in self.regex_dict.items():

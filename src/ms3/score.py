@@ -1284,7 +1284,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             folder = mscx_path
         if not os.path.isdir(folder):
             if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.mkdir(d)
+                os.makedirs(folder)
             else:
                 return
         what, suffix = self._treat_storing_params(what, suffix)

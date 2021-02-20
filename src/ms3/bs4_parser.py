@@ -580,7 +580,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
         first_label =  self.soup.find('Harmony')
         first_label_name = first_label.find('name') if first_label is not None else None
-        if first_label_name is not None:
+        if first_label_name is not None and first_label_name.string is not None:
             m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
             if m is not None:
                 data['annotated_key'] = m.group(1)

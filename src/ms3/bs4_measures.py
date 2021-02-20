@@ -96,7 +96,7 @@ class MeasureList(LoggedClass):
 
         self.ml = self.get_unique_measure_list()
         info_cols = ['barline', 'breaks', 'dont_count', 'endRepeat', 'jump_bwd', 'jump_fwd', 'len_col', 'markers', 'numbering_offset',
-                   'play_until', 'startRepeat', 'volta_start', 'volta_length']
+                   'play_until', 'sigD_col', 'sigN_col', 'startRepeat', 'volta_start', 'volta_length']
         for col in [self.cols[col] for col in info_cols]:
             if not col in self.ml.columns:
                 self.ml[col] = np.nan
