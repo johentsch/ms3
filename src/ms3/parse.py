@@ -500,7 +500,7 @@ Therefore, the index for this key has been adapted.""")
 
 
 
-    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, check_for_clashes=True):
+    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, label_type=None, check_for_clashes=True):
         """ Attach all :obj:`~ms3.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
         respective :obj:`~ms3.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
         MuseScore files where the annotations show in the score.
@@ -523,7 +523,7 @@ Therefore, the index for this key has been adapted.""")
             :obj:`ms3.annotations.Annotations.df` will be used.
         check_for_clashes : :obj:`bool`, optional
             By default, warnings are thrown when there already exists a label at a position (and in a notational
-            layer) where a new one is attached. Pass False to deactivate this warnings.
+            layer) where a new one is attached. Pass False to deactivate these warnings.
         """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
         if len(layers) == 0:
@@ -552,7 +552,7 @@ Continuing with {annotation_key}.""")
         for id in ids:
             for anno_key in annotation_key:
                 if anno_key in self._parsed_mscx[id]:
-                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
                     goal += g

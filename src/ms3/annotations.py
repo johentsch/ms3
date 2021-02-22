@@ -52,16 +52,25 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        for col in ['label']:
-            assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
-Present column names are:\n{self.df.columns.to_list()}."""
+#         for col in ['label']:
+#             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
+# Present column names are:\n{self.df.columns.to_list()}."""
         # if 'offset' in self.df.columns:
         #     self.df.drop(columns='offset', inplace=True)
         #self.cols = {k: v for k, v in self.cols.items() if k in self.main_cols + ['label_type'] or v in df.columns}
         self.infer_types()
 
+    def add_initial_dots(self):
+        if self.read_only:
+            self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
+            return
+        label_col = self.cols['label']
+        notes = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'}
+        add_dots = lambda s: '.' + s if s[0].lower() in notes else s
+        self.df[label_col] = self.df[label_col].map(add_dots)
 
-    def prepare_for_attaching(self, staff=None, voice=None, check_for_clashes=True):
+
+    def prepare_for_attaching(self, staff=None, voice=None, label_type=None, check_for_clashes=True):
         if self.mscx_obj is None:
             self.logger.warning(f"Annotations object not aware to which MSCX object it is attached.")
             return pd.DataFrame()
@@ -89,10 +98,13 @@ Possible values are {{1, 2, 3, 4}}.""")
         if voice is not None:
             df[voice_col] = voice
         if voice_col in cols and df[voice_col].isna().any():
-            self.logger.warning(f"The following labels don't ahve voice information: {df[df.voice.isna()]}")
+            self.logger.warning(f"The following labels don't have voice information: {df[df.voice.isna()]}")
             error = True
         if error:
             return pd.DataFrame()
+
+        if label_type is not None:
+            df[self.cols['label_type']] = label_type
 
         if self.cols['mc'] not in cols:
             mn_col = self.cols['mn'] if 'mn' in self.cols else 'mn'
@@ -320,24 +332,34 @@ Possible values are {{1, 2, 3, 4}}.""")
 
 
     def infer_types(self, regex_dict=None):
+        recognized = [0, 1, 2, 3, '0', '1', '2', '3']
         if regex_dict is not None:
             self.regex_dict = regex_dict
         if 'label_type' in self.df.columns:
             self.df.label_type.fillna(0, inplace=True)
-            self.df.loc[~self.df.label_type.isin([0, 1, 2, 3, '0', '1', '2', '3']), 'label_type'] = 0
+            self.df.loc[~self.df.label_type.isin(recognized), 'label_type'] = 0
         else:
             self.df['label_type'] = pd.Series(0, index=self.df.index, dtype='object')
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'label_type'] = 2
-        if 'root' in self.df.columns:
-            self.df.loc[self.df.root.notna(), 'label_type'] = 3
+        if 'absolute_root' in self.df.columns:
+            self.df.loc[self.df.absolute_root.notna(), 'label_type'] = 3
         if len(self.regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
             for name, regex in self.regex_dict.items():
-                sel = self.df.label_type.isin((0, 1, 2, 3))
+                sel = self.df.label_type.isin(recognized)
                 #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)
                 mtch = decoded[sel].str.match(regex)
                 self.df.loc[sel & mtch, 'label_type'] = self.df.loc[sel & mtch, 'label_type'].astype(str) + f" ({name})"
+
+
+    def remove_initial_dots(self):
+        if self.read_only:
+            self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
+            return
+        label_col = self.cols['label']
+        rem_dots = lambda s: s[1:] if s[0] == '.' else s
+        self.df[label_col] = self.df[label_col].map(rem_dots)
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):

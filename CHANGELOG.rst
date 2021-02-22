@@ -2,6 +2,17 @@
 Changelog
 =========
 
+Version 0.4.7
+=============
+
+* More correct computation of chord tones
+
+Version 0.4.6
+=============
+
+* ms3 extract and Parse.store_lists() now have the option unfold to account for repeats
+* minor bug fixes
+
 Version 0.4.5
 =============
 
@@ -29,7 +40,7 @@ Version 0.4.1
 =============
 
 * ms3 0.4.1 supports parsing (but not storing) compressed MuseScore files (.mscz)
-* Install "ms3 convert" command to your system for batch conversion using your local MuseScore installation
+* Installs "ms3 convert" command to your system for batch conversion using your local MuseScore installation
 * "ms3 extract" command now supports creation of log files
 * take ``labels_cfg`` into account when creating expanded chord tables
 

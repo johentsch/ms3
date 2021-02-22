@@ -118,7 +118,8 @@ class Score(LoggedClass):
 
         self._detached_annotations = {}
         """:obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.            """
+        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.
+        """
 
         self._types_to_infer = []
         """:obj:`list`
@@ -241,7 +242,7 @@ class Score(LoggedClass):
         return self._label_types
 
 
-    def attach_labels(self, key, staff=None, voice=None, check_for_clashes=True, remove_detached=True):
+    def attach_labels(self, key, staff=None, voice=None, label_type=None, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
@@ -250,6 +251,12 @@ class Score(LoggedClass):
             Key of the detached labels you want to insert into the score.
         staff, voice : :obj:`int`, optional
             Pass one or both of these arguments to change the original annotation layer or if there was none.
+        label_type : :obj:`int`, optional
+            By default, the labels are written into the staff's layer for absolute ('guitar') chords, meaning that when
+            opened next time, MuseScore will split and encode those beginning with a note name (internal label_type 3).
+            In order to influence how MuseScore treats the labels pass one of these values:
+            1: Roman Numeral Analysis
+            2: Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.
@@ -276,7 +283,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if goal == 0:
             self.mscx.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return 0, 0
-        df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+        df = annotations.prepare_for_attaching(staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
         reached = len(df)
         if reached == 0:
             self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
@@ -1175,7 +1182,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def get_raw_labels(self):
         """Shortcut for ``MSCX.parsed.get_raw_labels()``.
         Retrieve a "raw" list of labels, meaning that label types reflect only those defined within <Harmony> tags
-        which can be 1 (Nashville), 2 (MuseScore's Roman Numeral display) or undefined (in the case of 'normal'
+        which can be 1 (MuseScore's Roman Numeral display), 2 (Nashville) or undefined (in the case of 'normal'
         chord labels, defaulting to 0).
 
         Returns
@@ -1277,7 +1284,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             folder = mscx_path
         if not os.path.isdir(folder):
             if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.mkdir(d)
+                os.makedirs(folder)
             else:
                 return
         what, suffix = self._treat_storing_params(what, suffix)
