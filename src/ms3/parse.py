@@ -31,6 +31,16 @@ class Parse(LoggedClass):
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
             List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
             WARNING: If you want to use a custom index, don't use both arguments simultaneously.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
+            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
+            | In other words, a single level will result in a single index and a collection of levels will result in a
+              :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
+            | 'fname' evokes an index level made from file names.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
@@ -215,6 +225,13 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    @property
+    def measures(self):
+        d = self.get_lists(measures=True, flat=False)
+        if len(d) == 0:
+            self.logger.info('This Parse object does not include any measure lists.')
+            return
+        return pd.concat(d['measures'].values(), keys=d['measures'].keys())
 
     @property
     def ms(self):
@@ -880,7 +897,7 @@ Available keys: {available_keys}""")
 
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, simulate=False):
+                  labels=False, chords=False, expanded=False, simulate=False, flat=True):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
@@ -895,6 +912,9 @@ Available keys: {available_keys}""")
         chords
         expanded
         simulate
+        flat : :obj:`bool`, optional
+            By default, you get a dictionary {(id, list_type) -> list}.
+            By passing False you get a nested dictionary {list_type -> {index -> list}}
 
         Returns
         -------
@@ -911,8 +931,11 @@ Available keys: {available_keys}""")
         res = {}
         for param, li in self._lists.items():
             if params[param]:
-                for id in (i for i in self._iterids(keys) if i in li):
-                    res[id + (param,)] = li[id]
+                if flat:
+                    for id in (i for i in self._iterids(keys) if i in li):
+                        res[id + (param,)] = li[id]
+                else:
+                    res[param] = {self._index[id]: li[id] for id in (i for i in self._iterids(keys) if i in li)}
         return res
 
 
@@ -1190,7 +1213,7 @@ Available keys: {available_keys}""")
                      self.fexts[key][i] in ('.mscx', '.mscz')]
 
         if len(paths) == 0:
-            reason = 'in the entire object' if keys is None else f"for '{keys}'"
+            reason = 'in this Parse object' if keys is None else f"for '{keys}'"
             self.logger.info(f"No MSCX files found {reason}.")
             return
         if level is None:
@@ -1369,7 +1392,7 @@ Available keys: {available_keys}""")
 f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
 Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                     else:
-                        self.logger.info(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
+                        self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
 
             except:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -1854,9 +1877,9 @@ Using the first {li} elements, discarding {discarded}""")
         if l_counts > 0 or l_existing > 0:
             new_index, names = self._treat_index_param(None, ids=ids)
             if l_counts > 0:
-                plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
+                plural_phrase = "These index values occur" if l_counts > 1 else "This index value occurs"
                 self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
-To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
+To avoid the problem, define sufficient distinguishing index levels, e.g. ['fname', 'key', 'i'].\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")

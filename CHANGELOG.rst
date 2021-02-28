@@ -5,7 +5,12 @@ Changelog
 Version 0.4.7
 =============
 
-* More correct computation of chord tones
+* Labels can be attached to MuseScore's Roman Numeral Analysis (RNA) layer
+  * parameter `label_type=1` in both `Score.attach_labels()` and `Parse.attach_labels()`
+  * `Annotations.remove_initial_dots()` before inserting into the RNA layer
+  * `Annotations.add_initial_dots()` before inserting into the absolute chord layer
+* interpret all `#vii` in major contexts as `vii` when computing chord tones
+* code cosmetics and bug fixes
 
 Version 0.4.6
 =============
