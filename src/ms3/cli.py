@@ -1,21 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-This is a skeleton file that can serve as a starting point for a Python
-console script. To run this script uncomment the following lines in the
-[options.entry_points] section in setup.cfg:
-
-    console_scripts =
-         fibonacci = ms3.skeleton:run
-
-Then run `python setup.py install` which will install the command `fibonacci`
-inside your current environment.
-Besides console scripts, the header (i.e. until _logger...) of this file can
-also be used as template for Python modules.
-
-Note: This skeleton file can be safely removed if not needed!
+Command line interface for ms3.
 """
 
-import argparse, os
+import argparse, os, json
 
 from ms3 import Parse
 from ms3.utils import convert_folder, resolve_dir
@@ -40,9 +28,13 @@ def check(args):
     if args.file is None:
         p = Parse(dir=args.root_dir, index=['key', 'fname'], file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     else:
-        p = Parse(paths=args.file, index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+        if len(args.file) == 1 and args.file[0].endswith('.json'):
+            paths = json.load(args.file[0])
+        else:
+            paths = args.file
+        p = Parse(paths=paths, index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     if '.mscx' not in p.count_extensions():
-        p.logger.warning("No MSCX files found.")
+        p.logger.warning("No MSCX files to check.")
         return
     p.parse_mscx()
     if not args.scores_only:
