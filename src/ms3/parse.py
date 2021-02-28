@@ -217,10 +217,16 @@ class Parse(LoggedClass):
         The directory that was scanned for files last.
         """
         if dir is not None:
-            self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            if isinstance(dir, str):
+                dir = [dir]
+            for d in dir:
+                self.add_dir(dir=d, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
             if isinstance(paths, str):
                 paths = [paths]
+            if len(paths) == 1 and paths[0].endswith('.json'):
+                with open(paths[0]) as f:
+                    paths = json.load(f)
             _ = self.add_files(paths, key=key, index=index)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -310,7 +316,8 @@ class Parse(LoggedClass):
             matches.labels.fillna(matches.expanded)
             match_dict = dict(matches[['scores', 'labels']].values)
         if len(match_dict) == 0:
-            self.logger.info(f"No files could be matched. You may want to use the method match_files() before or pass the match_dict argument.")
+            self.logger.info(f"No files could be matched based on file names, have you added the folder containing annotation tables?"
+                    f"Instead, you could pass the match_dict argument with a mapping of Score IDs to Annotations IDs.")
             return
         for score_id, labels_id in match_dict.items():
             if score_id in self._parsed_mscx and not pd.isnull(labels_id):
@@ -496,9 +503,10 @@ Therefore, the index for this key has been adapted.""")
                 index_levels = {k: self._levelnames[k] for k in existing.keys()}
         else:
             index_levels = {k: index for k in existing.keys()}
+        new_ids = []
         for k, paths in existing.items():
             key_param = k if new_key is None else new_key
-            new_ids = self.add_files(paths, key_param, index_levels[k])
+            new_ids.extend(self.add_files(paths, key_param, index_levels[k]))
         self.parse_tsv(ids=new_ids)
         for score_id, tsv_id in zip(ids, new_ids):
             ix = self._index[score_id]
@@ -673,6 +681,7 @@ Continuing with {annotation_key}.""")
                 self.logger.warning("No scores have been parsed so far.")
                 return
             self.logger.warning("None of the parsed score include detached labels to compare.")
+            return
         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
         if detached_key not in available_keys:
             self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
