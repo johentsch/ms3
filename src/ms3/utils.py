@@ -30,6 +30,7 @@ DCML_REGEX = re.compile(r"""
     )
     (?P<pedalend>\])?
 )?
+(\|(?P<cadence>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
 (?P<phraseend>(\\\\|\}\{|\{|\}))?$
             """, re.VERBOSE)
 """:obj:`str`
@@ -52,6 +53,7 @@ DCML_DOUBLE_REGEX = re.compile(r"""
                                     )
                                     (?P<pedalend>\])?
                                   )?
+                                  (\|(?P<cadence>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
                                   (?P<phraseend>(\\\\|\}\{|\{|\})
                                   )?
                                  )
@@ -69,6 +71,7 @@ DCML_DOUBLE_REGEX = re.compile(r"""
                                     )
                                     (?P<pedalend2>\])?
                                   )?
+                                  (\|(?P<cadence2>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
                                   (?P<phraseend2>(\\\\|\}\{|\{|\})
                                   )?
                                  )?
