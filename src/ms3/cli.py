@@ -29,7 +29,8 @@ def check(args):
         p = Parse(dir=args.root_dir, index=['key', 'fname'], file_re=r'\.mscx$', labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     else:
         if len(args.file) == 1 and args.file[0].endswith('.json'):
-            paths = json.load(args.file[0])
+            with open(args.file[0]) as f:
+                paths = json.load(f)
         else:
             paths = args.file
         p = Parse(paths=paths, index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
