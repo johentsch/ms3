@@ -355,7 +355,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False):
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
@@ -369,6 +369,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         detached_is_newer : :obj:`bool`, optional
             Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
             will turn ``old_color``, as opposed to the default.
+        add_to_rna : :obj:`bool`, optional
+            By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
@@ -417,7 +419,15 @@ Use one of the existing keys or load a new set with the method load_annotations(
         df = pd.DataFrame(changes_old, columns=compare_cols)
         for k, v in added_color_params.items():
             df[k] = v
-        added_changes = self.mscx.add_labels(Annotations(df=df), )
+        if add_to_rna:
+            df['label_type'] = 1
+            anno = Annotations(df=df)
+            anno.remove_initial_dots()
+        else:
+            df['label_type'] = 0
+            anno = Annotations(df=df)
+            anno.add_initial_dots()
+        added_changes = self.mscx.add_labels(anno)
         if (added_changes is None or added_changes > 0) or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()

@@ -881,7 +881,7 @@ where there is no Chord or Rest, just: {elements}.""")
                 self.logger.debug(f"Added {label_name} to {name} in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
             if 'Harmony' in old_names:
                 self.logger.debug(
-                    f"The chord in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} was already carrying a label.")
+                    f"There had already been a label.")
             return True
 
 
