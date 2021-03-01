@@ -3,7 +3,7 @@
 Command line interface for ms3.
 """
 
-import argparse, os, json
+import argparse, os
 
 from ms3 import Parse
 from ms3.utils import convert_folder, resolve_dir
