@@ -412,6 +412,9 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         :obj:`list`
             The IDs of the added files.
         """
+        if paths is None or len(paths) == 0:
+            self.logger.debug(f"add_files() was called with paths = '{paths}'.")
+            return []
         if isinstance(paths, str):
             paths = [paths]
         if self.last_scanned_dir is None:
