@@ -45,6 +45,11 @@ class Score(LoggedClass):
     Formats that have to be converted before parsing.
     """
 
+    parseable_formats = native_formats + convertible_formats
+    """:obj:`tuple`
+    Formats that ms3 can parse.
+    """
+
     def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
         """

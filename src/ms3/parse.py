@@ -381,7 +381,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         self.last_scanned_dir = dir
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True)
-        paths = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger)
+        paths = tuple(scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
         _ = self.add_files(paths=paths, key=key, index=index)
 
 
@@ -1364,7 +1364,7 @@ Available keys: {available_keys}""")
         if ids is not None:
             pass
         elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
         else:
             if isinstance(fexts, str):
                 fexts = [fexts]
@@ -1847,6 +1847,24 @@ Using the first {li} elements, discarding {discarded}""")
 
 
     def _treat_index_param(self, index_param, ids, selector=None):
+        """ Turns an index parameter (string or collection) and turns each elemeht into an index level.
+
+        Parameters
+        ----------
+        index_param
+        ids
+        selector : :obj:`~collections.abc.Collection`
+            Pass a collection of list indices to create index tuples for only those.
+
+
+        Returns
+        -------
+        :obj:`pandas.core.indexes.multi.MultiIndex` or :obj:`pandas.core.indexes.base.Index`
+            Newly created index.
+        :obj:`tuple`
+            Names of the index levels.
+
+        """
         if index_param is None:
             names = ('key', 'i')
             return {id: id for id in ids}, names
