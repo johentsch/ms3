@@ -28,7 +28,7 @@ def check(args):
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              index=['key', 'fname'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+              index=['key', 'fnames'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     if '.mscx' not in p.count_extensions():
         p.logger.warning("No MSCX files to check.")
         return
@@ -56,7 +56,7 @@ def compare(args):
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-                  key='compare', index='fname', logger_cfg=logger_cfg)
+                  key='compare', index='fnames', logger_cfg=logger_cfg)
     if len(p._score_ids()) == 0:
         p.logger.warning(f"Your selection does not include any scores.")
         return
