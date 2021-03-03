@@ -1672,7 +1672,9 @@ Load one of the identically named files with a different key using add_dir(key='
                     yield e
 
     def _make_index_level(self, level, ids, selector=None):
-        if isinstance(level, str):
+        if isinstance(level, str) or len(level) == 1:
+            if not isinstance(level, str):
+                level = level[0]
             if level == 'key':
                 return {id: id[0] for id in ids}
             if level == 'i':
