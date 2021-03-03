@@ -1672,12 +1672,13 @@ Load one of the identically named files with a different key using add_dir(key='
                     yield e
 
     def _make_index_level(self, level, ids, selector=None):
-        if level == 'key':
-            return {id: id[0] for id in ids}
-        if level == 'i':
-            return {id: id[1] for id in ids}
-        if level in self._possible_levels:
-            return {(key, i): self._possible_levels[level][key][i] for key, i in ids}
+        if isinstance(level, str):
+            if level == 'key':
+                return {id: id[0] for id in ids}
+            if level == 'i':
+                return {id: id[1] for id in ids}
+            if level in self._possible_levels:
+                return {(key, i): self._possible_levels[level][key][i] for key, i in ids}
         ll, li = len(level), len(ids)
         ls = 0 if selector is None else len(selector)
         if ll < li:
