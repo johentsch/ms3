@@ -625,7 +625,7 @@ def fifths2str(fifths, steps, inverted=False):
 
 
 def get_ms_version(mscx_file):
-    with open(mscx_file) as file:
+    with open(mscx_file, encoding='utf-8') as file:
         for i, l in enumerate(file):
             if i < 2:
                 pass
