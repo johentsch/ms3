@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 0.4.8
+=============
+
+* now reads DCML labels with cadence annotations
+* unified command-line interface file options and included ``-f file.json``
+* Parse got more options for creating DataFrame index levels
+* Parse.measures property for convenience
+* bug fixes for better GitHub workflows
+
 Version 0.4.7
 =============
 
