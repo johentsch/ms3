@@ -1,4 +1,5 @@
 import sys, os
+import json
 import traceback
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
@@ -31,6 +32,16 @@ class Parse(LoggedClass):
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
             List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
             WARNING: If you want to use a custom index, don't use both arguments simultaneously.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
@@ -197,6 +208,19 @@ class Parse(LoggedClass):
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
         """
 
+        self._possible_levels = {
+            'full_paths': self.full_paths,
+            'rel_paths': self.rel_paths,
+            'scan_paths': self.scan_paths,
+            'paths': self.paths,
+            'files': self.files,
+            'fnames': self.fnames,
+            'fexts': self.fexts,
+        }
+        """:obj:`dict`
+        Dictionary including the various constituents of the file paths which can be used as index levels.
+        """
+
         self._matches = pd.DataFrame(columns=['scores', 'annotations']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
@@ -207,14 +231,27 @@ class Parse(LoggedClass):
         The directory that was scanned for files last.
         """
         if dir is not None:
-            self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            if isinstance(dir, str):
+                dir = [dir]
+            for d in dir:
+                self.add_dir(dir=d, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
             if isinstance(paths, str):
                 paths = [paths]
+            if len(paths) == 1 and paths[0].endswith('.json'):
+                with open(paths[0]) as f:
+                    paths = json.load(f)
             _ = self.add_files(paths, key=key, index=index)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    @property
+    def measures(self):
+        d = self.get_lists(measures=True, flat=False)
+        if len(d) == 0:
+            self.logger.info('This Parse object does not include any measure lists.')
+            return
+        return pd.concat(d['measures'].values(), keys=d['measures'].keys())
 
     @property
     def ms(self):
@@ -293,7 +330,8 @@ class Parse(LoggedClass):
             matches.labels.fillna(matches.expanded)
             match_dict = dict(matches[['scores', 'labels']].values)
         if len(match_dict) == 0:
-            self.logger.info(f"No files could be matched. You may want to use the method match_files() before or pass the match_dict argument.")
+            self.logger.info(f"No files could be matched based on file names, have you added the folder containing annotation tables?"
+                    f"Instead, you could pass the match_dict argument with a mapping of Score IDs to Annotations IDs.")
             return
         for score_id, labels_id in match_dict.items():
             if score_id in self._parsed_mscx and not pd.isnull(labels_id):
@@ -331,16 +369,16 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             | Pass a string to identify the loaded files.
             | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
               itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
             | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
               index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
-            | 'fname' evokes an index level made from file names.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
         dir : :obj:`str`
             Directory to be scanned for files.
         file_re : :obj:`str`, optional
@@ -356,7 +394,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         self.last_scanned_dir = dir
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True)
-        paths = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger)
+        paths = tuple(scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
         _ = self.add_files(paths=paths, key=key, index=index)
 
 
@@ -371,22 +409,25 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             | Pass a string to identify the loaded files.
             | If None is passed, paths relative to :py:prop:`last_scanned_dir` are used as keys. If :py:meth:`add_dir`
               hasn't been used before, the longest common prefix of all paths is used.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
             | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
               index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
-            | 'fname' evokes an index level made from file names.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
 
         Returns
         -------
         :obj:`list`
             The IDs of the added files.
         """
+        if paths is None or len(paths) == 0:
+            self.logger.debug(f"add_files() was called with paths = '{paths}'.")
+            return []
         if isinstance(paths, str):
             paths = [paths]
         if self.last_scanned_dir is None:
@@ -448,14 +489,16 @@ Therefore, the index for this key has been adapted.""")
             Key(s) under which score files are stored. By default, all keys are selected.
         new_key : :obj:`str`, optional
             Pass a string to identify the loaded files. By default, the keys of the score files are being used.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i'}
-            | By default, the index levels of the existing scores are used (does not work with custom levels).
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
-              If the index levels differ from existing ones, you need to set a ``new_key``.
-            | Every single element ∈ {'key', 'fname', 'i'} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | 'fname', for example, evokes an index level made from file names.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
         """
         ids = self._score_ids(keys, score_extensions)
         grouped_ids = group_id_tuples(ids)
@@ -479,9 +522,10 @@ Therefore, the index for this key has been adapted.""")
                 index_levels = {k: self._levelnames[k] for k in existing.keys()}
         else:
             index_levels = {k: index for k in existing.keys()}
+        new_ids = []
         for k, paths in existing.items():
             key_param = k if new_key is None else new_key
-            new_ids = self.add_files(paths, key_param, index_levels[k])
+            new_ids.extend(self.add_files(paths, key_param, index_levels[k]))
         self.parse_tsv(ids=new_ids)
         for score_id, tsv_id in zip(ids, new_ids):
             ix = self._index[score_id]
@@ -656,6 +700,7 @@ Continuing with {annotation_key}.""")
                 self.logger.warning("No scores have been parsed so far.")
                 return
             self.logger.warning("None of the parsed score include detached labels to compare.")
+            return
         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
         if detached_key not in available_keys:
             self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
@@ -880,7 +925,7 @@ Available keys: {available_keys}""")
 
 
     def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, simulate=False):
+                  labels=False, chords=False, expanded=False, simulate=False, flat=True):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
@@ -895,6 +940,9 @@ Available keys: {available_keys}""")
         chords
         expanded
         simulate
+        flat : :obj:`bool`, optional
+            By default, you get a dictionary {(id, list_type) -> list}.
+            By passing False you get a nested dictionary {list_type -> {index -> list}}
 
         Returns
         -------
@@ -911,8 +959,11 @@ Available keys: {available_keys}""")
         res = {}
         for param, li in self._lists.items():
             if params[param]:
-                for id in (i for i in self._iterids(keys) if i in li):
-                    res[id + (param,)] = li[id]
+                if flat:
+                    for id in (i for i in self._iterids(keys) if i in li):
+                        res[id + (param,)] = li[id]
+                else:
+                    res[param] = {self._index[id]: li[id] for id in (i for i in self._iterids(keys) if i in li)}
         return res
 
 
@@ -1190,7 +1241,7 @@ Available keys: {available_keys}""")
                      self.fexts[key][i] in ('.mscx', '.mscz')]
 
         if len(paths) == 0:
-            reason = 'in the entire object' if keys is None else f"for '{keys}'"
+            reason = 'in this Parse object' if keys is None else f"for '{keys}'"
             self.logger.info(f"No MSCX files found {reason}.")
             return
         if level is None:
@@ -1328,7 +1379,7 @@ Available keys: {available_keys}""")
         if ids is not None:
             pass
         elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
         else:
             if isinstance(fexts, str):
                 fexts = [fexts]
@@ -1369,7 +1420,7 @@ Available keys: {available_keys}""")
 f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
 Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                     else:
-                        self.logger.info(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
+                        self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
 
             except:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -1621,12 +1672,15 @@ Load one of the identically named files with a different key using add_dir(key='
                     yield e
 
     def _make_index_level(self, level, ids, selector=None):
-        if level == 'key':
-            return {id: id[0] for id in ids}
-        if level == 'i':
-            return {id: id[1] for id in ids}
-        if level == 'fname':
-            return {(key, i): self.fnames[key][i] for key, i in ids}
+        if isinstance(level, str) or len(level) == 1:
+            if not isinstance(level, str):
+                level = level[0]
+            if level == 'key':
+                return {id: id[0] for id in ids}
+            if level == 'i':
+                return {id: id[1] for id in ids}
+            if level in self._possible_levels:
+                return {(key, i): self._possible_levels[level][key][i] for key, i in ids}
         ll, li = len(level), len(ids)
         ls = 0 if selector is None else len(selector)
         if ll < li:
@@ -1811,6 +1865,24 @@ Using the first {li} elements, discarding {discarded}""")
 
 
     def _treat_index_param(self, index_param, ids, selector=None):
+        """ Turns an index parameter (string or collection) and turns each elemeht into an index level.
+
+        Parameters
+        ----------
+        index_param
+        ids
+        selector : :obj:`~collections.abc.Collection`
+            Pass a collection of list indices to create index tuples for only those.
+
+
+        Returns
+        -------
+        :obj:`pandas.core.indexes.multi.MultiIndex` or :obj:`pandas.core.indexes.base.Index`
+            Newly created index.
+        :obj:`tuple`
+            Names of the index levels.
+
+        """
         if index_param is None:
             names = ('key', 'i')
             return {id: id for id in ids}, names
@@ -1821,7 +1893,7 @@ Using the first {li} elements, discarding {discarded}""")
         names = []
         for i, level in enumerate(index_param):
             if isinstance(level, str):
-                if level in ['key', 'fname', 'i']:
+                if level in self._possible_levels or level in ('key', 'i'):
                     new_level = self._make_index_level(level, ids=ids, selector=selector)
                     index_levels.append(new_level)
                     names.append(level)
@@ -1854,9 +1926,9 @@ Using the first {li} elements, discarding {discarded}""")
         if l_counts > 0 or l_existing > 0:
             new_index, names = self._treat_index_param(None, ids=ids)
             if l_counts > 0:
-                plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
+                plural_phrase = "These index values occur" if l_counts > 1 else "This index value occurs"
                 self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
-To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
+To avoid the problem, define sufficient distinguishing index levels, e.g. ['fname', 'key', 'i'].\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
