@@ -1488,18 +1488,22 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         #self.logger = prev_logger
         if metadata_path is not None:
-            fname, ext = os.path.splitext(metadata_path)
-            if ext != '':
-                path, file = os.path.split(metadata_path)
+            md = self.metadata()
+            if len(md.index) > 0:
+                fname, ext = os.path.splitext(metadata_path)
+                if ext != '':
+                    path, file = os.path.split(metadata_path)
+                else:
+                    path = metadata_path
+                    file = 'metadata.tsv'
+                path = resolve_dir(path)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                full_path = os.path.join(path, file)
+                self.metadata().to_csv(full_path, sep='\t')
+                self.logger.info(f"\n\nMetadata written to {full_path}.")
             else:
-                path = metadata_path
-                file = 'metadata.tsv'
-            path = resolve_dir(path)
-            if not os.path.isdir(path):
-                os.makedirs(path)
-            full_path = os.path.join(path, file)
-            self.metadata().to_csv(full_path, sep='\t')
-            self.logger.info(f"\n\nMetadata written to {full_path}.")
+                self.logger.debug(f"\n\nNo metadata to write.")
 
         if simulate:
             return list(set(paths.keys()))
