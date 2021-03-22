@@ -176,14 +176,14 @@ The library offers you the following commands. Add the flag -h to one of them to
 
     extract_parser = subparsers.add_parser('extract', help="Extract selected information from MuseScore files and store it in TSV files.",
                                            parents=[input_args])
-    extract_parser.add_argument('-N', '--notes', metavar='folder', help="Folder where to store TSV files with notes.")
-    extract_parser.add_argument('-L', '--labels', metavar='folder', help="Folder where to store TSV files with annotation labels.")
-    extract_parser.add_argument('-M', '--measures', metavar='folder', help="Folder where to store TSV files with measure information.")
-    extract_parser.add_argument('-R', '--rests', metavar='folder', help="Folder where to store TSV files with rests.")
-    extract_parser.add_argument('-E', '--events', metavar='folder', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
-    extract_parser.add_argument('-C', '--chords', metavar='folder', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', help="Folder where to store TSV files with expanded DCML labels.")
-    extract_parser.add_argument('-D', '--metadata', metavar='path',
+    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes', help="Folder where to store TSV files with notes.")
+    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations', help="Folder where to store TSV files with annotation labels.")
+    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures', help="Folder where to store TSV files with measure information.")
+    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests', help="Folder where to store TSV files with rests.")
+    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
+    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies', help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
                                 help="Folder where to store one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")

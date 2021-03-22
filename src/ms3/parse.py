@@ -1478,7 +1478,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
         l_target = len(lists)
-        if l_infos > 0 and metadata_path is None:
+        if l_target > 0:
             if l_infos < l_target:
                 msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
             else:
@@ -1487,7 +1487,6 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         else:
             self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         #self.logger = prev_logger
-        print(f"MD: {metadata_path}")
         if metadata_path is not None:
             fname, ext = os.path.splitext(metadata_path)
             if ext != '':
@@ -1498,7 +1497,6 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             path = resolve_dir(path)
             if not os.path.isdir(path):
                 os.makedirs(path)
-            print(f"fname: {fname}, ext: {ext}, path: {path}, file: {file}")
             full_path = os.path.join(path, file)
             self.metadata().to_csv(full_path, sep='\t')
             self.logger.info(f"\n\nMetadata written to {full_path}.")
