@@ -1435,6 +1435,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
+                                                    metadata_path=None,
                                                     simulate=None, unfold=False):
         if simulate is None:
             simulate = self.simulate
@@ -1445,7 +1446,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         folder_vars = [t + '_folder' for t in list_types]
         suffix_vars = [t + '_suffix' for t in list_types]
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
-        if len(folder_params) == 0:
+        if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
         suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
@@ -1455,7 +1456,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
         modus = 'would ' if simulate else ''
-        if len(lists) == 0:
+        if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
             return [] if simulate else None
         paths = {}
@@ -1477,7 +1478,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
         l_target = len(lists)
-        if l_infos > 0:
+        if l_infos > 0 and metadata_path is None:
             if l_infos < l_target:
                 msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
             else:
@@ -1486,6 +1487,22 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         else:
             self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         #self.logger = prev_logger
+        print(f"MD: {metadata_path}")
+        if metadata_path is not None:
+            fname, ext = os.path.splitext(metadata_path)
+            if ext != '':
+                path, file = os.path.split(metadata_path)
+            else:
+                path = metadata_path
+                file = 'metadata.tsv'
+            path = resolve_dir(path)
+            if not os.path.isdir(path):
+                os.makedirs(path)
+            print(f"fname: {fname}, ext: {ext}, path: {path}, file: {file}")
+            full_path = os.path.join(path, file)
+            self.metadata().to_csv(full_path, sep='\t')
+            self.logger.info(f"\n\nMetadata written to {full_path}.")
+
         if simulate:
             return list(set(paths.keys()))
 

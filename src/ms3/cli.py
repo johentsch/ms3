@@ -71,7 +71,7 @@ def extract(args):
         'positioning': args.positioning,    # default=False
         'decode': args.raw,                 # default=True
     }
-    if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] if arg is not None]) == 0:
+    if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded, args.metadata] if arg is not None]) == 0:
         print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
         return
     if args.suffix is not None:
@@ -103,6 +103,7 @@ def extract(args):
                   events_folder=args.events,
                   chords_folder=args.chords,
                   expanded_folder=args.expanded,
+                  metadata_path=resolve_dir(args.metadata),
                   simulate=args.test,
                   unfold=args.unfold,
                   **suffixes)
@@ -182,6 +183,8 @@ The library offers you the following commands. Add the flag -h to one of them to
     extract_parser.add_argument('-E', '--events', metavar='folder', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
     extract_parser.add_argument('-C', '--chords', metavar='folder', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
     extract_parser.add_argument('-X', '--expanded', metavar='folder', help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-D', '--metadata', metavar='path',
+                                help="Folder where to store one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
     extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
