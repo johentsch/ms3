@@ -108,7 +108,8 @@ def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapt
     logger = logging.getLogger(params['name'])
     logger.setLevel(CURRENT_LEVEL)
     for h in logger.handlers:
-        h.setLevel(CURRENT_LEVEL)
+        if h.__class__ != logging.FileHandler:
+            h.setLevel(CURRENT_LEVEL)
 
     if adapter is not None:
         return adapter(logger, {})
@@ -154,6 +155,7 @@ but no 'path' has been configured.""")
             os.makedirs(dir, exist_ok=True)
         logger.debug(f"Storing logs as {log_file}")
         fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
+        fileHandler.setLevel(LEVELS['W'])
         file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
         fileHandler.setFormatter(file_formatter)
         logger.addHandler(fileHandler)
