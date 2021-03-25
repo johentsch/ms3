@@ -1180,16 +1180,20 @@ def get_part_info(part_tag):
         <Part> tag and returns it as a dictionary."""
     res = {}
     res['staves'] = [int(staff['id']) for staff in part_tag.find_all('Staff')]
-    if part_tag.trackName is not None:
+    if part_tag.trackName is not None and part_tag.trackName.string is not None:
         res['trackName'] = part_tag.trackName.string.strip()
+    else:
+        res['trackName'] = ''
     if part_tag.Instrument is not None:
         instr = part_tag.Instrument
-        if instr.longName is not None:
+        if instr.longName is not None and instr.longName.string is not None:
             res['longName'] = instr.longName.string.strip()
-        if instr.shortName is not None:
+        if instr.shortName is not None and instr.shortName.string is not None:
             res['shortName'] = instr.shortName.string.strip()
-        if instr.trackName is not None:
+        if instr.trackName is not None and instr.trackName.string is not None:
             res['instrument'] = instr.trackName.string.strip()
+        else:
+            res['instrument'] = res['trackName']
     return res
 
 
