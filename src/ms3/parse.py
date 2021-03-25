@@ -12,7 +12,7 @@ from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
 from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series,\
-    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg
+    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -1479,13 +1479,13 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         l_infos = len(infos)
         l_target = len(lists)
         if l_target > 0:
-            if l_infos < l_target:
+            if l_infos == 0:
+                self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
+            elif l_infos < l_target:
                 msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
             else:
                 msg = f"\n\nAll {l_infos} {modus}have been written."
             self.logger.info('\n'.join(infos) + msg)
-        else:
-            self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         #self.logger = prev_logger
         if metadata_path is not None:
             md = self.metadata()
@@ -1500,8 +1500,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                 if not os.path.isdir(path):
                     os.makedirs(path)
                 full_path = os.path.join(path, file)
-                self.metadata().to_csv(full_path, sep='\t')
-                self.logger.info(f"\n\nMetadata written to {full_path}.")
+                write_metadata(self.metadata(), full_path, logger=self.logger)
             else:
                 self.logger.debug(f"\n\nNo metadata to write.")
 

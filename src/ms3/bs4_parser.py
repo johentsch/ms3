@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params
+from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, sort_cols
 
 
 class _MSCX_bs4(LoggedClass):
@@ -1348,15 +1348,6 @@ def recurse_node(node, prepend=None, exclude_children=None):
         info[name] = '/'
     return info
 
-
-def sort_cols(df, first_cols=None):
-    if first_cols is None:
-        first_cols = [
-            'mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration',
-            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
-    cols = df.columns
-    column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
-    return df[column_order]
 
 
 def bs4_chord_duration(node, duration_multiplier=1):

@@ -93,7 +93,7 @@ def extract(args):
     }
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
-              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
+              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore, index=['rel_paths', 'fnames'])
     p.parse_mscx(simulate=args.test)
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,

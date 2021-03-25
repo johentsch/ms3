@@ -1247,6 +1247,17 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
     return traverse(directory)
 
 
+def sort_cols(df, first_cols=None):
+    """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
+    if first_cols is None:
+        first_cols = [
+            'mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration',
+            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
+    cols = df.columns
+    column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
+    return df[column_order]
+
+
 def sort_tpcs(tpcs, ascending=True, start=None):
     """ Sort tonal pitch classes by order on the piano.
         Uses: fifths2pc()
@@ -1513,3 +1524,25 @@ def update_labels_cfg(labels_cfg):
     if 'logger' in updated:
         del(updated['logger'])
     return updated
+
+
+@function_logger
+def write_metadata(df, path):
+    if not os.path.isfile(path):
+        write_this = df
+        msg = 'Created'
+    else:
+        previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
+        ix_union = previous.index.union(df.index)
+        col_union = previous.columns.union(df.columns)
+        previous = previous.reindex(index=ix_union, columns=col_union)
+        previous.loc[df.index, df.columns] = df
+        write_this = previous
+        msg = 'Updated'
+    first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+                  'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
+                  'movementTitle',
+                  'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                  'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+    sort_cols(write_this, first_cols).sort_index().to_csv(path, sep='\t')
+    logger.info(f"{msg} {path}")
