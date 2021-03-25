@@ -1624,6 +1624,7 @@ Load one of the identically named files with a different key using add_dir(key='
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
             'labels': ['label_type', 'mc', 'mn'],
+            'metadata': ['last_mn'],
         }
         res = None
         for t, columns in type2cols.items():
