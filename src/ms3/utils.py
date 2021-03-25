@@ -13,6 +13,7 @@ import numpy as np
 import webcolors
 from pathos import multiprocessing
 from tqdm import tqdm
+from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg
 
@@ -375,49 +376,6 @@ def compute_mn(df):
     return mn.rename('mn')
 
 
-def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
-    df = df.copy()
-    drop_cols, compose_label = [], []
-    if 'nashville' in df.columns:
-        sel = df.nashville.notna()
-        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
-        drop_cols.append('nashville')
-    if 'leftParen' in df.columns:
-        df.leftParen.replace('/', '(', inplace=True)
-        compose_label.append('leftParen')
-        drop_cols.append('leftParen')
-    if 'absolute_root' in df.columns:
-        df.absolute_root = fifths2name(df.absolute_root, ms=True)
-        compose_label.append('absolute_root')
-        drop_cols.append('absolute_root')
-        if 'rootCase' in df.columns:
-            sel = df.rootCase.notna()
-            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
-            drop_cols.append('rootCase')
-    if label_col in df.columns:
-        compose_label.append(label_col)
-    if 'absolute_base' in df.columns:
-        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
-        compose_label.append('absolute_base')
-        drop_cols.append('absolute_base')
-    if 'rightParen' in df.columns:
-        df.rightParen.replace('/', ')', inplace=True)
-        compose_label.append('rightParen')
-        drop_cols.append('rightParen')
-    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
-    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony').replace('', np.nan)
-
-    if return_series:
-        return new_label_col
-
-    if 'label_type' in df.columns:
-        if keep_type:
-            df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-        else:
-            drop_cols.append('label_type')
-    df[label_col] = new_label_col
-    df.drop(columns=drop_cols, inplace=True)
-    return df
 
 
 @function_logger
@@ -486,6 +444,61 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     else:
         for o, n, ms in conversion_params:
             convert(o, n, ms)
+
+
+def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
+    df = df.copy()
+    drop_cols, compose_label = [], []
+    if 'nashville' in df.columns:
+        sel = df.nashville.notna()
+        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
+        drop_cols.append('nashville')
+    if 'leftParen' in df.columns:
+        df.leftParen.replace('/', '(', inplace=True)
+        compose_label.append('leftParen')
+        drop_cols.append('leftParen')
+    if 'absolute_root' in df.columns:
+        df.absolute_root = fifths2name(df.absolute_root, ms=True)
+        compose_label.append('absolute_root')
+        drop_cols.append('absolute_root')
+        if 'rootCase' in df.columns:
+            sel = df.rootCase.notna()
+            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
+            drop_cols.append('rootCase')
+    if label_col in df.columns:
+        compose_label.append(label_col)
+    if 'absolute_base' in df.columns:
+        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
+        compose_label.append('absolute_base')
+        drop_cols.append('absolute_base')
+    if 'rightParen' in df.columns:
+        df.rightParen.replace('/', ')', inplace=True)
+        compose_label.append('rightParen')
+        drop_cols.append('rightParen')
+    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
+    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony').replace('', np.nan)
+
+    if return_series:
+        return new_label_col
+
+    if 'label_type' in df.columns:
+        if keep_type:
+            df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
+        else:
+            drop_cols.append('label_type')
+    df[label_col] = new_label_col
+    df.drop(columns=drop_cols, inplace=True)
+    return df
+
+
+def df2md(df, name="Overview"):
+    """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
+    """
+    writer = MarkdownTableWriter()
+    writer.table_name = name
+    writer.header_list = list(df.columns.values)
+    writer.value_matrix = df.values.tolist()
+    return writer
 
 
 
@@ -1533,7 +1546,7 @@ def update_labels_cfg(labels_cfg):
 
 
 @function_logger
-def write_metadata(df, path):
+def write_metadata(df, path, markdown=True):
     if not os.path.isfile(path):
         write_this = df
         msg = 'Created'
@@ -1552,3 +1565,34 @@ def write_metadata(df, path):
                   'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
     sort_cols(write_this, first_cols).sort_index().to_csv(path, sep='\t')
     logger.info(f"{msg} {path}")
+    if markdown:
+        rename4markdown = {
+            'fnames': 'file_name',
+            'last_mn': 'measures',
+            'annotators': 'annotators',
+            'reviewers': 'reviewers',
+        }
+        md = write_this.reset_index().fillna('')
+        for c in rename4markdown.keys():
+            if c not in md.columns:
+                md[c] = ''
+        md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
+        md_table = str(df2md(md))
+
+        p = os.path.dirname(path)
+        readme = os.path.join(p, 'README.md')
+        if os.path.isfile(readme):
+            msg = 'Updated'
+            with open(readme, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+        else:
+            msg = 'Created'
+            lines = []
+        with open(readme, 'w', encoding='utf-8') as f:
+            for line in lines:
+                if line == '# Overview\n':
+                    break
+                f.write(line)
+            f.write(str(md_table))
+        logger.info(f"{msg} {readme}")
+

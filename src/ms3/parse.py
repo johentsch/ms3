@@ -11,8 +11,9 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass
 from .score import Score
-from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series,\
-    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg, write_metadata
+from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, df2md, get_musescore, group_id_tuples, load_tsv,\
+    make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir,\
+    scan_directory, sort_cols, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -1185,7 +1186,13 @@ Available keys: {available_keys}""")
         if len(parsed_ids) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
             idx = self.ids2idx(ids, pandas_index=True)
-            return pd.DataFrame(meta_series, index=idx)
+            df = pd.DataFrame(meta_series, index=idx)
+            first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+                          'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
+                          'movementTitle',
+                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                          'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+            return sort_cols(df, first_cols).sort_index()
         if len(self._parsed_mscx) == 0:
             self.logger.info("No scores have been parsed so far. Use parse_mscx()")
         return pd.DataFrame()
@@ -1435,7 +1442,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
-                                                    metadata_path=None,
+                                                    metadata_path=None, markdown=True,
                                                     simulate=None, unfold=False):
         if simulate is None:
             simulate = self.simulate
@@ -1500,7 +1507,7 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                 if not os.path.isdir(path):
                     os.makedirs(path)
                 full_path = os.path.join(path, file)
-                write_metadata(self.metadata(), full_path, logger=self.logger)
+                write_metadata(self.metadata(), full_path, markdown=markdown, logger=self.logger)
             else:
                 self.logger.debug(f"\n\nNo metadata to write.")
 
