@@ -32,7 +32,7 @@ class MeasureList(LoggedClass):
 
     """
 
-    def __init__(self, df, sections=True, secure=False, reset_index=True, columns={}, logger_cfg={}):
+    def __init__(self, df, sections=True, secure=True, reset_index=True, columns={}, logger_cfg={}):
         """
 
         Parameters
@@ -87,7 +87,7 @@ class MeasureList(LoggedClass):
 
 
 
-    def make_ml(self, section_breaks=True, secure=False, reset_index=True, logger_cfg={}):
+    def make_ml(self, section_breaks=True, secure=True, reset_index=True, logger_cfg={}):
         if logger_cfg != {}:
             self.update_logger_cfg(logger_cfg=logger_cfg)
         self.sections = section_breaks
