@@ -1071,16 +1071,22 @@ def parts_info(d):
     -------
     >>> d = s.mscx.metadata
     >>> parts_info(d['parts'])
-    {'staff_1_name': 'Piano Right Hand',
-     'staff_1_ambitus': '60-87 (C4-Eb6)',
-     'staff_2_name': 'Piano Left Hand',
-     'staff_2_ambitus': '39-75 (Eb2-Eb5)'}
+    {'staff_1_instrument': 'Voice',
+     'staff_1_ambitus': '66-76 (F#4-E5)',
+     'staff_2_instrument': 'Voice',
+     'staff_2_ambitus': '55-69 (G3-A4)',
+     'staff_3_instrument': 'Voice',
+     'staff_3_ambitus': '48-67 (C3-G4)',
+     'staff_4_instrument': 'Voice',
+     'staff_4_ambitus': '41-60 (F2-C4)'}
     """
     res = {}
-    for name, staves in d.items():
-        for staff, ambitus in staves.items():
-            res[f"staff_{staff}_name"] = name
-            res[f"staff_{staff}_ambitus"] = ambitus2oneliner(ambitus)
+    for part_dict in d.values():
+        for id in part_dict['staves']:
+            name = f"staff_{id}"
+            res[f"{name}_instrument"] = part_dict['instrument']
+            amb_name = name + '_ambitus'
+            res[amb_name] = ambitus2oneliner(part_dict[amb_name])
     return res
 
 

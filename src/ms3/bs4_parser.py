@@ -592,9 +592,10 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
             ambitus[t.staff]['max_midi'] = t.midi
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
-        data['parts'] = {
-            f"part_{i}" if part.trackName.string is None else str(part.trackName.string): {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
-                                    part.find_all('Staff')} for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        for part, part_dict in data['parts'].items():
+            for id in part_dict['staves']:
+                part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
         ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
         mimi, mina, mami, mana = zip(*ambitus_tuples)
         min_midi, max_midi = min(mimi), max(mami)
@@ -1171,6 +1172,25 @@ def get_duration_event(elements):
             name = '<Chord>'
         return ix, name
     return (None, None)
+
+
+
+def get_part_info(part_tag):
+    """Instrument names come in different forms in different places. This function extracts the information from a
+        <Part> tag and returns it as a dictionary."""
+    res = {}
+    res['staves'] = [int(staff['id']) for staff in part_tag.find_all('Staff')]
+    if part_tag.trackName is not None:
+        res['trackName'] = part_tag.trackName.string.strip()
+    if part_tag.Instrument is not None:
+        instr = part_tag.Instrument
+        if instr.longName is not None:
+            res['longName'] = instr.longName.string.strip()
+        if instr.shortName is not None:
+            res['shortName'] = instr.shortName.string.strip()
+        if instr.trackName is not None:
+            res['instrument'] = instr.trackName.string.strip()
+    return res
 
 
 @function_logger
