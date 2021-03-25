@@ -47,8 +47,8 @@ class LoggedClass:
             name = logger_cfg['name']
         else:
             name = subclass
-        if name in logging.root.manager.loggerDict:
-            del(logging.root.manager.loggerDict[name])
+        # if name in logging.root.manager.loggerDict:
+        #     del(logging.root.manager.loggerDict[name])
         self.logger_names = {}
         self.update_logger_cfg(logger_cfg=logger_cfg)
 
