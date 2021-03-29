@@ -1595,7 +1595,7 @@ def write_metadata(df, path, markdown=True):
             lines = []
         with open(readme, 'w', encoding='utf-8') as f:
             for line in lines:
-                if line == '# Overview\n':
+                if '# Overview' in line:
                     break
                 f.write(line)
             f.write(str(md_table))
