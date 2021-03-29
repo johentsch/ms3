@@ -1573,6 +1573,7 @@ def write_metadata(df, path, markdown=True):
         rename4markdown = {
             'fnames': 'file_name',
             'last_mn': 'measures',
+            'label_count': 'labels',
             'annotators': 'annotators',
             'reviewers': 'reviewers',
         }
