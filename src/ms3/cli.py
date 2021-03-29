@@ -157,7 +157,7 @@ def run():
                                 help="Don't scan folders recursively, i.e. parse only files in DIR.")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz)$',
                                 help="Select only file names including this string or regular expression.")
-    input_args.add_argument('-e', '--exclude', metavar="regex", default=r'^(\.|_)',
+    input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
     input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
                                 help='Add path(s) of individual file(s) to be checked.')
@@ -199,9 +199,9 @@ Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
 or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
 In the former case, --logpath will be disregarded.""")
-    extract_parser.add_argument('--logpath', type=check_and_create, help="""If you define a path for storing log files, the original folder structure of the parsed
+    extract_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
 MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
-subdirectory; otherwise, an individual log file is automatically created for each MuseScore file.""")
+subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
     extract_parser.set_defaults(func=extract)
 
 

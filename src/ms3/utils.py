@@ -1551,13 +1551,17 @@ def write_metadata(df, path, markdown=True):
         write_this = df
         msg = 'Created'
     else:
-        previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
-        ix_union = previous.index.union(df.index)
-        col_union = previous.columns.union(df.columns)
-        previous = previous.reindex(index=ix_union, columns=col_union)
-        previous.loc[df.index, df.columns] = df
-        write_this = previous
-        msg = 'Updated'
+        try:
+            previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
+            ix_union = previous.index.union(df.index)
+            col_union = previous.columns.union(df.columns)
+            previous = previous.reindex(index=ix_union, columns=col_union)
+            previous.loc[df.index, df.columns] = df
+            write_this = previous
+            msg = 'Updated'
+        except:
+            write_this = df
+            msg = 'Replaced '
     first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
                   'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                   'movementTitle',
