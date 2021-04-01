@@ -5,8 +5,8 @@ Command line interface for ms3.
 
 import argparse, os
 
-from ms3 import Parse
-from ms3.utils import convert_folder, resolve_dir
+from ms3 import Score, Parse
+from ms3.utils import convert, convert_folder, get_musescore, resolve_dir, scan_directory
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -66,6 +66,21 @@ def compare(args):
     p.compare_labels('old', store_with_suffix='_reviewed')
 
 
+def convert_cmd(args):
+    dir, target = resolve_dir(args.dir), resolve_dir(args.target)
+    # assert target[:len(
+    #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
+    convert_folder(dir, target,
+                   extensions=args.extensions,
+                   target_extension=args.format,
+                   regex=args.regex,
+                   suffix=args.suffix,
+                   recursive=args.nonrecursive,
+                   ms=args.musescore,
+                   overwrite=args.overwrite,
+                   parallel=args.nonparallel)
+
+
 def extract(args):
     labels_cfg = {
         'positioning': args.positioning,    # default=False
@@ -109,6 +124,30 @@ def extract(args):
                   **suffixes)
 
 
+def repair(args):
+    print(args.dir)
+
+
+def update(args):
+    MS = get_musescore(args.musescore)
+    assert MS is not None, f"MuseScore not found: {ms}"
+    target_extension = 'mscx'
+    conversion_params = []
+    for old in scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, subdirs=False,
+                                       exclude_files_only=True):
+        name, _ = os.path.splitext(old)
+        # if suffix is not None:
+        #     fname = f"{name}{suffix}.{target_extension}"
+        # else:
+        #     fname = f"{name}.{target_extension}"
+        new = name + '.mscx'
+        convert(old, new, MS)
+        s = Score(new)
+        s.detach_labels('old')
+        s.old.remove_initial_dots()
+        s.attach_labels('old', staff=-1, label_type=1)
+        s.store_mscx(new)
+
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
     """
@@ -129,23 +168,8 @@ def check_dir(d):
     return resolve_dir(d)
 
 
-def convert(args):
-    dir, target = resolve_dir(args.dir), resolve_dir(args.target)
-    #assert target[:len(
-    #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
-    convert_folder(dir, target,
-                   extensions=args.extensions,
-                   target_extension=args.format,
-                   regex=args.regex,
-                   suffix=args.suffix,
-                   recursive=args.nonrecursive,
-                   ms=args.musescore,
-                   overwrite=args.overwrite,
-                   parallel=args.nonparallel)
 
 
-def repair(args):
-    print(args.dir)
 
 
 def run():
@@ -247,12 +271,22 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser.add_argument('-p', '--nonparallel', action='store_false',
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
-    convert_parser.set_defaults(func=convert)
+    convert_parser.set_defaults(func=convert_cmd)
 
     repair_parser = subparsers.add_parser('repair',
                                           help="Apply automatic repairs to your uncompressed MuseScore files.",
                                           parents=[input_args])
     repair_parser.set_defaults(func=repair)
+
+    update_parser = subparsers.add_parser('update',
+                                           help="Convert MSCX files to the latest MuseScore version and move all chord annotations "
+                                                "to the Roman Numeral Analysis layer. This command overwrites existing files!!!",
+                                           parents=[input_args])
+    # update_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
+    #                             help='Path relative to the score file(s) where to look for existing annotation tables.')
+    update_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
+        To try standard paths on commercial systems, try -m win, or -m mac.""")
+    update_parser.set_defaults(func=update)
 
     args = parser.parse_args()
     if args.file is None and args.dir is None:
