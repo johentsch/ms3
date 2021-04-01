@@ -983,6 +983,7 @@ def midi2octave(midi, fifths=None):
     return midi // 12 + i
 
 
+
 def mn2int(mn_series):
     """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
     try:
@@ -1547,6 +1548,8 @@ def update_labels_cfg(labels_cfg):
 
 @function_logger
 def write_metadata(df, path, markdown=True):
+    if os.path.isdir(path):
+        path = os.path.join(path, 'metadata.tsv')
     if not os.path.isfile(path):
         write_this = df
         msg = 'Created'
