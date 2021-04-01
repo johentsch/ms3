@@ -968,6 +968,30 @@ Available keys: {available_keys}""")
         return res
 
 
+    def get_tsvs(self, keys=None, types=None):
+        if len(self._tsv_types) == 0:
+            self.info(f"No TSV files have been parsed, use method parse_tsv().")
+            return pd.DataFrame()
+        if types is None:
+            potential = self._tsv_types
+            types = sorted(set(self._tsv_types.values()))
+        elif isinstance(types, str):
+            types = [types]
+            potential = {id: typ for id, typ in self._tsv_types.items() if typ in types}
+        plural = f"type {types[0]}" if len(types) == 1 else f"one of the types {types}"
+
+        if len(potential) == 0:
+            self.info(f"None of the parsed TSV files have been recognized as {plural}.")
+            return pd.DataFrame()
+        ids = [id for id in self._iterids(keys, only_parsed_tsv=True) if id in potential]
+        if len(ids) == 0:
+            self.info(f"None of the parsed TSV files with key {keys} have been recognized as {plural}.")
+            return pd.DataFrame()
+        keys = self.ids2idx(ids, pandas_index=True)
+        return pd.concat([self._parsed_tsv[id] for id in ids], keys=keys)
+
+
+
     def get_unfolded_mcs(self, key, i):
         id = (key, i)
         if id in self._unfolded_mcs:
