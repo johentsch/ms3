@@ -1601,6 +1601,6 @@ def write_metadata(df, path, markdown=True):
                 if '# Overview' in line:
                     break
                 f.write(line)
-            f.write('\n' + str(md_table))
+            f.write('\n\n' + str(md_table))
         logger.info(f"{msg} {readme}")
 
