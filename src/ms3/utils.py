@@ -1603,6 +1603,6 @@ def write_metadata(df, path, markdown=True):
                 f.write(line)
             else:
                 f.write('\n\n')
-            f.write(str(md_table))
+            f.write(md_table)
         logger.info(f"{msg} {readme}")
 

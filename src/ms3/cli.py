@@ -67,17 +67,16 @@ def compare(args):
 
 
 def convert_cmd(args):
-    dir, target = resolve_dir(args.dir), resolve_dir(args.target)
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
-    convert_folder(dir, target,
+    convert_folder(resolve_dir(args.dir), resolve_dir(args.out),
                    extensions=args.extensions,
-                   target_extension=args.format,
+                   target_extension=args.target_format,
                    regex=args.regex,
                    suffix=args.suffix,
                    recursive=args.nonrecursive,
                    ms=args.musescore,
-                   overwrite=args.overwrite,
+                   overwrite=args.safe,
                    parallel=args.nonparallel)
 
 
@@ -251,26 +250,21 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
 
 
     convert_parser = subparsers.add_parser('convert',
-                                           help="Use your local install of MuseScore to convert MuseScore files.")
-    convert_parser.add_argument('dir', metavar='DIR', type=check_dir,
-                                help='Path to folder with files to convert; can be relative to the folder where the script is located.')
-    convert_parser.add_argument('target', metavar='TARGET_DIR', type=check_and_create, default=os.getcwd(),
-                                help='Path to folder for converted files. Defaults to current working directory.')
+                                           help="Use your local install of MuseScore to convert MuseScore files.",
+                                           parents=[input_args])
+    convert_parser.add_argument('-o', '--out', metavar='DIR', type=check_and_create,
+                                help="""Output directory.""")
     convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
                                 help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
-    convert_parser.add_argument('-f', '--format', default='mscx',
+    convert_parser.add_argument('-t', '--target_format', default='mscx',
                                 help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
     convert_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
     To use standard paths on commercial systems, try -m win, or -m mac.""")
-    convert_parser.add_argument('-r', '--regex', default=r'.*',
-                                help="Convert only files containing this regular expression (or a simple search string).")
-    convert_parser.add_argument('-n', '--nonrecursive', action='store_false',
-                                help="Don't scan folders recursively, i.e. parse only files in DIR.")
-    convert_parser.add_argument('-o', '--overwrite', action='store_true',
-                                help="Set true if existing files are to be overwritten.")
     convert_parser.add_argument('-p', '--nonparallel', action='store_false',
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
+    convert_parser.add_argument('--safe', action='store_false',
+                                help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
 
     repair_parser = subparsers.add_parser('repair',
