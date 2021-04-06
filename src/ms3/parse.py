@@ -240,6 +240,7 @@ class Parse(LoggedClass):
             if isinstance(paths, str):
                 paths = [paths]
             if len(paths) == 1 and paths[0].endswith('.json'):
+                # TODO: allow for any number of JSON files
                 with open(paths[0]) as f:
                     paths = json.load(f)
             _ = self.add_files(paths, key=key, index=index)
@@ -1886,8 +1887,8 @@ Using the first {li} elements, discarding {discarded}""")
         prev_logger = self.logger
         fname = self.fnames[key][i]
         # make sure all subloggers store their information into Parse.log if it is being used
-        file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
-        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
+        # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
+        # self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
         if df is None:
             self.logger.debug(f"No DataFrame for {what}.")
             return restore_logger(None)
