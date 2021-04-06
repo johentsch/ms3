@@ -276,7 +276,7 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]
-    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony'))
+    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony', regex=True))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
