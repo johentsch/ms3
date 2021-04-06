@@ -433,10 +433,11 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         if isinstance(paths, str):
             paths = [paths]
         if self.last_scanned_dir is None:
-            if len(paths) > 1:
-                self.last_scanned_dir = commonprefix(paths, os.path.sep)
-            else:
-                self.last_scanned_dir = os.path.dirname(paths[0])
+            # if len(paths) > 1:
+            #     self.last_scanned_dir = commonprefix(paths, os.path.sep)
+            # else:
+            #     self.last_scanned_dir = os.path.dirname(paths[0])
+            self.last_scanned_dir = os.getcwd()
 
         ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
