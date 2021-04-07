@@ -915,7 +915,7 @@ where there is no Chord or Rest, just: {elements}.""")
                                              after=prv[prv_ix]['tag'], **kwargs)
                 self.logger.debug(f"MC {mc}: Added {label_name} at {loc_after} before the {nxt_name} at mc_onset {nxt_pos}.")
             else:
-                # nxt has location tag(s)
+                # nxt is not a sounding event and has location tag(s)
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
                 assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
