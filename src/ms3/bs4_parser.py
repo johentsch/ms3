@@ -12,6 +12,36 @@ from .logger import function_logger, LoggedClass
 from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, sort_cols
 
 
+class Style:
+    """Easy way to read and write any style information in a parsed MSCX score."""
+    def __init__(self, soup):
+        self.soup = soup
+        self.style = self.soup.find('Style')
+        assert self.style is not None, "No <Style> tag found."
+
+    def __getitem__(self, attr):
+        tag = self.style.find(attr)
+        if tag is None:
+            return None
+        return str(tag.string)
+
+    def __setitem__(self, attr, val):
+        if attr in self:
+            tag = self.style.find(attr)
+            tag.string = str(val)
+        else:
+            new_tag = self.soup.new_tag(attr)
+            new_tag.string = str(val)
+            self.style.append(new_tag)
+
+    def __iter__(self):
+        tags = self.style.find_all()
+        return (t.name for t in tags)
+
+    def __repr__(self):
+        tags = self.style.find_all()
+        return ', '.join(t.name for t in tags)
+
 class _MSCX_bs4(LoggedClass):
     """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
 
@@ -63,6 +93,7 @@ class _MSCX_bs4(LoggedClass):
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(
             columns=cols), pd.DataFrame(columns=cols)
+        self._style = None
 
         self.parse_measures()
 
@@ -306,6 +337,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     @property
     def staff_ids(self):
         return list(self.measure_nodes.keys())
+
+    @property
+    def style(self):
+        if self._style is None:
+            self._style = Style(self.soup)
+        return self._style
 
 
     def make_standard_chordlist(self):

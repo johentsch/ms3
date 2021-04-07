@@ -997,6 +997,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         The staff IDs contained in the score, usually just a list of increasing numbers starting at 1."""
         return self._parsed.staff_ids
 
+    @property
+    def style(self):
+        """:obj:`Style`
+        Can be used like a dictionary to change the information within the score's <Style> tag."""
+        return self._parsed.style
+
 
     @property
     def version(self):
