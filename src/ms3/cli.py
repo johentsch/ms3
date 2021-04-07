@@ -130,25 +130,27 @@ def repair(args):
 def update(args):
     MS = get_musescore(args.musescore)
     assert MS is not None, f"MuseScore not found: {ms}"
-    target_extension = 'mscx'
-    conversion_params = []
+    logger_cfg = {
+        'level': args.level,
+    }
     for old in scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, subdirs=False,
                                        exclude_files_only=True):
-        name, _ = os.path.splitext(old)
-        # if suffix is not None:
-        #     fname = f"{name}{suffix}.{target_extension}"
-        # else:
-        #     fname = f"{name}.{target_extension}"
-        if args.out is None:
-            new = name + '.mscx'
+        path, name = os.path.split(old)
+        fname, _ = os.path.splitext(name)
+        if args.suffix is not None:
+            fname = f"{fname}{args.suffix}.mscx"
         else:
-            fname = os.path.basename(name)
-            new = os.path.join(args.out, fname) + '.mscx'
-        convert(old, new, MS)
-        s = Score(new)
+            fname = fname + '.mscx'
+        if args.out is None:
+            new = os.path.join(path, fname)
+        else:
+            new = os.path.join(args.out, fname)
+        convert(old, new, MS, logger=name)
+        s = Score(new, logger_cfg=logger_cfg)
+        s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
         s.detach_labels('old')
         s.old.remove_initial_dots()
-        s.attach_labels('old', staff=-1, label_type=1)
+        s.attach_labels('old', staff=int(args.staff), label_type=int(args.type))
         s.store_mscx(new)
 
 
@@ -186,7 +188,7 @@ def run():
     input_args.add_argument('-n', '--nonrecursive', action='store_false',
                                 help="Don't scan folders recursively, i.e. parse only files in DIR.")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz)$',
-                                help="Select only file names including this string or regular expression.")
+                                help="Select only file names including this string or regular expression. Defaults to MSCX and MSCZ files only.")
     input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
     input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
@@ -280,8 +282,12 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                            parents=[input_args])
     # update_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
     #                             help='Path relative to the score file(s) where to look for existing annotation tables.')
+    update_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
     update_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
         To try standard paths on commercial systems, try -m win, or -m mac.""")
+    update_parser.add_argument('--above', action='store_true', help="Display Roman Numerals above the system.")
+    update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
+    update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested.")
     update_parser.set_defaults(func=update)
 
     args = parser.parse_args()
