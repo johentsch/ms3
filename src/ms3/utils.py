@@ -380,7 +380,7 @@ def compute_mn(df):
 
 @function_logger
 def convert(old, new, MS='mscore'):
-    process = [MS, '--appimage-extract-and-run', "-o", new, old] if MS.endswith('.AppImage') else [MS, "-o", new, old]
+    process = [MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS, "-fo", new, old]
     if subprocess.run(process):
         logger.info(f"Converted {old} to {new}")
     else:
