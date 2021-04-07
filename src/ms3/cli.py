@@ -139,13 +139,18 @@ def update(args):
         #     fname = f"{name}{suffix}.{target_extension}"
         # else:
         #     fname = f"{name}.{target_extension}"
-        new = name + '.mscx'
+        if args.out is None:
+            new = name + '.mscx'
+        else:
+            fname = os.path.basename(name)
+            new = os.path.join(args.out, fname) + '.mscx'
         convert(old, new, MS)
         s = Score(new)
         s.detach_labels('old')
         s.old.remove_initial_dots()
         s.attach_labels('old', staff=-1, label_type=1)
         s.store_mscx(new)
+
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
@@ -176,6 +181,8 @@ def run():
     input_args = argparse.ArgumentParser(add_help=False)
     input_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
+    input_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
+                                help="""Output directory. Subfolder trees are retained.""")
     input_args.add_argument('-n', '--nonrecursive', action='store_false',
                                 help="Don't scan folders recursively, i.e. parse only files in DIR.")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz)$',
@@ -210,9 +217,6 @@ The library offers you the following commands. Add the flag -h to one of them to
                                 help="Folder where to store one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
-    extract_parser.add_argument('-o', '--out', metavar='ROOT_DIR', type=check_and_create,
-                                help="""Make all relative folder paths relative to ROOT_DIR rather than to MSCX_DIR.
-This setting has no effect on absolute folder paths.""")
     extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
 Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
@@ -252,8 +256,6 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.",
                                            parents=[input_args])
-    convert_parser.add_argument('-o', '--out', metavar='DIR', type=check_and_create,
-                                help="""Output directory.""")
     convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
                                 help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
     convert_parser.add_argument('-t', '--target_format', default='mscx',
