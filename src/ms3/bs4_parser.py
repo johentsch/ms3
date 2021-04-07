@@ -900,6 +900,7 @@ where there is no Chord or Rest, just: {elements}.""")
         if nxt is not None:
             nxt_names = [e['name'] for e in nxt]
             _, nxt_name = get_duration_event(nxt)
+        prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
         # distinguish six cases: prv can be [event, location], nxt can be [event, location, None]
         if prv_ix is not None:
             # prv is event (chord or rest)
@@ -916,21 +917,27 @@ where there is no Chord or Rest, just: {elements}.""")
                 self.logger.debug(f"MC {mc}: Added {label_name} at {loc_after} before the {nxt_name} at mc_onset {nxt_pos}.")
             else:
                 # nxt is not a sounding event and has location tag(s)
+                nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
                 assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
-                loc_before = loc_dur - nxt_pos + mc_onset
-                remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
-                loc_after = nxt_pos - mc_onset
-                nxt[loc_ix]['tag'].fractions.string = str(loc_after)
-                nxt[loc_ix]['duration'] = loc_after
-                nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
-                self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
+                if nxt_pos + loc_dur == mc_onset:
+                    # label to be positioned with the same location
+                    remember = self.insert_label(label=label, after=nxt[-1]['tag'], **kwargs)
+                    self.logger.debug(
+                        f"""MC {mc}: Joined {label_name} with the {nxt_name} occuring at {-loc_before} before the ending
+of the {prv_name} at mc_onset {prv_pos}.""")
+                else:
+                    loc_before = loc_dur - nxt_pos + mc_onset
+                    remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
+                    loc_after = nxt_pos - mc_onset
+                    nxt[loc_ix]['tag'].fractions.string = str(loc_after)
+                    nxt[loc_ix]['duration'] = loc_after
+                    self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
         else:
             # prv has location tag(s)
-            prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
             loc_before = mc_onset - prv_pos
             if nxt is None:
                 remember = self.insert_label(label=label, loc_before=loc_before, after=prv[-1]['tag'], **kwargs)
