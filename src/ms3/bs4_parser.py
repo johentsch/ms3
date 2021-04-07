@@ -866,7 +866,6 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             try:
                 # maybe a negative integer?
                 staff = list(self.measure_nodes.keys())[staff]
-                self.logger.debug(f"Parameter staff changed to {staff}")
             except:
                 self.logger.error(f"Staff {staff} not found.")
                 return False
@@ -958,19 +957,20 @@ where there is no Chord or Rest, just: {elements}.""")
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
                 assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
-                if nxt_pos + loc_dur == mc_onset:
-                    # label to be positioned with the same location
-                    remember = self.insert_label(label=label, after=nxt[-1]['tag'], **kwargs)
-                    self.logger.debug(
-                        f"""MC {mc}: Joined {label_name} with the {nxt_name} occuring at {-loc_before} before the ending
-of the {prv_name} at mc_onset {prv_pos}.""")
-                else:
-                    loc_before = loc_dur - nxt_pos + mc_onset
-                    remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
-                    loc_after = nxt_pos - mc_onset
-                    nxt[loc_ix]['tag'].fractions.string = str(loc_after)
-                    nxt[loc_ix]['duration'] = loc_after
-                    self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
+#                 if nxt_pos + loc_dur == mc_onset:
+#                     self.logger.info(f"nxt_pos: {nxt_pos}, loc_dur: {loc_dur}, mc_onset: {mc_onset}")
+#                     # label to be positioned with the same location
+#                     remember = self.insert_label(label=label, after=nxt[-1]['tag'], **kwargs)
+#                     self.logger.debug(
+#                         f"""MC {mc}: Joined {label_name} with the {nxt_name} occuring at {loc_dur} before the ending
+# of the {prv_name} at mc_onset {prv_pos}.""")
+#                 else:
+                loc_before = loc_dur - nxt_pos + mc_onset
+                remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
+                loc_after = nxt_pos - mc_onset
+                nxt[loc_ix]['tag'].fractions.string = str(loc_after)
+                nxt[loc_ix]['duration'] = loc_after
+                self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
         else:
