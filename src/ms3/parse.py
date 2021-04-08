@@ -2097,6 +2097,7 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
                 tags = self._parsed_mscx[id].mscx.parsed.metatags
                 for name, val in new_dict.items():
                     tags[name] = val
+                self._parsed_mscx[id].mscx.parsed.update_metadata()
                 get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
                 ids.append(id)
 

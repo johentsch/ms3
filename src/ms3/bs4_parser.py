@@ -210,7 +210,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.warning("Empty score?")
         else:
             self.has_annotations = 'Harmony' in self._events.event.values
-        self.metadata = self._get_metadata()
+        self.update_metadata()
 
 
 
@@ -225,6 +225,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             file.write(mscx_string)
         self.logger.info(f"Score written to {filepath}.")
         return True
+
+    def update_metadata(self):
+        self.metadata = self._get_metadata()
 
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """ Regenerate the measure list from the parsed score with advanced options."""
