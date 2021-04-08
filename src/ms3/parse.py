@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass
+from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, df2md, get_musescore, group_id_tuples, load_tsv,\
     make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir,\
@@ -100,6 +100,11 @@ class Parse(LoggedClass):
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
         """
 
+        self.logger_names = {}
+        """:obj:`dict`
+        ``{(key, i): :obj:`str`}`` dictionary of logger names.
+        """
+
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
@@ -165,6 +170,11 @@ class Parse(LoggedClass):
         {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.measures` tables.
         """
 
+        self._metadata = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        Concatenation of all parsed metadata TSVs.
+        """
+
         self._parsed_tsv = {}
         """:obj:`dict`
         {(key, i): :obj:`pandas.DataFrame`} dictionary of all parsed (i.e. loaded as DataFrame) TSV files.
@@ -226,6 +236,8 @@ class Parse(LoggedClass):
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
+
+
 
         self.last_scanned_dir = dir
         """:obj:`str`
@@ -1054,6 +1066,45 @@ Available keys: {available_keys}""")
         return idx, names
 
 
+    def idx2id(self, full_path=None, rel_path=None, scan_path=None, path=None, file=None, fname=None, fext=None):
+        """ Turn the respective value combinations of an index into an ID.
+
+        Parameters
+        ----------
+        full_paths
+        rel_paths
+        scan_paths
+        paths
+        files
+        fnames
+        fexts
+
+        Returns
+        -------
+        :obj:`tuple`
+            the (key, i) pair corresponding to the index
+        """
+        levels = {name: str(l) for name, l in zip(('full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'),
+                                  (full_path, rel_path, scan_path, path, file, fname, fext))
+                            if l is not None}
+        sets = []
+        for name, l in levels.items():
+            ids = set((k, i) for k, vals in self._possible_levels[name].items() for i, val in enumerate(vals) if val == l)
+            if len(ids) > 0:
+                sets.append(ids)
+        res = set.intersection(*sets)
+        l = len(res)
+        if l == 0:
+            self.logger.warning(f"No parsed file matches these values: {levels}")
+            return None
+        if l > 1:
+            self.logger.warning(f"The selection is ambiguous: {levels}")
+            return None
+        return list(res)[0]
+
+
+
+
 
     def index(self, keys=None, per_key=False):
         if per_key:
@@ -1440,20 +1491,23 @@ Available keys: {available_keys}""")
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                 else:
                     self._tsv_types[(key, i)] = tsv_type
-                    self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
-                    if tsv_type == 'labels':
-                        if label_col in df.columns:
-                            logger_name = self.files[key][i]
-                            self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                      logger_cfg={'name': logger_name}, level=level)
-                            self.logger.debug(
-                                f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
-                        else:
-                            self.logger.info(
-f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                    if tsv_type == 'metadata':
+                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[(key, i)].reset_index()])
                     else:
-                        self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
+                        self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
+                        if tsv_type == 'labels':
+                            if label_col in df.columns:
+                                logger_name = self.files[key][i]
+                                self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                                                          logger_cfg={'name': logger_name}, level=level)
+                                self.logger.debug(
+                                    f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
+                            else:
+                                self.logger.info(
+    f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+    Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                        else:
+                            self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
 
             except:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -2014,6 +2068,40 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
             self.logger.warning(
                 f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
+
+    def update_metadata(self):
+        if len(self._metadata) == 0:
+            self.logger.debug("No parsed metadata found.")
+            return
+        old = self._metadata.set_index(['rel_paths', 'fnames'])
+        new = self.metadata()
+        excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
+                         'TimeSig']
+        old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
+
+        parsed = old.index.map(lambda i: i in new.index)
+        relevant = old.loc[parsed, old_cols]
+        updates = defaultdict(dict)
+        for i, row in relevant.iterrows():
+            new_row = new.loc[i]
+            for j, val in row[row.notna()].iteritems():
+                val = str(val)
+                if j not in new_row or str(new_row[j]) != val:
+                    updates[i][j] = val
+
+        l = len(updates)
+        if l > 0:
+            for (rel_path, fname), new_dict in updates.items():
+                id = self.idx2id(rel_path=rel_path, fname=fname)
+                tags = self._parsed_mscx[id].mscx.parsed.metatags
+                for name, val in new_dict.items():
+                    tags[name] = val
+                get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
+
+            self.logger.info(f"{l} files updated.")
+        else:
+            self.logger.info("Nothing to update.")
+
 
     def __getstate__(self):
         """ Override the method of superclass """

@@ -12,35 +12,6 @@ from .logger import function_logger, LoggedClass
 from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, sort_cols
 
 
-class Style:
-    """Easy way to read and write any style information in a parsed MSCX score."""
-    def __init__(self, soup):
-        self.soup = soup
-        self.style = self.soup.find('Style')
-        assert self.style is not None, "No <Style> tag found."
-
-    def __getitem__(self, attr):
-        tag = self.style.find(attr)
-        if tag is None:
-            return None
-        return str(tag.string)
-
-    def __setitem__(self, attr, val):
-        if attr in self:
-            tag = self.style.find(attr)
-            tag.string = str(val)
-        else:
-            new_tag = self.soup.new_tag(attr)
-            new_tag.string = str(val)
-            self.style.append(new_tag)
-
-    def __iter__(self):
-        tags = self.style.find_all()
-        return (t.name for t in tags)
-
-    def __repr__(self):
-        tags = self.style.find_all()
-        return ', '.join(t.name for t in tags)
 
 class _MSCX_bs4(LoggedClass):
     """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
@@ -82,6 +53,7 @@ class _MSCX_bs4(LoggedClass):
         super().__init__(subclass='_MSCX_bs4', logger_cfg=logger_cfg)
         self.soup = None
         self.metadata = None
+        self._metatags = None
         self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
         self.read_only = read_only
@@ -287,6 +259,14 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._ml.ml
 
     @property
+    def metatags(self):
+        if self._metatags is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._metatags = Metatags(self.soup)
+        return self._metatags
+
+    @property
     def ml(self):
         """Like property `measures` but without recomputing."""
         if self._ml is None:
@@ -341,6 +321,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     @property
     def style(self):
         if self._style is None:
+            if self.soup is None:
+                self.make_writeable()
             self._style = Style(self.soup)
         return self._style
 
@@ -1198,9 +1180,75 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return self.__dict__
 
 
-
-
+#######################################################################
 ####################### END OF CLASS DEFINITION #######################
+#######################################################################
+
+class Metatags:
+    """Easy way to read and write any style information in a parsed MSCX score."""
+
+    def __init__(self, soup):
+        self.soup = soup
+
+    @property
+    def tags(self):
+        return {tag['name']: tag for tag in self.soup.find_all('metaTag')}
+
+    def __getitem__(self, attr):
+        tags = self.tags
+        if attr in tags:
+            val = tags[attr].string
+            return '' if val is None else str(val)
+        return None
+
+    def __setitem__(self, attr, val):
+        tags = self.tags
+        if attr in tags:
+            tags[attr].string = str(val)
+        else:
+            new_tag = self.soup.new_tag('metaTag')
+            new_tag.attrs['name'] = attr
+            new_tag.string = str(val)
+            for insert_here in tags.keys():
+                if insert_here > attr:
+                    break
+            tags[insert_here].insert_before(new_tag)
+
+    def __repr__(self):
+        return '\n'.join(str(t) for t in self.tags.values())
+
+
+class Style:
+    """Easy way to read and write any style information in a parsed MSCX score."""
+
+    def __init__(self, soup):
+        self.soup = soup
+        self.style = self.soup.find('Style')
+        assert self.style is not None, "No <Style> tag found."
+
+    def __getitem__(self, attr):
+        tag = self.style.find(attr)
+        if tag is None:
+            return None
+        val = tag.string
+        return '' if val is None else str(val)
+
+    def __setitem__(self, attr, val):
+        if attr in self:
+            tag = self.style.find(attr)
+            tag.string = str(val)
+        else:
+            new_tag = self.soup.new_tag(attr)
+            new_tag.string = str(val)
+            self.style.append(new_tag)
+
+    def __iter__(self):
+        tags = self.style.find_all()
+        return (t.name for t in tags)
+
+    def __repr__(self):
+        tags = self.style.find_all()
+        return ', '.join(t.name for t in tags)
 
 
 def get_duration_event(elements):
