@@ -1480,8 +1480,9 @@ Available keys: {available_keys}""")
                                  f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
             label_col = cols['label'] if 'label' in cols else 'label'
+            id = (key, i)
             try:
-                self._parsed_tsv[(key, i)] = df
+                self._parsed_tsv[id] = df
                 if label_col in df.columns:
                     tsv_type = 'labels'
                 else:
@@ -1491,15 +1492,15 @@ Available keys: {available_keys}""")
                     self.logger.warning(
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                 else:
-                    self._tsv_types[(key, i)] = tsv_type
+                    self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
-                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[(key, i)].reset_index()])
+                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
                     else:
-                        self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
+                        self._lists[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type == 'labels':
                             if label_col in df.columns:
                                 logger_name = self.files[key][i]
-                                self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg={'name': logger_name}, level=level)
                                 self.logger.debug(
                                     f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
