@@ -137,7 +137,10 @@ def metadata(args):
     if len(ids) == 0:
         p.logger.info("Nothing to update.")
         return
-    p.store_mscx(ids=ids, folder=args.out, overwrite=True)
+    if args.out is not None:
+        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+    else:
+        p.store_mscx(ids=ids, overwrite=True)
     if args.out is not None:
         p.store_lists(metadata_path=args.out)
     elif args.dir is not None:

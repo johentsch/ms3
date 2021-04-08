@@ -1570,7 +1570,8 @@ def write_metadata(df, path, markdown=True):
                   'movementTitle',
                   'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                   'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
-    sort_cols(write_this, first_cols).sort_index().to_csv(path, sep='\t')
+    write_this.sort_index(inplace=True)
+    sort_cols(write_this, first_cols).to_csv(path, sep='\t')
     logger.info(f"{msg} {path}")
     if markdown:
         rename4markdown = {
