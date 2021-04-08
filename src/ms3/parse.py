@@ -21,7 +21,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, paths=None, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, dir=None, paths=None, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
