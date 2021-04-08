@@ -100,7 +100,7 @@ class Parse(LoggedClass):
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
         """
 
-        self.logger_names = {}
+        self.logger_names = {'root': 'Parse'}
         """:obj:`dict`
         ``{(key, i): :obj:`str`}`` dictionary of logger names.
         """
@@ -1476,7 +1476,8 @@ Available keys: {available_keys}""")
             try:
                 df = load_tsv(path, **kwargs)
             except:
-                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter.\n{path}")
+                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
+                                 f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
             label_col = cols['label'] if 'label' in cols else 'label'
             try:
@@ -1604,11 +1605,12 @@ Available keys: {available_keys}""")
         paths = []
         for key, i in ids:
             new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
-            if new_path in paths:
-                modus = 'would have' if simulate else 'has'
-                self.logger.warning(f"The score at {new_path} {modus} been overwritten.")
-            else:
-                paths.append(new_path)
+            if new_path is not None:
+                if new_path in paths:
+                    modus = 'would have' if simulate else 'has'
+                    self.logger.info(f"The score at {new_path} {modus} been overwritten.")
+                else:
+                    paths.append(new_path)
         if simulate:
             return list(set(paths))
 
@@ -1870,42 +1872,37 @@ Using the first {li} elements, discarding {discarded}""")
 
         """
 
-        def restore_logger(val):
-            nonlocal prev_logger
-            self.logger = prev_logger
-            return val
-
-        prev_logger = self.logger
-        fname = self.fnames[key][i]
-        self.update_logger_cfg(name= self.logger_names[(key, i)])
         id = (key, i)
+        logger = get_logger(self.logger_names[id])
+        fname = self.fnames[key][i]
+
         if id not in self._parsed_mscx:
-            self.logger.error(f"No Score object found. Call parse_mscx() first.")
-            return restore_logger(None)
+            logger.error(f"No Score object found. Call parse_mscx() first.")
+            return
         path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
         if path is None:
-            return restore_logger(None)
+            return
 
         fname = fname + suffix + '.mscx'
         file_path = os.path.join(path, fname)
         if os.path.isfile(file_path):
             if simulate:
                 if overwrite:
-                    self.logger.warning(f"Would have overwritten {file_path}.")
-                    return restore_logger(file_path)
-                self.logger.warning(f"Would have skipped {file_path}.")
-                return restore_logger(None)
+                    logger.warning(f"Would have overwritten {file_path}.")
+                    return
+                logger.warning(f"Would have skipped {file_path}.")
+                return
             elif not overwrite:
-                self.logger.warning(f"Skipped {file_path}.")
-                return restore_logger(None)
+                logger.warning(f"Skipped {file_path}.")
+                return
         if simulate:
-            self.logger.debug(f"Would have written score to {file_path}.")
+            logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
             self._parsed_mscx[id].store_mscx(file_path)
-            self.logger.debug(f"Score written to {file_path}.")
+            logger.debug(f"Score written to {file_path}.")
 
-        return restore_logger(file_path)
+        return file_path
 
 
     def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
@@ -2070,6 +2067,8 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
     def update_metadata(self):
+        """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
+        the IDs of those that have been changed."""
         if len(self._metadata) == 0:
             self.logger.debug("No parsed metadata found.")
             return
@@ -2090,6 +2089,7 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
                     updates[i][j] = val
 
         l = len(updates)
+        ids = []
         if l > 0:
             for (rel_path, fname), new_dict in updates.items():
                 id = self.idx2id(rel_path=rel_path, fname=fname)
@@ -2097,10 +2097,12 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
                 for name, val in new_dict.items():
                     tags[name] = val
                 get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
+                ids.append(id)
 
             self.logger.info(f"{l} files updated.")
         else:
             self.logger.info("Nothing to update.")
+        return ids
 
 
     def __getstate__(self):

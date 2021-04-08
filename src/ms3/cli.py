@@ -123,6 +123,23 @@ def extract(args):
                   **suffixes)
 
 
+def metadata(args):
+    logger_cfg = {
+        'level': args.level,
+    }
+    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
+              logger_cfg=logger_cfg, index=['rel_paths', 'fnames'])
+    p.parse(parallel=False)
+    if len(p._metadata) == 0:
+        p.logger.info("No suitable metadata found.")
+        return
+    ids = p.update_metadata()
+    if len(ids) == 0:
+        p.logger.info("Nothing to update.")
+        return
+    p.store_mscx(ids=ids, folder=args.out, overwrite=True)
+
+
 def repair(args):
     print(args.dir)
 
@@ -187,8 +204,8 @@ def run():
                                 help="""Output directory. Subfolder trees are retained.""")
     input_args.add_argument('-n', '--nonrecursive', action='store_false',
                                 help="Don't scan folders recursively, i.e. parse only files in DIR.")
-    input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz)$',
-                                help="Select only file names including this string or regular expression. Defaults to MSCX and MSCZ files only.")
+    input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
+                                help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
     input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded.")
     input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
@@ -271,10 +288,17 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                 help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
 
+
     repair_parser = subparsers.add_parser('repair',
                                           help="Apply automatic repairs to your uncompressed MuseScore files.",
                                           parents=[input_args])
     repair_parser.set_defaults(func=repair)
+
+
+    metadata_parser = subparsers.add_parser('metadata',
+                                            help="Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D).",
+                                            parents=[input_args])
+    metadata_parser.set_defaults(func=metadata)
 
     update_parser = subparsers.add_parser('update',
                                            help="Convert MSCX files to the latest MuseScore version and move all chord annotations "
