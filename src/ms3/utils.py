@@ -1565,7 +1565,7 @@ def write_metadata(df, path, markdown=True):
         except:
             write_this = df
             msg = 'Replaced '
-    first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+    first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',
                   'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                   'movementTitle',
                   'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
@@ -1577,6 +1577,7 @@ def write_metadata(df, path, markdown=True):
             'fnames': 'file_name',
             'last_mn': 'measures',
             'label_count': 'labels',
+            'harmony_version': 'standard',
             'annotators': 'annotators',
             'reviewers': 'reviewers',
         }
