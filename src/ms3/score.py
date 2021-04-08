@@ -386,7 +386,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return
 
-        old_obj = self._detached_annotations[detached_key]
+        old_obj = self._detached_annotations[detached_key].copy()
+        if 'alt_label' in old_obj.columns:
+            old_obj.label + ('-' + old_obj.alt_label).fillna('')
         new_obj = self.mscx._annotations
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
