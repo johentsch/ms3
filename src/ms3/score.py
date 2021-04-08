@@ -386,14 +386,14 @@ Use one of the existing keys or load a new set with the method load_annotations(
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return
 
-        old_obj = self._detached_annotations[detached_key].copy()
-        if 'alt_label' in old_obj.columns:
-            old_obj.label + ('-' + old_obj.alt_label).fillna('')
+        old_obj = self._detached_annotations[detached_key]
         new_obj = self.mscx._annotations
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
         old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'])
+        if 'alt_label' in old.columns:
+            old.label + ('-' + old.alt_label).fillna('')
         new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'])
         assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
         assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
