@@ -392,8 +392,6 @@ Use one of the existing keys or load a new set with the method load_annotations(
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
         old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'])
-        if 'alt_label' in old.columns:
-            old.label + ('-' + old.alt_label).fillna('')
         new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'])
         assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
         assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
