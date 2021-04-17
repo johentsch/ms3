@@ -3,10 +3,10 @@
 Command line interface for ms3.
 """
 
-import argparse, os
+import argparse, os, sys
 
 from ms3 import Score, Parse
-from ms3.utils import convert, convert_folder, get_musescore, resolve_dir, scan_directory
+from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -56,7 +56,7 @@ def compare(args):
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-                  key='compare', index='fnames', logger_cfg=logger_cfg)
+                  key='compare', logger_cfg=logger_cfg)
     if len(p._score_ids()) == 0:
         p.logger.warning(f"Your selection does not include any scores.")
         return
@@ -157,10 +157,18 @@ def update(args):
     logger_cfg = {
         'level': args.level,
     }
-    for old in scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, subdirs=False,
-                                       exclude_files_only=True):
+    if args.dir is None:
+        paths = args.file
+    else:
+        paths = scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
+                               subdirs=False,
+                               exclude_files_only=True)
+
+    for old in paths:
         path, name = os.path.split(old)
-        fname, _ = os.path.splitext(name)
+        fname, fext = os.path.splitext(name)
+        if fext not in ('.mscx', '.mscz'):
+            continue
         if args.suffix is not None:
             fname = f"{fname}{args.suffix}.mscx"
         else:
@@ -172,10 +180,21 @@ def update(args):
         convert(old, new, MS, logger=name)
         s = Score(new, logger_cfg=logger_cfg)
         s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
+        if args.safe:
+            before = s.annotations.df
         s.detach_labels('old')
         s.old.remove_initial_dots()
-        s.attach_labels('old', staff=int(args.staff), label_type=int(args.type))
-        s.store_mscx(new)
+        s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
+        if args.safe:
+            after = s.annotations.df
+            try:
+                assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
+                s.store_mscx(new)
+            except:
+                s.logger.error(str(sys.exc_info()[1]))
+                continue
+        else:
+            s.store_mscx(new)
 
 
 def check_and_create(d):
@@ -317,6 +336,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     update_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
         To try standard paths on commercial systems, try -m win, or -m mac.""")
     update_parser.add_argument('--above', action='store_true', help="Display Roman Numerals above the system.")
+    update_parser.add_argument('--safe', action='store_true', help="Only moves labels if their temporal positions stay intact.")
     update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested.")
     update_parser.set_defaults(func=update)

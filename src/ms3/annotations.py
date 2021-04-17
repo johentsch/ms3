@@ -52,6 +52,10 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
+        sort_cols = ['mc', 'mn', 'mc_onset', 'staff']
+        sort_cols = [self.cols[c] if c in self.cols else c for c in sort_cols]
+        sort_cols = [c for c in sort_cols if c in self.df.columns]
+        self.df.sort_values(sort_cols, inplace=True)
 #         for col in ['label']:
 #             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
 # Present column names are:\n{self.df.columns.to_list()}."""

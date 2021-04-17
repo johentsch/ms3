@@ -890,9 +890,16 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             except:
                 self.logger.debug(f"""'{label}' is to be inserted at MC {mc}, onset {mc_onset}, staff {staff}, voice {voice},
 where there is no Chord or Rest, just: {elements}.""")
+                l = len(elements)
                 if 'FiguredBass' in names:
-                    ix, after = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] == 'FiguredBass')
-                    remember = self.insert_label(label=label, after=after, **kwargs)
+                    ix, after = next((i, elements[i]['tag']) for i in range(l) if elements[i]['name'] == 'FiguredBass')
+                else:
+                    if l > 1 and names[-1] == 'location':
+                        ix = l - 1
+                    else:
+                        ix = l
+                    after = elements[ix-1]['tag']
+                remember = self.insert_label(label=label, after=after, **kwargs)
             measure[mc_onset].insert(ix, remember[0])
             old_names = list(names)
             names.insert(ix, 'Harmony')
