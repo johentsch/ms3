@@ -127,11 +127,17 @@ def metadata(args):
     logger_cfg = {
         'level': args.level,
     }
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
+
+    regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
+
+    p = Parse(args.dir, paths=args.file, file_re=regex, exclude_re=args.exclude, recursive=args.nonrecursive,
               logger_cfg=logger_cfg, index=['rel_paths', 'fnames'])
+    if not any('metadata' in fnames for fnames in p.fnames.values()):
+        p.logger.info("metadata.tsv not found.")
+        return
     p.parse(parallel=False)
     if len(p._metadata) == 0:
-        p.logger.info("No suitable metadata found.")
+        p.logger.info("No suitable metadata recognized.")
         return
     ids = p.update_metadata()
     if len(ids) == 0:
