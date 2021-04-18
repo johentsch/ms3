@@ -1538,9 +1538,8 @@ Available keys: {available_keys}""")
         if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
-        suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
+        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         if unfold:
-            suffix_params = {k: v + '_unfolded' for k, v in suffix_params.items()}
             self.collect_lists(keys, measures=True)
         list_params = {p: True for p in folder_params.keys()}
         lists = self.get_lists(keys, **list_params)
