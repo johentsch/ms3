@@ -433,7 +433,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             anno = Annotations(df=df)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
-        if (added_changes is None or added_changes > 0) or color_changes > 0:
+        if added_changes > 0 or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
@@ -948,7 +948,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         (measure count). The columns represent for every MC its :ref:`actual duration<act_dur>`, its
         :ref:`time signature<timesig>`, how it is to be considered when computing measure numbers (:ref:`mn<mn>`),
         and which other MCs can "come :ref:`next`" according to the score's repeat structure."""
-        return self._parsed.ml
+        return self.parsed.ml
 
 
     @property
@@ -963,14 +963,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def notes(self):
         """:obj:`pandas.DataFrame`
         DataFrame representing all <Note> tags within the score."""
-        return self._parsed.nl
+        return self.parsed.nl
 
 
     @property
     def notes_and_rests(self):
         """:obj:`pandas.DataFrame`
         The union of :obj:`.notes` and :obj:`.rests`."""
-        return self._parsed.notes_and_rests
+        return self.parsed.notes_and_rests
 
 
     @property
@@ -988,27 +988,33 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def rests(self):
         """:obj:`pandas.DataFrame`
         DataFrame representing all <Rest> tags."""
-        return self._parsed.rl
+        return self.parsed.rl
 
 
     @property
     def staff_ids(self):
         """:obj:`list` of :obj:`int`
         The staff IDs contained in the score, usually just a list of increasing numbers starting at 1."""
-        return self._parsed.staff_ids
+        return self.parsed.staff_ids
 
     @property
     def style(self):
         """:obj:`Style`
         Can be used like a dictionary to change the information within the score's <Style> tag."""
-        return self._parsed.style
+        return self.parsed.style
 
 
     @property
     def version(self):
         """:obj:`str`
         MuseScore version that the file was created with."""
-        return self._parsed.version
+        return self.parsed.version
+
+    @property
+    def volta_structure(self):
+        """:obj:`dict`
+        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary."""
+        return self.parsed.volta_structure
 
 
     def add_labels(self, annotations_object):
@@ -1034,12 +1040,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         df = annotations_object.df
         if len(df) == 0:
             self.logger.info("Nothing to add.")
-            return
+            return 0
         main_cols = Annotations.main_cols
         columns = annotations_object.cols
         missing_main = {c for  c in main_cols if columns[c] not in df.columns}
-        assert len(
-            missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
+        assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:
             df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True)
         existing_cols = {k: v for k, v in columns.items() if v in df.columns}
