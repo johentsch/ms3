@@ -2,6 +2,7 @@
 and then adapted.
 """
 import sys, re
+from collections import defaultdict
 
 import pandas as pd
 import numpy as np
@@ -37,7 +38,7 @@ SM = SliceMaker()
 
 
 @function_logger
-def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propagate=True,
+def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propagate=True, volta_structure=None,
                   relative_to_global=False, chord_tones=True, absolute=False, all_in_c=False):
     """
     Split harmony labels complying with the DCML syntax into columns holding their various features
@@ -65,6 +66,9 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
         By default, information about global and local keys and about pedal points is spread throughout
         the DataFrame. Pass False if you only want to split the labels into their features. This ignores
         all following parameters because their expansions depend on information about keys.
+    volta_structure: :obj:`dict`, optional
+        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary as you can get it from
+        ``Score.mscx.volta_structure``. This allows for correct propagation into second and other voltas.
     relative_to_global : :obj:`bool`, optional
         Pass True if you want all labels expressed with respect to the global key.
         This levels and eliminates the features `localkey` and `relativeroot`.
@@ -139,20 +143,16 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
         logger.warning(f"Phrase beginning and endings don't match:\n{compare}")
 
-    if propagate or chord_tones:
-        if not propagate:
-            logger.info("Chord tones cannot be calculated without propagating keys.")
+    if propagate:
         key_cols = {col: cols[col] for col in ['localkey', 'globalkey']}
         try:
-            df = propagate_keys(df, add_bool=True, **key_cols, logger=logger)
+            df = propagate_keys(df, volta_structure=volta_structure, add_bool=True, **key_cols, logger=logger)
         except:
             logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}")
-
-        if propagate:
-            try:
-                df = propagate_pedal(df, cols=cols, logger=logger)
-            except:
-                logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
+        try:
+            df = propagate_pedal(df, cols=cols, logger=logger)
+        except:
+            logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
 
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
@@ -165,8 +165,13 @@ from several pieces. Apply expand_labels() to one piece at a time."""
                                   columns=ct.columns)
             df = pd.concat([df, ct], axis=1)
 
-    if relative_to_global:
-        labels2global_tonic(df, inplace=True, cols=cols, logger=logger)
+        if relative_to_global:
+            labels2global_tonic(df, inplace=True, cols=cols, logger=logger)
+    else:
+        if chord_tones:
+            logger.info("Chord tones cannot be calculated without propagating keys.")
+        if relative_to_global:
+            logger.info("Cannot transpose labels without propagating keys.")
 
     if tmp_index:
         df.index = ix
@@ -411,15 +416,8 @@ def changes2list(changes, sort=True):
     return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
 
 
-
-
-
-
-
-
-
 @function_logger
-def propagate_keys(df, globalkey='globalkey', localkey='localkey', add_bool=True):
+def propagate_keys(df, volta_structure=None, globalkey='globalkey', localkey='localkey', add_bool=True):
     """
     | Propagate information about global keys and local keys throughout the dataframe.
     | Pass split harmonies for one piece at a time. For concatenated pieces, use apply().
@@ -430,6 +428,10 @@ def propagate_keys(df, globalkey='globalkey', localkey='localkey', add_bool=True
     ----------
     df : :obj:`pandas.DataFrame`
         Dataframe containing DCML chord labels that have been split by split_labels().
+    volta_structure: :obj:`dict`, optional
+        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary as you can get it from
+        ``Score.mscx.volta_structure``. This allows for correct propagation into
+        second and other voltas.
     globalkey, localkey : :obj:`str`, optional
         In case you renamed the columns, pass column names.
     add_bool : :obj:`bool`, optional
@@ -449,17 +451,32 @@ def propagate_keys(df, globalkey='globalkey', localkey='localkey', add_bool=True
         logger.warning(
             f"Global key is not specified in the first label. Using '{global_key}' from index {df[df[globalkey] == global_key].index[0]}")
     df.loc[:, globalkey] = global_key
-    global_minor = series_is_minor(df[globalkey], is_name=True)
+    global_minor = series_is_minor(df[globalkey])
 
     logger.debug('Extending local keys to all harmonies')
     if pd.isnull(df[localkey].iloc[0]):
         one = 'i' if global_minor.iloc[0] else 'I'
         df.iloc[0, df.columns.get_loc(localkey)] = one
 
-    df[localkey].fillna(method='ffill', inplace=True)
+    if volta_structure is not None and volta_structure != {}:
+        if 'mc' in df.columns:
+            volta_mcs = defaultdict(list)
+            for volta_dict in volta_structure.values():
+                for volta_no, mcs in volta_dict.items():
+                    volta_mcs[volta_no].extend(mcs)
+            volta_exclusion = {volta_no: [mc for vn, mcs in volta_mcs.items() for mc in mcs if vn != volta_no] for
+                               volta_no in volta_mcs.keys()}
+            for volta_no in sorted(volta_exclusion.keys(), reverse=True):
+                selector = ~df.mc.isin(volta_exclusion[volta_no])
+                df.loc[selector, localkey] = df.loc[selector, localkey].fillna(method='ffill')
+        else:
+            logger.info("Dataframe needs to have a 'mc' column. Ignoring volta_structure.")
+            df[localkey].fillna(method='ffill', inplace=True)
+    else:
+        df[localkey].fillna(method='ffill', inplace=True)
 
     if add_bool:
-        local_minor = series_is_minor(df[localkey], is_name=False)
+        local_minor = series_is_minor(df[localkey])
         gm = f"{globalkey}_is_minor"
         lm = f"{localkey}_is_minor"
         df[gm] = global_minor
