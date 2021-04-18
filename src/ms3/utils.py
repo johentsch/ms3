@@ -1534,16 +1534,17 @@ def unfold_repeats(df, mc_sequence):
     df : :obj:`pandas.DataFrame`
         DataFrame needs to have the columns 'mc' and 'mn'.
     mc_sequence : :obj:`pandas.Series`
-        A Series of the format ``{playthrough: mc}`` where ``playthrough`` corresponds
-        to continuous MN
+        A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
+        to continuous MC
     """
+    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     vc = df.mc.value_counts()
     res = df.set_index('mc')
     seq = mc_sequence[mc_sequence.isin(res.index)]
     playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
-    res = res.loc[seq.values]
-    res.insert(res.columns.get_loc('mn') + 1, 'playthrough', playthrough_col)
-    return res.reset_index()
+    res = res.loc[seq.values].reset_index()
+    res.insert(res.columns.get_loc('mc') + 1, 'mc_playthrough', playthrough_col)
+    return res
 
 
 @contextmanager

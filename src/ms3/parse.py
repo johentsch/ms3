@@ -1025,10 +1025,16 @@ Available keys: {available_keys}""")
             self.collect_lists(ids=[id], measures=True)
         ml = self._measurelists[id].set_index('mc')
         seq = next2sequence(ml.next)
-        playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
-        res = pd.Series(seq, index=playthrough)
-        self._unfolded_mcs[id] = res
-        return res
+        ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
+        # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+        mc_playthrough = pd.Series(seq, name='mc_playthrough')
+        if seq[0] == 1:
+            mc_playthrough.index += 1
+        else:
+            assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
+        # res = pd.Series(seq, index=playthrough)
+        self._unfolded_mcs[id] = mc_playthrough
+        return mc_playthrough
 
 
     def ids2idx(self, ids=None, pandas_index=False):
