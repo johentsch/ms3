@@ -43,9 +43,12 @@ class Annotations(LoggedClass):
         self.changed = False
         self.read_only = read_only
         self.mscx_obj = mscx_obj
+        self.volta_structure = None if mscx_obj is None else mscx_obj.volta_structure
+
         columns = self.main_cols + self.additional_cols
         self.cols = {c: c for c in columns}
         self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
+
 
         if df is not None:
             self.df = df.copy()
@@ -305,7 +308,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = df[sel]
         try:
-            exp = expand_labels(df, column='label', regex=DCML_REGEX, chord_tones=True, logger=self.logger)
+            exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=True, logger=self.logger)
             if drop_others:
                 self._expanded = exp
             else:

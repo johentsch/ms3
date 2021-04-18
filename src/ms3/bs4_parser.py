@@ -330,6 +330,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._style
 
 
+    @property
+    def volta_structure(self):
+        if self._ml is not None:
+            return self._ml.volta_structure
+
+
     def make_standard_chordlist(self):
         """ This chord list has chords only as opposed to the one yielded by selr.get_chords()"""
         self._cl = self.add_standard_cols(self._events[self._events.event == 'Chord'])
