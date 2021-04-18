@@ -939,13 +939,15 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+    def get_lists(self, keys=None, unfold=False, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False, simulate=False, flat=True):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
         ----------
         keys
+        unfold : :obj:`bool`, optional
+            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
         notes
         rests
         notes_and_rests
@@ -971,14 +973,23 @@ Available keys: {available_keys}""")
         l = locals()
         params = {p: l[p] for p in bool_params}
         self.collect_lists(keys, only_new=True, **params)
+        if unfold:
+            self.collect_lists(keys, measures=True)
         res = {}
+        if unfold:
+            mc_sequences = {(key, i): self.get_unfolded_mcs(key, i) for key, i in self._iterids(keys)}
         for param, li in self._lists.items():
             if params[param]:
-                if flat:
-                    for id in (i for i in self._iterids(keys) if i in li):
-                        res[id + (param,)] = li[id]
-                else:
-                    res[param] = {self._index[id]: li[id] for id in (i for i in self._iterids(keys) if i in li)}
+                if not flat:
+                    res[param] = {}
+                for id in (i for i in self._iterids(keys) if i in li):
+                    df = li[id]
+                    if unfold:
+                        df = unfold_repeats(df, mc_sequences[id])
+                    if flat:
+                        res[id + (param,)] = df
+                    else:
+                        res[param][self._index[id]] = df
         return res
 
 
@@ -1539,10 +1550,8 @@ Available keys: {available_keys}""")
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
-        if unfold:
-            self.collect_lists(keys, measures=True)
         list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_lists(keys, **list_params)
+        lists = self.get_lists(keys, unfold=unfold, **list_params)
         modus = 'would ' if simulate else ''
         if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
@@ -1552,9 +1561,6 @@ Available keys: {available_keys}""")
         prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
-            if unfold:
-                mc_seq = self.get_unfolded_mcs(key, i)
-                li = unfold_repeats(li, mc_seq)
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
