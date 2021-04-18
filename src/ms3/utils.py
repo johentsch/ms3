@@ -862,11 +862,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'chord_tones': str2inttuple,
         'globalkey_is_minor': int2bool,
         'localkey_is_minor': int2bool,
-        'next': str2inttuple,
-        'nominal_duration': safe_frac,
         'mc_offset': safe_frac,
         'mc_onset': safe_frac,
         'mn_onset': safe_frac,
+        'next': str2inttuple,
+        'nominal_duration': safe_frac,
+        'quarterbeats': safe_frac,
         'onset': safe_frac,
         'duration': safe_frac,
         'scalar': safe_frac, }
@@ -902,6 +903,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'leftParen': str,
         'localkey': str,
         'mc': 'Int64',
+        'mc_playthrough': 'Int64',
         'midi': 'Int64',
         'mn': str,
         'offset:x': str,
@@ -1012,6 +1014,57 @@ def map2elements(e, f, *args, **kwargs):
     return f(e, *args, **kwargs)
 
 
+@function_logger
+def merge_ties(df, return_dropped=False, perform_checks=True):
+    """ In a note list, merge tied notes to single events with accumulated durations.
+        Input dataframe needs columns ['duration', 'tied', 'midi', 'staff']. This
+        function does not handle correctly overlapping ties on the same pitch since
+        it doesn't take into account the notational layers ('voice').
+
+
+    Parameters
+    ----------
+    df
+    return_dropped
+
+    Returns
+    -------
+
+    """
+
+    def merge(df):
+        vc = df.tied.value_counts()
+        if vc[1] != 1 or vc[-1] != 1:
+            logger.warning(f"More than one 1 or -1:\n{vc}")
+        ix = df.iloc[0].name
+        dur = df.duration.sum()
+        drop = df.iloc[1:].index.to_list()
+        return pd.Series({'ix': ix, 'duration': dur, 'dropped': drop})
+
+    def merge_ties(staff_midi):
+
+        staff_midi['chunks'] = (staff_midi.tied == 1).astype(int).cumsum()
+        t = staff_midi.groupby('chunks', group_keys=False).apply(merge)
+        return t.set_index('ix')
+
+    if not df.tied.notna().any():
+        return df
+    df = df.copy()
+    notna = df.loc[df.tied.notna(), ['duration', 'tied', 'midi', 'staff']]
+    if perform_checks:
+        before = notna.tied.value_counts()
+    new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_ties).sort_index()
+    try:
+        df.loc[new_dur.index, 'duration'] = new_dur.duration
+    except:
+        print(new_dur)
+    if return_dropped:
+        df.loc[new_dur.index, 'dropped'] = new_dur.dropped
+    df = df.drop(new_dur.dropped.sum())
+    if perform_checks:
+        after = df.tied.value_counts()
+        assert before[1] == after[1], f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
+    return df
 
 
 

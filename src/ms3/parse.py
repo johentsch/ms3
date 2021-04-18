@@ -301,7 +301,7 @@ class Parse(LoggedClass):
             detached_keys = pd.Series(detached_keys, index=ix,
                                   name='detached_annotations')
             res = pd.concat([paths, attached, detached_keys], axis=1)
-        return res
+        return res.sort_index()
 
     @property
     def parsed_tsv(self):
@@ -315,7 +315,7 @@ class Parse(LoggedClass):
         paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
         types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
         res = pd.concat([paths, types], axis=1)
-        return res
+        return res.sort_index()
 
 
 
@@ -1568,7 +1568,7 @@ Available keys: {available_keys}""")
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
                                                     metadata_path=None, markdown=True,
-                                                    simulate=None, unfold=False):
+                                                    simulate=None, unfold=False, quarterbeats=False):
         if simulate is None:
             simulate = self.simulate
         else:
@@ -1583,7 +1583,7 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_lists(keys, unfold=unfold, **list_params)
+        lists = self.get_lists(keys, unfold=unfold, quarterbeats=quarterbeats, **list_params)
         modus = 'would ' if simulate else ''
         if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")

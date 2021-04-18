@@ -397,7 +397,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
                 if "section break" in msg:
                     self.logger.debug(msg)
                 else:
-                    self.logger.warning(msg)
+                    self.logger.info(msg)
         else:
             start = None
 
