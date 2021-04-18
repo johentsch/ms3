@@ -176,6 +176,29 @@ class map_dict(dict):
         return key
 
 
+def add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough'):
+    """
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
+    offset_dict : :obj:`pandas.Series` or :obj:`dict`
+        {mc_playthrough -> offset}
+    insert_after : :obj:`str`, optional
+        Name of the column after which the new column will be inserted.
+
+    Returns
+    -------
+
+    """
+    df = df.copy()
+    quarterbeats = df.mc_playthrough.map(offset_dict)
+    if 'mc_onset' in df.columns:
+        quarterbeats += df.mc_onset
+    df.insert(df.columns.get_loc(insert_after)+1, 'quarterbeats', quarterbeats)
+    return df
+
 def assert_all_lines_equal(before, after, original, tmp_file):
     """ Compares two multiline strings to test equality."""
     diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
@@ -935,6 +958,38 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
 
 
 
+def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
+    """ In order to compute continuous offset, this function is required to compute each MC's offset from the
+    piece's beginning.
+
+    Parameters
+    ----------
+    act_durs : :obj:`pandas.Series`
+        A series of actual measures durations as fractions of whole notes (might differ from time signature).
+    quarters : :obj:`bool`, optional
+        By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
+        of a whole note.
+    negative_anacrusis : :obj:`fractions.Fraction`
+        By default, the first value is 0. If you pass a fraction here, the first value will be its negative and the
+        second value will be 0.
+
+    Returns
+    -------
+    :obj:`pandas.Series`
+        Cumulative sum of the values, shifted down by 1.
+
+    """
+    if quarters:
+        act_durs = act_durs * 4
+    res = act_durs.cumsum()
+    res = res.shift()
+    res.iloc[0] = 0
+    if negative_anacrusis is not None:
+        res -= frac(abs(negative_anacrusis))
+    return res
+
+
+
 def make_id_tuples(key, n):
     """ For a given key, this function return index tuples in the form [(key, 0), ..., (key, n)]
 
@@ -955,6 +1010,9 @@ def map2elements(e, f, *args, **kwargs):
     if isinstance(e, Iterable) and not isinstance(e, str):
         return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
+
+
+
 
 
 def metadata2series(d):

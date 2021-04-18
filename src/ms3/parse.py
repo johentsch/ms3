@@ -11,9 +11,9 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, df2md, get_musescore, group_id_tuples, load_tsv,\
-    make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir,\
-    scan_directory, sort_cols, string2lines, unfold_repeats, update_labels_cfg, write_metadata
+from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, \
+    make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict,\
+    resolve_dir, scan_directory, sort_cols, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -189,6 +189,12 @@ class Parse(LoggedClass):
         self._unfolded_mcs = {}
         """:obj:`dict`
         {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
+        """
+
+        self._unfolded_quarter_offsets = {}
+        """:obj:`dict`
+        {(key, i) -> {mc_playthrough -> quarter_offset}} For every mc_playthrough (i.e., after 'unfolding' all repeats)
+        the total sum of preceding quarter beats, measured from m. 1, b. 0. 
         """
 
         self.labels_cfg = {
@@ -939,15 +945,13 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, unfold=False, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, simulate=False, flat=True):
+    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                  labels=False, chords=False, expanded=False, simulate=False, flat=True, unfold=False, quarterbeats=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
         ----------
         keys
-        unfold : :obj:`bool`, optional
-            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
         notes
         rests
         notes_and_rests
@@ -960,6 +964,10 @@ Available keys: {available_keys}""")
         flat : :obj:`bool`, optional
             By default, you get a dictionary {(id, list_type) -> list}.
             By passing False you get a nested dictionary {list_type -> {index -> list}}
+        unfold : :obj:`bool`, optional
+            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
+        quarterbeats : :obj:`bool`, optional
+            Pass True to add a `quarterbeats` column with a continuous offset from the piece's beginning.
 
         Returns
         -------
@@ -973,8 +981,6 @@ Available keys: {available_keys}""")
         l = locals()
         params = {p: l[p] for p in bool_params}
         self.collect_lists(keys, only_new=True, **params)
-        if unfold:
-            self.collect_lists(keys, measures=True)
         res = {}
         if unfold:
             mc_sequences = {(key, i): self.get_unfolded_mcs(key, i) for key, i in self._iterids(keys)}
@@ -986,6 +992,12 @@ Available keys: {available_keys}""")
                     df = li[id]
                     if unfold:
                         df = unfold_repeats(df, mc_sequences[id])
+                        if quarterbeats:
+                            key, i = id
+                            offset_dict = self.get_unfolded_offsets(key, i)
+                            df = add_quarterbeats_col(df, offset_dict)
+                    elif quarterbeats:
+                        self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded.')
                     if flat:
                         res[id + (param,)] = df
                     else:
@@ -1035,6 +1047,20 @@ Available keys: {available_keys}""")
         # res = pd.Series(seq, index=playthrough)
         self._unfolded_mcs[id] = mc_playthrough
         return mc_playthrough
+
+
+    def get_unfolded_offsets(self, key, i):
+        id = (key, i)
+        if id in self._unfolded_quarter_offsets:
+            return self._unfolded_quarter_offsets[id]
+        mc_sequence = self.get_unfolded_mcs(key, i)
+        ml = unfold_repeats(self._measurelists[id], mc_sequence)
+        act_durs = ml.set_index('mc_playthrough').act_dur
+        offset_col = make_continuous_offset(act_durs, quarters=True)
+        offsets = offset_col.to_dict()
+        self._unfolded_quarter_offsets[id] = offsets
+        return offsets
+
 
 
     def ids2idx(self, ids=None, pandas_index=False):
