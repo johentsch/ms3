@@ -31,11 +31,16 @@ Welcome to **ms3**, a Python library for parsing annotated `MuseScore 3 <https:/
 * parses uncompressed MuseScore 3 files (``*.mscx``),
 * also parses compressed MuseScore 2 & 3 files (``*.mscz``), and cap, capx, midi, and musicxml formats by temporally converting them
 * stores the contained information (notes, harmonies, lyrics etc.) in a tabular format (``*.tsv``),
-* deletes and writes annotation labels to MuseScores <Harmony> layer,
+* deletes and writes annotation labels to MuseScore's <Harmony> layer,
 * parses and transforms labels following the `DCML harmonic annotation standard <https://github.com/DCMLab/standards>`__
 
 View the documentation on `GitHub <https://johentsch.github.io/ms3/>`__.
 
+.. raw:: html
+
+  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/UBY3wuIS4wc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+Video `available on YouTube <https://youtu.be/UBY3wuIS4wc>`__
 
 Note
 ====
