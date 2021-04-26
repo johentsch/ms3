@@ -155,6 +155,11 @@ class Parse(LoggedClass):
         {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.expanded` tables.
         """
 
+        self._cadencelists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.cadences` tables.
+        """
+
         self._index = {}
         """:obj:`dict`
         {(key, i): :obj:`tuple`} dictionary of index tuples where every element represents one index level.
@@ -220,6 +225,7 @@ class Parse(LoggedClass):
             'labels': self._labellists,
             'chords': self._chordlists,
             'expanded': self._expandedlists,
+            'cadences': self._cadencelists,
         }
         """:obj:`dict`
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.

@@ -882,6 +882,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+    @property
+    def cadences(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all cadence annotations in the score.
+        """
+        exp = self.expanded
+        if exp is None or 'cadence' not in exp.columns:
+            return None
+        return exp[exp.cadence.notna()]
 
 
     @property
@@ -892,7 +901,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         all kinds of score markup that is not attached to particular notes but to a <Chord>, such as
         slurs, lyrics, staff text, ottava lines etc.
         """
-        return self._parsed.chords
+        return self.parsed.chords
 
 
     @property
@@ -902,7 +911,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         i.e. <Chord>, <Rest>, <Harmony> and markup tags such as <Beam> together with, in the columns the values of their
         XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`
         (and therefore :obj:`.expanded`, too)."""
-        return self._parsed.events
+        return self.parsed.events
 
 
     @property
