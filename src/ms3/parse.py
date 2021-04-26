@@ -1750,15 +1750,16 @@ Load one of the identically named files with a different key using add_dir(key='
             'chords': ['chord_id'],
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
-            'labels': ['label_type', 'mc', 'mn'],
+            'labels': ['label_type'],
+            'cadences': ['cadence'],
             'metadata': ['last_mn'],
         }
-        res = None
         for t, columns in type2cols.items():
             if any(True for c in columns if c in df.columns):
-                res = t
-                break
-        return res
+                return t
+        if any(True for c in ['mc', 'mn'] if c in df.columns):
+            return 'labels'
+        return
 
     def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.

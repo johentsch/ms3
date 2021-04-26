@@ -239,7 +239,8 @@ def run():
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
                                 help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
     input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
-                                help="Any files or folders (and their subfolders) including this regex will be disregarded.")
+                                help="Any files or folders (and their subfolders) including this regex will be disregarded."
+                                     "By default, files including '_reviewed' or starting with . or _ are excluded.")
     input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
                                 help='Add path(s) of individual file(s) to be checked.')
     input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
