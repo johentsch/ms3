@@ -271,13 +271,73 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    @property
-    def measures(self):
-        d = self.get_lists(measures=True, flat=False)
+
+    def _join_lists(self, which, keys=None, ids=None):
+        """ Boiler plate for concatenating DataFrame with the same type of information.
+
+        Parameters
+        ----------
+        which : {'notes', 'rests', 'notes_and_rests', 'measures', 'events',
+                  'labels', 'chords', 'expanded', 'cadences'}
+        keys
+        ids
+
+        Returns
+        -------
+
+        """
+        d = self.get_lists(keys, ids, flat=False, **{which: True})[which]
+        msg = {
+            'cadences': 'cadence lists',
+            'chords': '<chord> tables',
+            'events': 'event tables',
+            'expanded': 'expandable annotation tables',
+            'labels': 'annotation tables',
+            'measures': 'measure lists',
+            'notes': 'note lists',
+            'notes_and_rests': 'note and rest lists',
+            'rests': 'rest lists',
+        }
         if len(d) == 0:
-            self.logger.info('This Parse object does not include any measure lists.')
-            return
-        return pd.concat(d['measures'].values(), keys=d['measures'].keys())
+            if keys is None and ids is None:
+                self.logger.info(f'This Parse object does not include any {msg[which]}.')
+            else:
+                self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
+            return pd.DataFrame()
+        return pd.concat(d.values(), keys=d.keys())
+
+    def cadences(self, keys=None, ids=None):
+        return self._join_lists('cadences', keys, ids)
+
+    def chords(self, keys=None, ids=None):
+        return self._join_lists('chords', keys, ids)
+
+    def events(self, keys=None, ids=None):
+        return self._join_lists('events', keys, ids)
+
+    def expanded(self, keys=None, ids=None):
+        return self._join_lists('expanded', keys, ids)
+
+    def labels(self, keys=None, ids=None):
+        return self._join_lists('labels', keys, ids)
+
+    def measures(self, keys=None, ids=None):
+        return self._join_lists('measures', keys, ids)
+
+    def notes(self, keys=None, ids=None):
+        return self._join_lists('notes', keys, ids)
+
+    def notes_and_rests(self, keys=None, ids=None):
+        return self._join_lists('notes_and_rests', keys, ids)
+
+    def rests(self, keys=None, ids=None):
+        return self._join_lists('rests', keys, ids)
+
+    @property
+    def ids(self):
+        d = self._index
+        return pd.DataFrame({'id': d.keys()}, index=d.values()).sort_index()
+
 
     @property
     def ms(self):
@@ -286,6 +346,7 @@ class Parse(LoggedClass):
     @ms.setter
     def ms(self, ms):
         self._ms = get_musescore(ms)
+
 
     @property
     def parsed_mscx(self):
@@ -667,7 +728,7 @@ Continuing with {annotation_key}.""")
 
 
     def collect_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                      labels=False, chords=False, expanded=False, only_new=True):
+                      labels=False, chords=False, expanded=False, cadences=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
 
         Parameters
@@ -676,17 +737,17 @@ Continuing with {annotation_key}.""")
             Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
         ids : :obj:`~collections.abc.Collection`
             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
-        notes, rests, notes_and_rests, measures, events, labels, chords, expanded : :obj:`bool`, optional
+        notes, rests, notes_and_rests, measures, events, labels, chords, expanded, cadences : :obj:`bool`, optional
         only_new : :obj:`bool`, optional
             Set to False to also retrieve lists that had already been retrieved.
         """
-        if len(self._parsed_mscx) == 0:
-            self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
+        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
+            self.logger.debug("Nothing has been parsed so far.")
             return
         if ids is None:
             only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
-        scores = {id: self._parsed_mscx[id] for id in ids}
+        scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
         bool_params = list(self._lists.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
@@ -951,13 +1012,15 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, simulate=False, flat=True, unfold=False, quarterbeats=False):
+    def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                  labels=False, chords=False, expanded=False, cadences=False, simulate=False, flat=True, unfold=False,
+                  quarterbeats=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
         ----------
         keys
+        ids
         notes
         rests
         notes_and_rests
@@ -966,6 +1029,7 @@ Available keys: {available_keys}""")
         labels
         chords
         expanded
+        cadences
         simulate
         flat : :obj:`bool`, optional
             By default, you get a dictionary {(id, list_type) -> list}.
@@ -979,22 +1043,23 @@ Available keys: {available_keys}""")
         -------
 
         """
+        if ids is None:
+            ids = list(self._iterids(keys))
         if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
             self.logger.error("No scores or annotation files have been parsed so far.")
             return {}
-        keys = self._treat_key_param(keys)
         bool_params = list(self._lists.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
-        self.collect_lists(keys, only_new=True, **params)
+        self.collect_lists(ids=ids, only_new=True, **params)
         res = {}
         if unfold:
-            mc_sequences = {(key, i): self.get_unfolded_mcs(key, i) for key, i in self._iterids(keys)}
+            mc_sequences = {(key, i): self.get_unfolded_mcs(key, i) for key, i in ids}
         for param, li in self._lists.items():
             if params[param]:
                 if not flat:
                     res[param] = {}
-                for id in (i for i in self._iterids(keys) if i in li):
+                for id in (i for i in ids if i in li):
                     df = li[id]
                     if unfold:
                         df = unfold_repeats(df, mc_sequences[id])
@@ -1224,15 +1289,19 @@ Available keys: {available_keys}""")
         print(info)
 
 
+    def keys(self):
+        return list(self.files.keys())
 
-    def match_files(self, keys=None, what=['scores', 'labels', 'expanded'], only_new=True):
+
+
+    def match_files(self, keys=None, what='scores', only_new=True):
         """ Match files based on their file names.
 
         Parameters
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             Which key(s) to consider for matching files.
-        what : :obj:`list` or ∈ {'scores', 'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded'}
+        what : :obj:`list` or ∈ {'scores', 'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'cadences'}
             If you pass only one element, the corresponding files will be matched to all other types.
             If you pass several elements the first type will be matched to the following types.
         only_new : :obj:`bool`, optional
@@ -1573,6 +1642,7 @@ Available keys: {available_keys}""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
+                                                    cadences_folder=None, cadences_suffix='',
                                                     metadata_path=None, markdown=True,
                                                     simulate=None, unfold=False, quarterbeats=False):
         if simulate is None:
