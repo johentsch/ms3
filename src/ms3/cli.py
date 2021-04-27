@@ -189,6 +189,8 @@ def update(args):
         if args.safe:
             before = s.annotations.df
         s.detach_labels('old')
+        if 'old' not in s._detached_annotations:
+            continue
         s.old.remove_initial_dots()
         s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
         if args.safe:
