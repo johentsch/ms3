@@ -195,7 +195,7 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough'):
     df = df.copy()
     quarterbeats = df.mc_playthrough.map(offset_dict)
     if 'mc_onset' in df.columns:
-        quarterbeats += df.mc_onset
+        quarterbeats += df.mc_onset * 4
     df.insert(df.columns.get_loc(insert_after)+1, 'quarterbeats', quarterbeats)
     return df
 
@@ -1041,7 +1041,7 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
         drop = df.iloc[1:].index.to_list()
         return pd.Series({'ix': ix, 'duration': dur, 'dropped': drop})
 
-    def merge_ties(staff_midi):
+    def merge_notes(staff_midi):
 
         staff_midi['chunks'] = (staff_midi.tied == 1).astype(int).cumsum()
         t = staff_midi.groupby('chunks', group_keys=False).apply(merge)
@@ -1053,7 +1053,7 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
     notna = df.loc[df.tied.notna(), ['duration', 'tied', 'midi', 'staff']]
     if perform_checks:
         before = notna.tied.value_counts()
-    new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_ties).sort_index()
+    new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_notes).sort_index()
     try:
         df.loc[new_dur.index, 'duration'] = new_dur.duration
     except:

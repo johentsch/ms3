@@ -1294,7 +1294,7 @@ Available keys: {available_keys}""")
 
 
 
-    def match_files(self, keys=None, what='scores', only_new=True):
+    def match_files(self, keys=None, what=None, only_new=True):
         """ Match files based on their file names.
 
         Parameters
@@ -1315,11 +1315,14 @@ Available keys: {available_keys}""")
         lists = dict(self._lists)
         lists['scores'] = self._parsed_mscx
         lists['annotations'] = self._annotations
-        if isinstance(what, str):
+        if what is None:
+            what = list(lists.keys())
+        elif isinstance(what, str):
             what = [what]
-        assert all(True for wh in what if wh in lists), f"Unknown matching parameter(s) for 'what': {[wh for wh in what if wh not in lists]}"
         if len(what) == 1:
-            what.extend([wh for wh in lists if wh != what[0]])
+            what.extend([wh for wh in lists.keys() if wh != what[0]])
+        assert all(True for wh in what if
+                   wh in lists), f"Unknown matching parameter(s) for 'what': {[wh for wh in what if wh not in lists]}"
         for wh in what:
             if wh not in self._matches.columns:
                 self._matches[wh] = np.nan
