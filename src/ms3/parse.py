@@ -1589,7 +1589,7 @@ Available keys: {available_keys}""")
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
 
         for key, i in ids:
-            rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
+            #rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
             path = self.full_paths[key][i]
             try:
                 df = load_tsv(path, **kwargs)
@@ -1601,7 +1601,7 @@ Available keys: {available_keys}""")
             id = (key, i)
             try:
                 self._parsed_tsv[id] = df
-                if label_col in df.columns:
+                if 'label' in cols and label_col in df.columns:
                     tsv_type = 'labels'
                 else:
                     tsv_type = self._infer_tsv_type(df)
@@ -1826,6 +1826,7 @@ Load one of the identically named files with a different key using add_dir(key='
             'chords': ['chord_id'],
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
+            'expanded': ['numeral'],
             'labels': ['label_type'],
             'cadences': ['cadence'],
             'metadata': ['last_mn'],
