@@ -244,7 +244,7 @@ class Parse(LoggedClass):
         Dictionary including the various constituents of the file paths which can be used as index levels.
         """
 
-        self._matches = pd.DataFrame(columns=['scores', 'annotations']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['scores']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -272,7 +272,7 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    def _join_lists(self, which, keys=None, ids=None):
+    def _join_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False):
         """ Boiler plate for concatenating DataFrame with the same type of information.
 
         Parameters
@@ -286,7 +286,8 @@ class Parse(LoggedClass):
         -------
 
         """
-        d = self.get_lists(keys, ids, flat=False, **{which: True})[which]
+        d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
+        d = d[which] if which in d else {}
         msg = {
             'cadences': 'cadence lists',
             'chords': '<chord> tables',
@@ -306,32 +307,32 @@ class Parse(LoggedClass):
             return pd.DataFrame()
         return pd.concat(d.values(), keys=d.keys())
 
-    def cadences(self, keys=None, ids=None):
-        return self._join_lists('cadences', keys, ids)
+    def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def chords(self, keys=None, ids=None):
-        return self._join_lists('chords', keys, ids)
+    def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def events(self, keys=None, ids=None):
-        return self._join_lists('events', keys, ids)
+    def events(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def expanded(self, keys=None, ids=None):
-        return self._join_lists('expanded', keys, ids)
+    def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def labels(self, keys=None, ids=None):
-        return self._join_lists('labels', keys, ids)
+    def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def measures(self, keys=None, ids=None):
-        return self._join_lists('measures', keys, ids)
+    def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def notes(self, keys=None, ids=None):
-        return self._join_lists('notes', keys, ids)
+    def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def notes_and_rests(self, keys=None, ids=None):
-        return self._join_lists('notes_and_rests', keys, ids)
+    def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
-    def rests(self, keys=None, ids=None):
-        return self._join_lists('rests', keys, ids)
+    def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._join_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     @property
     def ids(self):
@@ -971,6 +972,8 @@ Available keys: {available_keys}""")
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         ids = list(self._iterids(keys, only_attached_annotations=True))
+        if len(ids) == 0:
+            self.logger.info(f"Selection did not contain scores with labels: keys = '{keys}'")
         prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
@@ -1045,8 +1048,8 @@ Available keys: {available_keys}""")
         """
         if ids is None:
             ids = list(self._iterids(keys))
-        if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
-            self.logger.error("No scores or annotation files have been parsed so far.")
+        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
+            self.logger.error("No scores or TSV files have been parsed so far.")
             return {}
         bool_params = list(self._lists.keys())
         l = locals()
@@ -1054,7 +1057,7 @@ Available keys: {available_keys}""")
         self.collect_lists(ids=ids, only_new=True, **params)
         res = {}
         if unfold:
-            mc_sequences = {(key, i): self.get_unfolded_mcs(key, i) for key, i in ids}
+            mc_sequences = self.get_unfolded_mcs(ids=ids)
         for param, li in self._lists.items():
             if params[param]:
                 if not flat:
@@ -1099,14 +1102,59 @@ Available keys: {available_keys}""")
         return pd.concat([self._parsed_tsv[id] for id in ids], keys=keys)
 
 
+    def get_unfolded_mcs(self, keys=None, ids=None):
+        if ids is None:
+            ids = list(self._iterids(keys))
+        self.match_files(ids=ids)
+        res = {}
+        for key, i in ids:
+            unf_mcs = self._get_unfolded_mcs(key, i)
+            if unf_mcs is not None:
+                res[(key, i)] = unf_mcs
+        return res
 
-    def get_unfolded_mcs(self, key, i):
+    def _get_measure_list(self, key, i):
+        id = (key, i)
+        res = None
+        if id in self._measurelists:
+            res = self._measurelists[id]
+        elif id in self._parsed_mscx:
+            self.collect_lists(ids=[id], measures=True)
+            res = self._measurelists[id]
+        else:
+            # trying to find a matched file to retrieve the measure list from
+            ix = self._index[id]
+            if ix not in self._matches.index:
+                self.logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
+                return
+            matched_row = self._matches.loc[ix]
+            if not pd.isnull(matched_row['measures']):
+                matched_id = matched_row['measures']
+                res = self._measurelists[matched_id]
+            elif not pd.isnull(matched_row['scores']):
+                matched_id = matched_row['scores']
+                if matched_id in self._measurelists:
+                    res = self._measurelists[matched_id]
+                else:
+                    self.collect_lists(ids=[matched_id], measures=True)
+                    res = self._measurelists[matched_id]
+            else:
+                self.logger.warning(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
+        if res is not None:
+            return res.copy()
+
+
+
+    def _get_unfolded_mcs(self, key, i):
         id = (key, i)
         if id in self._unfolded_mcs:
             return self._unfolded_mcs[id]
         if not id in self._measurelists:
             self.collect_lists(ids=[id], measures=True)
-        ml = self._measurelists[id].set_index('mc')
+        ml = self._get_measure_list(key, i)
+        if ml is None:
+            return
+        ml = ml.set_index('mc')
         seq = next2sequence(ml.next)
         ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
         # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
@@ -1124,9 +1172,10 @@ Available keys: {available_keys}""")
         id = (key, i)
         if id in self._unfolded_quarter_offsets:
             return self._unfolded_quarter_offsets[id]
-        mc_sequence = self.get_unfolded_mcs(key, i)
-        ml = unfold_repeats(self._measurelists[id], mc_sequence)
-        act_durs = ml.set_index('mc_playthrough').act_dur
+        mc_sequence = self._get_unfolded_mcs(key, i)
+        ml = self._get_measure_list(key, i)
+        unfolded_ml = unfold_repeats(ml, mc_sequence)
+        act_durs = unfolded_ml.set_index('mc_playthrough').act_dur
         offset_col = make_continuous_offset(act_durs, quarters=True)
         offsets = offset_col.to_dict()
         self._unfolded_quarter_offsets[id] = offsets
@@ -1292,9 +1341,7 @@ Available keys: {available_keys}""")
     def keys(self):
         return list(self.files.keys())
 
-
-
-    def match_files(self, keys=None, what=None, only_new=True):
+    def match_files(self, keys=None, ids=None, what=None, only_new=True):
         """ Match files based on their file names.
 
         Parameters
@@ -1312,9 +1359,8 @@ Available keys: {available_keys}""")
         :obj:`pandas.DataFrame`
             Those files that were matched. This is a subsection of self._matches
         """
-        lists = dict(self._lists)
-        lists['scores'] = self._parsed_mscx
-        lists['annotations'] = self._annotations
+        lists = {'scores': self._parsed_mscx}
+        lists.update(dict(self._lists))
         if what is None:
             what = list(lists.keys())
         elif isinstance(what, str):
@@ -1326,57 +1372,71 @@ Available keys: {available_keys}""")
         for wh in what:
             if wh not in self._matches.columns:
                 self._matches[wh] = np.nan
+        if ids is None:
+            ids = list(self._iterids(keys))
 
-        start = what[0]
-        existing = lists[start]
-        ids = list(self._iterids(keys))
-        ids_to_match = [id for id in ids if id in existing]
-        matching_candidates = {wh: {(key, i): self.fnames[key][i] for key, i in ids if (key, i) in lists[wh]} for wh in what[1:]}
+        matching_candidates = {wh: {id: self.fnames[id[0]][id[1]] for id in ids if id in lists[wh]} for wh in what}
         remove = []
-        for i, wh in enumerate(what[1:], 1):
+        for i, wh in enumerate(what):
             if len(matching_candidates[wh]) == 0:
-                self.logger.warning(f"There are no candidates for '{wh}' in the keys {keys}.")
+                self.logger.debug(f"There are no candidates for '{wh}' in the selected IDs.")
                 remove.append(i)
         for i in reversed(remove):
-            del(what[i])
-        res_ix = []
-        for key, i in ids_to_match:
-            ix = self._index[(key, i)]
+            del (what[i])
+
+        def get_row(ix):
             if ix in self._matches.index:
-                row = self._matches.loc[ix].copy()
+                return self._matches.loc[ix].copy()
+            return pd.Series(np.nan, index=lists.keys(), name=ix)
+
+        def update_row(ix, row):
+            if ix in self._matches.index:
+                self._matches.loc[ix, :] = row
             else:
-                row = pd.Series(np.nan, index=lists.keys(), name=ix)
-            row[start] = (key, i)
-            for wh in what[1:]:
-                if not pd.isnull(row[wh]) and only_new:
-                    self.logger.debug(f"{ix} had already been matched to {wh} {row[wh]}")
-                else:
-                    row[wh] = np.nan
-                    fname = self.fnames[key][i]
-                    file  = self.files[key][i]
-                    matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wh].items()}
-                    lengths = {id: len(prefix) for id, prefix in matches.items()}
-                    longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
+                self._matches = self._matches.append(row)
+                if len(self._matches) == 1:
+                    self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
 
-                    if len(longest) == 0:
-                        self.logger.info(f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
-                    elif len(longest) > 1:
-                        ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in longest.items()}
-                        self.logger.info(f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+        res_ix = set()
+        for j, wh in enumerate(what):
+            for id, fname in matching_candidates[wh].items():
+                ix = self._index[id]
+                row = get_row(ix)
+                row[wh] = id
+                for wha in what[j + 1:]:
+                    if not pd.isnull(row[wha]) and only_new:
+                        self.logger.debug(f"{ix} had already been matched to {wha} {row[wha]}")
                     else:
-                        id = list(longest.keys())[0]
-                        row[wh] = id
-                        match_file = self.files[id[0]][id[1]]
-                        self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[id]}")
+                        row[wha] = np.nan
+                        key, i = id
+                        file = self.files[key][i]
+                        matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wha].items()}
+                        lengths = {id: len(prefix) for id, prefix in matches.items()}
+                        longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
 
-                    if ix in self._matches.index:
-                        self._matches.loc[ix, :] = row
-                    else:
-                        self._matches = self._matches.append(row)
-                        if len(self._matches) == 1:
-                            self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
-                    res_ix.append(ix)
-        return self._matches.loc[res_ix]
+                        if len(longest) == 0:
+                            self.logger.info(
+                                f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                        elif len(longest) > 1:
+                            ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in
+                                         longest.items()}
+                            self.logger.info(
+                                f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                        else:
+                            match_id = list(longest.keys())[0]
+                            row[wha] = match_id
+                            match_ix = self._index[match_id]
+                            match_row = get_row(match_ix)
+                            match_row[wh] = id
+                            update_row(match_ix, match_row)
+                            res_ix.add(match_ix)
+                            match_file = self.files[match_id[0]][match_id[1]]
+                            self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[match_id]}")
+
+                update_row(ix, row)
+                res_ix.add(ix)
+
+        return self._matches.loc[list(res_ix)].sort_index()
 
 
     def metadata(self, keys=None):
@@ -1447,7 +1507,7 @@ Available keys: {available_keys}""")
 
         if len(paths) == 0:
             reason = 'in this Parse object' if keys is None else f"for '{keys}'"
-            self.logger.info(f"No MSCX files found {reason}.")
+            self.logger.debug(f"No MSCX files found {reason}.")
             return
         if level is None:
             level = self.logger.logger.level
@@ -1618,7 +1678,7 @@ Available keys: {available_keys}""")
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
                     else:
                         self._lists[tsv_type][id] = self._parsed_tsv[id]
-                        if tsv_type == 'labels':
+                        if tsv_type in ['labels', 'expanded']:
                             if label_col in df.columns:
                                 logger_name = self.files[key][i]
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
