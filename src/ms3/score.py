@@ -920,9 +920,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         DataFrame of labels that have been split into various features using a regular expression."""
         if self._annotations is None:
             return None
-        labels_cfg = self.labels_cfg.copy()
+        #labels_cfg = self.labels_cfg.copy()
         #labels_cfg['decode'] = False
-        return self._annotations.expand_dcml(**labels_cfg)
+        return self._annotations.expand_dcml(**self.labels_cfg)
 
 
     @property

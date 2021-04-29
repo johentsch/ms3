@@ -286,6 +286,9 @@ class Parse(LoggedClass):
         -------
 
         """
+        if quarterbeats and not unfold:
+            self.logger.info('Adding quarterbeats without unfolding repeats has not yet been implemented, sorry.')
+            quarterbeats = False
         d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
         d = d[which] if which in d else {}
         msg = {
@@ -1892,7 +1895,7 @@ Load one of the identically named files with a different key using add_dir(key='
             'expanded': ['numeral'],
             'labels': ['label_type'],
             'cadences': ['cadence'],
-            'metadata': ['last_mn'],
+            'metadata': ['last_mn', 'md5'],
         }
         for t, columns in type2cols.items():
             if any(True for c in columns if c in df.columns):
