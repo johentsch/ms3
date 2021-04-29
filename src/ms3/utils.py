@@ -1416,7 +1416,7 @@ def sort_cols(df, first_cols=None):
     """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
     if first_cols is None:
         first_cols = [
-            'mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration',
+            'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat', 'event', 'timesig', 'staff', 'voice', 'duration',
             'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
     cols = df.columns
     column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
