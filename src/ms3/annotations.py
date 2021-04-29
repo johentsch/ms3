@@ -2,7 +2,8 @@ import sys, re
 
 import pandas as pd
 
-from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, map_dict, name2format, resolve_dir, rgb2format, update_cfg
+from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
+    map_dict, name2format, resolve_dir, rgb2format, sort_cols, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -55,10 +56,10 @@ class Annotations(LoggedClass):
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
             self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
-        sort_cols = ['mc', 'mn', 'mc_onset', 'staff']
-        sort_cols = [self.cols[c] if c in self.cols else c for c in sort_cols]
-        sort_cols = [c for c in sort_cols if c in self.df.columns]
-        self.df.sort_values(sort_cols, inplace=True)
+        sorting_cols = ['mc', 'mn', 'mc_onset', 'staff']
+        sorting_cols = [self.cols[c] if c in self.cols else c for c in sorting_cols]
+        sorting_cols = [c for c in sorting_cols if c in self.df.columns]
+        self.df.sort_values(sorting_cols, inplace=True)
 #         for col in ['label']:
 #             assert self.cols[col] in self.df.columns, f"""The DataFrame has no column named '{self.cols[col]}'. Pass the column name as col={{'{col}'=col_name}}.
 # Present column names are:\n{self.df.columns.to_list()}."""
@@ -273,6 +274,8 @@ Possible values are {{1, 2, 3, 4}}.""")
                         name = rgb2format(res, 'name')
                 res['color_name'] = name
 
+        if self.mscx_obj is not None:
+            res = sort_cols(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
 
