@@ -1319,7 +1319,7 @@ Available keys: {available_keys}""")
             if mscx > 0:
                 info += f"\n\nNone of the {mscx} score files have been parsed."
                 if by_conversion > 0 and self.ms is None:
-                    info += f"\n{by_conversion} files would beed to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
+                    info += f"\n{by_conversion} files would need to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
         if self.ms is not None:
             info += "\n\nMuseScore 3 executable has been found."
 
@@ -1502,19 +1502,30 @@ Available keys: {available_keys}""")
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
 
         if only_new:
-            paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] in ('.mscx', '.mscz') and (key, i) not in self._parsed_mscx]
+            paths = [id for id in self._score_ids(keys) if id not in self._parsed_mscx]
         else:
-            paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] in ('.mscx', '.mscz')]
+            paths = self._score_ids(keys)
+
+        exts = self.count_extensions(ids=paths)
+
+        if any(ext[1:].lower() in Score.convertible_formats for ext in exts.keys()) and parallel:
+            msg = f"The file extensions [{', '.join(ext[1:] for ext in exts.keys() if ext[1:].lower() in Score.convertible_formats )}] " \
+                  f"require temporary conversion with your local MuseScore, which is not possible with parallel " \
+                  f"processing. Parse with parallel=False or exclude these files from parsing."
+            if self.ms is None:
+                msg += "\n\nIn case you want to temporarily convert these files, you will also have to set the" \
+                       "property ms of this object to the path of your MuseScore 3 executable."
+            self.logger.error(msg)
+            return
 
         if len(paths) == 0:
             reason = 'in this Parse object' if keys is None else f"for '{keys}'"
-            self.logger.debug(f"No MSCX files found {reason}.")
+            self.logger.debug(f"No parseable scores found {reason}.")
             return
         if level is None:
             level = self.logger.logger.level
         cfg = {'level': level}
+
         ### If log files are going to be created, compute their paths and configure loggers for individual parses
         if self.logger_cfg['file'] is not None or self.logger_cfg['path'] is not None:
             file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
@@ -1567,6 +1578,7 @@ Available keys: {available_keys}""")
 
         ### collect argument tuples for calling self._parse
         parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(paths, configs)]
+        print(parse_this)
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''

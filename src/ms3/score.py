@@ -31,7 +31,7 @@ class Score(LoggedClass):
     RN_REGEX = r"^$"
     """:obj:`str`
     Class variable with a regular expression for Roman numerals that
-    romentarily matches nothing because ms3 tries interpreting Roman Numerals
+    momentarily matches nothing because ms3 tries interpreting Roman Numerals
     als DCML harmony annotations.
     """
 
