@@ -1577,7 +1577,6 @@ Available keys: {available_keys}""")
 
         ### collect argument tuples for calling self._parse
         parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(paths, configs)]
-        print(parse_this)
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''
