@@ -417,7 +417,7 @@ class Parse(LoggedClass):
                 matches = self.match_files(keys=[score_key, tsv_key])
             else:
                 matches = self._matches[self._matches.labels.notna() | self._matches.expanded.notna()]
-            matches.labels.fillna(matches.expanded)
+            matches.labels.fillna(matches.expanded, inplace=True)
             match_dict = dict(matches[['scores', 'labels']].values)
         if len(match_dict) == 0:
             self.logger.info(f"No files could be matched based on file names, have you added the folder containing annotation tables?"
