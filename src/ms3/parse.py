@@ -272,13 +272,12 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    def _join_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False):
-        """ Boiler plate for concatenating DataFrame with the same type of information.
+    def _concat_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False):
+        """ Boiler plate for concatenating DataFrames with the same type of information.
 
         Parameters
         ----------
-        which : {'notes', 'rests', 'notes_and_rests', 'measures', 'events',
-                  'labels', 'chords', 'expanded', 'cadences'}
+        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests'}
         keys
         ids
 
@@ -287,7 +286,7 @@ class Parse(LoggedClass):
 
         """
         if quarterbeats and not unfold:
-            self.logger.info('Adding quarterbeats without unfolding repeats has not yet been implemented, sorry.')
+            self.logger.info('Adding quarterbeats without unfolding repeats has not been implemented yet, sorry.')
             quarterbeats = False
         d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
         d = d[which] if which in d else {}
@@ -311,31 +310,31 @@ class Parse(LoggedClass):
         return pd.concat(d.values(), keys=d.keys())
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def events(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._join_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+        return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     @property
     def ids(self):
@@ -1108,7 +1107,7 @@ Available keys: {available_keys}""")
     def get_unfolded_mcs(self, keys=None, ids=None):
         if ids is None:
             ids = list(self._iterids(keys))
-        self.match_files(ids=ids)
+        _ = self.match_files(ids=ids)
         res = {}
         for key, i in ids:
             unf_mcs = self._get_unfolded_mcs(key, i)
