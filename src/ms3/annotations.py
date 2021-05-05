@@ -279,7 +279,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         return res
 
 
-    def expand_dcml(self, drop_others=True, warn_about_others=True, **kwargs):
+    def expand_dcml(self, drop_others=True, warn_about_others=True, keep_empty_cols=False, **kwargs):
         """ Expands all labels where the label_type has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
         Parameters
@@ -289,6 +289,8 @@ Possible values are {{1, 2, 3, 4}}.""")
         warn_about_others : :obj:`bool`, optional
             Set to False to suppress warnings about labels that have not label_type 'dcml'.
             Is automatically set to False if ``drop_others`` is set to False.
+        keep_empty_cols : :obj:`bool`, optional
+
         kwargs
             Additional arguments are passed to :py:meth:`.get_labels` to define the original representation.
 
@@ -323,7 +325,9 @@ Possible values are {{1, 2, 3, 4}}.""")
         except:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
 
-        return self._expanded
+        if keep_empty_cols:
+            return self._expanded
+        return self._expanded.dropna(axis=1, how='all')
 
 
 
