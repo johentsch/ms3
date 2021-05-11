@@ -1066,14 +1066,20 @@ Available keys: {available_keys}""")
                     res[param] = {}
                 for id in (i for i in ids if i in li):
                     df = li[id]
-                    if unfold:
+                    if unfold == 'raw':
+                        pass
+                    elif unfold:
                         df = unfold_repeats(df, mc_sequences[id])
                         if quarterbeats:
                             key, i = id
                             offset_dict = self.get_unfolded_offsets(key, i)
                             df = add_quarterbeats_col(df, offset_dict)
-                    elif quarterbeats:
-                        self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded.')
+                    else:
+                        if 'volta' in df.columns:
+                            self.logger.debug("Dropped all first voltas and the volta column. Cases with more than two voltas not covered. Use unfold='raw' to prevent this.")
+                            df = df.drop(index=df[df.volta.fillna(0) == 1].index, columns='volta')
+                        if quarterbeats:
+                            self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded.')
                     if flat:
                         res[id + (param,)] = df
                     else:
