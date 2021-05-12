@@ -1069,13 +1069,16 @@ Available keys: {available_keys}""")
                     if unfold == 'raw':
                         pass
                     elif unfold:
-                        df = unfold_repeats(df, mc_sequences[id])
-                        if quarterbeats:
-                            key, i = id
-                            offset_dict = self.get_unfolded_offsets(key, i)
-                            df = add_quarterbeats_col(df, offset_dict)
+                        if id in mc_sequences:
+                            df = unfold_repeats(df, mc_sequences[id])
+                            if quarterbeats:
+                                key, i = id
+                                offset_dict = self.get_unfolded_offsets(key, i)
+                                df = add_quarterbeats_col(df, offset_dict)
+                        else:
+                            self.logger.info(f"Cannot unfold {id} without measure information.")
                     else:
-                        if 'volta' in df.columns:
+                        if param != 'measures' and 'volta' in df.columns:
                             self.logger.debug("Dropped all first voltas and the volta column. Cases with more than two voltas not covered. Use unfold='raw' to prevent this.")
                             df = df.drop(index=df[df.volta.fillna(0) == 1].index, columns='volta')
                         if quarterbeats:
@@ -1147,7 +1150,10 @@ Available keys: {available_keys}""")
                     self.collect_lists(ids=[matched_id], measures=True)
                     res = self._measurelists[matched_id]
             else:
-                self.logger.warning(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
+                if matched_row.notna().sum() > 1:
+                    self.logger.info(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
+                else:
+                    self.logger.info(f"No matches found for ID {id} and therefore no measure list.")
         if res is not None:
             return res.copy()
 
@@ -1420,7 +1426,11 @@ Available keys: {available_keys}""")
                         file = self.files[key][i]
                         matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wha].items()}
                         lengths = {id: len(prefix) for id, prefix in matches.items()}
-                        longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
+                        max_length = max(lengths.values())
+                        if max_length == 0:
+                            self.logger.debug(f"No matches for {id}")
+                            break
+                        longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max_length}
 
                         if len(longest) == 0:
                             self.logger.info(
