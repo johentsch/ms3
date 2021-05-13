@@ -150,9 +150,9 @@ but no 'path' has been configured.""")
         log_file = os.path.abspath(os.path.join(path, f"{name}.log"))
 
     if log_file is not None and not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
-        dir, _ = os.path.split(log_file)
-        if not os.path.isdir(dir):
-            os.makedirs(dir, exist_ok=True)
+        log_dir, _ = os.path.split(log_file)
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
         logger.debug(f"Storing logs as {log_file}")
         fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
         fileHandler.setLevel(LEVELS['W'])
@@ -217,14 +217,14 @@ def function_logger(f):
     return logger
 
 
-def resolve_dir(dir):
+def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
     """
-    if dir is None:
+    if d is None:
         return None
-    if '~' in dir:
-        return os.path.expanduser(dir)
-    return os.path.abspath(dir)
+    if '~' in d:
+        return os.path.expanduser(d)
+    return os.path.abspath(d)
 
 
 @function_logger

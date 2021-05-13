@@ -21,13 +21,13 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, paths=None, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, directory=None, paths=None, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
         Parameters
         ----------
-        dir, key, index, file_re, folder_re, exclude_re, recursive : optional
+        directory, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
@@ -61,7 +61,7 @@ class Parse(LoggedClass):
         if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
             # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
             # if `dir` is also None, Parse.log will not be created and a warning will be shown.
-            logger_cfg['path'] = dir
+            logger_cfg['path'] = directory
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
@@ -251,15 +251,15 @@ class Parse(LoggedClass):
 
 
 
-        self.last_scanned_dir = dir
+        self.last_scanned_dir = directory
         """:obj:`str`
         The directory that was scanned for files last.
         """
-        if dir is not None:
-            if isinstance(dir, str):
-                dir = [dir]
-            for d in dir:
-                self.add_dir(dir=d, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        if directory is not None:
+            if isinstance(directory, str):
+                directory = [directory]
+            for d in directory:
+                self.add_dir(directory=d, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
             if isinstance(paths, str):
                 paths = [paths]
@@ -445,7 +445,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
 
 
-    def add_dir(self, dir, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
+    def add_dir(self, directory, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
         This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
@@ -453,7 +453,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
         Parameters
         ----------
-        dir : :obj:`str`
+        directory : :obj:`str`
             Directory to scan for files.
         key : :obj:`str`, optional
             | Pass a string to identify the loaded files.
@@ -469,7 +469,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
               index level itself and needs to have at least as many elements as the number of added files.
             | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
             | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
-        dir : :obj:`str`
+        directory : :obj:`str`
             Directory to be scanned for files.
         file_re : :obj:`str`, optional
             Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected.
@@ -480,11 +480,11 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
-        dir = resolve_dir(dir)
-        self.last_scanned_dir = dir
+        directory = resolve_dir(directory)
+        self.last_scanned_dir = directory
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True)
-        paths = tuple(scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
+        paths = tuple(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
         _ = self.add_files(paths=paths, key=key, index=index)
 
 

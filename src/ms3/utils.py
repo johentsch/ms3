@@ -410,13 +410,13 @@ def convert(old, new, MS='mscore'):
         logger.warning("Error while converting " + old)
 
 @function_logger
-def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+def convert_folder(directory, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
     Parameters
     ----------
-    dir, new_folder : str
+    directory, new_folder : str
         Directories
     extensions : list, optional
         If you want to convert only certain formats, give those, e.g. ['mscz', 'xml']
@@ -437,11 +437,11 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     else:
         exclude_re = ''
     new_dirs = {}
-    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
+    for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
         else:
-            old_subdir = os.path.relpath(subdir, dir)
+            old_subdir = os.path.relpath(subdir, directory)
             new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
             os.makedirs(new_subdir, exist_ok=True)
             new_dirs[subdir] = new_subdir
@@ -1274,14 +1274,14 @@ def pretty_dict(d, heading=None):
 
 
 
-def resolve_dir(dir):
+def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
     """
-    if dir is None:
+    if d is None:
         return None
-    if '~' in dir:
-        return os.path.expanduser(dir)
-    return os.path.abspath(dir)
+    if '~' in d:
+        return os.path.expanduser(d)
+    return os.path.abspath(d)
 
 
 def rgb2format(df, format='html', r_col='color_r', g_col='color_g', b_col='color_b'):
@@ -1374,7 +1374,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         List of full paths meeting the criteria.
 
     """
-    def traverse(dir):
+    def traverse(d):
         nonlocal counter
 
         def check_regex(reg, s, excl=exclude_re):
@@ -1385,9 +1385,9 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                 raise
             return res
 
-        for dir_entry in os.scandir(dir):
+        for dir_entry in os.scandir(d):
             name = dir_entry.name
-            path = os.path.join(dir, name)
+            path = os.path.join(d, name)
             if dir_entry.is_dir() and recursive:
                 if (exclude_files_only and check_regex(folder_re, name, excl='^$')) or (not exclude_files_only and check_regex(folder_re, name)):
                     for res in traverse(path):
@@ -1400,7 +1400,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                     if pbar is not None:
                         pbar.set_postfix({'selected': counter})
                     if subdirs:
-                        yield (dir, name)
+                        yield (d, name)
                     else:
                         yield path
 
@@ -1659,10 +1659,10 @@ def unfold_repeats(df, mc_sequence):
 
 
 @contextmanager
-def unpack_mscz(mscz, dir=None):
-    if dir is None:
-        dir = os.path.dirname(mscz)
-    tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
+def unpack_mscz(mscz, tmp_dir=None):
+    if tmp_dir is None:
+        tmp_dir = os.path.dirname(mscz)
+    tmp_file = Temp(suffix='.mscx', prefix='.', dir=tmp_dir, delete=False)
     with Zip(mscz) as zip_file:
         mscx_files = [f for f in zip_file.namelist() if f.endswith('.mscx')]
         if len(mscx_files) > 1:
