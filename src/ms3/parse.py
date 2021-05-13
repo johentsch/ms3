@@ -267,7 +267,7 @@ class Parse(LoggedClass):
                 # TODO: allow for any number of JSON files
                 with open(paths[0]) as f:
                     paths = json.load(f)
-            _ = self.add_files(paths, key=key, index=index)
+            _ = self.add_files(paths, key=key, index=index, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -488,7 +488,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         _ = self.add_files(paths=paths, key=key, index=index)
 
 
-    def add_files(self, paths, key, index=None):
+    def add_files(self, paths, key, index=None, exclude_re=None):
         """
 
         Parameters
@@ -1356,12 +1356,12 @@ Available keys: {available_keys}""")
         return list(self.files.keys())
 
     def match_files(self, keys=None, ids=None, what=None, only_new=True):
-        """ Match files based on their file names.
+        """ Match files based on their file names and return the matches for the requested keys or ids.
 
         Parameters
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Which key(s) to consider for matching files.
+            Which key(s) to return after matching matching files.
         what : :obj:`list` or ∈ {'scores', 'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'cadences'}
             If you pass only one element, the corresponding files will be matched to all other types.
             If you pass several elements the first type will be matched to the following types.
@@ -1386,10 +1386,8 @@ Available keys: {available_keys}""")
         for wh in what:
             if wh not in self._matches.columns:
                 self._matches[wh] = np.nan
-        if ids is None:
-            ids = list(self._iterids(keys))
 
-        matching_candidates = {wh: {id: self.fnames[id[0]][id[1]] for id in ids if id in lists[wh]} for wh in what}
+        matching_candidates = {wh: {id: self.fnames[id[0]][id[1]] for id in lists[wh].keys()} for wh in what}
         remove = []
         for i, wh in enumerate(what):
             if len(matching_candidates[wh]) == 0:
@@ -1411,7 +1409,7 @@ Available keys: {available_keys}""")
                 if len(self._matches) == 1:
                     self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
 
-        res_ix = set()
+        #res_ix = set()
         for j, wh in enumerate(what):
             for id, fname in matching_candidates[wh].items():
                 ix = self._index[id]
@@ -1447,14 +1445,17 @@ Available keys: {available_keys}""")
                             match_row = get_row(match_ix)
                             match_row[wh] = id
                             update_row(match_ix, match_row)
-                            res_ix.add(match_ix)
+                            #res_ix.add(match_ix)
                             match_file = self.files[match_id[0]][match_id[1]]
                             self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[match_id]}")
 
                 update_row(ix, row)
-                res_ix.add(ix)
+                #res_ix.add(ix)
 
-        return self._matches.loc[list(res_ix)].sort_index()
+        if ids is None:
+            ids = list(self._iterids(keys))
+        res_ix = self.ids2idx(ids, pandas_index=True)
+        return self._matches.loc[res_ix, what].sort_index()
 
 
     def metadata(self, keys=None):
