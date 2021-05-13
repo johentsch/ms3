@@ -520,6 +520,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             return []
         if isinstance(paths, str):
             paths = [paths]
+        paths = [p for p in paths if re.search(exclude_re, p) is None]
         if self.last_scanned_dir is None:
             # if len(paths) > 1:
             #     self.last_scanned_dir = commonprefix(paths, os.path.sep)
