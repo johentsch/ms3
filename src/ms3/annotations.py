@@ -182,7 +182,10 @@ Possible values are {{1, 2, 3, 4}}.""")
             elif self.cols['color_r'] in df.columns:
                 df[color_name] = rgb2format(df, 'name')
             df[color_name] = df[color_name].fillna('default')
-            layers += [color_name]
+            layers.append(color_name)
+        else:
+            df['color_name'] = 'default'
+            layers.append('color_name')
         type2name = map_dict({
             0: '0 (Plain Text)',
             1: '1 (Nashville)',

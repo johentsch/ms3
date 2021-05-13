@@ -859,12 +859,13 @@ Available keys: {available_keys}""")
                 return pd.Series()
             data = counts.values()
             ks = list(counts.keys())
-            levels = len(ks[0])
-            names = ['staff', 'voice', 'label_type', 'color'][:levels]
+            #levels = len(ks[0])
+            names = ['staff', 'voice', 'label_type', 'color'] #[:levels]
             try:
-                ix = pd.Index(counts.keys(), names=names)
+                ix = pd.Index(ks, names=names)
             except:
-                print(counts)
+                cs = {k: v for k, v in counts.items() if len(k) != levels}
+                print(f"names: {names}, counts:\n{cs}")
                 raise
             return pd.Series(data, ix)
 
