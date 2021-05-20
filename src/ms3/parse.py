@@ -860,7 +860,7 @@ Available keys: {available_keys}""")
             data = counts.values()
             ks = list(counts.keys())
             #levels = len(ks[0])
-            names = ['staff', 'voice', 'label_type', 'color'] #[:levels]
+            names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
             try:
                 ix = pd.Index(ks, names=names)
             except:
