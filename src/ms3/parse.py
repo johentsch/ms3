@@ -11,9 +11,9 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, \
+from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, join_tsvs, load_tsv, \
     make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict,\
-    resolve_dir, scan_directory, sort_cols, string2lines, unfold_repeats, update_labels_cfg, write_metadata
+    resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -1355,6 +1355,20 @@ Available keys: {available_keys}""")
         print(info)
 
 
+    def join(self, keys=None, ids=None, what=None, use_index=True):
+        if what is not None:
+            what = [w for w in what if w != 'scores']
+        matches = self.match_files(keys=keys, ids=ids, what=what)
+        join_this = set(map(tuple, matches.values))
+        key_ids, *_ = zip(*join_this)
+        if use_index:
+            key_ids = self.ids2idx(key_ids, pandas_index=True)
+        join_this = [[self._parsed_tsv[id] for id in ids if not pd.isnull(id)] for ids in join_this]
+        joined = [join_tsvs(dfs) for dfs in join_this]
+        return pd.concat(joined, keys=key_ids)
+
+
+
     def keys(self):
         return list(self.files.keys())
 
@@ -1457,6 +1471,7 @@ Available keys: {available_keys}""")
 
         if ids is None:
             ids = list(self._iterids(keys))
+        ids = [i for i in ids if any(i in lists[w] for w in what)]
         res_ix = self.ids2idx(ids, pandas_index=True)
         return self._matches.loc[res_ix, what].sort_index()
 
@@ -1472,7 +1487,7 @@ Available keys: {available_keys}""")
                           'movementTitle',
                           'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                           'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
-            return sort_cols(df, first_cols).sort_index()
+            return column_order(df, first_cols).sort_index()
         if len(self._parsed_mscx) == 0:
             self.logger.info("No scores have been parsed so far. Use parse_mscx()")
         return pd.DataFrame()

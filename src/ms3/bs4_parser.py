@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, sort_cols
+from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, column_order, sort_note_list
 
 
 
@@ -201,11 +201,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                         current_position += event['duration']
 
                 measure_list.append(measure_info)
-        self._measures = sort_cols(pd.DataFrame(measure_list))
-        self._events = sort_cols(pd.DataFrame(event_list))
+        self._measures = column_order(pd.DataFrame(measure_list))
+        self._events = column_order(pd.DataFrame(event_list))
         if 'chord_id' in self._events.columns:
             self._events.chord_id = self._events.chord_id.astype('Int64')
-        self._notes = sort_cols(pd.DataFrame(note_list))
+        self._notes = column_order(pd.DataFrame(note_list))
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
         else:
@@ -252,7 +252,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     @property
     def events(self):
-        return sort_cols(self.add_standard_cols(self._events))
+        return column_order(self.add_standard_cols(self._events))
 
     @property
     def measures(self):
@@ -1398,21 +1398,6 @@ def make_spanner_cols(df, spanner_types=None):
 
 
 
-def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', duration_col='duration'):
-    """Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact"""
-    is_grace = df[duration_col] == 0
-    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
-    has_nan = df[midi_col].isna().any()
-    if has_nan:
-        df.loc[:, midi_col] = df[midi_col].fillna(1000)
-    normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
-        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
-    sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
-                  normal_ix.iteritems()]
-    df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
-    if has_nan:
-        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
-    return df
 
 def make_tied_col(df, tie_col, next_col, prev_col):
     new_col = pd.Series(np.nan, index=df.index, name='tied')

@@ -3,7 +3,7 @@ import sys, re
 import pandas as pd
 
 from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
-    map_dict, name2format, resolve_dir, rgb2format, sort_cols, update_cfg
+    map_dict, name2format, resolve_dir, rgb2format, column_order, update_cfg
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -278,7 +278,7 @@ Possible values are {{1, 2, 3, 4}}.""")
                 res['color_name'] = name
 
         if self.mscx_obj is not None:
-            res = sort_cols(self.mscx_obj.parsed.add_standard_cols(res))
+            res = column_order(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
 
@@ -376,7 +376,7 @@ Possible values are {{1, 2, 3, 4}}.""")
             return
         label_col = self.cols['label']
         rem_dots = lambda s: s[1:] if s[0] == '.' else s
-        self.df.loc[:, label_col] = self.df[label_col].map(rem_dots)
+        self.df.loc[:, label_col] = self.df[label_col].fillna('').astype(str).map(rem_dots)
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):

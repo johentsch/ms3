@@ -1,8 +1,9 @@
 import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
+from functools import reduce
 from itertools import repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
@@ -824,6 +825,60 @@ def iterable2str(iterable):
         return iterable
 
 
+@function_logger
+def join_tsvs(dfs, sort_cols=False):
+    """ Performs outer join on the passed DataFrames based on 'mc' and 'mc_onset', if any.
+    Uses: functools.reduce(), sort_cols(), sort_note_lists()
+
+    Parameters
+    ----------
+    dfs : :obj:`Collection`
+        Collection of DataFrames to join.
+    sort_cols : :obj:`bool`, optional
+        If you pass True, the remaining columns (those that are not defined in the standard column order in the function
+        sort_cols) will be sorted.
+
+    Returns
+    -------
+
+    """
+    if len(dfs) == 1:
+        return dfs[0]
+    zero, one, two = [], [], []
+    for df in dfs:
+        if 'mc' in df.columns:
+            if 'mc_onset' in df.columns:
+                two.append(df)
+            else:
+                one.append(df)
+        else:
+            zero.append(df)
+    join_order = two + one
+    if len(zero) > 0:
+        logger.info(f"{len(zero)} DataFrames contain none of the columns 'mc' and 'mc_onset'.")
+
+    pos_cols = ['mc', 'mc_onset']
+
+    def join_tsv(a, b):
+        join_cols = [c for c in pos_cols if c in a.columns and c in b.columns]
+        res = pd.merge(a, b, how='outer', on=join_cols, suffixes=('', '_y')).reset_index(drop=True)
+        duplicates = [col for col in res.columns if col.endswith('_y')]
+        for d in duplicates:
+            left = d[:-2]
+            if res[left].isna().any():
+                res[left].fillna(res[d], inplace=True)
+        return res.drop(columns=duplicates)
+
+    res = reduce(join_tsv, join_order)
+    if 'midi' in res.columns:
+        res = sort_note_list(res)
+    elif len(two) > 0:
+        res = res.sort_values(pos_cols)
+    else:
+        res = res.sort_values('mc')
+    return column_order(res, sort=sort_cols).reset_index(drop=True)
+
+
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
@@ -1412,15 +1467,48 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
     return traverse(directory)
 
 
-def sort_cols(df, first_cols=None):
+def column_order(df, first_cols=None, sort=True):
     """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
     if first_cols is None:
         first_cols = [
-            'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat', 'event', 'timesig', 'staff', 'voice', 'duration',
-            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
+            'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat', 'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
+            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
     cols = df.columns
-    column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
+    remaining = [col for col in cols if col not in first_cols]
+    if sort:
+        remaining = sorted(remaining)
+    column_order = [col for col in first_cols if col in cols] + remaining
     return df[column_order]
+
+
+def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', duration_col='duration'):
+    """ Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact.
+
+    Parameters
+    ----------
+    df
+    mc_col
+    mc_onset_col
+    midi_col
+    duration_col
+
+    Returns
+    -------
+
+    """
+    is_grace = df[duration_col] == 0
+    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
+    has_nan = df[midi_col].isna().any()
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].fillna(1000)
+    normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
+        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
+    sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
+                  normal_ix.iteritems()]
+    df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
+    return df
 
 
 def sort_tpcs(tpcs, ascending=True, start=None):
@@ -1717,7 +1805,7 @@ def write_metadata(df, path, markdown=True):
                   'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                   'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
     write_this.sort_index(inplace=True)
-    sort_cols(write_this, first_cols).to_csv(path, sep='\t')
+    column_order(write_this, first_cols).to_csv(path, sep='\t')
     logger.info(f"{msg} {path}")
     if markdown:
         rename4markdown = {
