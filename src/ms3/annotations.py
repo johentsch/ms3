@@ -376,7 +376,8 @@ Possible values are {{1, 2, 3, 4}}.""")
             return
         label_col = self.cols['label']
         rem_dots = lambda s: s[1:] if s[0] == '.' else s
-        self.df.loc[:, label_col] = self.df[label_col].fillna('').astype(str).map(rem_dots)
+        no_nan = self.df[label_col].notna()
+        self.df.loc[no_nan, label_col] = self.df.loc[no_nan, label_col].map(rem_dots)
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, label_type=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
