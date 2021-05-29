@@ -69,15 +69,16 @@ def compare(args):
 def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
-    convert_folder(resolve_dir(args.dir), resolve_dir(args.out),
-                   extensions=args.extensions,
-                   target_extension=args.target_format,
-                   regex=args.regex,
-                   suffix=args.suffix,
-                   recursive=args.nonrecursive,
-                   ms=args.musescore,
-                   overwrite=args.safe,
-                   parallel=args.nonparallel)
+    for d in args.dir:
+        convert_folder(resolve_dir(d), resolve_dir(args.out),
+                       # extensions=args.extensions,
+                       target_extension=args.target_format,
+                       regex=args.regex,
+                       suffix=args.suffix,
+                       recursive=args.nonrecursive,
+                       ms=args.musescore,
+                       overwrite=args.safe,
+                       parallel=args.nonparallel)
 
 
 def extract(args):
@@ -310,8 +311,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.",
                                            parents=[input_args])
-    convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
-                                help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
+    # convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
+    #                             help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
     convert_parser.add_argument('-t', '--target_format', default='mscx',
                                 help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
     convert_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
