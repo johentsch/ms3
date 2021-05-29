@@ -458,6 +458,9 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
         else:
             logger.debug(new, 'exists already. Pass -o to overwrite.')
 
+    if len(conversion_params) == 0:
+        logger.info(f"No files match file_re='{file_re}' and exlude_re='{exclude_re}'")
+
 
     # TODO: pass filenames as 'logger' argument to convert()
     if parallel:
@@ -1459,6 +1462,8 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                     else:
                         yield path
 
+    if exclude_re is None or exclude_re == '':
+        exclude_re = '^$'
     directory = resolve_dir(directory)
     counter = 0
     if not os.path.isdir(directory):
