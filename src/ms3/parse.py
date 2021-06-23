@@ -1478,19 +1478,25 @@ Available keys: {available_keys}""")
 
     def metadata(self, keys=None):
         parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+        df = pd.DataFrame()
+        first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+                      'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
+                      'movementTitle',
+                      'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                      'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
         if len(parsed_ids) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
             idx = self.ids2idx(ids, pandas_index=True)
             df = pd.DataFrame(meta_series, index=idx)
-            first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
-                          'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
-                          'movementTitle',
-                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                          'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+        if len(self._parsed_tsv) > 0:
+            tsv_df = self.get_tsvs(keys, types='metadata')
+            if len(tsv_df) > 0:
+                df = pd.concat([df, tsv_df])
+        if len(df) > 0:
             return column_order(df, first_cols).sort_index()
-        if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
-        return pd.DataFrame()
+        else:
+            self.logger.info("No scores or metadata TSVs have been parsed so far.")
+            return pd.DataFrame()
 
 
     def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
