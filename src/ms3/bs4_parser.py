@@ -723,17 +723,21 @@ because it precedes the label to be deleted which is the voice's last onset, {mc
             elif n_locs == 1:
                 if not is_last and not is_first:
                     # This presumes that the previous onset has at least one <location> tag which needs to be adapted
-                    assert prv_n_locs > 0, f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward 
-but the previous onset {prv_onset} has no <location> tag."""
-                    if prv_names[-1] != 'location':
-                        raise NotImplementedError(
-    f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
-                    cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
-                    prv_loc_dur = frac(prv_elements[-1]['duration'])
-                    prv_loc_tag = prv_elements[-1]['tag']
-                    new_loc_dur = prv_loc_dur + cur_loc_dur
-                    prv_loc_tag.fractions.string = str(new_loc_dur)
-                    measure[prv_onset][-1]['duration'] = new_loc_dur
+#                     assert prv_n_locs > 0, f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward
+# but the previous onset {prv_onset} has no <location> tag."""
+#                     if prv_names[-1] != 'location':
+#                         raise NotImplementedError(
+#     f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
+                    if prv_n_locs > 0:
+                        cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
+                        prv_loc_dur = frac(prv_elements[-1]['duration'])
+                        prv_loc_tag = prv_elements[-1]['tag']
+                        new_loc_dur = prv_loc_dur + cur_loc_dur
+                        prv_loc_tag.fractions.string = str(new_loc_dur)
+                        measure[prv_onset][-1]['duration'] = new_loc_dur
+                    else:
+                        self.logger.debug(f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward 
+# but the previous onset {prv_onset} has no <location> tag:\n{prv_elements}""")
                 # else: proceed with deletion
 
             elif n_locs == 2:
