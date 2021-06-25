@@ -9,7 +9,8 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params, column_order, sort_note_list
+from .utils import color2rgba, color_params2rgba, column_order, fifths2name, ordinal_suffix, pretty_dict,\
+    resolve_dir, rgba2attrs, rgba2params, sort_note_list
 
 
 
@@ -853,6 +854,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         -------
 
         """
+        assert mc_onset >= 0, f"Cannot attach label {label} to negative onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}"
         self.make_writeable()
         if mc not in self.tags:
             self.logger.error(f"MC {mc} not found.")
@@ -926,11 +928,15 @@ where there is no Chord or Rest, just: {elements}.""")
 
         # There is no event to attach the label to
         ordered = list(reversed(sorted(measure)))
-        prv_pos, nxt_pos = next((prv, nxt)
-                                for prv, nxt
-                                in zip(ordered + [None], [None] + ordered)
-                                if prv < mc_onset)
-        assert prv_pos is not None, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        assert len(ordered) > 0, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        try:
+            prv_pos, nxt_pos = next((prv, nxt)
+                                    for prv, nxt
+                                    in zip(ordered + [None], [None] + ordered)
+                                    if prv < mc_onset)
+        except:
+            self.logger.error(f"No event occurs before onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}. All elements: {ordered}")
+            raise
         prv = measure[prv_pos]
         nxt = None if nxt_pos is None else measure[nxt_pos]
         prv_names = [e['name'] for e in prv]
@@ -958,7 +964,7 @@ where there is no Chord or Rest, just: {elements}.""")
                 nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
-                assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
+                assert loc_dur <= 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
 #                 if nxt_pos + loc_dur == mc_onset:
 #                     self.logger.info(f"nxt_pos: {nxt_pos}, loc_dur: {loc_dur}, mc_onset: {mc_onset}")
 #                     # label to be positioned with the same location
