@@ -191,24 +191,31 @@ def update(args):
         s = Score(new, logger_cfg=logger_cfg)
         if s.mscx.has_annotations:
             s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
-            if args.safe:
-                before = s.annotations.df
-            s.detach_labels('old')
-            if 'old' not in s._detached_annotations:
-                continue
-            s.old.remove_initial_dots()
-            s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
-            if args.safe:
-                after = s.annotations.df
-                try:
-                    assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
-                    s.store_mscx(new)
-                except:
-                    s.logger.error(str(sys.exc_info()[1]))
+            before = s.annotations.df
+            label_types = before.label_type.str[0].unique()
+            if len(label_types) > 1 or label_types[0] != str(args.type):
+                # If all labels have the target type already, nothing is changed, even if the staves don't meet the
+                # target staff: For that one would have to transform the default target -1 into the last staff number
+                s.detach_labels('old')
+                if 'old' not in s._detached_annotations:
                     continue
+                s.old.remove_initial_dots()
+                s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
+                if args.safe:
+                    after = s.annotations.df
+                    try:
+                        assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
+                        s.store_mscx(new)
+                    except:
+                        s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
+                        continue
+                else:
+                    s.store_mscx(new)
             else:
+                s.logger.info(f"All labels are already of type {label_types[0]}; no labels changed")
                 s.store_mscx(new)
         else:
+            s.logger.debug(f"File has no labels to update.")
             s.store_mscx(new)
 
 def check_and_create(d):
@@ -292,6 +299,7 @@ subdirectory; otherwise, an individual log file is automatically created for eac
     extract_parser.set_defaults(func=extract)
 
 
+
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
 In particular, check DCML harmony labels for syntactic correctness.""", parents=[input_args])
     check_parser.add_argument('-s', '--scores_only', action='store_true',
@@ -299,6 +307,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
     check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
+
 
 
     compare_parser = subparsers.add_parser('compare',
@@ -311,6 +320,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     compare_parser.add_argument('-x', '--extensions', metavar='EXT', nargs='+',
                                 help='If you only want to compare scores with particular extensions, pass these extensions.')
     compare_parser.set_defaults(func=compare)
+
 
 
     convert_parser = subparsers.add_parser('convert',
@@ -330,16 +340,18 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser.set_defaults(func=convert_cmd)
 
 
+
+    metadata_parser = subparsers.add_parser('metadata',
+                                            help="Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D).",
+                                            parents=[input_args])
+    metadata_parser.set_defaults(func=metadata)
+
     repair_parser = subparsers.add_parser('repair',
                                           help="Apply automatic repairs to your uncompressed MuseScore files.",
                                           parents=[input_args])
     repair_parser.set_defaults(func=repair)
 
 
-    metadata_parser = subparsers.add_parser('metadata',
-                                            help="Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D).",
-                                            parents=[input_args])
-    metadata_parser.set_defaults(func=metadata)
 
     update_parser = subparsers.add_parser('update',
                                            help="Convert MSCX files to the latest MuseScore version and move all chord annotations "
@@ -353,7 +365,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     update_parser.add_argument('--above', action='store_true', help="Display Roman Numerals above the system.")
     update_parser.add_argument('--safe', action='store_true', help="Only moves labels if their temporal positions stay intact.")
     update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
-    update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested.")
+    update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
     update_parser.set_defaults(func=update)
 
     args = parser.parse_args()
