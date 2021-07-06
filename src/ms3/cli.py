@@ -125,6 +125,9 @@ def extract(args):
 
 
 def metadata(args):
+    """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
+        add the values from (new?) columns to the corresponding fields in the MuseScore files' "Score info".
+    """
     logger_cfg = {
         'level': args.level,
     }
@@ -140,7 +143,7 @@ def metadata(args):
     if len(p._metadata) == 0:
         p.logger.info("No suitable metadata recognized.")
         return
-    ids = p.update_metadata()
+    ids = p.update_metadata() # Writes info to parsed MuseScore files
     if len(ids) == 0:
         p.logger.info("Nothing to update.")
         return
@@ -186,25 +189,27 @@ def update(args):
             new = os.path.join(args.out, fname)
         convert(old, new, MS, logger=name)
         s = Score(new, logger_cfg=logger_cfg)
-        s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
-        if args.safe:
-            before = s.annotations.df
-        s.detach_labels('old')
-        if 'old' not in s._detached_annotations:
-            continue
-        s.old.remove_initial_dots()
-        s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
-        if args.safe:
-            after = s.annotations.df
-            try:
-                assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
-                s.store_mscx(new)
-            except:
-                s.logger.error(str(sys.exc_info()[1]))
+        if s.mscx.has_annotations:
+            s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
+            if args.safe:
+                before = s.annotations.df
+            s.detach_labels('old')
+            if 'old' not in s._detached_annotations:
                 continue
+            s.old.remove_initial_dots()
+            s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
+            if args.safe:
+                after = s.annotations.df
+                try:
+                    assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
+                    s.store_mscx(new)
+                except:
+                    s.logger.error(str(sys.exc_info()[1]))
+                    continue
+            else:
+                s.store_mscx(new)
         else:
             s.store_mscx(new)
-
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
