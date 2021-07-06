@@ -2326,6 +2326,8 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. ['fnam
         if l > 0:
             for (rel_path, fname), new_dict in updates.items():
                 id = self.idx2id(rel_path=rel_path, fname=fname)
+                if id not in self._parsed_mscx:
+                    continue
                 tags = self._parsed_mscx[id].mscx.parsed.metatags
                 for name, val in new_dict.items():
                     tags[name] = val
