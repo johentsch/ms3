@@ -1821,7 +1821,8 @@ def write_metadata(df, path, markdown=True):
             'annotators': 'annotators',
             'reviewers': 'reviewers',
         }
-        md = write_this.reset_index().fillna('')
+        drop_index = 'fnames' in write_this.columns
+        md = write_this.reset_index(drop=drop_index).fillna('')
         for c in rename4markdown.keys():
             if c not in md.columns:
                 md[c] = ''
