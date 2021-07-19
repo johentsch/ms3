@@ -264,6 +264,7 @@ def ambitus2oneliner(ambitus):
         return f"{ambitus['max_midi']}-{ambitus['max_midi']} ({ambitus['max_name']}-{ambitus['max_name']})"
     return ''
 
+
 def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
     """  Checks the labels in ``column`` against ``regex`` and returns those that don't match.
 
@@ -459,7 +460,7 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
             logger.debug(new, 'exists already. Pass -o to overwrite.')
 
     if len(conversion_params) == 0:
-        logger.info(f"No files match file_re='{file_re}' and exlude_re='{exclude_re}'")
+        logger.info(f"No files to convert.")
 
 
     # TODO: pass filenames as 'logger' argument to convert()
