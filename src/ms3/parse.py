@@ -1476,7 +1476,7 @@ Available keys: {available_keys}""")
         return self._matches.loc[res_ix, what].sort_index()
 
 
-    def metadata(self, keys=None):
+    def metadata(self, keys=None, include_tsv=False):
         parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         df = pd.DataFrame()
         first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
@@ -1488,7 +1488,7 @@ Available keys: {available_keys}""")
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
             idx = self.ids2idx(ids, pandas_index=True)
             df = pd.DataFrame(meta_series, index=idx)
-        if len(self._parsed_tsv) > 0:
+        if include_tsv and len(self._parsed_tsv) > 0:
             tsv_df = self.get_tsvs(keys, types='metadata')
             if len(tsv_df) > 0:
                 df = pd.concat([df, tsv_df])
