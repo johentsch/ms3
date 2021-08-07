@@ -576,27 +576,40 @@ def fifths2acc(fifths):
 
 
 
-def fifths2iv(fifths):
+def fifths2iv(fifths, smallest=False):
     """ Return interval name of a stack of fifths such that
-       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc.
+       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass ``smallest=True``, intervals of a fifth or greater
+       will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
        Uses: map2elements()
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2iv)
+    if pd.isnull(fifths):
+        return fifths
     interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
                           -1: ['D', 'D', 'D', 'm', 'm', 'm', 'm']}
+    interval_qualities_inverted = {0: ['P', 'P', 'P', 'm', 'm', 'm', 'm'],
+                                   -1: ['A', 'A', 'A', 'M', 'M', 'M', 'M']}
     fifths += 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
     pos = fifths % 7
     int_num = [4, 1, 5, 2, 6, 3, 7][pos]
     qual_region = fifths // 7
-    if qual_region in interval_qualities:
-        int_qual = interval_qualities[qual_region][pos]
-    elif qual_region < 0:
-        int_qual = (abs(qual_region) - 1) * 'D'
+    if smallest and int_num > 4:
+        int_num = 9 - int_num
+        if qual_region in interval_qualities_inverted:
+            int_qual = interval_qualities_inverted[qual_region][pos]
+        elif qual_region < 0:
+            int_qual = (abs(qual_region) - 1) * 'A'
+        else:
+            int_qual = qual_region * 'D'
+        int_qual = '-' + int_qual
     else:
-        int_qual = qual_region * 'A'
+        if qual_region in interval_qualities:
+            int_qual = interval_qualities[qual_region][pos]
+        elif qual_region < 0:
+            int_qual = (abs(qual_region) - 1) * 'D'
+        else:
+            int_qual = qual_region * 'A'
     return int_qual + str(int_num)
 
 
@@ -660,10 +673,10 @@ def fifths2rn(fifths, minor=False, auto_key=False):
         By default, the returned Roman numerals are uppercase. Pass True to pass upper-
         or lowercase according to the position in the scale.
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2rn, minor=minor)
+    if pd.isnull(fifths):
+        return fifths
     rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
     sel = fifths + 3 if minor else fifths
     res = fifths2str(sel, rn)
@@ -678,10 +691,10 @@ def fifths2sd(fifths, minor=False):
        0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
        Uses: map2elements(), fifths2str()
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2sd, minor=minor)
+    if pd.isnull(fifths):
+        return fifths
     sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
     if minor:
         fifths += 3
