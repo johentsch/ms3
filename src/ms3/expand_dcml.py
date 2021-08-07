@@ -748,10 +748,9 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
     return res
 
 
-
-
+@function_logger
 def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=None, key='C', minor=None,
-                  merge_tones=True, bass_only=False, mc=None, logger=None):
+                  merge_tones=True, bass_only=False, mc=None):
     """
     Given the features of a chord label, this function returns the chord tones
     in the order of the inversion, starting from the bass note. The tones are
