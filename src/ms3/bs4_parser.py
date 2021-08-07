@@ -979,7 +979,7 @@ where there is no Chord or Rest, just: {elements}.""")
                 nxt[loc_ix]['tag'].fractions.string = str(loc_after)
                 nxt[loc_ix]['duration'] = loc_after
                 self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
-and {loc_after} before the subsequent {nxt_name}.""")
+and {loc_after} before the subsequent\n{nxt}.""")
 
         else:
             # prv has location tag(s)
@@ -991,7 +991,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
                 try:
                     loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
                 except:
-                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of mc_onset {prv_pos} should include a <location> tag.")
+                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of mc_onset {prv_pos} should include a <location> tag but don't:\n{prv}")
                     raise
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
                 prv[loc_ix]['duration'] = loc_before
