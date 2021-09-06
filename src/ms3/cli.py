@@ -69,16 +69,15 @@ def compare(args):
 def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
-    for d in args.dir:
-        convert_folder(resolve_dir(d), resolve_dir(args.out),
-                       # extensions=args.extensions,
-                       target_extension=args.target_format,
-                       regex=args.regex,
-                       suffix=args.suffix,
-                       recursive=args.nonrecursive,
-                       ms=args.musescore,
-                       overwrite=args.safe,
-                       parallel=args.nonparallel)
+    convert_folder(resolve_dir(args.dir), resolve_dir(args.out),
+                   # extensions=args.extensions,
+                   target_extension=args.target_format,
+                   regex=args.regex,
+                   suffix=args.suffix,
+                   recursive=args.nonrecursive,
+                   ms=args.musescore,
+                   overwrite=args.safe,
+                   parallel=args.nonparallel)
 
 
 def extract(args):

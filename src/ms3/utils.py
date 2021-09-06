@@ -439,28 +439,32 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
     else:
         exclude_re = ''
     new_dirs = {}
-    for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
-        if subdir in new_dirs:
-            new_subdir = new_dirs[subdir]
-        else:
-            old_subdir = os.path.relpath(subdir, directory)
-            new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
-            os.makedirs(new_subdir, exist_ok=True)
-            new_dirs[subdir] = new_subdir
-        name, _ = os.path.splitext(file)
-        if suffix is not None:
-            fname = f"{name}{suffix}.{target_extension}"
-        else:
-            fname = f"{name}.{target_extension}"
-        old = os.path.join(subdir, file)
-        new = os.path.join(new_subdir, fname)
-        if overwrite or not os.path.isfile(new):
-            conversion_params.append((old, new, MS))
-        else:
-            logger.debug(new, 'exists already. Pass -o to overwrite.')
+    try:
+        for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
+            if subdir in new_dirs:
+                new_subdir = new_dirs[subdir]
+            else:
+                old_subdir = os.path.relpath(subdir, directory)
+                new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+                os.makedirs(new_subdir, exist_ok=True)
+                new_dirs[subdir] = new_subdir
+            name, _ = os.path.splitext(file)
+            if suffix is not None:
+                fname = f"{name}{suffix}.{target_extension}"
+            else:
+                fname = f"{name}.{target_extension}"
+            old = os.path.join(subdir, file)
+            new = os.path.join(new_subdir, fname)
+            if overwrite or not os.path.isfile(new):
+                conversion_params.append((old, new, MS))
+            else:
+                logger.debug(new, 'exists already. Pass -o to overwrite.')
 
-    if len(conversion_params) == 0:
-        logger.info(f"No files to convert.")
+        if len(conversion_params) == 0:
+            logger.info(f"No files to convert.")
+    except:
+        logger.error(f"Failed to scan directory {directory} because of the following error:")
+        raise
 
 
     # TODO: pass filenames as 'logger' argument to convert()
