@@ -69,7 +69,8 @@ def compare(args):
 def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
-    convert_folder(resolve_dir(args.dir), resolve_dir(args.out),
+    out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
+    convert_folder(resolve_dir(args.dir), out_dir,
                    # extensions=args.extensions,
                    target_extension=args.target_format,
                    regex=args.regex,

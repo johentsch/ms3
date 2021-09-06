@@ -438,6 +438,8 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
         exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
     else:
         exclude_re = ''
+    if new_folder is None:
+        new_folder = directory
     new_dirs = {}
     try:
         for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
