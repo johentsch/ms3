@@ -1044,8 +1044,11 @@ Available keys: {available_keys}""")
             By passing False you get a nested dictionary {list_type -> {index -> list}}
         unfold : :obj:`bool`, optional
             Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
+            Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
+            is set to True.
         quarterbeats : :obj:`bool`, optional
-            Pass True to add a `quarterbeats` column with a continuous offset from the piece's beginning.
+            Pass True to add a `quarterbeats` column with a continuous offset from the piece's beginning. If ``unfold``
+            is False, this option will remove second endings and the ``volta`` column.
 
         Returns
         -------
@@ -1069,9 +1072,7 @@ Available keys: {available_keys}""")
                     res[param] = {}
                 for id in (i for i in ids if i in li):
                     df = li[id]
-                    if unfold == 'raw':
-                        pass
-                    elif unfold:
+                    if unfold:
                         if id in mc_sequences:
                             df = unfold_repeats(df, mc_sequences[id])
                             if quarterbeats:
@@ -1080,12 +1081,11 @@ Available keys: {available_keys}""")
                                 df = add_quarterbeats_col(df, offset_dict)
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
-                    else:
+                    elif quarterbeats:
                         if param != 'measures' and 'volta' in df.columns:
                             self.logger.debug("Dropped all first voltas and the volta column. Cases with more than two voltas not covered. Use unfold='raw' to prevent this.")
                             df = df.drop(index=df[df.volta.fillna(0) == 1].index, columns='volta')
-                        if quarterbeats:
-                            self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded.')
+                            self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded, sorry.')
                     if flat:
                         res[id + (param,)] = df
                     else:
