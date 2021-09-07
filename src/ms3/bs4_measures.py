@@ -518,7 +518,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
     drop_rows = ~keep_rows & empty_rows
     result = df.drop(df[drop_rows].index)
 
-    def compress(df):
+    def squash_staves(df):
         if len(df) == 1:
             return df.iloc[0]
         if differentiating_val is None:
@@ -557,7 +557,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.")
         return keep_row
 
-    result = result.groupby(compress_col, group_keys=False).apply(compress)
+    result = result.groupby(compress_col, group_keys=False).apply(squash_staves)
     return result.drop(columns=differentiating_col) if drop_differentiating else result
 
 
