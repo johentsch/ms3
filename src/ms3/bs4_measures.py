@@ -364,7 +364,7 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
-
+        print(self.next[100])
 
 
 
@@ -544,7 +544,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
                     msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}."
-                    dont_warn = ['vspacerDown']
+                    dont_warn = ['vspacerDown', 'voice/BarLine']
                     if col_name in dont_warn:
                         logger.debug(msg)
                     else:
