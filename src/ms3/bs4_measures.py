@@ -353,10 +353,19 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             # and they are set to True if
             lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
             for l in lasts:
-                if not pd.isnull(self.repeats[l]):
+                has_repeat = not pd.isnull(self.repeats[l])
+                has_backward_jump = l in bwd_jumps.mc.values
+                if has_repeat or has_backward_jump:
                     if self.repeats[l] == 'end':
                         self.check_volta_repeats[l] = False
                         self.wasp_nest[l] = lasts_with_repeat
+                        # for voltas with and endRepeat, the wasp_nest makes sure that once the sections' beginning is
+                        # determined in end_section(), it becomes their 'next' value
+                    elif has_backward_jump:
+                        # if there is a backward jump, it is already part of the 'next' column
+                        pass
+                        self.logger.debug(
+                            f"MC {l}, which is the last MC of a volta, has no repeat sign but a jump back to '{bwd_jumps.loc[bwd_jumps.mc == l, 'jump_bwd'].values[0]}'")
                     else:
                         self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
                 elif mc_after_voltas is None:
