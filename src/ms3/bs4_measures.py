@@ -543,8 +543,12 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 new_val = vals[0]
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
-                    logger.warning(
-                        f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}.")
+                    msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}."
+                    dont_warn = ['vspacerDown']
+                    if col_name in dont_warn:
+                        logger.debug(msg)
+                    else:
+                        logger.warning(msg)
                     continue
                 logger.warning(
                     f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values} is lost.")
