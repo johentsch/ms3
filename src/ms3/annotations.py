@@ -26,6 +26,11 @@ class Annotations(LoggedClass):
         cols : :obj:`dict`, optional
             If one or several column names differ, pass a {NAME -> ACTUAL_NAME} dictionary, where NAME can be
             {'mc', 'mn', 'mc_onset', 'label', 'staff', 'voice', 'volta'}
+        cols : :obj:`dict`
+            If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
+            Required columns: label, mc, mc_onset, staff, voice
+            Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
+            color_html, color_r, color_g, color_b, color_a
         index_col
         sep
         mscx_obj

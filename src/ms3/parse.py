@@ -1509,7 +1509,7 @@ Available keys: {available_keys}""")
 
 
 
-    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
+    def parse_mscx(self, keys=None, ids=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
         """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -1518,6 +1518,8 @@ Available keys: {available_keys}""")
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             For which key(s) to parse all MSCX files.
+        ids : :obj:`~collections.abc.Collection`
+            To parse only particular files, pass their IDs. ``keys`` and ``fexts`` are ignored in this case.
         read_only : :obj:`bool`, optional
             If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
@@ -1541,12 +1543,14 @@ Available keys: {available_keys}""")
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
 
-        if only_new:
-            paths = [id for id in self._score_ids(keys) if id not in self._parsed_mscx]
+        if ids is not None:
+            pass
+        elif only_new:
+            ids = [id for id in self._score_ids(keys) if id not in self._parsed_mscx]
         else:
-            paths = self._score_ids(keys)
+            ids = self._score_ids(keys)
 
-        exts = self.count_extensions(ids=paths)
+        exts = self.count_extensions(ids=ids)
 
         if any(ext[1:].lower() in Score.convertible_formats for ext in exts.keys()) and parallel:
             msg = f"The file extensions [{', '.join(ext[1:] for ext in exts.keys() if ext[1:].lower() in Score.convertible_formats )}] " \
@@ -1558,7 +1562,7 @@ Available keys: {available_keys}""")
             self.logger.error(msg)
             return
 
-        if len(paths) == 0:
+        if len(ids) == 0:
             reason = 'in this Parse object' if keys is None else f"for '{keys}'"
             self.logger.debug(f"No parseable scores found {reason}.")
             return
@@ -1584,18 +1588,18 @@ Available keys: {available_keys}""")
             if file_path is not None and os.path.isabs(file_path):
                 if os.path.isdir(file):
                     self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
-                    configs = [cfg for i in range(len(paths))]
+                    configs = [cfg for i in range(len(ids))]
                 else:
                     cfg['file'] = file
-                    configs = [cfg for i in range(len(paths))]
+                    configs = [cfg for i in range(len(ids))]
             elif not (file_path is None and file_name is None):
                 root_dir = None if path is None else path
                 if file_name is None:
                     log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in paths]
+                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in ids]
                 else:
                     log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                             file_name)) for k, i in paths}
+                                                             file_name)) for k, i in ids}
                     are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
                     if len(are_dirs) > 0:
                         NL = '\n'
@@ -1608,16 +1612,16 @@ Available keys: {available_keys}""")
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
                                             os.path.join(path, f"{self.logger_names[(k, i)]}.log")
-                                          )) for k, i in paths]
+                                          )) for k, i in ids]
             else:
-                configs = [cfg for i in range(len(paths))]
+                configs = [cfg for i in range(len(ids))]
         else:
             if self.logger.logger.file_handler is not None:
                 cfg['file'] = self.logger.logger.file_handler.baseFilename
-            configs = [cfg for i in range(len(paths))]
+            configs = [cfg for i in range(len(ids))]
 
         ### collect argument tuples for calling self._parse
-        parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(paths, configs)]
+        parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(ids, configs)]
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''

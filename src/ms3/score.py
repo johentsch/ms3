@@ -1032,13 +1032,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         Parameters
         ----------
-        df : :obj:`pandas.DataFrame`
-            DataFrame with labels to be added.
-        columns : :obj:`dict`
-            If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
-            Required columns: label, mc, mc_onset, staff, voice
-            Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
-            color_html, color_r, color_g, color_b, color_a
+        annotations_object : :py:class:`~ms3.annotations.Annotations`
+            Object of labels to be added.
 
         Returns
         -------
@@ -1146,6 +1141,22 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.debug(f"{changes}/{target} labels successfully deleted.")
             if changes < target:
                 self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
+
+
+    def replace_labels(self, annotations_object):
+        """
+
+        Parameters
+        ----------
+        annotations_object : :py:class:`~ms3.annotations.Annotations`
+            Object of labels to be added.
+
+        Returns
+        -------
+
+        """
+        self.delete_labels(annotations_object.df)
+        self.add_labels(annotations_object)
 
 
 
