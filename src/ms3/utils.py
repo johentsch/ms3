@@ -1814,6 +1814,7 @@ def write_metadata(df, path, markdown=True):
         msg = 'Created'
     else:
         try:
+            # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
             previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
             ix_union = previous.index.union(df.index)
             col_union = previous.columns.union(df.columns)
@@ -1858,6 +1859,7 @@ def write_metadata(df, path, markdown=True):
         else:
             msg = 'Created'
             lines = []
+        # in case the README exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
         with open(readme, 'w', encoding='utf-8') as f:
             for line in lines:
                 if '# Overview' in line:

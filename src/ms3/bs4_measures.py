@@ -327,6 +327,8 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                         self.next[jump_to_mc].append(to_mc)
                         self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+        else: # no backward jumps
+            bwd_jumps = pd.DataFrame(columns=['mc'])
                 
         self.repeats = dict(df[['mc', 'repeats']].values)
         self.start = None
@@ -373,7 +375,6 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
-        print(self.next[100])
 
 
 
