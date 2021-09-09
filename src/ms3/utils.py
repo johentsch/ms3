@@ -173,11 +173,12 @@ rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
 
 
 class map_dict(dict):
+    """Such a dictionary can be mapped to a Series to replace its values but leaving the values absent from the dict keys intact."""
     def __missing__(self, key):
         return key
 
 
-def add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough'):
+def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
     """
 
     Parameters
@@ -194,7 +195,7 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough'):
 
     """
     df = df.copy()
-    quarterbeats = df.mc_playthrough.map(offset_dict)
+    quarterbeats = df[insert_after].map(offset_dict)
     if 'mc_onset' in df.columns:
         quarterbeats += df.mc_onset * 4
     df.insert(df.columns.get_loc(insert_after)+1, 'quarterbeats', quarterbeats)

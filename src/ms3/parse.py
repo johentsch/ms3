@@ -196,10 +196,11 @@ class Parse(LoggedClass):
         {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
         """
 
-        self._unfolded_quarter_offsets = {}
+        self._quarter_offsets = {True: {}, False: {}}
         """:obj:`dict`
-        {(key, i) -> {mc_playthrough -> quarter_offset}} For every mc_playthrough (i.e., after 'unfolding' all repeats)
-        the total sum of preceding quarter beats, measured from m. 1, b. 0. 
+        { unfolded? -> {(key, i) -> {mc_playthrough -> quarter_offset}} } dictionary with keys True and false.
+        True: For every mc_playthrough (i.e., after 'unfolding' all repeats) the total sum of preceding quarter beats, measured from m. 1, b. 0. 
+        False: For every mc the total sum of preceding quarter beats after deleting all but second endings.
         """
 
         self.labels_cfg = {
@@ -1071,21 +1072,21 @@ Available keys: {available_keys}""")
                 if not flat:
                     res[param] = {}
                 for id in (i for i in ids if i in li):
+                    key, i = id
                     df = li[id]
                     if unfold:
                         if id in mc_sequences:
                             df = unfold_repeats(df, mc_sequences[id])
                             if quarterbeats:
-                                key, i = id
-                                offset_dict = self.get_unfolded_offsets(key, i)
-                                df = add_quarterbeats_col(df, offset_dict)
+                                offset_dict = self.get_continuous_offsets(key, i, unfold=True)
+                                df = add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough')
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:
                         if param != 'measures' and 'volta' in df.columns:
                             self.logger.debug("Dropped all first voltas and the volta column. Cases with more than two voltas not covered. Use unfold='raw' to prevent this.")
-                            df = df.drop(index=df[df.volta.fillna(0) == 1].index, columns='volta')
-                            self.logger.warning('Quarterbeats column not yet implemented for tables that have not been unfolded, sorry.')
+                            offset_dict = self.get_continuous_offsets(key, i, unfold=False)
+                            df = add_quarterbeats_col(df, offset_dict)
                     if flat:
                         res[id + (param,)] = df
                     else:
@@ -1127,7 +1128,7 @@ Available keys: {available_keys}""")
                 res[(key, i)] = unf_mcs
         return res
 
-    def _get_measure_list(self, key, i):
+    def _get_measure_list(self, key, i, unfold=False):
         id = (key, i)
         res = None
         if id in self._measurelists:
@@ -1158,7 +1159,18 @@ Available keys: {available_keys}""")
                 else:
                     self.logger.info(f"No matches found for ID {id} and therefore no measure list.")
         if res is not None:
-            return res.copy()
+            res = res.copy()
+            if unfold == 'raw':
+                return res
+            if unfold:
+                mc_sequence = self._get_unfolded_mcs(key, i)
+                res = unfold_repeats(res, mc_sequence)
+            elif 'volta' in res.columns:
+                volta_count = res.volta.value_counts()
+                if 3 in volta_count.index:
+                    self.logger.warning(f"Piece contains third endings, note that only second endings are kept.")
+                res = res.drop(index=res[res.volta.fillna(2) != 2].index, columns='volta')
+            return res
 
 
 
@@ -1168,7 +1180,7 @@ Available keys: {available_keys}""")
             return self._unfolded_mcs[id]
         if not id in self._measurelists:
             self.collect_lists(ids=[id], measures=True)
-        ml = self._get_measure_list(key, i)
+        ml = self._get_measure_list(key, i, unfold='raw')
         if ml is None:
             return
         ml = ml.set_index('mc')
@@ -1185,17 +1197,18 @@ Available keys: {available_keys}""")
         return mc_playthrough
 
 
-    def get_unfolded_offsets(self, key, i):
+    def get_continuous_offsets(self, key, i, unfold):
         id = (key, i)
-        if id in self._unfolded_quarter_offsets:
-            return self._unfolded_quarter_offsets[id]
-        mc_sequence = self._get_unfolded_mcs(key, i)
-        ml = self._get_measure_list(key, i)
-        unfolded_ml = unfold_repeats(ml, mc_sequence)
-        act_durs = unfolded_ml.set_index('mc_playthrough').act_dur
+        if id in self._quarter_offsets[unfold]:
+            return self._quarter_offsets[unfold][id]
+        ml = self._get_measure_list(key, i, unfold=unfold)
+        if unfold:
+            act_durs = ml.set_index('mc_playthrough').act_dur
+        else:
+            act_durs = ml.set_index('mc').act_dur
         offset_col = make_continuous_offset(act_durs, quarters=True)
         offsets = offset_col.to_dict()
-        self._unfolded_quarter_offsets[id] = offsets
+        self._quarter_offsets[unfold][id] = offsets
         return offsets
 
 
