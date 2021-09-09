@@ -314,7 +314,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.",
         parents = [input_args])
     compare_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
-                                help='Path relative to the score file(s) where to look for existing annotation tables.')
+                                help='Path relative to the score file(s) where to look for existing annotation tables. Defaults to ../harmonies')
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='',
                                 help='If existing annotation tables have a particular suffix, pass this suffix.')
     compare_parser.add_argument('-x', '--extensions', metavar='EXT', nargs='+',

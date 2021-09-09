@@ -542,8 +542,10 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
         if len(remaining) == 1:
             return keep_row
         which = keep_row[compress_col]
+        dont_warn = ['vspacerDown', 'voice/BarLine']
         for val, (col_name, col) in zip(*keep_row[consider_for_notna].itertuples(index=False, name=None),
                                         remaining[consider_for_notna].items()):
+            log_this = logger.debug if col_name in dont_warn else logger.warning
             if col.isna().all():
                 continue
             vals = col[col.notna()].unique()
@@ -554,16 +556,12 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
                     msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}."
-                    dont_warn = ['vspacerDown', 'voice/BarLine']
-                    if col_name in dont_warn:
-                        logger.debug(msg)
-                    else:
-                        logger.warning(msg)
+                    log_this(msg)
                     continue
-                logger.warning(
+                log_this(
                     f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values} is lost.")
                 continue
-            logger.warning(
+            log_this(
                 f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.")
         return keep_row
 
