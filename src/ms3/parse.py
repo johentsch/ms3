@@ -286,9 +286,9 @@ class Parse(LoggedClass):
         -------
 
         """
-        if quarterbeats and not unfold:
-            self.logger.info('Adding quarterbeats without unfolding repeats has not been implemented yet, sorry.')
-            quarterbeats = False
+        # if quarterbeats and not unfold:
+        #     self.logger.info('Adding quarterbeats without unfolding repeats has not been implemented yet, sorry.')
+        #     quarterbeats = False
         d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
         d = d[which] if which in d else {}
         msg = {
