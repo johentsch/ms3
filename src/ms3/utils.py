@@ -177,16 +177,19 @@ class map_dict(dict):
     def __missing__(self, key):
         return key
 
-
+@function_logger
 def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
-    """
+    """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
+        the column corresponds to the ``insert_after`` column's measure counts.
 
     Parameters
     ----------
     df : :obj:`pandas.DataFrame`
         DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
     offset_dict : :obj:`pandas.Series` or :obj:`dict`
-        {mc_playthrough -> offset}
+        If unfolded: {mc_playthrough -> offset}
+        Otherwise: {mc -> offset}
+        You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parsed.Parse.get_continuous_offsets>`
     insert_after : :obj:`str`, optional
         Name of the column after which the new column will be inserted.
 
@@ -194,11 +197,28 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
     -------
 
     """
-    df = df.copy()
-    quarterbeats = df[insert_after].map(offset_dict)
-    if 'mc_onset' in df.columns:
-        quarterbeats += df.mc_onset * 4
-    df.insert(df.columns.get_loc(insert_after)+1, 'quarterbeats', quarterbeats)
+    if 'quarterbeats' not in df.columns:
+        df = df.copy()
+        quarterbeats = df[insert_after].map(offset_dict)
+        if 'mc_onset' in df.columns:
+            quarterbeats += df.mc_onset * 4
+        insert_here = df.columns.get_loc(insert_after) + 1
+        df.insert(insert_here, 'quarterbeats', quarterbeats)
+        if 'duration_quarterbeats' not in df.columns:
+            if 'duration' in df.columns:
+                dur = (df.duration * 4).astype(float).round(3)
+                df.insert(insert_here + 1, 'durations_quarterbeats', dur)
+            elif 'end' in offset_dict:
+                present_qb = df.quarterbeats.notna()
+                breaks = df.loc[present_qb, 'quarterbeats'].astype(float).round(3).to_list()
+                breaks = sorted(breaks) + [float(offset_dict['end'])]
+                ivs = pd.IntervalIndex.from_breaks(breaks, closed='left')
+                df.insert(insert_here + 1, 'durations_quarterbeats', pd.NA)
+                df.loc[present_qb, 'durations_quarterbeats'] = ivs.length
+            else:
+                logger.warning("Column 'durations_quarterbeats' could not be created.")
+    else:
+        logger.debug("quarterbeats column was already present.")
     return df
 
 def assert_all_lines_equal(before, after, original, tmp_file):
@@ -1063,10 +1083,13 @@ def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
     if quarters:
         act_durs = act_durs * 4
     res = act_durs.cumsum()
-    res = res.shift()
-    res.iloc[0] = 0
+    last_val = res.iloc[-1]
+    last_ix = res.index[-1] + 1
+    res = res.shift(fill_value=0)
+    res = res.append(pd.Series([last_val], index=[last_ix]))
+    res = res.append(pd.Series([last_val], index=['end']))
     if negative_anacrusis is not None:
-        res -= frac(abs(negative_anacrusis))
+        res -= abs(frac(negative_anacrusis))
     return res
 
 
