@@ -863,7 +863,7 @@ Available keys: {available_keys}""")
             #levels = len(ks[0])
             names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
             try:
-                ix = pd.Index(ks, names=names)
+                ix = pd.MultiIndex.from_tuples(ks, names=names)
             except:
                 cs = {k: v for k, v in counts.items() if len(k) != levels}
                 print(f"names: {names}, counts:\n{cs}")
@@ -1067,6 +1067,8 @@ Available keys: {available_keys}""")
         res = {}
         if unfold:
             mc_sequences = self.get_unfolded_mcs(ids=ids)
+        if unfold or quarterbeats:
+            _ = self.match_files(ids=ids)
         for param, li in self._lists.items():
             if params[param]:
                 if not flat:
@@ -1083,10 +1085,10 @@ Available keys: {available_keys}""")
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:
-                        if param != 'measures' and 'volta' in df.columns:
-                            self.logger.debug("Dropped all first voltas and the volta column. Cases with more than two voltas not covered. Use unfold='raw' to prevent this.")
-                            offset_dict = self.get_continuous_offsets(key, i, unfold=False)
-                            df = add_quarterbeats_col(df, offset_dict)
+                        if 'volta' in df.columns:
+                            self.logger.debug("Only second voltas were included when computing quarterbeats.")
+                        offset_dict = self.get_continuous_offsets(key, i, unfold=False)
+                        df = add_quarterbeats_col(df, offset_dict)
                     if flat:
                         res[id + (param,)] = df
                     else:
@@ -1129,6 +1131,22 @@ Available keys: {available_keys}""")
         return res
 
     def _get_measure_list(self, key, i, unfold=False):
+        """ Tries to retrieve the corresponding measure list, e.g. for unfolding repeats. Preference is given to
+        parsed MSCX files, then checks for parsed TSVs.
+
+        Parameters
+        ----------
+        key, i
+            ID
+        unfold : :obj:`bool` or ``'raw'``
+            Defaults to False, meaning that all voltas except second ones are dropped.
+            If set to True, the measure list is unfolded.
+            Pass the string 'raw' to leave the measure list as it is, with all voltas.
+
+        Returns
+        -------
+
+        """
         id = (key, i)
         res = None
         if id in self._measurelists:
@@ -1166,9 +1184,8 @@ Available keys: {available_keys}""")
                 mc_sequence = self._get_unfolded_mcs(key, i)
                 res = unfold_repeats(res, mc_sequence)
             elif 'volta' in res.columns:
-                volta_count = res.volta.value_counts()
-                if 3 in volta_count.index:
-                    self.logger.warning(f"Piece contains third endings, note that only second endings are kept.")
+                if 3 in res.volta.values:
+                    self.logger.warning(f"Piece contains third endings, note that only second endings are taken into account.")
                 res = res.drop(index=res[res.volta.fillna(2) != 2].index, columns='volta')
             return res
 
@@ -1198,10 +1215,27 @@ Available keys: {available_keys}""")
 
 
     def get_continuous_offsets(self, key, i, unfold):
+        """ Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,
+            measured in quarter notes.
+
+        Parameters
+        ----------
+        key, i:
+            ID
+        unfold : :obj:`bool`
+            If True, return ``{mc_playthrough -> offset}``, otherwise ``{mc -> offset}``, keeping only second endings.
+
+        Returns
+        -------
+
+        """
         id = (key, i)
         if id in self._quarter_offsets[unfold]:
             return self._quarter_offsets[unfold][id]
         ml = self._get_measure_list(key, i, unfold=unfold)
+        if ml is None:
+            self.logger.warning(f"Could not find measure list for key {id}.")
+            return None
         if unfold:
             act_durs = ml.set_index('mc_playthrough').act_dur
         else:
@@ -1253,7 +1287,7 @@ Available keys: {available_keys}""")
                 names = tuple(level_names.values())[0]
 
         if pandas_index:
-            idx = pd.Index(idx, names=names)
+            idx = pd.MultiIndex.from_tuples(idx, names=names)
             return idx
 
         return idx, names
