@@ -103,21 +103,20 @@ is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat s
 corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
 differ: <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code> but <code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> is <code class="docutils literal notranslate"><span class="pre">3/4</span></code> because this is the distance from MN 8.</p>
 </div>
-</div>
-<div class="section" id="functionality">
-<h3>Functionality<a class="headerlink" href="#functionality" title="Permalink to this headline">¶</a></h3>
-<div class="section" id="converting-quarter-beats">
-<span id="id1"></span><h4>Converting <span class="xref std std-ref">quarter_beats</span><a class="headerlink" href="#converting-quarter-beats" title="Permalink to this headline">¶</a></h4>
-<p><em>TODO</em></p>
-</div>
 <div class="section" id="read-only-mode">
 <span id="read-only"></span><h4>Read-only mode<a class="headerlink" href="#read-only-mode" title="Permalink to this headline">¶</a></h4>
-<p>For parsing faster using less memory.</p>
+<p>For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.</p>
 </div>
 </div>
 </div>
-<div class="section" id="using-the-library">
-<h2>Using the library<a class="headerlink" href="#using-the-library" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="parsing">
+<h2>Parsing<a class="headerlink" href="#parsing" title="Permalink to this headline">¶</a></h2>
+<p>This chapter explains how to</p>
+<ul class="simple">
+<li><p>parse a single score to access and manipulate the contained information using a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Score</span></code> object</p></li>
+<li><p>parse a group of scores to access and manipulate the contained information using a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Parse</span></code> object.</p></li>
+</ul>
 <div class="section" id="parsing-a-single-score">
 <h3>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this headline">¶</a></h3>
 <ol class="bignums arabic">
@@ -334,7 +333,7 @@ in each of them.</p></li>
 <p>To see examples for the three possibilities, see the following section.</p>
 </div>
 <div class="section" id="specifying-folders">
-<span id="id2"></span><h4>Specifying folders<a class="headerlink" href="#specifying-folders" title="Permalink to this headline">¶</a></h4>
+<span id="id1"></span><h4>Specifying folders<a class="headerlink" href="#specifying-folders" title="Permalink to this headline">¶</a></h4>
 <p>Consider a two-level folder structure contained in the root directory <code class="docutils literal notranslate"><span class="pre">.</span></code>
 which is the one passed to <code class="xref py py-obj docutils literal notranslate"><span class="pre">Parse</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
@@ -566,7 +565,7 @@ same four files but this time from the perspective of <code class="docutils lite
 </div>
 </div>
 <div class="section" id="column-names">
-<span id="id3"></span><h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
+<span id="id2"></span><h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="general-columns">
 <h3>General Columns<a class="headerlink" href="#general-columns" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="mc-measure-counts">
@@ -582,7 +581,7 @@ Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. 
 second endings! For more detailed information, please refer to <a class="reference internal" href="#mc-vs-mn"><span class="std std-ref">Measure counts (MC) vs. measure numbers (MN)</span></a>.</p>
 </div>
 <div class="section" id="mc-onset">
-<span id="id4"></span><h4><strong>mc_onset</strong><a class="headerlink" href="#mc-onset" title="Permalink to this headline">¶</a></h4>
+<span id="id3"></span><h4><strong>mc_onset</strong><a class="headerlink" href="#mc-onset" title="Permalink to this headline">¶</a></h4>
 <p>The value for <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
 corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
 refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
@@ -594,13 +593,13 @@ MS3 does this automatically.</p>
 </div>
 </div>
 <div class="section" id="mn-onset">
-<span id="id5"></span><h4><strong>mn_onset</strong><a class="headerlink" href="#mn-onset" title="Permalink to this headline">¶</a></h4>
+<span id="id4"></span><h4><strong>mn_onset</strong><a class="headerlink" href="#mn-onset" title="Permalink to this headline">¶</a></h4>
 <p>The value for <code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
 corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
 please refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
 </div>
 <div class="section" id="quarterbeats">
-<span id="id6"></span><h4>quarterbeats<a class="headerlink" href="#quarterbeats" title="Permalink to this headline">¶</a></h4>
+<span id="id5"></span><h4>quarterbeats<a class="headerlink" href="#quarterbeats" title="Permalink to this headline">¶</a></h4>
 <p>This column expresses positions, otherwise accessible only as a tuple <code class="docutils literal notranslate"><span class="pre">(mc,</span> <span class="pre">mc_onset)</span></code>, as a running count of
 quarter notes from the piece’s beginning (quarterbeat = 0). If second endings are present in the score, only the
 last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
@@ -619,11 +618,11 @@ of length 1/8, would have <code class="docutils literal notranslate"><span class
 from <a class="reference internal" href="#mc"><span class="std std-ref">MCs</span></a>. See also the columns <a class="reference internal" href="#dont-count"><span class="std std-ref">dont_count</span></a> and <a class="reference internal" href="#numbering-offset"><span class="std std-ref">numbering_offset</span></a>.</p>
 </div>
 <div class="section" id="barline">
-<span id="id7"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
+<span id="id6"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">barline</span></code> encodes information about the measure’s final bar line.</p>
 </div>
 <div class="section" id="breaks">
-<span id="id8"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
+<span id="id7"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">breaks</span></code> may include three different values: <code class="docutils literal notranslate"><span class="pre">{'line',</span> <span class="pre">'page',</span> <span class="pre">'section'}</span></code> which represent the different
 breaks types. In the case of section breaks, MuseScore</p>
 </div>
@@ -650,7 +649,7 @@ which are also part of the corresponding MN. In the standard case that one MN wo
 would have mc_offset = <code class="docutils literal notranslate"><span class="pre">0</span></code> , and the second one mc_offset = <code class="docutils literal notranslate"><span class="pre">the</span> <span class="pre">previous</span> <span class="pre">MC's</span></code> <a class="reference internal" href="#act-dur"><span class="std std-ref">act_dur</span></a> .</p>
 </div>
 <div class="section" id="next">
-<span id="id9"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
+<span id="id8"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
 <p>Every cell in this column has at least one integer, namely the MC of the subsequent bar, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> in the cast of the last.
 In the case of repetitions, measures can have more than one subsequent MCs, in which case the integers are separated by
 <code class="docutils literal notranslate"><span class="pre">',</span> <span class="pre">'</span></code> .</p>
@@ -673,7 +672,7 @@ sometimes, instead of using section <a class="reference internal" href="#breaks"
 <a class="reference internal" href="#mn"><span class="std std-ref">MNs</span></a> at every new section. This leads to ambiguous MNs.</p>
 </div>
 <div class="section" id="repeats">
-<span id="id10"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
+<span id="id9"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">repeats</span></code> indicates the presence of repeat signs and can have the values
 <code class="docutils literal notranslate"><span class="pre">{'start',</span> <span class="pre">'end',</span> <span class="pre">'startend',</span> <span class="pre">'firstMeasure',</span> <span class="pre">'lastMeasure'}</span></code>. MS3 performs a test on the
 repeat signs’ plausibility and throws warnings when some inference is required for this.</p>
@@ -693,7 +692,7 @@ has an actual duration of <code class="docutils literal notranslate"><span class
 </div>
 </div>
 <div class="section" id="volta">
-<span id="id11"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
+<span id="id10"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
 <p>In the case of first and second (third etc.) endings, this column holds the number of every “bracket”, “house”, or <em>volta</em>,
 which should increase from 1. This is required for MS3’s unfold repeats function (TODO) to work.</p>
 <p>The MNs for all voltas except those of the first one need to be amended to match those of the
@@ -721,16 +720,12 @@ the voltas have more than one measure, the <a class="reference internal" href="#
 <li class="toctree-l3"><a class="reference internal" href="#terminology">Terminology</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#onset-positions">Onset positions</a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#functionality">Functionality</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#converting-quarter-beats">Converting <span class="xref std std-ref">quarter_beats</span></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#read-only-mode">Read-only mode</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#using-the-library">Using the library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#parsing">Parsing</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#parsing-a-single-score">Parsing a single score</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#parsing-options">Parsing options</a></li>
 </ul>

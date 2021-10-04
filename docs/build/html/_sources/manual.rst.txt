@@ -46,27 +46,23 @@ is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat s
 corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
 differ: ``mc_onset`` is ``0`` but ``mn_onset`` is ``3/4`` because this is the distance from MN 8.
 
-
-
-Functionality
--------------
-
-.. _converting_quarter_beats:
-
-Converting :ref:`quarter_beats`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*TODO*
-
 .. _read_only:
 
 Read-only mode
 ^^^^^^^^^^^^^^
 
-For parsing faster using less memory.
+For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.
 
-Using the library
-=================
+Parsing
+=======
+
+This chapter explains how to
+
+* parse a single score to access and manipulate the contained information using a :obj:`Score` object
+* parse a group of scores to access and manipulate the contained information using a :obj:`Parse` object.
+
+
 
 Parsing a single score
 ----------------------

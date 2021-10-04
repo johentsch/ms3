@@ -498,7 +498,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             The paths of the files you want to add to the object.
         key : :obj:`str`
             | Pass a string to identify the loaded files.
-            | If None is passed, paths relative to :py:prop:`last_scanned_dir` are used as keys. If :py:meth:`add_dir`
+            | If None is passed, paths relative to :py:attr:`last_scanned_dir` are used as keys. If :py:meth:`add_dir`
               hasn't been used before, the longest common prefix of all paths is used.
         index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
             | Change this parameter if you want to create particular indices for output DataFrames.

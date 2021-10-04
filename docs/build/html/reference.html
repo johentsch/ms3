@@ -72,7 +72,9 @@
             
   <div class="section" id="developers-reference">
 <h1>Developers’ Reference<a class="headerlink" href="#developers-reference" title="Permalink to this headline">¶</a></h1>
-<p>When using ms3, we are dealing with four main object types:</p>
+<p>The library installs a couple of commands to your system. The documentation for these commands can be found
+<a class="reference internal" href="#cli-doc"><span class="std std-ref">below</span></a> or by executing <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">-h</span></code>.</p>
+<p>When using ms3 as a module, we are dealing with four main object types:</p>
 <ol class="arabic simple">
 <li><p><a class="reference internal" href="#ms3.score.MSCX" title="ms3.score.MSCX"><code class="xref py py-class docutils literal notranslate"><span class="pre">MSCX</span></code></a> objects hold the information of a single
 parsed MuseScore file;</p></li>
@@ -1062,7 +1064,7 @@ The regEx is checked with search(), not match(), allowing for fuzzy search.</p><
 <li><p><strong>paths</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/collections.abc.html#collections.abc.Collection" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Collection</span></code></a>) – The paths of the files you want to add to the object.</p></li>
 <li><p><strong>key</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – <div class="line-block">
 <div class="line">Pass a string to identify the loaded files.</div>
-<div class="line">If None is passed, paths relative to <a href="#id1"><span class="problematic" id="id2">:py:prop:`last_scanned_dir`</span></a> are used as keys. If <a class="reference internal" href="#ms3.parse.Parse.add_dir" title="ms3.parse.Parse.add_dir"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_dir()</span></code></a>
+<div class="line">If None is passed, paths relative to <a class="reference internal" href="#ms3.parse.Parse.last_scanned_dir" title="ms3.parse.Parse.last_scanned_dir"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_scanned_dir</span></code></a> are used as keys. If <a class="reference internal" href="#ms3.parse.Parse.add_dir" title="ms3.parse.Parse.add_dir"><code class="xref py py-meth docutils literal notranslate"><span class="pre">add_dir()</span></code></a>
 hasn’t been used before, the longest common prefix of all paths is used.</div>
 </div>
 </p></li>
@@ -1778,7 +1780,7 @@ expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>numeral</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>) – Roman numeral of the chord’s root</p></li>
-<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id3"><span class="problematic" id="id4">`</span></a>form`is None).
+<li><p><strong>form</strong> (<em>{None</em><em>, </em><em>'M'</em><em>, </em><em>'o'</em><em>, </em><em>'+' '%'}</em><em>, </em><em>optional</em>) – Indicates the chord type if not a major or minor triad (for which <a href="#id1"><span class="problematic" id="id2">`</span></a>form`is None).
 ‘%’ and ‘M’ can only occur as tetrads, not as triads.</p></li>
 <li><p><strong>figbass</strong> (<em>{None</em><em>, </em><em>'6'</em><em>, </em><em>'64'</em><em>, </em><em>'7'</em><em>, </em><em>'65'</em><em>, </em><em>'43'</em><em>, </em><em>'2'}</em><em>, </em><em>optional</em>) – Indicates chord’s inversion. Pass None for triad root position.</p></li>
 <li><p><strong>changes</strong> (<a class="reference external" href="https://docs.python.org/3.8/library/stdtypes.html#str" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>, optional) – Added steps such as ‘+6’ or suspensions such as ‘4’ or any combination such as (9+64).
@@ -1885,6 +1887,418 @@ annotation standard is used.</p></li>
 </dl>
 </dd></dl>
 
+</div>
+<div class="section" id="the-commandline-interface">
+<span id="cli-doc"></span><h2>The commandline interface<a class="headerlink" href="#the-commandline-interface" title="Permalink to this headline">¶</a></h2>
+<p><div class="line-block">
+<div class="line">Welcome to ms3 parsing |</div>
+</div>
+<p>The library offers you the following commands. Add the flag -h to one of them to learn about its parameters.</p>
+</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">ms3</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">{</span><span class="n">extract</span><span class="p">,</span><span class="n">check</span><span class="p">,</span><span class="n">compare</span><span class="p">,</span><span class="n">convert</span><span class="p">,</span><span class="n">metadata</span><span class="p">,</span><span class="n">repair</span><span class="p">,</span><span class="n">update</span><span class="p">}</span> <span class="o">...</span>
+</pre></div>
+</div>
+<div class="section" id="Positional Arguments">
+<h3>Positional Arguments<a class="headerlink" href="#Positional Arguments" title="Permalink to this headline">¶</a></h3>
+<dl class="option-list">
+<dt><kbd>action</kbd></dt>
+<dd><p>Possible choices: extract, check, compare, convert, metadata, repair, update</p>
+<p>The action that you want to perform.</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="Sub-commands:">
+<h3>Sub-commands:<a class="headerlink" href="#Sub-commands:" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="extract">
+<h4>extract<a class="headerlink" href="#extract" title="Permalink to this headline">¶</a></h4>
+<p>Extract selected information from MuseScore files and store it in TSV files.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">extract</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span> <span class="p">[</span><span class="o">-</span><span class="n">N</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">L</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">M</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">R</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">E</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span>
+            <span class="p">[</span><span class="o">-</span><span class="n">C</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">X</span> <span class="p">[</span><span class="n">folder</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">D</span> <span class="p">[</span><span class="n">path</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span> <span class="p">[</span><span class="n">SUFFIX</span> <span class="p">[</span><span class="n">SUFFIX</span> <span class="o">...</span><span class="p">]]]</span> <span class="p">[</span><span class="o">-</span><span class="n">m</span> <span class="n">MUSESCORE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">raw</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">u</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logfile</span> <span class="n">file</span> <span class="n">path</span> <span class="ow">or</span> <span class="n">file</span> <span class="n">name</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">logpath</span> <span class="p">[</span><span class="n">LOGPATH</span><span class="p">]]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+<dt><kbd>-N, --notes</kbd></dt>
+<dd><p>Folder where to store TSV files with notes.</p>
+</dd>
+<dt><kbd>-L, --labels</kbd></dt>
+<dd><p>Folder where to store TSV files with annotation labels.</p>
+</dd>
+<dt><kbd>-M, --measures</kbd></dt>
+<dd><p>Folder where to store TSV files with measure information.</p>
+</dd>
+<dt><kbd>-R, --rests</kbd></dt>
+<dd><p>Folder where to store TSV files with rests.</p>
+</dd>
+<dt><kbd>-E, --events</kbd></dt>
+<dd><p>Folder where to store TSV files with events (notes, rests, articulation, etc.).</p>
+</dd>
+<dt><kbd>-C, --chords</kbd></dt>
+<dd><p>Folder where to store TSV files with chords, including lyrics, slurs, and other markup.</p>
+</dd>
+<dt><kbd>-X, --expanded</kbd></dt>
+<dd><p>Folder where to store TSV files with expanded DCML labels.</p>
+</dd>
+<dt><kbd>-D, --metadata</kbd></dt>
+<dd><p>Folder where to store one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv</p>
+</dd>
+<dt><kbd>-s, --suffix</kbd></dt>
+<dd><p>Pass -s to use standard suffixes or -s SUFFIX to choose your own.</p>
+</dd>
+<dt><kbd>-m, --musescore</kbd></dt>
+<dd><p>Command or path of MuseScore executable. Defaults to ‘auto’ (attempt to use standard path for your system).
+Other standard options are -m win, -m mac, and -m mscore (for Linux).</p>
+<p>Default: “auto”</p>
+</dd>
+<dt><kbd>-t, --test</kbd></dt>
+<dd><p>No data is written to disk.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>-p, --positioning</kbd></dt>
+<dd><p>When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--raw</kbd></dt>
+<dd><p>When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-u, --unfold</kbd></dt>
+<dd><p>Unfold the repeats for all stored DataFrames.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--logfile</kbd></dt>
+<dd><p>Either pass an absolute file path to store all logging data in that particular file
+or pass just a file name and the argument –logpath to create several log files of the same name in a replicated folder structure.
+In the former case, –logpath will be disregarded.</p>
+</dd>
+<dt><kbd>--logpath</kbd></dt>
+<dd><p>If you define a path for storing log files, the original folder structure of the parsed
+MuseScore files is recreated there. Additionally, you can pass a filename to –logfile to combine logging data for each
+subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="check">
+<h4>check<a class="headerlink" href="#check" title="Permalink to this headline">¶</a></h4>
+<p>Parse MSCX files and look for errors.
+In particular, check DCML harmony labels for syntactic correctness.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">check</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">assertion</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span> <span class="n">NAME</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat1">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat1" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+<dt><kbd>-s, --scores_only</kbd></dt>
+<dd><p>Don’t check DCML labels for syntactic correctness.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--assertion</kbd></dt>
+<dd><p>If you pass this argument, an error will be thrown if there are any mistakes.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--log</kbd></dt>
+<dd><p>Can be a an absolute file path or relative to the current directory.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="compare">
+<h4>compare<a class="headerlink" href="#compare" title="Permalink to this headline">¶</a></h4>
+<p>For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">compare</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span> <span class="p">[</span><span class="o">-</span><span class="n">a</span> <span class="n">PATH</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span> <span class="n">SUFFIX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">x</span> <span class="n">EXT</span> <span class="p">[</span><span class="n">EXT</span> <span class="o">...</span><span class="p">]]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat2">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat2" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+<dt><kbd>-a, --annotations</kbd></dt>
+<dd><p>Path relative to the score file(s) where to look for existing annotation tables. Defaults to ../harmonies</p>
+<p>Default: “../harmonies”</p>
+</dd>
+<dt><kbd>-s, --suffix</kbd></dt>
+<dd><p>If existing annotation tables have a particular suffix, pass this suffix.</p>
+<p>Default: “”</p>
+</dd>
+<dt><kbd>-x, --extensions</kbd></dt>
+<dd><p>If you only want to compare scores with particular extensions, pass these extensions.</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="convert">
+<h4>convert<a class="headerlink" href="#convert" title="Permalink to this headline">¶</a></h4>
+<p>Use your local install of MuseScore to convert MuseScore files.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">convert</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span> <span class="p">[</span><span class="o">-</span><span class="n">t</span> <span class="n">TARGET_FORMAT</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">m</span> <span class="n">MUSESCORE</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">p</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span> <span class="n">SUFFIX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">safe</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat3">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat3" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+<dt><kbd>-t, --target_format</kbd></dt>
+<dd><p>You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}</p>
+<p>Default: “mscx”</p>
+</dd>
+<dt><kbd>-m, --musescore</kbd></dt>
+<dd><dl class="simple">
+<dt>Path to MuseScore executable. Defaults to the command ‘mscore’ (standard on <a href="#id1"><span class="problematic" id="id2">*</span></a>nix systems).</dt><dd><p>To use standard paths on commercial systems, try -m win, or -m mac.</p>
+</dd>
+</dl>
+<p>Default: “mscore”</p>
+</dd>
+<dt><kbd>-p, --nonparallel</kbd></dt>
+<dd><p>Do not use all available CPU cores in parallel to speed up batch jobs.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-s, --suffix</kbd></dt>
+<dd><p>Add this suffix to the filename of every new file.</p>
+</dd>
+<dt><kbd>--safe</kbd></dt>
+<dd><p>Don’t overwrite existing files.</p>
+<p>Default: True</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="metadata">
+<h4>metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h4>
+<p>Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D).</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">metadata</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat4">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat4" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="repair">
+<h4>repair<a class="headerlink" href="#repair" title="Permalink to this headline">¶</a></h4>
+<p>Apply automatic repairs to your uncompressed MuseScore files.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">repair</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat5">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat5" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+</dl>
+</div>
+</div>
+<div class="section" id="update">
+<h4>update<a class="headerlink" href="#update" title="Permalink to this headline">¶</a></h4>
+<p>Convert MSCX files to the latest MuseScore version and move all chord annotations to the Roman Numeral Analysis layer. This command overwrites existing files!!!</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ms3</span> <span class="n">update</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">d</span> <span class="n">DIR</span> <span class="p">[</span><span class="n">DIR</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">o</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">r</span> <span class="n">REGEX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">e</span> <span class="n">regex</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">f</span> <span class="n">PATHs</span> <span class="p">[</span><span class="n">PATHs</span> <span class="o">...</span><span class="p">]]</span> <span class="p">[</span><span class="o">-</span><span class="n">l</span> <span class="p">{</span><span class="n">c</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span><span class="p">}]</span> <span class="p">[</span><span class="o">-</span><span class="n">s</span> <span class="n">SUFFIX</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">m</span> <span class="n">MUSESCORE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">above</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">safe</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">staff</span> <span class="n">STAFF</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="nb">type</span> <span class="n">TYPE</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="section" id="Named Arguments_repeat6">
+<h5>Named Arguments<a class="headerlink" href="#Named Arguments_repeat6" title="Permalink to this headline">¶</a></h5>
+<dl class="option-list">
+<dt><kbd>-d, --dir</kbd></dt>
+<dd><p>Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.</p>
+</dd>
+<dt><kbd>-o, --out</kbd></dt>
+<dd><p>Output directory. Subfolder trees are retained.</p>
+</dd>
+<dt><kbd>-n, --nonrecursive</kbd></dt>
+<dd><p>Don’t scan folders recursively, i.e. parse only files in DIR.</p>
+<p>Default: True</p>
+</dd>
+<dt><kbd>-r, --regex</kbd></dt>
+<dd><p>Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.</p>
+<p>Default: “(.mscx|.mscz|.tsv)$”</p>
+</dd>
+<dt><kbd>-e, --exclude</kbd></dt>
+<dd><p>Any files or folders (and their subfolders) including this regex will be disregarded.By default, files including ‘_reviewed’ or starting with . or _ are excluded.</p>
+<p>Default: “(^(.|_)|_reviewed)”</p>
+</dd>
+<dt><kbd>-f, --file</kbd></dt>
+<dd><p>Add path(s) of individual file(s) to be checked.</p>
+</dd>
+<dt><kbd>-l, --level</kbd></dt>
+<dd><p>Choose how many log messages you want to see: c (none), e, w, i, d (maximum)</p>
+<p>Default: “i”</p>
+</dd>
+<dt><kbd>-s, --suffix</kbd></dt>
+<dd><p>Add this suffix to the filename of every new file.</p>
+</dd>
+<dt><kbd>-m, --musescore</kbd></dt>
+<dd><dl class="simple">
+<dt>Path to MuseScore executable. Defaults to the command ‘mscore’ (standard on <a href="#id1"><span class="problematic" id="id2">*</span></a>nix systems).</dt><dd><p>To try standard paths on commercial systems, try -m win, or -m mac.</p>
+</dd>
+</dl>
+<p>Default: “mscore”</p>
+</dd>
+<dt><kbd>--above</kbd></dt>
+<dd><p>Display Roman Numerals above the system.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--safe</kbd></dt>
+<dd><p>Only moves labels if their temporal positions stay intact.</p>
+<p>Default: False</p>
+</dd>
+<dt><kbd>--staff</kbd></dt>
+<dd><p>Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)</p>
+<p>Default: -1</p>
+</dd>
+<dt><kbd>--type</kbd></dt>
+<dd><p>defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!</p>
+<p>Default: 1</p>
+</dd>
+</dl>
+</div>
+</div>
+</div>
 </div>
 <div class="section" id="developing-a-new-parser">
 <h2>Developing a new parser<a class="headerlink" href="#developing-a-new-parser" title="Permalink to this headline">¶</a></h2>
@@ -2006,6 +2420,20 @@ annotation standard is used.</p></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The Annotations class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.parse">The Parse class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.expand_dcml">The expand_dcml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-commandline-interface">The commandline interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Positional Arguments">Positional Arguments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Sub-commands:">Sub-commands:</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#extract">extract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#check">check</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#compare">compare</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#convert">convert</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#metadata">metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#repair">repair</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#update">update</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#developing-a-new-parser">Developing a new parser</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#methods">Methods</a></li>
 </ul>

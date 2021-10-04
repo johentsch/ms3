@@ -2,7 +2,11 @@
 Developers' Reference
 =====================
 
-When using ms3, we are dealing with four main object types:
+
+The library installs a couple of commands to your system. The documentation for these commands can be found
+:ref:`below <cli_doc>` or by executing ``ms3 -h``.
+
+When using ms3 as a module, we are dealing with four main object types:
 
 1. :py:class:`~ms3.score.MSCX` objects hold the information of a single
    parsed MuseScore file;
@@ -50,6 +54,16 @@ The expand_dcml module
 
 .. automodule:: ms3.expand_dcml
     :members:
+
+.. _cli_doc:
+
+The commandline interface
+=========================
+
+.. argparse::
+    :module: ms3.cli
+    :func: get_arg_parser
+    :prog: ms3
 
 Developing a new parser
 =======================

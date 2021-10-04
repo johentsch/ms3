@@ -242,22 +242,23 @@ def check_dir(d):
 
 
 
-def run():
+
+def get_arg_parser():
     # reusable argument sets
     input_args = argparse.ArgumentParser(add_help=False)
     input_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
+    input_args.add_argument('-n', '--nonrecursive', action='store_false',
+                            help="Don't scan folders recursively, i.e. parse only files in DIR.")
+    input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
+                            help='Add path(s) of individual file(s) to be checked.')
     input_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
                                 help="""Output directory. Subfolder trees are retained.""")
-    input_args.add_argument('-n', '--nonrecursive', action='store_false',
-                                help="Don't scan folders recursively, i.e. parse only files in DIR.")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
                                 help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
     input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded."
                                      "By default, files including '_reviewed' or starting with . or _ are excluded.")
-    input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
-                                help='Add path(s) of individual file(s) to be checked.')
     input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
 
@@ -368,6 +369,11 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
     update_parser.set_defaults(func=update)
 
+    return parser
+
+
+def run():
+    parser = get_arg_parser()
     args = parser.parse_args()
     if args.file is None and args.dir is None:
         args.dir = os.getcwd()
