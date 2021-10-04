@@ -2,6 +2,45 @@
 Changelog
 =========
 
+Version 0.4.9
+=============
+
+
+* enabled ``import from ms3`` for all utils
+* new command ``ms3 update`` for converting files and moving annotations to the Roman Numeral Analysis layer
+* new command ``ms3 metadata`` for writing manually changed information from ``metadata.tsv`` to the metadata fields of the corresponding MuseScore files
+* improved the ``ms3 extract`` command:
+  * added option ``-D`` for extracting and updating ``metadata.tsv`` and ``README.md``
+  * included default paths for the capital-letter parameters
+* improved the ``ms3 compare`` command:
+  * now works with 'expanded' TSVs, too (not only with 'labels')
+  * allows 'label' column to include NaN values
+* improvements to Parse() objects:
+  * attempts to parse scores that need file conversion (e.g. XML, MIDI)
+  * ``get_lists()`` method now allows for adding the columns ``quarterbeats`` and ``durations_quarterbeats``, even without unfolding repeats
+  * adding 'quarterbeats' without unfolding repeats excludes voltas
+  * new method ``get_tsvs()`` for retrieving and concatenating parsed TSV files
+  * Parse() now recognizes ``metadata.tsv`` files, expanded TSVs, and TSVs containing cadence labels only
+  * parsed ``metadata.tsv`` files can be retrieved/included via the method ``metadata()``
+  * new method ``update_metadata()`` for the new ``ms3 metadata`` command
+  * decided on standard index levels ``rel_paths`` and ``fnames``
+  * improved matching of corresponding score and TSV files
+* improvements to Score() objects:
+  * new property Score.mscx.volta_structure for retrieving information on first and second endings
+* improvements to Annotations() objects:
+  * correct propagation of ``localkey`` for voltas
+* improvements to commandline interface:
+  * added parameter ``-o`` for specifying output directory
+  * harmonized the interface of the ``ms3 convert`` command
+  * parameter ``exclude_re`` now also filters paths passed via ``-f``
+* changed logging behaviours:
+  * write only WARNINGs to log file
+  * combine loggers for filenames independently of file extensions
+* improved extraction of instrument names for metadata
+* improved ``ms3 compare`` functionality
+* restructured code architecture
+* many bug fixes
+
 Version 0.4.8
 =============
 
