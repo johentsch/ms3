@@ -1286,7 +1286,7 @@ def next2sequence(nxt):
 
 
 @function_logger
-def no_collections_no_booleans(df):
+def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     """
     Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
@@ -1295,6 +1295,11 @@ def no_collections_no_booleans(df):
     if df is None:
         return df
     collection_cols = ['next', 'chord_tones', 'added_tones']
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    if coll_columns is not None:
+        collection_cols += list(coll_columns)
+    if bool_columns is not None:
+        bool_cols += list(bool_columns)
     try:
         cc = [c for c in collection_cols if c in df.columns]
     except:
@@ -1304,7 +1309,6 @@ def no_collections_no_booleans(df):
         df = df.copy()
         df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
         logger.debug(f"Transformed iterables in the columns {cc} to strings.")
-    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
     bc = [c for c in bool_cols if c in df.columns]
     if len(bc) > 0:
         conv = {c: int for c in bc}

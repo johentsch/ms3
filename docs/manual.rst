@@ -26,39 +26,43 @@ conventions which can be summarised as counting complete bars. Quite often, a co
 two <measure> nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
 computers, therefore a mapping MC -> MN is preserved in the score information DataFrames.
 
-.. _quarter_beats:
 
-Quarter Beats
-^^^^^^^^^^^^^
+.. _onsets:
 
-A quarter beat always has the length of a quarter note. It is used as a standard unit to express positions and durations
-independently of the beat size suggested by the :ref:`time signature <timesig>` (e.g. three eighths), and can be
-:ref:`converted to a different beat size  <converting_quarter_beats>`.
+Onset positions
+^^^^^^^^^^^^^^^
 
-If the guidelines say *"xy is expressed as/in quarter beats"*,
-it **actually** means "as fractions of a whole note". So the duration of a half note, for example, is expressed
-as ``1/2``, and not as ``2`` (which but be the multiplier of quarter beats, or understanding quarter beats as unit).
-This is simply a terminological convention to speak consistently of beat sizes.
+Onsets express positions of events in a score as their distance from the beginning of the corresponding
+:ref:`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note. In other words, beat 1 has
+onset ``0``, an event on beat 2 of a 4/4 meter has onset ``1/4`` and so on.
 
-Functionality
--------------
+Since there are two ways of referencing measures (MC and MN), there are also two ways of expressing onsets:
 
-.. _converting_quarter_beats:
+* ``mc_onset`` expresses the distance from the corresponding MC
+* ``mn_onset`` expresses the distance from the corresponding MN
 
-Converting :ref:`quarter_beats`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*TODO*
+In most cases, the two values value will be identical, but take as an example the case where a 4/4 measure with MN 8
+is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat sign or a double bar line. Since MC 9
+corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
+differ: ``mc_onset`` is ``0`` but ``mn_onset`` is ``3/4`` because this is the distance from MN 8.
 
 .. _read_only:
 
 Read-only mode
 ^^^^^^^^^^^^^^
 
-For parsing faster using less memory.
+For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.
 
-Using the library
-=================
+Parsing
+=======
+
+This chapter explains how to
+
+* parse a single score to access and manipulate the contained information using a :obj:`Score` object
+* parse a group of scores to access and manipulate the contained information using a :obj:`Parse` object.
+
+
 
 Parsing a single score
 ----------------------
@@ -535,7 +539,8 @@ General Columns
 ^^^^^^^^^^^^^^^^^^^^^
 
 Measure count, identifier for the measure units in the XML encoding.
-Always starts with 1 for correspondence to MuseScore's status bar.
+Always starts with 1 for correspondence to MuseScore's status bar. For more detailed information, please refer to
+:ref:`mc_vs_mn`.
 
 .. _mn:
 
@@ -543,22 +548,41 @@ Always starts with 1 for correspondence to MuseScore's status bar.
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Measure number, continuous count of complete measures as used in printed editions.
-Starts with 1 except for pieces beginning with a pickup measure, numbered as 0.
+Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. MNs are identical for first and
+second endings! For more detailed information, please refer to :ref:`mc_vs_mn`.
 
-.. _onset:
+.. _mc_onset:
 
-**onsets**
-^^^^^^^^^^
-The value for ``onset`` represents, expressed as :ref:`quarter beats <quarter_beats>`, a position in a measure where ``0``
-corresponds to the earliest possible position (in most cases beat 1), and some other fraction corresponds to an onset's offset from ``0``.
-:ref:`Quarter beats <quarter_beats>` can be :ref:`converted to beats <converting_quarter_beats>`, e.g. to half beats or dotted eighth beats;
-However, the operation may rely on the value of :ref:`mc_offset <mc_offset>`.
+**mc_onset**
+^^^^^^^^^^^^
+The value for ``mc_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
+corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
+refer to :ref:`onsets`.
 
 .. tip::
 
-    When loading a table from a file, it is recommended to parse the text of this
+    When loading a table from a TSV file, it is recommended to parse the text of this
     column with :obj:`fractions.Fraction` to be able to calculate with the values.
     MS3 does this automatically.
+
+.. _mn_onset:
+
+**mn_onset**
+^^^^^^^^^^^^
+The value for ``mn_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
+corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
+please refer to :ref:`onsets`.
+
+.. _quarterbeats:
+
+quarterbeats
+^^^^^^^^^^^^
+
+This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
+quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
+last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
+repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
+account correctly.
 
 Measures
 --------
@@ -615,7 +639,7 @@ negative, the number of flats. E.g.: ``3``: three sharps, ``-2``: two flats,
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The column ``mc_offset`` , in most cases, has the value ``0`` because it expresses the deviation of this MC's
-:ref:`onset <onset>` ``0`` (beginning of the MC)
+:ref:`mc_onset` ``0`` (beginning of the MC)
 from beat 1 of the corresponding MN. If the value is a fraction > 0, it means that this MC is part of a MN which is
 composed of at least two MCs, and it expresses the current MC's offset in terms of the duration of all (usually 1) preceding MCs
 which are also part of the corresponding MN. In the standard case that one MN would be split in two MCs, the first MC

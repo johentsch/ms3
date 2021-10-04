@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Manual &#8212; ms3 0.4.6 documentation</title>
+    <title>Manual &#8212; ms3 0.4.7 documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -57,7 +57,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.7 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>
@@ -88,21 +88,26 @@ conventions which can be summarised as counting complete bars. Quite often, a co
 two &lt;measure&gt; nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
 computers, therefore a mapping MC -&gt; MN is preserved in the score information DataFrames.</p>
 </div>
-<div class="section" id="quarter-beats">
-<span id="id1"></span><h4>Quarter Beats<a class="headerlink" href="#quarter-beats" title="Permalink to this headline">¶</a></h4>
-<p>A quarter beat always has the length of a quarter note. It is used as a standard unit to express positions and durations
-independently of the beat size suggested by the <a class="reference internal" href="#timesig"><span class="std std-ref">time signature</span></a> (e.g. three eighths), and can be
-<a class="reference internal" href="#converting-quarter-beats"><span class="std std-ref">converted to a different beat size</span></a>.</p>
-<p>If the guidelines say <em>“xy is expressed as/in quarter beats”</em>,
-it <strong>actually</strong> means “as fractions of a whole note”. So the duration of a half note, for example, is expressed
-as <code class="docutils literal notranslate"><span class="pre">1/2</span></code>, and not as <code class="docutils literal notranslate"><span class="pre">2</span></code> (which but be the multiplier of quarter beats, or understanding quarter beats as unit).
-This is simply a terminological convention to speak consistently of beat sizes.</p>
+<div class="section" id="onset-positions">
+<span id="onsets"></span><h4>Onset positions<a class="headerlink" href="#onset-positions" title="Permalink to this headline">¶</a></h4>
+<p>Onsets express positions of events in a score as their distance from the beginning of the corresponding
+<a class="reference internal" href="#mc-vs-mn"><span class="std std-ref">MC or MN</span></a>. The distances are expressed as fractions of a whole note. In other words, beat 1 has
+onset <code class="docutils literal notranslate"><span class="pre">0</span></code>, an event on beat 2 of a 4/4 meter has onset <code class="docutils literal notranslate"><span class="pre">1/4</span></code> and so on.</p>
+<p>Since there are two ways of referencing measures (MC and MN), there are also two ways of expressing onsets:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> expresses the distance from the corresponding MC</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> expresses the distance from the corresponding MN</p></li>
+</ul>
+<p>In most cases, the two values value will be identical, but take as an example the case where a 4/4 measure with MN 8
+is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat sign or a double bar line. Since MC 9
+corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
+differ: <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> is <code class="docutils literal notranslate"><span class="pre">0</span></code> but <code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> is <code class="docutils literal notranslate"><span class="pre">3/4</span></code> because this is the distance from MN 8.</p>
 </div>
 </div>
 <div class="section" id="functionality">
 <h3>Functionality<a class="headerlink" href="#functionality" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="converting-quarter-beats">
-<span id="id2"></span><h4>Converting <a class="reference internal" href="#quarter-beats"><span class="std std-ref">Quarter Beats</span></a><a class="headerlink" href="#converting-quarter-beats" title="Permalink to this headline">¶</a></h4>
+<span id="id1"></span><h4>Converting <span class="xref std std-ref">quarter_beats</span><a class="headerlink" href="#converting-quarter-beats" title="Permalink to this headline">¶</a></h4>
 <p><em>TODO</em></p>
 </div>
 <div class="section" id="read-only-mode">
@@ -329,7 +334,7 @@ in each of them.</p></li>
 <p>To see examples for the three possibilities, see the following section.</p>
 </div>
 <div class="section" id="specifying-folders">
-<span id="id3"></span><h4>Specifying folders<a class="headerlink" href="#specifying-folders" title="Permalink to this headline">¶</a></h4>
+<span id="id2"></span><h4>Specifying folders<a class="headerlink" href="#specifying-folders" title="Permalink to this headline">¶</a></h4>
 <p>Consider a two-level folder structure contained in the root directory <code class="docutils literal notranslate"><span class="pre">.</span></code>
 which is the one passed to <code class="xref py py-obj docutils literal notranslate"><span class="pre">Parse</span></code>:</p>
 <div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="go">.</span>
@@ -561,31 +566,46 @@ same four files but this time from the perspective of <code class="docutils lite
 </div>
 </div>
 <div class="section" id="column-names">
-<span id="id4"></span><h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
+<span id="id3"></span><h2>Column Names<a class="headerlink" href="#column-names" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="general-columns">
 <h3>General Columns<a class="headerlink" href="#general-columns" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="mc-measure-counts">
 <span id="mc"></span><h4><strong>mc</strong> Measure Counts<a class="headerlink" href="#mc-measure-counts" title="Permalink to this headline">¶</a></h4>
 <p>Measure count, identifier for the measure units in the XML encoding.
-Always starts with 1 for correspondence to MuseScore’s status bar.</p>
+Always starts with 1 for correspondence to MuseScore’s status bar. For more detailed information, please refer to
+<a class="reference internal" href="#mc-vs-mn"><span class="std std-ref">Measure counts (MC) vs. measure numbers (MN)</span></a>.</p>
 </div>
 <div class="section" id="mn-measure-numbers">
 <span id="mn"></span><h4><strong>mn</strong> Measure Numbers<a class="headerlink" href="#mn-measure-numbers" title="Permalink to this headline">¶</a></h4>
 <p>Measure number, continuous count of complete measures as used in printed editions.
-Starts with 1 except for pieces beginning with a pickup measure, numbered as 0.</p>
+Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. MNs are identical for first and
+second endings! For more detailed information, please refer to <a class="reference internal" href="#mc-vs-mn"><span class="std std-ref">Measure counts (MC) vs. measure numbers (MN)</span></a>.</p>
 </div>
-<div class="section" id="onsets">
-<span id="onset"></span><h4><strong>onsets</strong><a class="headerlink" href="#onsets" title="Permalink to this headline">¶</a></h4>
-<p>The value for <code class="docutils literal notranslate"><span class="pre">onset</span></code> represents, expressed as <a class="reference internal" href="#quarter-beats"><span class="std std-ref">quarter beats</span></a>, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
-corresponds to the earliest possible position (in most cases beat 1), and some other fraction corresponds to an onset’s offset from <code class="docutils literal notranslate"><span class="pre">0</span></code>.
-<a class="reference internal" href="#quarter-beats"><span class="std std-ref">Quarter beats</span></a> can be <a class="reference internal" href="#converting-quarter-beats"><span class="std std-ref">converted to beats</span></a>, e.g. to half beats or dotted eighth beats;
-However, the operation may rely on the value of <a class="reference internal" href="#mc-offset"><span class="std std-ref">mc_offset</span></a>.</p>
+<div class="section" id="mc-onset">
+<span id="id4"></span><h4><strong>mc_onset</strong><a class="headerlink" href="#mc-onset" title="Permalink to this headline">¶</a></h4>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
+corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
+refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>When loading a table from a file, it is recommended to parse the text of this
+<p>When loading a table from a TSV file, it is recommended to parse the text of this
 column with <a class="reference external" href="https://docs.python.org/3.8/library/fractions.html#fractions.Fraction" title="(in Python v3.8)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a> to be able to calculate with the values.
 MS3 does this automatically.</p>
 </div>
+</div>
+<div class="section" id="mn-onset">
+<span id="id5"></span><h4><strong>mn_onset</strong><a class="headerlink" href="#mn-onset" title="Permalink to this headline">¶</a></h4>
+<p>The value for <code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
+corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
+please refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
+</div>
+<div class="section" id="quarterbeats">
+<span id="id6"></span><h4>quarterbeats<a class="headerlink" href="#quarterbeats" title="Permalink to this headline">¶</a></h4>
+<p>This column expresses positions, otherwise accessible only as a tuple <code class="docutils literal notranslate"><span class="pre">(mc,</span> <span class="pre">mc_onset)</span></code>, as a running count of
+quarter notes from the piece’s beginning (quarterbeat = 0). If second endings are present in the score, only the
+last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
+repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
+account correctly.</p>
 </div>
 </div>
 <div class="section" id="measures">
@@ -599,11 +619,11 @@ of length 1/8, would have <code class="docutils literal notranslate"><span class
 from <a class="reference internal" href="#mc"><span class="std std-ref">MCs</span></a>. See also the columns <a class="reference internal" href="#dont-count"><span class="std std-ref">dont_count</span></a> and <a class="reference internal" href="#numbering-offset"><span class="std std-ref">numbering_offset</span></a>.</p>
 </div>
 <div class="section" id="barline">
-<span id="id5"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
+<span id="id7"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">barline</span></code> encodes information about the measure’s final bar line.</p>
 </div>
 <div class="section" id="breaks">
-<span id="id6"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
+<span id="id8"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">breaks</span></code> may include three different values: <code class="docutils literal notranslate"><span class="pre">{'line',</span> <span class="pre">'page',</span> <span class="pre">'section'}</span></code> which represent the different
 breaks types. In the case of section breaks, MuseScore</p>
 </div>
@@ -623,14 +643,14 @@ negative, the number of flats. E.g.: <code class="docutils literal notranslate">
 <div class="section" id="mc-offset-offset-of-a-mc">
 <span id="mc-offset"></span><h4><strong>mc_offset</strong> Offset of a MC<a class="headerlink" href="#mc-offset-offset-of-a-mc" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">mc_offset</span></code> , in most cases, has the value <code class="docutils literal notranslate"><span class="pre">0</span></code> because it expresses the deviation of this MC’s
-<a class="reference internal" href="#onset"><span class="std std-ref">onset</span></a> <code class="docutils literal notranslate"><span class="pre">0</span></code> (beginning of the MC)
+<a class="reference internal" href="#mc-onset"><span class="std std-ref">mc_onset</span></a> <code class="docutils literal notranslate"><span class="pre">0</span></code> (beginning of the MC)
 from beat 1 of the corresponding MN. If the value is a fraction &gt; 0, it means that this MC is part of a MN which is
 composed of at least two MCs, and it expresses the current MC’s offset in terms of the duration of all (usually 1) preceding MCs
 which are also part of the corresponding MN. In the standard case that one MN would be split in two MCs, the first MC
 would have mc_offset = <code class="docutils literal notranslate"><span class="pre">0</span></code> , and the second one mc_offset = <code class="docutils literal notranslate"><span class="pre">the</span> <span class="pre">previous</span> <span class="pre">MC's</span></code> <a class="reference internal" href="#act-dur"><span class="std std-ref">act_dur</span></a> .</p>
 </div>
 <div class="section" id="next">
-<span id="id7"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
+<span id="id9"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this headline">¶</a></h4>
 <p>Every cell in this column has at least one integer, namely the MC of the subsequent bar, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> in the cast of the last.
 In the case of repetitions, measures can have more than one subsequent MCs, in which case the integers are separated by
 <code class="docutils literal notranslate"><span class="pre">',</span> <span class="pre">'</span></code> .</p>
@@ -653,7 +673,7 @@ sometimes, instead of using section <a class="reference internal" href="#breaks"
 <a class="reference internal" href="#mn"><span class="std std-ref">MNs</span></a> at every new section. This leads to ambiguous MNs.</p>
 </div>
 <div class="section" id="repeats">
-<span id="id8"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
+<span id="id10"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this headline">¶</a></h4>
 <p>The column <code class="docutils literal notranslate"><span class="pre">repeats</span></code> indicates the presence of repeat signs and can have the values
 <code class="docutils literal notranslate"><span class="pre">{'start',</span> <span class="pre">'end',</span> <span class="pre">'startend',</span> <span class="pre">'firstMeasure',</span> <span class="pre">'lastMeasure'}</span></code>. MS3 performs a test on the
 repeat signs’ plausibility and throws warnings when some inference is required for this.</p>
@@ -673,7 +693,7 @@ has an actual duration of <code class="docutils literal notranslate"><span class
 </div>
 </div>
 <div class="section" id="volta">
-<span id="id9"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
+<span id="id11"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this headline">¶</a></h4>
 <p>In the case of first and second (third etc.) endings, this column holds the number of every “bracket”, “house”, or <em>volta</em>,
 which should increase from 1. This is required for MS3’s unfold repeats function (TODO) to work.</p>
 <p>The MNs for all voltas except those of the first one need to be amended to match those of the
@@ -700,7 +720,7 @@ the voltas have more than one measure, the <a class="reference internal" href="#
 <li class="toctree-l2"><a class="reference internal" href="#good-to-know">Good to know</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#terminology">Terminology</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#quarter-beats">Quarter Beats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#onset-positions">Onset positions</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#functionality">Functionality</a><ul>
@@ -726,7 +746,9 @@ the voltas have more than one measure, the <a class="reference internal" href="#
 <li class="toctree-l3"><a class="reference internal" href="#general-columns">General Columns</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#mc-measure-counts"><strong>mc</strong> Measure Counts</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mn-measure-numbers"><strong>mn</strong> Measure Numbers</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#onsets"><strong>onsets</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mc-onset"><strong>mc_onset</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#mn-onset"><strong>mn_onset</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#quarterbeats">quarterbeats</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#measures">Measures</a><ul>
@@ -818,7 +840,7 @@ the voltas have more than one measure, the <a class="reference internal" href="#
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.7 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>

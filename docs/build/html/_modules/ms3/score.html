@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.4.6 documentation</title>
+    <title>ms3.score &#8212; ms3 0.4.7 documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.7 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -97,7 +97,7 @@
     <span class="n">RN_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^$&quot;</span>
     <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">    Class variable with a regular expression for Roman numerals that</span>
-<span class="sd">    romentarily matches nothing because ms3 tries interpreting Roman Numerals</span>
+<span class="sd">    momentarily matches nothing because ms3 tries interpreting Roman Numerals</span>
 <span class="sd">    als DCML harmony annotations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -109,6 +109,11 @@
     <span class="n">convertible_formats</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;capx&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;mid&#39;</span><span class="p">,</span> <span class="s1">&#39;musicxml&#39;</span><span class="p">,</span> <span class="s1">&#39;mxl&#39;</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">,</span> <span class="p">)</span>
     <span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
 <span class="sd">    Formats that have to be converted before parsing.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">parseable_formats</span> <span class="o">=</span> <span class="n">native_formats</span> <span class="o">+</span> <span class="n">convertible_formats</span>
+    <span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
+<span class="sd">    Formats that ms3 can parse.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Score.__init__"><a class="viewcode-back" href="../../manual.html#ms3.score.Score.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">musescore_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infer_label_types</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;dcml&#39;</span><span class="p">],</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="p">{},</span>
@@ -184,7 +189,8 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
-<span class="sd">        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.            &quot;&quot;&quot;</span>
+<span class="sd">        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_types_to_infer</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="sd">&quot;&quot;&quot;:obj:`list`</span>
@@ -307,7 +313,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_label_types</span>
 
 
-<div class="viewcode-block" id="Score.attach_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.attach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">attach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_detached</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="Score.attach_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.attach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">attach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label_type</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_detached</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Insert detached labels ``key`` into this score&#39;s :obj:`MSCX` object.</span>
 
 <span class="sd">        Parameters</span>
@@ -316,6 +322,12 @@
 <span class="sd">            Key of the detached labels you want to insert into the score.</span>
 <span class="sd">        staff, voice : :obj:`int`, optional</span>
 <span class="sd">            Pass one or both of these arguments to change the original annotation layer or if there was none.</span>
+<span class="sd">        label_type : :obj:`int`, optional</span>
+<span class="sd">            By default, the labels are written into the staff&#39;s layer for absolute (&#39;guitar&#39;) chords, meaning that when</span>
+<span class="sd">            opened next time, MuseScore will split and encode those beginning with a note name (internal label_type 3).</span>
+<span class="sd">            In order to influence how MuseScore treats the labels pass one of these values:</span>
+<span class="sd">            1: Roman Numeral Analysis</span>
+<span class="sd">            2: Nashville Numbers</span>
 <span class="sd">        check_for_clashes : :obj:`bool`, optional</span>
 <span class="sd">            Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing</span>
 <span class="sd">            labels.</span>
@@ -342,7 +354,7 @@
         <span class="k">if</span> <span class="n">goal</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The Annotation object &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; does not contain any labels.&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">annotations</span><span class="o">.</span><span class="n">prepare_for_attaching</span><span class="p">(</span><span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="n">check_for_clashes</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">annotations</span><span class="o">.</span><span class="n">prepare_for_attaching</span><span class="p">(</span><span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">label_type</span><span class="o">=</span><span class="n">label_type</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="n">check_for_clashes</span><span class="p">)</span>
         <span class="n">reached</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">reached</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No labels from &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; have been attached due to aforementioned errors.&quot;</span><span class="p">)</span>
@@ -414,7 +426,7 @@
 
 
 
-<div class="viewcode-block" id="Score.compare_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.compare_labels">[docs]</a>    <span class="k">def</span> <span class="nf">compare_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detached_key</span><span class="p">,</span> <span class="n">new_color</span><span class="o">=</span><span class="s1">&#39;ms3_darkgreen&#39;</span><span class="p">,</span> <span class="n">old_color</span><span class="o">=</span><span class="s1">&#39;ms3_darkred&#39;</span><span class="p">,</span> <span class="n">detached_is_newer</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Score.compare_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.compare_labels">[docs]</a>    <span class="k">def</span> <span class="nf">compare_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detached_key</span><span class="p">,</span> <span class="n">new_color</span><span class="o">=</span><span class="s1">&#39;ms3_darkgreen&#39;</span><span class="p">,</span> <span class="n">old_color</span><span class="o">=</span><span class="s1">&#39;ms3_darkred&#39;</span><span class="p">,</span> <span class="n">detached_is_newer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_to_rna</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Compare detached labels ``key`` to the ones attached to the Score.</span>
 <span class="sd">        By default, the attached labels are considered as the reviewed version and changes are colored in green;</span>
 <span class="sd">        Changes with respect to the detached labels are attached to the Score in red.</span>
@@ -428,6 +440,8 @@
 <span class="sd">        detached_is_newer : :obj:`bool`, optional</span>
 <span class="sd">            Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels</span>
 <span class="sd">            will turn ``old_color``, as opposed to the default.</span>
+<span class="sd">        add_to_rna : :obj:`bool`, optional</span>
+<span class="sd">            By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">detached_key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">,</span> <span class="s2">&quot;Pass a key of detached labels, not &#39;annotations&#39;.&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">has_annotations</span><span class="p">:</span>
@@ -476,8 +490,16 @@
         <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">changes_old</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">compare_cols</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">added_color_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">df</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-        <span class="n">added_changes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">),</span> <span class="p">)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">added_changes</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">added_changes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="n">color_changes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">add_to_rna</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;label_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">anno</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+            <span class="n">anno</span><span class="o">.</span><span class="n">remove_initial_dots</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">df</span><span class="p">[</span><span class="s1">&#39;label_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">anno</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">)</span>
+            <span class="n">anno</span><span class="o">.</span><span class="n">add_initial_dots</span><span class="p">()</span>
+        <span class="n">added_changes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">anno</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">added_changes</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">color_changes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">parse_measures</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">_update_annotations</span><span class="p">()</span>
@@ -926,6 +948,15 @@
     <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
 
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">cadences</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
+<span class="sd">        DataFrame representing all cadence annotations in the score.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expanded</span>
+        <span class="k">if</span> <span class="n">exp</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;cadence&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exp</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="n">exp</span><span class="p">[</span><span class="n">exp</span><span class="o">.</span><span class="n">cadence</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span>
 
 
     <span class="nd">@property</span>
@@ -936,7 +967,7 @@
 <span class="sd">        all kinds of score markup that is not attached to particular notes but to a &lt;Chord&gt;, such as</span>
 <span class="sd">        slurs, lyrics, staff text, ottava lines etc.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">chords</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">chords</span>
 
 
     <span class="nd">@property</span>
@@ -946,7 +977,7 @@
 <span class="sd">        i.e. &lt;Chord&gt;, &lt;Rest&gt;, &lt;Harmony&gt; and markup tags such as &lt;Beam&gt; together with, in the columns the values of their</span>
 <span class="sd">        XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`</span>
 <span class="sd">        (and therefore :obj:`.expanded`, too).&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">events</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">events</span>
 
 
     <span class="nd">@property</span>
@@ -955,9 +986,9 @@
 <span class="sd">        DataFrame of labels that have been split into various features using a regular expression.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">labels_cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="c1">#labels_cfg = self.labels_cfg.copy()</span>
         <span class="c1">#labels_cfg[&#39;decode&#39;] = False</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">expand_dcml</span><span class="p">(</span><span class="o">**</span><span class="n">labels_cfg</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">expand_dcml</span><span class="p">(</span><span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="p">)</span>
 
 
     <span class="nd">@property</span>
@@ -992,7 +1023,7 @@
 <span class="sd">        (measure count). The columns represent for every MC its :ref:`actual duration&lt;act_dur&gt;`, its</span>
 <span class="sd">        :ref:`time signature&lt;timesig&gt;`, how it is to be considered when computing measure numbers (:ref:`mn&lt;mn&gt;`),</span>
 <span class="sd">        and which other MCs can &quot;come :ref:`next`&quot; according to the score&#39;s repeat structure.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">ml</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">ml</span>
 
 
     <span class="nd">@property</span>
@@ -1007,14 +1038,14 @@
     <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        DataFrame representing all &lt;Note&gt; tags within the score.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">nl</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">nl</span>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">notes_and_rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        The union of :obj:`.notes` and :obj:`.rests`.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">notes_and_rests</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">notes_and_rests</span>
 
 
     <span class="nd">@property</span>
@@ -1032,21 +1063,33 @@
     <span class="k">def</span> <span class="nf">rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        DataFrame representing all &lt;Rest&gt; tags.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">rl</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">rl</span>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">staff_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;:obj:`list` of :obj:`int`</span>
 <span class="sd">        The staff IDs contained in the score, usually just a list of increasing numbers starting at 1.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">staff_ids</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">staff_ids</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`Style`</span>
+<span class="sd">        Can be used like a dictionary to change the information within the score&#39;s &lt;Style&gt; tag.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">style</span>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">        MuseScore version that the file was created with.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="o">.</span><span class="n">version</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">version</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">volta_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        {first_mc -&gt; {volta_number -&gt; [mc1, mc2...]} } dictionary.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">volta_structure</span>
 
 
 <div class="viewcode-block" id="MSCX.add_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.add_labels">[docs]</a>    <span class="k">def</span> <span class="nf">add_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations_object</span><span class="p">):</span>
@@ -1055,13 +1098,8 @@
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        df : :obj:`pandas.DataFrame`</span>
-<span class="sd">            DataFrame with labels to be added.</span>
-<span class="sd">        columns : :obj:`dict`</span>
-<span class="sd">            If your columns don&#39;t have standard names, pass a {NAME -&gt; ACTUAL_NAME} dictionary.</span>
-<span class="sd">            Required columns: label, mc, mc_onset, staff, voice</span>
-<span class="sd">            Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,</span>
-<span class="sd">            color_html, color_r, color_g, color_b, color_a</span>
+<span class="sd">        annotations_object : :py:class:`~ms3.annotations.Annotations`</span>
+<span class="sd">            Object of labels to be added.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
@@ -1072,14 +1110,14 @@
         <span class="n">df</span> <span class="o">=</span> <span class="n">annotations_object</span><span class="o">.</span><span class="n">df</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Nothing to add.&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
+            <span class="k">return</span> <span class="mi">0</span>
         <span class="n">main_cols</span> <span class="o">=</span> <span class="n">Annotations</span><span class="o">.</span><span class="n">main_cols</span>
         <span class="n">columns</span> <span class="o">=</span> <span class="n">annotations_object</span><span class="o">.</span><span class="n">cols</span>
         <span class="n">missing_main</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span> <span class="k">for</span>  <span class="n">c</span> <span class="ow">in</span> <span class="n">main_cols</span> <span class="k">if</span> <span class="n">columns</span><span class="p">[</span><span class="n">c</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span>
-            <span class="n">missing_main</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;The specified columns for the following main parameters are missing:</span><span class="se">\n</span><span class="si">{</span><span class="n">missing_main</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing_main</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;The specified columns for the following main parameters are missing:</span><span class="se">\n</span><span class="si">{</span><span class="n">missing_main</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="n">columns</span><span class="p">[</span><span class="s1">&#39;decoded&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="n">df</span><span class="p">[</span><span class="n">columns</span><span class="p">[</span><span class="s1">&#39;decoded&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">decode_harmonies</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">label_col</span><span class="o">=</span><span class="n">columns</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">],</span> <span class="n">return_series</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">df</span><span class="p">[</span><span class="n">columns</span><span class="p">[</span><span class="s1">&#39;label&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span>
         <span class="n">existing_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">columns</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">}</span>
         <span class="n">param2cols</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">existing_cols</span><span class="p">}</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">param2cols</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -1171,6 +1209,22 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span> <span class="o">-</span> <span class="n">changes</span><span class="si">}</span><span class="s2"> labels could not be deleted:</span><span class="se">\n</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">changed</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="MSCX.replace_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.replace_labels">[docs]</a>    <span class="k">def</span> <span class="nf">replace_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations_object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        annotations_object : :py:class:`~ms3.annotations.Annotations`</span>
+<span class="sd">            Object of labels to be added.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">delete_labels</span><span class="p">(</span><span class="n">annotations_object</span><span class="o">.</span><span class="n">df</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">annotations_object</span><span class="p">)</span></div>
+
+
 
 <div class="viewcode-block" id="MSCX.delete_empty_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.delete_empty_labels">[docs]</a>    <span class="k">def</span> <span class="nf">delete_empty_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Remove all empty labels from the attached annotations. &quot;&quot;&quot;</span>
@@ -1241,7 +1295,7 @@
 <div class="viewcode-block" id="MSCX.get_raw_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.get_raw_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_raw_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Shortcut for ``MSCX.parsed.get_raw_labels()``.</span>
 <span class="sd">        Retrieve a &quot;raw&quot; list of labels, meaning that label types reflect only those defined within &lt;Harmony&gt; tags</span>
-<span class="sd">        which can be 1 (Nashville), 2 (MuseScore&#39;s Roman Numeral display) or undefined (in the case of &#39;normal&#39;</span>
+<span class="sd">        which can be 1 (MuseScore&#39;s Roman Numeral display), 2 (Nashville) or undefined (in the case of &#39;normal&#39;</span>
 <span class="sd">        chord labels, defaulting to 0).</span>
 
 <span class="sd">        Returns</span>
@@ -1343,7 +1397,7 @@
             <span class="n">folder</span> <span class="o">=</span> <span class="n">mscx_path</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">folder</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">input</span><span class="p">(</span><span class="n">folder</span> <span class="o">+</span> <span class="s1">&#39; does not exist. Create? (y|n)&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">folder</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span>
         <span class="n">what</span><span class="p">,</span> <span class="n">suffix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_storing_params</span><span class="p">(</span><span class="n">what</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
@@ -1477,7 +1531,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.7 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
