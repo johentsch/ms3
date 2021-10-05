@@ -1051,7 +1051,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:
             df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True)
-        df = df[df[columns['label']].notna()]
+        #df = df[df[columns['label']].notna()]
         existing_cols = {k: v for k, v in columns.items() if v in df.columns}
         param2cols = {**existing_cols}
         parameters = list(param2cols.keys())
