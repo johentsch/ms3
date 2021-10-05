@@ -121,6 +121,7 @@ def extract(args):
                   metadata_path=resolve_dir(args.metadata),
                   simulate=args.test,
                   unfold=args.unfold,
+                  quarterbeats=args.quarterbeats,
                   **suffixes)
 
 
@@ -274,15 +275,18 @@ The library offers you the following commands. Add the flag -h to one of them to
 
     extract_parser = subparsers.add_parser('extract', help="Extract selected information from MuseScore files and store it in TSV files.",
                                            parents=[input_args])
-    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes', help="Folder where to store TSV files with notes.")
-    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations', help="Folder where to store TSV files with annotation labels.")
-    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures', help="Folder where to store TSV files with measure information.")
-    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests', help="Folder where to store TSV files with rests.")
-    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events', help="Folder where to store TSV files with events (notes, rests, articulation, etc.).")
-    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events', help="Folder where to store TSV files with chords, including lyrics, slurs, and other markup.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies', help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes', help="Folder where to store TSV files with information on all notes.")
+    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations', help="Folder where to store TSV files with information on all annotation labels.")
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events', help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events', help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
     extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
-                                help="Folder where to store one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
                         help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
     extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
@@ -291,6 +295,10 @@ Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_parser.add_argument('--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
     extract_parser.add_argument('-u', '--unfold', action='store_true', help="Unfold the repeats for all stored DataFrames.")
+    extract_parser.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score as first and second endings, the behaviour depends on"
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous"
+                                     "count. If repetitions are being unfolded, all endings are taken into account.")
     extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
 or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
 In the former case, --logpath will be disregarded.""")

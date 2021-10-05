@@ -46,13 +46,13 @@ class Parse(LoggedClass):
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
-            The following options are available:
-            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
-            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
-            'path': Directory in which log files are stored. If 'file' is relative, this path is used as root, otherwise, it is ignored.
-            'file': PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.
-                If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
-                If 'path' is set, the corresponding subdirectory structure is created there.
+            | The following options are available:
+            | 'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            | 'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            | 'path': Directory in which log files are stored. If 'file' is relative, this path is used as root, otherwise, it is ignored.
+            | 'file': PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.
+              If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
+              If 'path' is set, the corresponding subdirectory structure is created there.
         ms : :obj:`str`, optional
             If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command
             of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
@@ -446,7 +446,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
 
 
-    def add_dir(self, directory, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
+    def add_dir(self, directory, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
         This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
@@ -1813,6 +1813,42 @@ Available keys: {available_keys}""")
                                                     cadences_folder=None, cadences_suffix='',
                                                     metadata_path=None, markdown=True,
                                                     simulate=None, unfold=False, quarterbeats=False):
+        """ Store score information as TSV files.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which score files are stored. By default, all keys are selected.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing
+            absolute paths, ``root_dir`` is ignored.
+        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder : str, optional
+            Specify directory where to store the corresponding TSV files.
+        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix : str, optional
+            Optionally specify suffixes appended to the TSVs' file names.
+        metadata_path : str, optional
+            Where to store an overview file with the MuseScore files' metadata.
+            If no file name is specified, the file will be named ``metadata.tsv``.
+        markdown : bool, optional
+            By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+            the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
+            this table will be appended or overwritten after the heading ``# Overview``.
+        simulate : bool, optional
+            Defaults to ``None``. Pass a value to set the object attribute :py:attr:`~ms3.parse.Parse.simulate`.
+        unfold : bool, optional
+            By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
+            playthrough, including correct positioning of first and second endings.
+        quarterbeats : bool, optional
+            By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
+            Pass True to add the columns ``quarterbeats`` and ``durations_quarterbeats``. If a score has first and second endings,
+            the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
+            continuous count. If repetitions are being unfolded, all endings are taken into account.
+
+        Returns
+        -------
+
+        """
         if simulate is None:
             simulate = self.simulate
         else:

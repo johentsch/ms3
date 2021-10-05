@@ -11,6 +11,7 @@ Version 0.4.9
 * new command ``ms3 metadata`` for writing manually changed information from ``metadata.tsv`` to the metadata fields of the corresponding MuseScore files
 * improved the ``ms3 extract`` command:
   * added option ``-D`` for extracting and updating ``metadata.tsv`` and ``README.md``
+  * added option ``-q`` for adding 'quarterbeats' and 'durations_quarterbeats' columns
   * included default paths for the capital-letter parameters
 * improved the ``ms3 compare`` command:
   * now works with 'expanded' TSVs, too (not only with 'labels')

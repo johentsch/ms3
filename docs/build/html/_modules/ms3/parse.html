@@ -7,9 +7,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.parse &#8212; ms3 0.4.7 documentation</title>
+    <title>ms3.parse &#8212; ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
@@ -49,7 +50,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.7 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
@@ -87,7 +88,7 @@
 <span class="sd">    Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">],</span> <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|_)&quot;</span><span class="p">,</span>
+<div class="viewcode-block" id="Parse.__init__"><a class="viewcode-back" href="../../manual.html#ms3.parse.Parse.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">],</span> <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|_)&quot;</span><span class="p">,</span>
                  <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">simulate</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">ms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 
@@ -112,13 +113,13 @@
 <span class="sd">        simulate : :obj:`bool`, optional</span>
 <span class="sd">            Pass True if no parsing is actually to be done.</span>
 <span class="sd">        logger_cfg : :obj:`dict`, optional</span>
-<span class="sd">            The following options are available:</span>
-<span class="sd">            &#39;name&#39;: LOGGER_NAME -&gt; by default the logger name is based on the parsed file(s)</span>
-<span class="sd">            &#39;level&#39;: {&#39;W&#39;, &#39;D&#39;, &#39;I&#39;, &#39;E&#39;, &#39;C&#39;, &#39;WARNING&#39;, &#39;DEBUG&#39;, &#39;INFO&#39;, &#39;ERROR&#39;, &#39;CRITICAL&#39;}</span>
-<span class="sd">            &#39;path&#39;: Directory in which log files are stored. If &#39;file&#39; is relative, this path is used as root, otherwise, it is ignored.</span>
-<span class="sd">            &#39;file&#39;: PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.</span>
-<span class="sd">                If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files&#39; paths.</span>
-<span class="sd">                If &#39;path&#39; is set, the corresponding subdirectory structure is created there.</span>
+<span class="sd">            | The following options are available:</span>
+<span class="sd">            | &#39;name&#39;: LOGGER_NAME -&gt; by default the logger name is based on the parsed file(s)</span>
+<span class="sd">            | &#39;level&#39;: {&#39;W&#39;, &#39;D&#39;, &#39;I&#39;, &#39;E&#39;, &#39;C&#39;, &#39;WARNING&#39;, &#39;DEBUG&#39;, &#39;INFO&#39;, &#39;ERROR&#39;, &#39;CRITICAL&#39;}</span>
+<span class="sd">            | &#39;path&#39;: Directory in which log files are stored. If &#39;file&#39; is relative, this path is used as root, otherwise, it is ignored.</span>
+<span class="sd">            | &#39;file&#39;: PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.</span>
+<span class="sd">              If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files&#39; paths.</span>
+<span class="sd">              If &#39;path&#39; is set, the corresponding subdirectory structure is created there.</span>
 <span class="sd">        ms : :obj:`str`, optional</span>
 <span class="sd">            If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command</span>
 <span class="sd">            of your local MuseScore 3 installation. If you&#39;re using the standard path, you may try &#39;auto&#39;, or &#39;win&#39; for</span>
@@ -334,7 +335,7 @@
                 <span class="c1"># TODO: allow for any number of JSON files</span>
                 <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">paths</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
                     <span class="n">paths</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_files</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">)</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_files</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">)</span></div>
     <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
     <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
 
@@ -512,7 +513,7 @@
 
 
 
-<div class="viewcode-block" id="Parse.add_dir"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_dir">[docs]</a>    <span class="k">def</span> <span class="nf">add_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|__)&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="Parse.add_dir"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_dir">[docs]</a>    <span class="k">def</span> <span class="nf">add_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">],</span> <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^(\.|__)&quot;</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)</span>
 <span class="sd">        to the Parse object without looking at them. It is recommended to add different types of files with different keys,</span>
@@ -1868,7 +1869,7 @@
 
 
 
-    <span class="k">def</span> <span class="nf">store_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+<div class="viewcode-block" id="Parse.store_lists"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.store_lists">[docs]</a>    <span class="k">def</span> <span class="nf">store_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">root_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
                                                     <span class="n">rests_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">rests_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
                                                     <span class="n">notes_and_rests_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">notes_and_rests_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
                                                     <span class="n">measures_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">measures_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
@@ -1879,6 +1880,42 @@
                                                     <span class="n">cadences_folder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cadences_suffix</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
                                                     <span class="n">metadata_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">markdown</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                                     <span class="n">simulate</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Store score information as TSV files.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
+<span class="sd">            Key(s) under which score files are stored. By default, all keys are selected.</span>
+<span class="sd">        root_dir : :obj:`str`, optional</span>
+<span class="sd">            Defaults to None, meaning that the original root directory is used that was added to the Parse object.</span>
+<span class="sd">            Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing</span>
+<span class="sd">            absolute paths, ``root_dir`` is ignored.</span>
+<span class="sd">        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder : str, optional</span>
+<span class="sd">            Specify directory where to store the corresponding TSV files.</span>
+<span class="sd">        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix : str, optional</span>
+<span class="sd">            Optionally specify suffixes appended to the TSVs&#39; file names.</span>
+<span class="sd">        metadata_path : str, optional</span>
+<span class="sd">            Where to store an overview file with the MuseScore files&#39; metadata.</span>
+<span class="sd">            If no file name is specified, the file will be named ``metadata.tsv``.</span>
+<span class="sd">        markdown : bool, optional</span>
+<span class="sd">            By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing</span>
+<span class="sd">            the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,</span>
+<span class="sd">            this table will be appended or overwritten after the heading ``# Overview``.</span>
+<span class="sd">        simulate : bool, optional</span>
+<span class="sd">            Defaults to ``None``. Pass a value to set the object attribute :py:attr:`~ms3.parse.Parse.simulate`.</span>
+<span class="sd">        unfold : bool, optional</span>
+<span class="sd">            By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full</span>
+<span class="sd">            playthrough, including correct positioning of first and second endings.</span>
+<span class="sd">        quarterbeats : bool, optional</span>
+<span class="sd">            By default, no ``quarterbeats`` column is added with distances from the piece&#39;s beginning measured in quarter notes.</span>
+<span class="sd">            Pass True to add the columns ``quarterbeats`` and ``durations_quarterbeats``. If a score has first and second endings,</span>
+<span class="sd">            the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the</span>
+<span class="sd">            continuous count. If repetitions are being unfolded, all endings are taken into account.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">simulate</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">simulate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulate</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1941,7 +1978,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">No metadata to write.&quot;</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">simulate</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">paths</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
 
 
 
@@ -2609,7 +2646,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.7 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 

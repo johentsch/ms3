@@ -542,7 +542,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
         if len(remaining) == 1:
             return keep_row
         which = keep_row[compress_col]
-        dont_warn = ['vspacerDown', 'voice/BarLine']
+        dont_warn = ['vspacerDown', 'voice/BarLine', 'voice/BarLine/span']
         for val, (col_name, col) in zip(*keep_row[consider_for_notna].itertuples(index=False, name=None),
                                         remaining[consider_for_notna].items()):
             log_this = logger.debug if col_name in dont_warn else logger.warning
