@@ -344,10 +344,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
         self._cl.loc[:, 'nominal_duration'] = self._cl.nominal_duration.map(self.durations)
         cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'volta', 'chord_id']
-        for col in cols:
-            if not col in self._cl.columns:
-                self._cl[col] = np.nan
-        self._cl = self._cl[cols]
+        missing_cols = [col for col in cols if col not in self._cl.columns]
+        empty_cols = pd.DataFrame(index=self._cl.index, columns=missing_cols)
+        self._cl = pd.concat([self._cl, empty_cols], axis=1).reindex(columns=cols)
 
 
 
