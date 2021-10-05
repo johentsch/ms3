@@ -9,11 +9,18 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, fifths2name, ordinal_suffix, resolve_dir, rgba2attrs, rgba2params
+from .utils import color2rgba, color_params2rgba, column_order, fifths2name, ordinal_suffix, pretty_dict,\
+    resolve_dir, rgba2attrs, rgba2params, sort_note_list
+
 
 
 class _MSCX_bs4(LoggedClass):
-    """ This sister class implements MSCX's methods for a score parsed with BeautifulSoup4.
+    """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
+
+    Attributes
+    ----------
+    mscx_src : :obj:`str`
+        Path to the uncompressed MuseScore 3 file (MSCX) to be parsed.
 
     """
 
@@ -46,73 +53,20 @@ class _MSCX_bs4(LoggedClass):
         """
         super().__init__(subclass='_MSCX_bs4', logger_cfg=logger_cfg)
         self.soup = None
-        """:py:class:`bs4.BeautifulSoup`
-        The parsed XML structure.
-        """
-
         self.metadata = None
-        """:obj:`dict`
-        Dictionary with the metadata included in the MuseScore file and some computed from the score.
-        """
-
-        self._measures = pd.DataFrame()
-        """:obj:`pandas.DataFrame`
-        Raw tabular representation of all <Measure> tags.
-        """
-
-        self._events = pd.DataFrame()
-        """:obj:`pandas.DataFrame`
-        Raw tabular representation of all score elements down to <Chord> and <Rest> tags.
-        """
-
-        self._notes = pd.DataFrame()
-        """:obj:`pandas.DataFrame`
-        Raw tabular representation of all <Note> tags.
-        """
-
+        self._metatags = None
+        self._measures, self._events, self._notes = pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
         self.mscx_src = mscx_src
-        """:obj:`str`
-        Full path of the parsed score."""
-
         self.read_only = read_only
-        """:obj:`bool`
-        Read-only mode enables the object to be pickled. For this, all BeautifulSoup tags are removed."""
-
         self.first_mc = 1
-        """:obj:`int`
-        Where to start counting <Measure> tags. MuseScore starts counting at 1."""
-
         self.measure_nodes = {}
-        """:obj:`dict`
-        {staff -> {mc -> :py:class:`bs4.element.Tag`}} For accessing (or iterating over) <Measure> nodes.
-        """
-
         self.tags = {} # only used if not self.read_only
-        """:obj:`dict`
-        {mc -> {staff -> {voice -> {onset -> [element]}}}} Accessing individual elements down to the <Chord> level based
-        on their onsets, where each onset is a :obj:`fractions.Fraction` each element is a :obj:`dict` of
-        
-            name: :obj:`str`
-                tag name
-            duration: :obj:`fractions.Fraction`
-                event duration (only non-zero for 'durational events', i.e. <Chord> and <Rest> tags)
-            tag: :py:class:`bs4.element.Tag`
-                The tag itself.
-        """
-
         self.has_annotations = False
-        """:obj:`bool`
-        Is True if the parsed score contains at least one <Harmony> tag.
-        """
-
         self._ml = None
-        """:obj:`pandas.DataFrame`
-        The processed measure list.
-        """
-
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(
             columns=cols), pd.DataFrame(columns=cols)
+        self._style = None
 
         self.parse_measures()
 
@@ -248,16 +202,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                         current_position += event['duration']
 
                 measure_list.append(measure_info)
-        self._measures = sort_cols(pd.DataFrame(measure_list))
-        self._events = sort_cols(pd.DataFrame(event_list))
+        self._measures = column_order(pd.DataFrame(measure_list))
+        self._events = column_order(pd.DataFrame(event_list))
         if 'chord_id' in self._events.columns:
             self._events.chord_id = self._events.chord_id.astype('Int64')
-        self._notes = sort_cols(pd.DataFrame(note_list))
+        self._notes = column_order(pd.DataFrame(note_list))
         if len(self._events) == 0:
             self.logger.warning("Empty score?")
         else:
             self.has_annotations = 'Harmony' in self._events.event.values
-        self.metadata = self._get_metadata()
+        self.update_metadata()
 
 
 
@@ -273,7 +227,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self.logger.info(f"Score written to {filepath}.")
         return True
 
-    def _make_measure_list(self, sections=True, secure=False, reset_index=True):
+    def update_metadata(self):
+        self.metadata = self._get_metadata()
+
+    def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] += ':MeasureList'
@@ -296,7 +253,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     @property
     def events(self):
-        return sort_cols(self.add_standard_cols(self._events))
+        return column_order(self.add_standard_cols(self._events))
 
     @property
     def measures(self):
@@ -304,6 +261,14 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         self._ml = self._make_measure_list()
         return self._ml.ml
+
+    @property
+    def metatags(self):
+        if self._metatags is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._metatags = Metatags(self.soup)
+        return self._metatags
 
     @property
     def ml(self):
@@ -357,6 +322,20 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def staff_ids(self):
         return list(self.measure_nodes.keys())
 
+    @property
+    def style(self):
+        if self._style is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._style = Style(self.soup)
+        return self._style
+
+
+    @property
+    def volta_structure(self):
+        if self._ml is not None:
+            return self._ml.volta_structure
+
 
     def make_standard_chordlist(self):
         """ This chord list has chords only as opposed to the one yielded by selr.get_chords()"""
@@ -365,10 +344,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
         self._cl.loc[:, 'nominal_duration'] = self._cl.nominal_duration.map(self.durations)
         cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'volta', 'chord_id']
-        for col in cols:
-            if not col in self._cl.columns:
-                self._cl[col] = np.nan
-        self._cl = self._cl[cols]
+        missing_cols = [col for col in cols if col not in self._cl.columns]
+        empty_cols = pd.DataFrame(index=self._cl.index, columns=missing_cols)
+        self._cl = pd.concat([self._cl, empty_cols], axis=1).reindex(columns=cols)
 
 
 
@@ -416,13 +394,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         voice : :obj:`int`
             Get information from a particular voice only (1 = only the first layer of every staff)
         mode : {'auto', 'all', 'strict'}, optional
-            'auto' (default)
-                meaning that those aspects are automatically included that occur in the score; the resulting
+            Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
                 DataFrame has no empty columns except for those parameters that are set to True.
-            'all'
-                Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            'strict'
-                Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+            'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+            'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
         lyrics : :obj:`bool`, optional
             Include lyrics.
         staff_text : :obj:`bool`, optional
@@ -621,12 +596,6 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return mc, mc_onset
 
     def _get_metadata(self):
-        """ Returns a dictionary with the metadata included in the MuseScore file and some computed from the score.
-
-        Returns
-        -------
-        :obj:`dict`
-        """
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
@@ -639,7 +608,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
         first_label =  self.soup.find('Harmony')
         first_label_name = first_label.find('name') if first_label is not None else None
-        if first_label_name is not None:
+        if first_label_name is not None and first_label_name.string is not None:
             m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
             if m is not None:
                 data['annotated_key'] = m.group(1)
@@ -651,9 +620,10 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
             ambitus[t.staff]['max_midi'] = t.midi
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
-        data['parts'] = {
-            f"part_{i}" if part.trackName.string is None else str(part.trackName.string): {int(staff['id']): ambitus[int(staff['id'])] if int(staff['id']) in ambitus else {} for staff in
-                                    part.find_all('Staff')} for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
+        for part, part_dict in data['parts'].items():
+            for id in part_dict['staves']:
+                part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
         ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
         mimi, mina, mami, mana = zip(*ambitus_tuples)
         min_midi, max_midi = min(mimi), max(mami)
@@ -753,17 +723,21 @@ because it precedes the label to be deleted which is the voice's last onset, {mc
             elif n_locs == 1:
                 if not is_last and not is_first:
                     # This presumes that the previous onset has at least one <location> tag which needs to be adapted
-                    assert prv_n_locs > 0, f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward 
-but the previous onset {prv_onset} has no <location> tag."""
-                    if prv_names[-1] != 'location':
-                        raise NotImplementedError(
-    f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
-                    cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
-                    prv_loc_dur = frac(prv_elements[-1]['duration'])
-                    prv_loc_tag = prv_elements[-1]['tag']
-                    new_loc_dur = prv_loc_dur + cur_loc_dur
-                    prv_loc_tag.fractions.string = str(new_loc_dur)
-                    measure[prv_onset][-1]['duration'] = new_loc_dur
+#                     assert prv_n_locs > 0, f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward
+# but the previous onset {prv_onset} has no <location> tag."""
+#                     if prv_names[-1] != 'location':
+#                         raise NotImplementedError(
+#     f"Location tag is not the last element in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice {voice}.")
+                    if prv_n_locs > 0:
+                        cur_loc_dur = frac(elements[element_names.index('location')]['duration'])
+                        prv_loc_dur = frac(prv_elements[-1]['duration'])
+                        prv_loc_tag = prv_elements[-1]['tag']
+                        new_loc_dur = prv_loc_dur + cur_loc_dur
+                        prv_loc_tag.fractions.string = str(new_loc_dur)
+                        measure[prv_onset][-1]['duration'] = new_loc_dur
+                    else:
+                        self.logger.debug(f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} locs forward 
+# but the previous onset {prv_onset} has no <location> tag:\n{prv_elements}""")
                 # else: proceed with deletion
 
             elif n_locs == 2:
@@ -879,13 +853,18 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         -------
 
         """
+        assert mc_onset >= 0, f"Cannot attach label {label} to negative onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}"
         self.make_writeable()
         if mc not in self.tags:
             self.logger.error(f"MC {mc} not found.")
             return False
-        if staff not in self.tags[mc]:
-            self.logger.error(f"Staff {staff} not found.")
-            return False
+        if staff not in self.measure_nodes:
+            try:
+                # maybe a negative integer?
+                staff = list(self.measure_nodes.keys())[staff]
+            except:
+                self.logger.error(f"Staff {staff} not found.")
+                return False
         if voice not in [1, 2, 3, 4]:
             self.logger.error(f"Voice needs to be 1, 2, 3, or 4, not {voice}.")
             return False
@@ -915,9 +894,23 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             _, name = get_duration_event(elements)
             # insert before the first tag that is not in the tags_before_label list
             tags_before_label = ['BarLine', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
-            ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
-                          tags_before_label )
-            remember = self.insert_label(label=label, before=before, **kwargs)
+            try:
+                ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
+                              tags_before_label )
+                remember = self.insert_label(label=label, before=before, **kwargs)
+            except:
+                self.logger.debug(f"""'{label}' is to be inserted at MC {mc}, onset {mc_onset}, staff {staff}, voice {voice},
+where there is no Chord or Rest, just: {elements}.""")
+                l = len(elements)
+                if 'FiguredBass' in names:
+                    ix, after = next((i, elements[i]['tag']) for i in range(l) if elements[i]['name'] == 'FiguredBass')
+                else:
+                    if l > 1 and names[-1] == 'location':
+                        ix = l - 1
+                    else:
+                        ix = l
+                    after = elements[ix-1]['tag']
+                remember = self.insert_label(label=label, after=after, **kwargs)
             measure[mc_onset].insert(ix, remember[0])
             old_names = list(names)
             names.insert(ix, 'Harmony')
@@ -928,17 +921,21 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                 self.logger.debug(f"Added {label_name} to {name} in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice}.")
             if 'Harmony' in old_names:
                 self.logger.debug(
-                    f"The chord in MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} was already carrying a label.")
+                    f"There had already been a label.")
             return True
 
 
         # There is no event to attach the label to
         ordered = list(reversed(sorted(measure)))
-        prv_pos, nxt_pos = next((prv, nxt)
-                                for prv, nxt
-                                in zip(ordered + [None], [None] + ordered)
-                                if prv < mc_onset)
-        assert prv_pos is not None, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        assert len(ordered) > 0, f"MC {mc} empty in staff {staff}, voice {voice}?"
+        try:
+            prv_pos, nxt_pos = next((prv, nxt)
+                                    for prv, nxt
+                                    in zip(ordered + [None], [None] + ordered)
+                                    if prv < mc_onset)
+        except:
+            self.logger.error(f"No event occurs before onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}. All elements: {ordered}")
+            raise
         prv = measure[prv_pos]
         nxt = None if nxt_pos is None else measure[nxt_pos]
         prv_names = [e['name'] for e in prv]
@@ -946,6 +943,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         if nxt is not None:
             nxt_names = [e['name'] for e in nxt]
             _, nxt_name = get_duration_event(nxt)
+        prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
         # distinguish six cases: prv can be [event, location], nxt can be [event, location, None]
         if prv_ix is not None:
             # prv is event (chord or rest)
@@ -961,22 +959,29 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
                                              after=prv[prv_ix]['tag'], **kwargs)
                 self.logger.debug(f"MC {mc}: Added {label_name} at {loc_after} before the {nxt_name} at mc_onset {nxt_pos}.")
             else:
-                # nxt has location tag(s)
+                # nxt is not a sounding event and has location tag(s)
+                nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
                 loc_ix = nxt_names.index('location')
                 loc_dur = nxt[loc_ix]['duration']
-                assert loc_dur < 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
+                assert loc_dur <= 0, f"Positive location tag at MC {mc}, mc_onset {nxt_pos} when trying to insert {label_name} at mc_onset {mc_onset}: {nxt}"
+#                 if nxt_pos + loc_dur == mc_onset:
+#                     self.logger.info(f"nxt_pos: {nxt_pos}, loc_dur: {loc_dur}, mc_onset: {mc_onset}")
+#                     # label to be positioned with the same location
+#                     remember = self.insert_label(label=label, after=nxt[-1]['tag'], **kwargs)
+#                     self.logger.debug(
+#                         f"""MC {mc}: Joined {label_name} with the {nxt_name} occuring at {loc_dur} before the ending
+# of the {prv_name} at mc_onset {prv_pos}.""")
+#                 else:
                 loc_before = loc_dur - nxt_pos + mc_onset
                 remember = self.insert_label(label=label, loc_before=loc_before, before=nxt[loc_ix]['tag'], **kwargs)
                 loc_after = nxt_pos - mc_onset
                 nxt[loc_ix]['tag'].fractions.string = str(loc_after)
                 nxt[loc_ix]['duration'] = loc_after
-                nxt_name = ', '.join(f"<{e}>" for e in nxt_names if e != 'location')
                 self.logger.debug(f"""MC {mc}: Added {label_name} at {-loc_before} before the ending of the {prv_name} at mc_onset {prv_pos}
-and {loc_after} before the subsequent {nxt_name}.""")
+and {loc_after} before the subsequent\n{nxt}.""")
 
         else:
             # prv has location tag(s)
-            prv_name = ', '.join(f"<{e}>" for e in prv_names if e != 'location')
             loc_before = mc_onset - prv_pos
             if nxt is None:
                 remember = self.insert_label(label=label, loc_before=loc_before, after=prv[-1]['tag'], **kwargs)
@@ -985,7 +990,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
                 try:
                     loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
                 except:
-                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of mc_onset {prv_pos} should include a <location> tag.")
+                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of mc_onset {prv_pos} should include a <location> tag but don't:\n{prv}")
                     raise
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
                 prv[loc_ix]['duration'] = loc_before
@@ -1200,9 +1205,75 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return self.__dict__
 
 
-
-
+#######################################################################
 ####################### END OF CLASS DEFINITION #######################
+#######################################################################
+
+class Metatags:
+    """Easy way to read and write any style information in a parsed MSCX score."""
+
+    def __init__(self, soup):
+        self.soup = soup
+
+    @property
+    def tags(self):
+        return {tag['name']: tag for tag in self.soup.find_all('metaTag')}
+
+    def __getitem__(self, attr):
+        tags = self.tags
+        if attr in tags:
+            val = tags[attr].string
+            return '' if val is None else str(val)
+        return None
+
+    def __setitem__(self, attr, val):
+        tags = self.tags
+        if attr in tags:
+            tags[attr].string = str(val)
+        else:
+            new_tag = self.soup.new_tag('metaTag')
+            new_tag.attrs['name'] = attr
+            new_tag.string = str(val)
+            for insert_here in tags.keys():
+                if insert_here > attr:
+                    break
+            tags[insert_here].insert_before(new_tag)
+
+    def __repr__(self):
+        return '\n'.join(str(t) for t in self.tags.values())
+
+
+class Style:
+    """Easy way to read and write any style information in a parsed MSCX score."""
+
+    def __init__(self, soup):
+        self.soup = soup
+        self.style = self.soup.find('Style')
+        assert self.style is not None, "No <Style> tag found."
+
+    def __getitem__(self, attr):
+        tag = self.style.find(attr)
+        if tag is None:
+            return None
+        val = tag.string
+        return '' if val is None else str(val)
+
+    def __setitem__(self, attr, val):
+        if attr in self:
+            tag = self.style.find(attr)
+            tag.string = str(val)
+        else:
+            new_tag = self.soup.new_tag(attr)
+            new_tag.string = str(val)
+            self.style.append(new_tag)
+
+    def __iter__(self):
+        tags = self.style.find_all()
+        return (t.name for t in tags)
+
+    def __repr__(self):
+        tags = self.style.find_all()
+        return ', '.join(t.name for t in tags)
 
 
 def get_duration_event(elements):
@@ -1220,11 +1291,34 @@ def get_duration_event(elements):
     return (None, None)
 
 
+
+def get_part_info(part_tag):
+    """Instrument names come in different forms in different places. This function extracts the information from a
+        <Part> tag and returns it as a dictionary."""
+    res = {}
+    res['staves'] = [int(staff['id']) for staff in part_tag.find_all('Staff')]
+    if part_tag.trackName is not None and part_tag.trackName.string is not None:
+        res['trackName'] = part_tag.trackName.string.strip()
+    else:
+        res['trackName'] = ''
+    if part_tag.Instrument is not None:
+        instr = part_tag.Instrument
+        if instr.longName is not None and instr.longName.string is not None:
+            res['longName'] = instr.longName.string.strip()
+        if instr.shortName is not None and instr.shortName.string is not None:
+            res['shortName'] = instr.shortName.string.strip()
+        if instr.trackName is not None and instr.trackName.string is not None:
+            res['instrument'] = instr.trackName.string.strip()
+        else:
+            res['instrument'] = res['trackName']
+    return res
+
+
 @function_logger
 def make_spanner_cols(df, spanner_types=None):
     """ From a raw chord list as returned by ``get_chords(spanners=True)``
-    create a DataFrame with Spanner IDs for all chords for all spanner
-    types they are associated with.
+        create a DataFrame with Spanner IDs for all chords for all spanner
+        types they are associated with.
 
     Parameters
     ----------
@@ -1313,21 +1407,6 @@ def make_spanner_cols(df, spanner_types=None):
 
 
 
-def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', duration_col='duration'):
-    """Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact"""
-    is_grace = df[duration_col] == 0
-    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
-    has_nan = df[midi_col].isna().any()
-    if has_nan:
-        df.loc[:, midi_col] = df[midi_col].fillna(1000)
-    normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
-        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
-    sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
-                  normal_ix.iteritems()]
-    df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
-    if has_nan:
-        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
-    return df
 
 def make_tied_col(df, tie_col, next_col, prev_col):
     new_col = pd.Series(np.nan, index=df.index, name='tied')
@@ -1395,15 +1474,6 @@ def recurse_node(node, prepend=None, exclude_children=None):
         info[name] = '/'
     return info
 
-
-def sort_cols(df, first_cols=None):
-    if first_cols is None:
-        first_cols = [
-            'mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration',
-            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'pitch', 'volta', 'chord_id']
-    cols = df.columns
-    column_order = [col for col in first_cols if col in cols] + sorted([col for col in cols if col not in first_cols])
-    return df[column_order]
 
 
 def bs4_chord_duration(node, duration_multiplier=1):

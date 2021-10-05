@@ -31,7 +31,7 @@ class Score(LoggedClass):
     RN_REGEX = r"^$"
     """:obj:`str`
     Class variable with a regular expression for Roman numerals that
-    romentarily matches nothing because ms3 tries interpreting Roman Numerals
+    momentarily matches nothing because ms3 tries interpreting Roman Numerals
     als DCML harmony annotations.
     """
 
@@ -43,6 +43,11 @@ class Score(LoggedClass):
     convertible_formats = ('cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml', )
     """:obj:`tuple`
     Formats that have to be converted before parsing.
+    """
+
+    parseable_formats = native_formats + convertible_formats
+    """:obj:`tuple`
+    Formats that ms3 can parse.
     """
 
     def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
@@ -118,7 +123,8 @@ class Score(LoggedClass):
 
         self._detached_annotations = {}
         """:obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.            """
+        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.
+        """
 
         self._types_to_infer = []
         """:obj:`list`
@@ -241,7 +247,7 @@ class Score(LoggedClass):
         return self._label_types
 
 
-    def attach_labels(self, key, staff=None, voice=None, check_for_clashes=True, remove_detached=True):
+    def attach_labels(self, key, staff=None, voice=None, label_type=None, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
@@ -250,6 +256,12 @@ class Score(LoggedClass):
             Key of the detached labels you want to insert into the score.
         staff, voice : :obj:`int`, optional
             Pass one or both of these arguments to change the original annotation layer or if there was none.
+        label_type : :obj:`int`, optional
+            By default, the labels are written into the staff's layer for absolute ('guitar') chords, meaning that when
+            opened next time, MuseScore will split and encode those beginning with a note name (internal label_type 3).
+            In order to influence how MuseScore treats the labels pass one of these values:
+            1: Roman Numeral Analysis
+            2: Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.
@@ -276,7 +288,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if goal == 0:
             self.mscx.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return 0, 0
-        df = annotations.prepare_for_attaching(staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+        df = annotations.prepare_for_attaching(staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
         reached = len(df)
         if reached == 0:
             self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
@@ -348,7 +360,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False):
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
@@ -362,6 +374,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         detached_is_newer : :obj:`bool`, optional
             Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
             will turn ``old_color``, as opposed to the default.
+        add_to_rna : :obj:`bool`, optional
+            By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
@@ -410,8 +424,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
         df = pd.DataFrame(changes_old, columns=compare_cols)
         for k, v in added_color_params.items():
             df[k] = v
-        added_changes = self.mscx.add_labels(Annotations(df=df), )
-        if (added_changes is None or added_changes > 0) or color_changes > 0:
+        if add_to_rna:
+            df['label_type'] = 1
+            anno = Annotations(df=df)
+            anno.remove_initial_dots()
+        else:
+            df['label_type'] = 0
+            anno = Annotations(df=df)
+            anno.add_initial_dots()
+        added_changes = self.mscx.add_labels(anno)
+        if added_changes > 0 or color_changes > 0:
             self.mscx.changed = True
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
@@ -860,6 +882,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+    @property
+    def cadences(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all cadence annotations in the score.
+        """
+        exp = self.expanded
+        if exp is None or 'cadence' not in exp.columns:
+            return None
+        return exp[exp.cadence.notna()]
 
 
     @property
@@ -870,7 +901,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         all kinds of score markup that is not attached to particular notes but to a <Chord>, such as
         slurs, lyrics, staff text, ottava lines etc.
         """
-        return self._parsed.chords
+        return self.parsed.chords
 
 
     @property
@@ -880,7 +911,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         i.e. <Chord>, <Rest>, <Harmony> and markup tags such as <Beam> together with, in the columns the values of their
         XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`
         (and therefore :obj:`.expanded`, too)."""
-        return self._parsed.events
+        return self.parsed.events
 
 
     @property
@@ -889,9 +920,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         DataFrame of labels that have been split into various features using a regular expression."""
         if self._annotations is None:
             return None
-        labels_cfg = self.labels_cfg.copy()
+        #labels_cfg = self.labels_cfg.copy()
         #labels_cfg['decode'] = False
-        return self._annotations.expand_dcml(**labels_cfg)
+        return self._annotations.expand_dcml(**self.labels_cfg)
 
 
     @property
@@ -926,7 +957,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         (measure count). The columns represent for every MC its :ref:`actual duration<act_dur>`, its
         :ref:`time signature<timesig>`, how it is to be considered when computing measure numbers (:ref:`mn<mn>`),
         and which other MCs can "come :ref:`next`" according to the score's repeat structure."""
-        return self._parsed.ml
+        return self.parsed.ml
 
 
     @property
@@ -941,14 +972,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def notes(self):
         """:obj:`pandas.DataFrame`
         DataFrame representing all <Note> tags within the score."""
-        return self._parsed.nl
+        return self.parsed.nl
 
 
     @property
     def notes_and_rests(self):
         """:obj:`pandas.DataFrame`
         The union of :obj:`.notes` and :obj:`.rests`."""
-        return self._parsed.notes_and_rests
+        return self.parsed.notes_and_rests
 
 
     @property
@@ -966,21 +997,33 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def rests(self):
         """:obj:`pandas.DataFrame`
         DataFrame representing all <Rest> tags."""
-        return self._parsed.rl
+        return self.parsed.rl
 
 
     @property
     def staff_ids(self):
         """:obj:`list` of :obj:`int`
         The staff IDs contained in the score, usually just a list of increasing numbers starting at 1."""
-        return self._parsed.staff_ids
+        return self.parsed.staff_ids
+
+    @property
+    def style(self):
+        """:obj:`Style`
+        Can be used like a dictionary to change the information within the score's <Style> tag."""
+        return self.parsed.style
 
 
     @property
     def version(self):
         """:obj:`str`
         MuseScore version that the file was created with."""
-        return self._parsed.version
+        return self.parsed.version
+
+    @property
+    def volta_structure(self):
+        """:obj:`dict`
+        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary."""
+        return self.parsed.volta_structure
 
 
     def add_labels(self, annotations_object):
@@ -989,13 +1032,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         Parameters
         ----------
-        df : :obj:`pandas.DataFrame`
-            DataFrame with labels to be added.
-        columns : :obj:`dict`
-            If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
-            Required columns: label, mc, mc_onset, staff, voice
-            Additional columns: label_type, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
-            color_html, color_r, color_g, color_b, color_a
+        annotations_object : :py:class:`~ms3.annotations.Annotations`
+            Object of labels to be added.
 
         Returns
         -------
@@ -1006,14 +1044,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         df = annotations_object.df
         if len(df) == 0:
             self.logger.info("Nothing to add.")
-            return
+            return 0
         main_cols = Annotations.main_cols
         columns = annotations_object.cols
         missing_main = {c for  c in main_cols if columns[c] not in df.columns}
-        assert len(
-            missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
+        assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:
             df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True)
+        #df = df[df[columns['label']].notna()]
         existing_cols = {k: v for k, v in columns.items() if v in df.columns}
         param2cols = {**existing_cols}
         parameters = list(param2cols.keys())
@@ -1105,6 +1143,22 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
 
 
+    def replace_labels(self, annotations_object):
+        """
+
+        Parameters
+        ----------
+        annotations_object : :py:class:`~ms3.annotations.Annotations`
+            Object of labels to be added.
+
+        Returns
+        -------
+
+        """
+        self.delete_labels(annotations_object.df)
+        self.add_labels(annotations_object)
+
+
 
     def delete_empty_labels(self):
         """ Remove all empty labels from the attached annotations. """
@@ -1175,7 +1229,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def get_raw_labels(self):
         """Shortcut for ``MSCX.parsed.get_raw_labels()``.
         Retrieve a "raw" list of labels, meaning that label types reflect only those defined within <Harmony> tags
-        which can be 1 (Nashville), 2 (MuseScore's Roman Numeral display) or undefined (in the case of 'normal'
+        which can be 1 (MuseScore's Roman Numeral display), 2 (Nashville) or undefined (in the case of 'normal'
         chord labels, defaulting to 0).
 
         Returns
@@ -1277,7 +1331,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             folder = mscx_path
         if not os.path.isdir(folder):
             if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.mkdir(d)
+                os.makedirs(folder)
             else:
                 return
         what, suffix = self._treat_storing_params(what, suffix)

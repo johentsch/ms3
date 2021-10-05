@@ -1,8 +1,9 @@
 import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
+from functools import reduce
 from itertools import repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
@@ -13,14 +14,15 @@ import numpy as np
 import webcolors
 from pathos import multiprocessing
 from tqdm import tqdm
+from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg
 
 DCML_REGEX = re.compile(r"""
 ^(\.?
     ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+    ((?P<localkey>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\.)?
+    ((?P<pedal>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\[)?
     (?P<chord>
         (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
         (?P<form>(%|o|\+|M|\+M))?
@@ -30,6 +32,7 @@ DCML_REGEX = re.compile(r"""
     )
     (?P<pedalend>\])?
 )?
+(\|(?P<cadence>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
 (?P<phraseend>(\\\\|\}\{|\{|\}))?$
             """, re.VERBOSE)
 """:obj:`str`
@@ -41,8 +44,8 @@ DCML_DOUBLE_REGEX = re.compile(r"""
                                 ^(?P<first>
                                   (\.?
                                     ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
-                                    ((?P<localkey>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                    ((?P<pedal>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    ((?P<localkey>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\.)?
+                                    ((?P<pedal>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\[)?
                                     (?P<chord>
                                         (?P<numeral>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form>(%|o|\+|M|\+M))?
@@ -52,14 +55,15 @@ DCML_DOUBLE_REGEX = re.compile(r"""
                                     )
                                     (?P<pedalend>\])?
                                   )?
+                                  (\|(?P<cadence>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
                                   (?P<phraseend>(\\\\|\}\{|\{|\})
                                   )?
                                  )
                                  (-
                                   (?P<second>
                                     ((?P<globalkey2>[a-gA-G](b*|\#*))\.)?
-                                    ((?P<localkey2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\.)?
-                                    ((?P<pedal2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i))\[)?
+                                    ((?P<localkey2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\.)?
+                                    ((?P<pedal2>((b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i)/?)+)\[)?
                                     (?P<chord2>
                                         (?P<numeral2>(b*|\#*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|Ger|It|Fr|@none))
                                         (?P<form2>(%|o|\+|M|\+M))?
@@ -69,6 +73,7 @@ DCML_DOUBLE_REGEX = re.compile(r"""
                                     )
                                     (?P<pedalend2>\])?
                                   )?
+                                  (\|(?P<cadence2>((HC|PAC|IAC|DC|EC|PC)(\..+?)?)))?
                                   (?P<phraseend2>(\\\\|\}\{|\{|\})
                                   )?
                                  )?
@@ -168,9 +173,53 @@ rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
 
 
 class map_dict(dict):
+    """Such a dictionary can be mapped to a Series to replace its values but leaving the values absent from the dict keys intact."""
     def __missing__(self, key):
         return key
 
+@function_logger
+def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
+    """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
+        the column corresponds to the ``insert_after`` column's measure counts.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
+    offset_dict : :obj:`pandas.Series` or :obj:`dict`
+        If unfolded: {mc_playthrough -> offset}
+        Otherwise: {mc -> offset}
+        You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parsed.Parse.get_continuous_offsets>`
+    insert_after : :obj:`str`, optional
+        Name of the column after which the new column will be inserted.
+
+    Returns
+    -------
+
+    """
+    if 'quarterbeats' not in df.columns:
+        df = df.copy()
+        quarterbeats = df[insert_after].map(offset_dict)
+        if 'mc_onset' in df.columns:
+            quarterbeats += df.mc_onset * 4
+        insert_here = df.columns.get_loc(insert_after) + 1
+        df.insert(insert_here, 'quarterbeats', quarterbeats)
+        if 'duration_quarterbeats' not in df.columns:
+            if 'duration' in df.columns:
+                dur = (df.duration * 4).astype(float).round(3)
+                df.insert(insert_here + 1, 'durations_quarterbeats', dur)
+            elif 'end' in offset_dict:
+                present_qb = df.quarterbeats.notna()
+                breaks = df.loc[present_qb, 'quarterbeats'].astype(float).round(3).to_list()
+                breaks = sorted(breaks) + [float(offset_dict['end'])]
+                ivs = pd.IntervalIndex.from_breaks(breaks, closed='left')
+                df.insert(insert_here + 1, 'durations_quarterbeats', pd.NA)
+                df.loc[present_qb, 'durations_quarterbeats'] = ivs.length
+            else:
+                logger.warning("Column 'durations_quarterbeats' could not be created.")
+    else:
+        logger.debug("quarterbeats column was already present.")
+    return df
 
 def assert_all_lines_equal(before, after, original, tmp_file):
     """ Compares two multiline strings to test equality."""
@@ -230,7 +279,11 @@ def assert_dfs_equal(old, new, exclude=[]):
 
 def ambitus2oneliner(ambitus):
     """ Turns a ``metadata['parts'][staff_id]`` dictionary into a string."""
-    return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
+    if 'min_midi' in ambitus:
+        return f"{ambitus['min_midi']}-{ambitus['max_midi']} ({ambitus['min_name']}-{ambitus['max_name']})"
+    if 'max_midi' in ambitus:
+        return f"{ambitus['max_midi']}-{ambitus['max_midi']} ({ambitus['max_name']}-{ambitus['max_name']})"
+    return ''
 
 
 def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
@@ -269,7 +322,7 @@ def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc',
     cols = [c for c in return_cols if c in df.columns]
     select_wrong = not_matched.any(axis=1)
     res = check_this.where(not_matched, other='.')[select_wrong]
-    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony'))
+    res = res.apply(lambda c: c.str.replace('^/$', 'empty_harmony', regex=True))
     return pd.concat([df.loc[select_wrong, cols], res], axis=1)
 
 
@@ -369,66 +422,24 @@ def compute_mn(df):
     return mn.rename('mn')
 
 
-def decode_harmonies(df, label_col='label', keep_type=True, return_series=False):
-    df = df.copy()
-    drop_cols, compose_label = [], []
-    if 'nashville' in df.columns:
-        sel = df.nashville.notna()
-        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
-        drop_cols.append('nashville')
-    if 'leftParen' in df.columns:
-        df.leftParen.replace('/', '(', inplace=True)
-        compose_label.append('leftParen')
-        drop_cols.append('leftParen')
-    if 'absolute_root' in df.columns:
-        df.absolute_root = fifths2name(df.absolute_root, ms=True)
-        compose_label.append('absolute_root')
-        drop_cols.append('absolute_root')
-        if 'rootCase' in df.columns:
-            sel = df.rootCase.notna()
-            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
-            drop_cols.append('rootCase')
-    compose_label.append(label_col)
-    if 'absolute_base' in df.columns:
-        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
-        compose_label.append('absolute_base')
-        drop_cols.append('absolute_base')
-    if 'rightParen' in df.columns:
-        df.rightParen.replace('/', ')', inplace=True)
-        compose_label.append('rightParen')
-        drop_cols.append('rightParen')
-    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
-    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony').replace('', np.nan)
-
-    if return_series:
-        return new_label_col
-
-    if 'label_type' in df.columns:
-        if keep_type:
-            df.loc[df.label_type.isin([1, 2, 3, '1', '2', '3']), 'label_type'] == 0
-        else:
-            drop_cols.append('label_type')
-    df[label_col] = new_label_col
-    df.drop(columns=drop_cols, inplace=True)
-    return df
 
 
 @function_logger
 def convert(old, new, MS='mscore'):
-    process = [MS, '--appimage-extract-and-run', "-o", new, old] if MS.endswith('.AppImage') else [MS, "-o", new, old]
+    process = [MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS, "-fo", new, old]
     if subprocess.run(process):
         logger.info(f"Converted {old} to {new}")
     else:
         logger.warning("Error while converting " + old)
 
 @function_logger
-def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+def convert_folder(directory, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
     Parameters
     ----------
-    dir, new_folder : str
+    directory, new_folder : str
         Directories
     extensions : list, optional
         If you want to convert only certain formats, give those, e.g. ['mscz', 'xml']
@@ -448,26 +459,35 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
         exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
     else:
         exclude_re = ''
+    if new_folder is None:
+        new_folder = directory
     new_dirs = {}
-    for subdir, file in scan_directory(dir, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
-        if subdir in new_dirs:
-            new_subdir = new_dirs[subdir]
-        else:
-            old_subdir = os.path.relpath(subdir, dir)
-            new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
-            os.makedirs(new_subdir, exist_ok=True)
-            new_dirs[subdir] = new_subdir
-        name, _ = os.path.splitext(file)
-        if suffix is not None:
-            fname = f"{name}{suffix}.{target_extension}"
-        else:
-            fname = f"{name}.{target_extension}"
-        old = os.path.join(subdir, file)
-        new = os.path.join(new_subdir, fname)
-        if overwrite or not os.path.isfile(new):
-            conversion_params.append((old, new, MS))
-        else:
-            logger.debug(new, 'exists already. Pass -o to overwrite.')
+    try:
+        for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
+            if subdir in new_dirs:
+                new_subdir = new_dirs[subdir]
+            else:
+                old_subdir = os.path.relpath(subdir, directory)
+                new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
+                os.makedirs(new_subdir, exist_ok=True)
+                new_dirs[subdir] = new_subdir
+            name, _ = os.path.splitext(file)
+            if suffix is not None:
+                fname = f"{name}{suffix}.{target_extension}"
+            else:
+                fname = f"{name}.{target_extension}"
+            old = os.path.join(subdir, file)
+            new = os.path.join(new_subdir, fname)
+            if overwrite or not os.path.isfile(new):
+                conversion_params.append((old, new, MS))
+            else:
+                logger.debug(new, 'exists already. Pass -o to overwrite.')
+
+        if len(conversion_params) == 0:
+            logger.info(f"No files to convert.")
+    except:
+        logger.error(f"Failed to scan directory {directory} because of the following error:")
+        raise
 
 
     # TODO: pass filenames as 'logger' argument to convert()
@@ -479,6 +499,95 @@ def convert_folder(dir, new_folder, extensions=[], target_extension='mscx', rege
     else:
         for o, n, ms in conversion_params:
             convert(o, n, ms)
+
+
+def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
+    """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
+    the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame with encoded harmony labels as stored in an :obj:`Annotations` object.
+    label_col : :obj:`str`, optional
+        Column name where the main components (<name> tag) are stored, defaults to 'label'
+    keep_type : :obj:`bool`, optional
+        Defaults to True, retaining the 'label_type' column and setting types 2 and 3 to 0.
+    return_series : :obj:`bool`, optional
+        If set to True, only the decoded labels column is returned as a Series rather than a copy of ``df``.
+    alt_cols : :obj:`str` or :obj:`list`, optional
+        Column(s) with alternative labels that are joined with the label columns using ``alt_separator``. Defaults to
+        'alt_label'. Suppress by passing None.
+    alt_separator: :obj:`str`, optional
+        Separator for joining ``alt_cols``.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame` or :obj:`pandas.Series`
+        Decoded harmony labels.
+    """
+    df = df.copy()
+    drop_cols, compose_label = [], []
+    if 'nashville' in df.columns:
+        sel = df.nashville.notna()
+        df.loc[sel, label_col] = df.loc[sel, 'nashville'].astype(str) + df.loc[sel, label_col].replace('/', '')
+        drop_cols.append('nashville')
+    if 'leftParen' in df.columns:
+        df.leftParen.replace('/', '(', inplace=True)
+        compose_label.append('leftParen')
+        drop_cols.append('leftParen')
+    if 'absolute_root' in df.columns:
+        df.absolute_root = fifths2name(df.absolute_root, ms=True)
+        compose_label.append('absolute_root')
+        drop_cols.append('absolute_root')
+        if 'rootCase' in df.columns:
+            sel = df.rootCase.notna()
+            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
+            drop_cols.append('rootCase')
+    if label_col in df.columns:
+        compose_label.append(label_col)
+    if 'absolute_base' in df.columns:
+        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
+        compose_label.append('absolute_base')
+        drop_cols.append('absolute_base')
+    if 'rightParen' in df.columns:
+        df.rightParen.replace('/', ')', inplace=True)
+        compose_label.append('rightParen')
+        drop_cols.append('rightParen')
+    new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
+    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony', regex=True).replace('', np.nan)
+
+    if alt_cols is not None:
+        if isinstance(alt_cols, str):
+            alt_cols = [alt_cols]
+        present = [c for c in alt_cols if c in df.columns]
+        if len(present) > 0:
+            alt_joined = pd.Series('', index=new_label_col.index)
+            for c in present:
+                alt_joined += (alt_separator + df[c]).fillna('')
+            new_label_col += alt_joined
+
+    if return_series:
+        return new_label_col
+
+    if 'label_type' in df.columns:
+        if keep_type:
+            df.loc[df.label_type.isin([2, 3, '2', '3']), 'label_type'] == 0
+        else:
+            drop_cols.append('label_type')
+    df[label_col] = new_label_col
+    df.drop(columns=drop_cols, inplace=True)
+    return df
+
+
+def df2md(df, name="Overview"):
+    """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
+    """
+    writer = MarkdownTableWriter()
+    writer.table_name = name
+    writer.header_list = list(df.columns.values)
+    writer.value_matrix = df.values.tolist()
+    return writer
 
 
 
@@ -494,27 +603,40 @@ def fifths2acc(fifths):
 
 
 
-def fifths2iv(fifths):
+def fifths2iv(fifths, smallest=False):
     """ Return interval name of a stack of fifths such that
-       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc.
+       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass ``smallest=True``, intervals of a fifth or greater
+       will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
        Uses: map2elements()
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2iv)
+    if pd.isnull(fifths):
+        return fifths
     interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
                           -1: ['D', 'D', 'D', 'm', 'm', 'm', 'm']}
+    interval_qualities_inverted = {0: ['P', 'P', 'P', 'm', 'm', 'm', 'm'],
+                                   -1: ['A', 'A', 'A', 'M', 'M', 'M', 'M']}
     fifths += 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
     pos = fifths % 7
     int_num = [4, 1, 5, 2, 6, 3, 7][pos]
     qual_region = fifths // 7
-    if qual_region in interval_qualities:
-        int_qual = interval_qualities[qual_region][pos]
-    elif qual_region < 0:
-        int_qual = (abs(qual_region) - 1) * 'D'
+    if smallest and int_num > 4:
+        int_num = 9 - int_num
+        if qual_region in interval_qualities_inverted:
+            int_qual = interval_qualities_inverted[qual_region][pos]
+        elif qual_region < 0:
+            int_qual = (abs(qual_region) - 1) * 'A'
+        else:
+            int_qual = qual_region * 'D'
+        int_qual = '-' + int_qual
     else:
-        int_qual = qual_region * 'A'
+        if qual_region in interval_qualities:
+            int_qual = interval_qualities[qual_region][pos]
+        elif qual_region < 0:
+            int_qual = (abs(qual_region) - 1) * 'D'
+        else:
+            int_qual = qual_region * 'A'
     return int_qual + str(int_num)
 
 
@@ -578,10 +700,10 @@ def fifths2rn(fifths, minor=False, auto_key=False):
         By default, the returned Roman numerals are uppercase. Pass True to pass upper-
         or lowercase according to the position in the scale.
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2rn, minor=minor)
+    if pd.isnull(fifths):
+        return fifths
     rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
     sel = fifths + 3 if minor else fifths
     res = fifths2str(sel, rn)
@@ -596,10 +718,10 @@ def fifths2sd(fifths, minor=False):
        0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
        Uses: map2elements(), fifths2str()
     """
-    if pd.isnull(fifths):
-        return fifths
     if isinstance(fifths, Iterable):
         return map2elements(fifths, fifths2sd, minor=minor)
+    if pd.isnull(fifths):
+        return fifths
     sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
     if minor:
         fifths += 3
@@ -618,7 +740,7 @@ def fifths2str(fifths, steps, inverted=False):
 
 
 def get_ms_version(mscx_file):
-    with open(mscx_file) as file:
+    with open(mscx_file, encoding='utf-8') as file:
         for i, l in enumerate(file):
             if i < 2:
                 pass
@@ -747,6 +869,60 @@ def iterable2str(iterable):
         return iterable
 
 
+@function_logger
+def join_tsvs(dfs, sort_cols=False):
+    """ Performs outer join on the passed DataFrames based on 'mc' and 'mc_onset', if any.
+    Uses: functools.reduce(), sort_cols(), sort_note_lists()
+
+    Parameters
+    ----------
+    dfs : :obj:`Collection`
+        Collection of DataFrames to join.
+    sort_cols : :obj:`bool`, optional
+        If you pass True, the remaining columns (those that are not defined in the standard column order in the function
+        sort_cols) will be sorted.
+
+    Returns
+    -------
+
+    """
+    if len(dfs) == 1:
+        return dfs[0]
+    zero, one, two = [], [], []
+    for df in dfs:
+        if 'mc' in df.columns:
+            if 'mc_onset' in df.columns:
+                two.append(df)
+            else:
+                one.append(df)
+        else:
+            zero.append(df)
+    join_order = two + one
+    if len(zero) > 0:
+        logger.info(f"{len(zero)} DataFrames contain none of the columns 'mc' and 'mc_onset'.")
+
+    pos_cols = ['mc', 'mc_onset']
+
+    def join_tsv(a, b):
+        join_cols = [c for c in pos_cols if c in a.columns and c in b.columns]
+        res = pd.merge(a, b, how='outer', on=join_cols, suffixes=('', '_y')).reset_index(drop=True)
+        duplicates = [col for col in res.columns if col.endswith('_y')]
+        for d in duplicates:
+            left = d[:-2]
+            if res[left].isna().any():
+                res[left].fillna(res[d], inplace=True)
+        return res.drop(columns=duplicates)
+
+    res = reduce(join_tsv, join_order)
+    if 'midi' in res.columns:
+        res = sort_note_list(res)
+    elif len(two) > 0:
+        res = res.sort_values(pos_cols)
+    else:
+        res = res.sort_values('mc')
+    return column_order(res, sort=sort_cols).reset_index(drop=True)
+
+
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
@@ -785,11 +961,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'chord_tones': str2inttuple,
         'globalkey_is_minor': int2bool,
         'localkey_is_minor': int2bool,
-        'next': str2inttuple,
-        'nominal_duration': safe_frac,
         'mc_offset': safe_frac,
         'mc_onset': safe_frac,
         'mn_onset': safe_frac,
+        'next': str2inttuple,
+        'nominal_duration': safe_frac,
+        'quarterbeats': safe_frac,
         'onset': safe_frac,
         'duration': safe_frac,
         'scalar': safe_frac, }
@@ -825,6 +1002,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'leftParen': str,
         'localkey': str,
         'mc': 'Int64',
+        'mc_playthrough': 'Int64',
         'midi': 'Int64',
         'mn': str,
         'offset:x': str,
@@ -881,6 +1059,41 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
 
 
 
+def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
+    """ In order to compute continuous offset, this function is required to compute each MC's offset from the
+    piece's beginning.
+
+    Parameters
+    ----------
+    act_durs : :obj:`pandas.Series`
+        A series of actual measures durations as fractions of whole notes (might differ from time signature).
+    quarters : :obj:`bool`, optional
+        By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
+        of a whole note.
+    negative_anacrusis : :obj:`fractions.Fraction`
+        By default, the first value is 0. If you pass a fraction here, the first value will be its negative and the
+        second value will be 0.
+
+    Returns
+    -------
+    :obj:`pandas.Series`
+        Cumulative sum of the values, shifted down by 1.
+
+    """
+    if quarters:
+        act_durs = act_durs * 4
+    res = act_durs.cumsum()
+    last_val = res.iloc[-1]
+    last_ix = res.index[-1] + 1
+    res = res.shift(fill_value=0)
+    res = res.append(pd.Series([last_val], index=[last_ix]))
+    res = res.append(pd.Series([last_val], index=['end']))
+    if negative_anacrusis is not None:
+        res -= abs(frac(negative_anacrusis))
+    return res
+
+
+
 def make_id_tuples(key, n):
     """ For a given key, this function return index tuples in the form [(key, 0), ..., (key, n)]
 
@@ -901,6 +1114,60 @@ def map2elements(e, f, *args, **kwargs):
     if isinstance(e, Iterable) and not isinstance(e, str):
         return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
+
+
+@function_logger
+def merge_ties(df, return_dropped=False, perform_checks=True):
+    """ In a note list, merge tied notes to single events with accumulated durations.
+        Input dataframe needs columns ['duration', 'tied', 'midi', 'staff']. This
+        function does not handle correctly overlapping ties on the same pitch since
+        it doesn't take into account the notational layers ('voice').
+
+
+    Parameters
+    ----------
+    df
+    return_dropped
+
+    Returns
+    -------
+
+    """
+
+    def merge(df):
+        vc = df.tied.value_counts()
+        if vc[1] != 1 or vc[-1] != 1:
+            logger.warning(f"More than one 1 or -1:\n{vc}")
+        ix = df.iloc[0].name
+        dur = df.duration.sum()
+        drop = df.iloc[1:].index.to_list()
+        return pd.Series({'ix': ix, 'duration': dur, 'dropped': drop})
+
+    def merge_notes(staff_midi):
+
+        staff_midi['chunks'] = (staff_midi.tied == 1).astype(int).cumsum()
+        t = staff_midi.groupby('chunks', group_keys=False).apply(merge)
+        return t.set_index('ix')
+
+    if not df.tied.notna().any():
+        return df
+    df = df.copy()
+    notna = df.loc[df.tied.notna(), ['duration', 'tied', 'midi', 'staff']]
+    if perform_checks:
+        before = notna.tied.value_counts()
+    new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_notes).sort_index()
+    try:
+        df.loc[new_dur.index, 'duration'] = new_dur.duration
+    except:
+        print(new_dur)
+    if return_dropped:
+        df.loc[new_dur.index, 'dropped'] = new_dur.dropped
+    df = df.drop(new_dur.dropped.sum())
+    if perform_checks:
+        after = df.tied.value_counts()
+        assert before[1] == after[1], f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
+    return df
+
 
 
 def metadata2series(d):
@@ -963,6 +1230,7 @@ def midi2octave(midi, fifths=None):
     return midi // 12 + i
 
 
+
 def mn2int(mn_series):
     """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
     try:
@@ -989,7 +1257,7 @@ def name2format(df, format='html', name_col='color_name'):
 
 
 @function_logger
-def name2tpc(nn):
+def name2fifths(nn):
     """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
         Uses: split_note_name()
     """
@@ -1018,7 +1286,7 @@ def next2sequence(nxt):
 
 
 @function_logger
-def no_collections_no_booleans(df):
+def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     """
     Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
@@ -1027,6 +1295,11 @@ def no_collections_no_booleans(df):
     if df is None:
         return df
     collection_cols = ['next', 'chord_tones', 'added_tones']
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    if coll_columns is not None:
+        collection_cols += list(coll_columns)
+    if bool_columns is not None:
+        bool_cols += list(bool_columns)
     try:
         cc = [c for c in collection_cols if c in df.columns]
     except:
@@ -1036,7 +1309,6 @@ def no_collections_no_booleans(df):
         df = df.copy()
         df.loc[:, cc] = transform(df[cc], iterable2str, column_wise=True)
         logger.debug(f"Transformed iterables in the columns {cc} to strings.")
-    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
     bc = [c for c in bool_cols if c in df.columns]
     if len(bc) > 0:
         conv = {c: int for c in bc}
@@ -1064,16 +1336,22 @@ def parts_info(d):
     -------
     >>> d = s.mscx.metadata
     >>> parts_info(d['parts'])
-    {'staff_1_name': 'Piano Right Hand',
-     'staff_1_ambitus': '60-87 (C4-Eb6)',
-     'staff_2_name': 'Piano Left Hand',
-     'staff_2_ambitus': '39-75 (Eb2-Eb5)'}
+    {'staff_1_instrument': 'Voice',
+     'staff_1_ambitus': '66-76 (F#4-E5)',
+     'staff_2_instrument': 'Voice',
+     'staff_2_ambitus': '55-69 (G3-A4)',
+     'staff_3_instrument': 'Voice',
+     'staff_3_ambitus': '48-67 (C3-G4)',
+     'staff_4_instrument': 'Voice',
+     'staff_4_ambitus': '41-60 (F2-C4)'}
     """
     res = {}
-    for name, staves in d.items():
-        for staff, ambitus in staves.items():
-            res[f"staff_{staff}_name"] = name
-            res[f"staff_{staff}_ambitus"] = ambitus2oneliner(ambitus)
+    for part_dict in d.values():
+        for id in part_dict['staves']:
+            name = f"staff_{id}"
+            res[f"{name}_instrument"] = part_dict['instrument']
+            amb_name = name + '_ambitus'
+            res[amb_name] = ambitus2oneliner(part_dict[amb_name])
     return res
 
 
@@ -1102,14 +1380,14 @@ def pretty_dict(d, heading=None):
 
 
 
-def resolve_dir(dir):
+def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
     """
-    if dir is None:
+    if d is None:
         return None
-    if '~' in dir:
-        return os.path.expanduser(dir)
-    return os.path.abspath(dir)
+    if '~' in d:
+        return os.path.expanduser(d)
+    return os.path.abspath(d)
 
 
 def rgb2format(df, format='html', r_col='color_r', g_col='color_g', b_col='color_b'):
@@ -1160,6 +1438,39 @@ def rgba2params(named_tuple):
     return {'color_'+k: v for k, v in attrs.items()}
 
 
+def roman_numeral2fifths(rn, global_minor=False):
+    """ Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
+        Uses: split_scale_degree()
+    """
+    if pd.isnull(rn):
+        return rn
+    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
+    rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
+    accidentals, rn_step = split_scale_degree(rn, count=True)
+    if any(v is None for v in (accidentals, rn_step)):
+        return None
+    rn_step = rn_step.upper()
+    step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
+    return step_tpc + 7 * accidentals
+
+
+def roman_numeral2semitones(rn, global_minor=False):
+    """ Turn a Roman numeral into a semitone distance from the root (0-11).
+        Uses: split_scale_degree()
+    """
+    if pd.isnull(rn):
+        return rn
+    rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
+    rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
+    accidentals, rn_step = split_scale_degree(rn, count=True)
+    if any(v is None for v in (accidentals, rn_step)):
+        return None
+    rn_step = rn_step.upper()
+    step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
+    return step_tpc + accidentals
+
+
+
 
 @function_logger
 def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False):
@@ -1188,7 +1499,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         List of full paths meeting the criteria.
 
     """
-    def traverse(dir):
+    def traverse(d):
         nonlocal counter
 
         def check_regex(reg, s, excl=exclude_re):
@@ -1199,9 +1510,9 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                 raise
             return res
 
-        for dir_entry in os.scandir(dir):
+        for dir_entry in os.scandir(d):
             name = dir_entry.name
-            path = os.path.join(dir, name)
+            path = os.path.join(d, name)
             if dir_entry.is_dir() and recursive:
                 if (exclude_files_only and check_regex(folder_re, name, excl='^$')) or (not exclude_files_only and check_regex(folder_re, name)):
                     for res in traverse(path):
@@ -1214,16 +1525,62 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                     if pbar is not None:
                         pbar.set_postfix({'selected': counter})
                     if subdirs:
-                        yield (dir, name)
+                        yield (d, name)
                     else:
                         yield path
 
+    if exclude_re is None or exclude_re == '':
+        exclude_re = '^$'
     directory = resolve_dir(directory)
     counter = 0
     if not os.path.isdir(directory):
         logger.warning("Not an existing directory: " + directory)
     pbar = tqdm(desc='Scanning files', unit=' files') if progress else None
     return traverse(directory)
+
+
+def column_order(df, first_cols=None, sort=True):
+    """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
+    if first_cols is None:
+        first_cols = [
+            'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat', 'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
+            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
+    cols = df.columns
+    remaining = [col for col in cols if col not in first_cols]
+    if sort:
+        remaining = sorted(remaining)
+    column_order = [col for col in first_cols if col in cols] + remaining
+    return df[column_order]
+
+
+def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', duration_col='duration'):
+    """ Sort every measure (MC) by ['mc_onset', 'midi', 'duration'] while leaving gracenotes' order (duration=0) intact.
+
+    Parameters
+    ----------
+    df
+    mc_col
+    mc_onset_col
+    midi_col
+    duration_col
+
+    Returns
+    -------
+
+    """
+    is_grace = df[duration_col] == 0
+    grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
+    has_nan = df[midi_col].isna().any()
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].fillna(1000)
+    normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
+        lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
+    sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
+                  normal_ix.iteritems()]
+    df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
+    if has_nan:
+        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
+    return df
 
 
 def sort_tpcs(tpcs, ascending=True, start=None):
@@ -1328,6 +1685,25 @@ def split_note_name(nn, count=False):
     return accidentals, note_name
 
 
+@function_logger
+def split_scale_degree(sd, count=False):
+    """ Splits a scale degree such as 'bbVI' or 'b6' into accidentals and numeral.
+
+    sd : :obj:`str`
+        Scale degree.
+    count : :obj:`bool`, optional
+        Pass True to get the accidentals as integer rather than as string.
+    """
+    m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
+    if m is None:
+        logger.error(f"{sd} is not a valid scale degree.")
+        return None, None
+    acc, num = m.group(1), m.group(2)
+    if count:
+        acc = acc.count('#') - acc.count('b')
+    return acc, num
+
+
 def chunkstring(string, length=80):
     """ Generate chunks of a given length """
     string = str(string)
@@ -1429,23 +1805,24 @@ def unfold_repeats(df, mc_sequence):
     df : :obj:`pandas.DataFrame`
         DataFrame needs to have the columns 'mc' and 'mn'.
     mc_sequence : :obj:`pandas.Series`
-        A Series of the format ``{playthrough: mc}`` where ``playthrough`` corresponds
-        to continuous MN
+        A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
+        to continuous MC
     """
+    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     vc = df.mc.value_counts()
     res = df.set_index('mc')
     seq = mc_sequence[mc_sequence.isin(res.index)]
     playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
-    res = res.loc[seq.values]
-    res.insert(res.columns.get_loc('mn') + 1, 'playthrough', playthrough_col)
-    return res.reset_index()
+    res = res.loc[seq.values].reset_index()
+    res.insert(res.columns.get_loc('mc') + 1, 'mc_playthrough', playthrough_col)
+    return res
 
 
 @contextmanager
-def unpack_mscz(mscz, dir=None):
-    if dir is None:
-        dir = os.path.dirname(mscz)
-    tmp_file = Temp(suffix='.mscx', prefix='.', dir=dir, delete=False)
+def unpack_mscz(mscz, tmp_dir=None):
+    if tmp_dir is None:
+        tmp_dir = os.path.dirname(mscz)
+    tmp_file = Temp(suffix='.mscx', prefix='.', dir=tmp_dir, delete=False)
     with Zip(mscz) as zip_file:
         mscx_files = [f for f in zip_file.namelist() if f.endswith('.mscx')]
         if len(mscx_files) > 1:
@@ -1473,3 +1850,424 @@ def update_labels_cfg(labels_cfg):
     if 'logger' in updated:
         del(updated['logger'])
     return updated
+
+
+@function_logger
+def write_metadata(df, path, markdown=True):
+    if os.path.isdir(path):
+        path = os.path.join(path, 'metadata.tsv')
+    if not os.path.isfile(path):
+        write_this = df
+        msg = 'Created'
+    else:
+        try:
+            # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
+            previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
+            ix_union = previous.index.union(df.index)
+            col_union = previous.columns.union(df.columns)
+            previous = previous.reindex(index=ix_union, columns=col_union)
+            previous.loc[df.index, df.columns] = df
+            write_this = previous
+            msg = 'Updated'
+        except:
+            write_this = df
+            msg = 'Replaced '
+    first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',
+                  'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
+                  'movementTitle',
+                  'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                  'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+    write_this.sort_index(inplace=True)
+    column_order(write_this, first_cols).to_csv(path, sep='\t')
+    logger.info(f"{msg} {path}")
+    if markdown:
+        rename4markdown = {
+            'fnames': 'file_name',
+            'last_mn': 'measures',
+            'label_count': 'labels',
+            'harmony_version': 'standard',
+            'annotators': 'annotators',
+            'reviewers': 'reviewers',
+        }
+        drop_index = 'fnames' in write_this.columns
+        md = write_this.reset_index(drop=drop_index).fillna('')
+        for c in rename4markdown.keys():
+            if c not in md.columns:
+                md[c] = ''
+        md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
+        md_table = str(df2md(md))
+
+        p = os.path.dirname(path)
+        readme = os.path.join(p, 'README.md')
+        if os.path.isfile(readme):
+            msg = 'Updated'
+            with open(readme, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+        else:
+            msg = 'Created'
+            lines = []
+        # in case the README exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
+        with open(readme, 'w', encoding='utf-8') as f:
+            for line in lines:
+                if '# Overview' in line:
+                    break
+                f.write(line)
+            else:
+                f.write('\n\n')
+            f.write(md_table)
+        logger.info(f"{msg} {readme}")
+
+
+def abs2rel_key(absolute, localkey, global_minor=False):
+    """
+    Expresses a Roman numeral as scale degree relative to a given localkey.
+    The result changes depending on whether Roman numeral and localkey are
+    interpreted within a global major or minor key.
+
+    Uses: :py:func:`split_scale_degree`
+
+    Parameters
+    ----------
+    absolute : :obj:`str`
+        Relative key expressed as Roman scale degree of the local key.
+    localkey : :obj:`str`
+        The local key in terms of which `absolute` will be expressed.
+    global_minor : bool, optional
+        Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.
+
+    Examples
+    --------
+    In a minor context, the key of II would appear within the key of vii as #III.
+
+        >>> abs2rel_key('iv', 'VI', global_minor=False)
+        'bvi'       # F minor expressed with respect to A major
+        >>> abs2rel_key('iv', 'vi', global_minor=False)
+        'vi'        # F minor expressed with respect to A minor
+        >>> abs2rel_key('iv', 'VI', global_minor=True)
+        'vi'        # F minor expressed with respect to Ab major
+        >>> abs2rel_key('iv', 'vi', global_minor=True)
+        '#vi'       # F minor expressed with respect to Ab minor
+
+        >>> abs2rel_key('VI', 'IV', global_minor=False)
+        'III'       # A major expressed with respect to F major
+        >>> abs2rel_key('VI', 'iv', global_minor=False)
+        '#III'       # A major expressed with respect to F minor
+        >>> abs2rel_key('VI', 'IV', global_minor=True)
+        'bIII'       # Ab major expressed with respect to F major
+        >>> abs2rel_key('VI', 'iv', global_minor=False)
+        'III'       # Ab major expressed with respect to F minor
+    """
+    if pd.isnull(absolute):
+        return np.nan
+    maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
+    min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
+    shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 1, 0, 0, 0, 1],
+                       [0, 1, 1, 0, 0, 1, 1],
+                       [0, 0, 0, -1, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 1],
+                       [0, 0, 1, 0, 0, 1, 1],
+                       [0, 1, 1, 0, 1, 1, 1]])
+    abs_acc, absolute = split_scale_degree(absolute, count=True, logger=logger)
+    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    shift = abs_acc - localkey_acc
+    steps = maj_rn if absolute.isupper() else min_rn
+    key_num = maj_rn.index(localkey.upper())
+    abs_num = (steps.index(absolute) - key_num) % 7
+    step = steps[abs_num]
+    if localkey.islower() and abs_num in [2, 5, 6]:
+        shift += 1
+    if global_minor:
+        key_num = (key_num - 2) % 7
+    shift -= shifts[key_num][abs_num]
+    acc = shift * '#' if shift > 0 else -shift * 'b'
+    return acc + step
+
+
+@function_logger
+def rel2abs_key(rel, localkey, global_minor=False):
+    """
+    Expresses a Roman numeral that is expressed relative to a localkey
+    as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
+    the result changes depending on whether the global key is major or minor.
+
+    Uses: :py:func:`split_scale_degree`
+
+    Parameters
+    ----------
+    rel : :obj:`str`
+        Relative key or chord expressed as Roman scale degree of the local key.
+    localkey : :obj:`str`
+        The local key to which `rel` is relative.
+    global_minor : bool, optional
+        Has to be set to True if `localkey` is a scale degree of a global minor key.
+
+    Examples
+    --------
+    If the label viio6/VI appears in the context of the local key VI or vi,
+    viio6 the absolute key to which viio6 applies depends on the global key.
+    The comments express the examples in relation to global C major or C minor.
+
+        >>> rel2abs_key('vi', 'VI', global_minor=False)
+        '#iv'       # vi of A major = F# minor
+        >>> rel2abs_key('vi', 'vi', global_minor=False)
+        'iv'        # vi of A minor = F minor
+        >>> rel2abs_key('vi', 'VI', global_minor=True)
+        'iv'        # vi of Ab major = F minor
+        >>> rel2abs_key('vi', 'vi', global_minor=True)
+        'biv'       # vi of Ab minor = Fb minor
+
+    The same examples hold if you're expressing in terms of the global key
+    the root of a VI-chord within the local keys VI or vi.
+    """
+    if pd.isnull(rel):
+        return np.nan
+    maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
+    min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
+    shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
+                       [0, 0, 1, 0, 0, 0, 1],
+                       [0, 1, 1, 0, 0, 1, 1],
+                       [0, 0, 0, -1, 0, 0, 0],
+                       [0, 0, 0, 0, 0, 0, 1],
+                       [0, 0, 1, 0, 0, 1, 1],
+                       [0, 1, 1, 0, 1, 1, 1]])
+    rel_acc, rel = split_scale_degree(rel, count=True, logger=logger)
+    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    shift = rel_acc + localkey_acc
+    steps = maj_rn if rel.isupper() else min_rn
+    rel_num = steps.index(rel)
+    key_num = maj_rn.index(localkey.upper())
+    step = steps[(rel_num + key_num) % 7]
+    if localkey.islower() and rel_num in [2, 5, 6]:
+        shift -= 1
+    if global_minor:
+        key_num = (key_num - 2) % 7
+    shift += shifts[rel_num][key_num]
+    acc = shift * '#' if shift > 0 else -shift * 'b'
+    return acc + step
+
+
+@function_logger
+def labels2global_tonic(df, cols={}, inplace=False):
+    """
+    Transposes all numerals to their position in the global major or minor scale.
+    This eliminates localkeys and relativeroots. The resulting chords are defined
+    by [`numeral`, `figbass`, `changes`, `globalkey_is_minor`] (and `pedal`).
+
+    Uses: :py:func:`transform`, :py:func:`rel2abs_key^, :py:func:`resolve_relative_keys` -> :py:func:`str_is_minor()`
+    :py:func:`transpose_changes`, :py:func:`series_is_minor`,
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Dataframe containing DCML chord labels that have been split by split_labels()
+        and where the keys have been propagated using propagate_keys(add_bool=True).
+    cols : :obj:`dict`, optional
+        In case the column names for ``['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']`` deviate, pass a dict, such as
+
+        .. code-block:: python
+
+            {'chord':           'chord_col_name'
+             'pedal':           'pedal_col_name',
+             'numeral':         'numeral_col_name',
+             'form':            'form_col_name',
+             'figbass':         'figbass_col_name',
+             'changes':         'changes_col_name',
+             'relativeroot':    'relativeroot_col_name',
+             'localkey':        'localkey_col_name',
+             'globalkey':       'globalkey_col_name'}}
+
+    inplace : :obj:`bool`, optional
+        Pass True if you want to mutate the input.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+        If `inplace=False`, the relevant features of the transposed chords are returned.
+        Otherwise, the original DataFrame is mutated.
+    """
+    if not inplace:
+        df = df.copy()
+
+    ### If the index is not unique, it has to be temporarily replaced
+    tmp_index = not df.index.is_unique or isinstance(df.index, pd.core.indexes.interval.IntervalIndex)
+    if tmp_index:
+        ix = df.index
+        df.reset_index(drop=True, inplace=True)
+
+    features = ['chord', 'pedal', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']
+    for col in features:
+        if col in df.columns and not col in cols:
+            cols[col] = col
+    local_minor, global_minor = f"{cols['localkey']}_is_minor", f"{cols['globalkey']}_is_minor"
+    if not local_minor in df.columns:
+        df[local_minor] = series_is_minor(df[cols['localkey']], is_name=False)
+        logger.debug(f"Boolean column '{local_minor} created.'")
+    if not global_minor in df.columns:
+        df[global_minor] = series_is_minor(df[cols['globalkey']], is_name=True)
+        logger.debug(f"Boolean column '{global_minor} created.'")
+
+    # Express pedals in relation to the global tonic
+    param_cols = [cols[col] for col in ['pedal', 'localkey']] + [global_minor]
+    df['pedal'] = transform(df, rel2abs_key, param_cols)
+
+    # Make relativeroots to local keys
+    param_cols = [cols[col] for col in ['relativeroot', 'localkey']] + [local_minor, global_minor]
+    relativeroots = df.loc[df[cols['relativeroot']].notna(), param_cols]
+    rr_tuples = list(relativeroots.itertuples(index=False, name=None))
+    transposed_rr = {
+        (rr, localkey, local_minor, global_minor): rel2abs_key(resolve_relative_keys(rr, local_minor), localkey,
+                                                               global_minor) for
+        (rr, localkey, local_minor, global_minor) in set(rr_tuples)}
+    transposed_rr = pd.Series((transposed_rr[t] for t in rr_tuples), index=relativeroots.index)
+    df.loc[relativeroots.index, cols['localkey']] = transposed_rr
+    df.loc[relativeroots.index, local_minor] = series_is_minor(df.loc[relativeroots.index, cols['localkey']])
+
+    # Express numerals in relation to the global tonic
+    param_cols = [cols[col] for col in ['numeral', 'localkey']] + [global_minor]
+    df['abs_numeral'] = transform(df, rel2abs_key, param_cols)
+
+    # Transpose changes to be valid with the new numeral
+    param_cols = [cols[col] for col in ['changes', 'numeral']] + ['abs_numeral', local_minor, global_minor]
+    df[cols['changes']] = transform(df, transpose_changes, param_cols, logger=logger)
+
+    # Combine the new chord features
+    df[cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes + ')').fillna(
+        '')  # + ('/' + df.relativeroot).fillna('')
+
+    if tmp_index:
+        df.index = ix
+
+    if inplace:
+        df[cols['numeral']] = df.abs_numeral
+        drop_cols = [cols[col] for col in ['localkey', 'relativeroot']] + ['abs_numeral', local_minor]
+        df.drop(columns=drop_cols, inplace=True)
+    else:
+        res_cols = ['abs_numeral'] + [cols[col] for col in ['form', 'figbass', 'changes', 'globalkey']] + [global_minor]
+        res = df[res_cols].rename(columns={'abs_numeral': cols['numeral']})
+        return res
+
+
+def series_is_minor(S, is_name=True):
+    """ Returns boolean Series where every value in ``S`` representing a minor key/chord is True."""
+    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
+    # return S.str.replace(regex, lambda m: m.group(1)).str.islower()
+    return S.str.islower() # as soon as one character is not lowercase, it should be major
+
+
+def resolve_relative_keys(relativeroot, minor=False):
+    """ Resolve nested relative keys, e.g. 'V/V/V' => 'VI'.
+
+    Uses: :py:func:`rel2abs_key`, :py:func:`str_is_minor`
+
+    relativeroot : :obj:`str`
+        One or several relative keys, e.g. iv/v/VI (fourth scale degree of the fifth scale degree of the sixth scale degree)
+    minor : :obj:`bool`, optional
+        Pass True if the last of the relative keys is to be interpreted within a minor context.
+    """
+    if pd.isnull(relativeroot):
+        return relativeroot
+    spl = relativeroot.split('/')
+    if len(spl) < 2:
+        return relativeroot
+    if len(spl) == 2:
+        applied, to = spl
+        return rel2abs_key(applied, to, minor)
+    previous, last = '/'.join(spl[:-1]), spl[-1]
+    return rel2abs_key(resolve_relative_keys(previous, str_is_minor(last, is_name=False)), last, minor)
+
+
+@function_logger
+def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=False):
+    """
+    Since the interval sizes expressed by the changes of the DCML harmony syntax
+    depend on the numeral's position in the scale, these may change if the numeral
+    is transposed. This function expresses the same changes for the new position.
+    Chord tone alterations (of 3 and 5) stay untouched.
+
+    Uses: :py:func:`changes2tpc`
+
+    Parameters
+    ----------
+    changes : :obj:`str`
+        A string of changes following the DCML harmony standard.
+    old_num, new_num : :obj:`str`:
+        Old numeral, new numeral.
+    old_minor, new_minor : :obj:`bool`, optional
+        For each numeral, pass True if it occurs in a minor context.
+    """
+    if pd.isnull(changes):
+        return changes
+    old = changes2tpc(changes, old_num, minor=old_minor, root_alterations=True)
+    new = changes2tpc(changes, new_num, minor=new_minor, root_alterations=True)
+    res = []
+    get_acc = lambda n: n * '#' if n > 0 else -n * 'b'
+    for (full, added, acc, chord_interval, iv1), (_, _, _, _, iv2) in zip(old, new):
+        if iv1 is None or iv1 == iv2:
+            res.append(full)
+        else:
+            d = iv2 - iv1
+            if d % 7 > 0:
+                logger.warning(
+                    f"The difference between the intervals of {full} in {old_num} and {new_num} (in {'minor' if minor else 'major'}) don't differ by chromatic semitones.")
+            n_acc = acc.count('#') - acc.count('b')
+            new_acc = get_acc(n_acc - d // 7)
+            res.append(added + new_acc + chord_interval)
+    return ''.join(res)
+
+
+def str_is_minor(tone, is_name=True):
+    """ Returns True if ``tone`` represents a minor key or chord."""
+    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
+    # m = re.match(regex, tone)
+    # if m is None:
+    #     return m
+    # return m.group(1).islower()
+    return tone.islower()
+
+
+def changes2tpc(changes, numeral, minor=False, root_alterations=False):
+    """
+    Given a numeral and changes, computes the intervals that the changes represent.
+    Changes do not express absolute intervals but instead depend on the numeral and the mode.
+
+    Uses: split_scale_degree(), changes2list()
+
+    Parameters
+    ----------
+    changes : :obj:`str`
+        A string of changes following the DCML harmony standard.
+    numeral : :obj:`str`
+        Roman numeral. If it is preceded by accidentals, it depends on the parameter
+        `root_alterations` whether these are taken into account.
+    minor : :obj:`bool`, optional
+        Set to true if the `numeral` occurs in a minor context.
+    root_alterations : :obj:`bool`, optional
+        Set to True if accidentals of the root should change the result.
+    """
+    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
+    # build 2-octave diatonic scale on C major/minor
+    root = ['I','II','III','IV','V','VI','VII'].index(num_degree.upper())
+    tpcs = 2 * [i for i in (0,2,-3,-1,1,-4,-2)] if minor else 2 * [i for i in (0,2,4,-1,1,3,5)]
+    tpcs = tpcs[root:] + tpcs[:root]               # starting the scale from chord root
+    root = tpcs[0]
+    if root_alterations:
+        root += 7 * root_alteration
+        tpcs[0] = root
+
+    alts = changes2list(changes, sort=False)
+    acc2tpc = lambda accidentals: 7 * (accidentals.count('#') - accidentals.count('b'))
+    return [(full, added, acc, chord_interval, (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root) if not chord_interval in ['3', '5'] else None) for full, added, acc, chord_interval in alts]
+
+
+def changes2list(changes, sort=True):
+    """ Splits a string of changes into a list of 4-tuples.
+
+    Example
+    -------
+    >>> changes2list('+#7b5')
+    [('+#7', '+', '#', '7'),
+     ('b5',  '',  'b', '5')]
+    """
+    res = [t for t in re.findall(r"((\+|-|\^|v)?(#+|b+)?(1\d|\d))", changes)]
+    return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res

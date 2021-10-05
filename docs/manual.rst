@@ -26,39 +26,43 @@ conventions which can be summarised as counting complete bars. Quite often, a co
 two <measure> nodes (MC). In the context of this library, score addressability needs to be maintained for humans and
 computers, therefore a mapping MC -> MN is preserved in the score information DataFrames.
 
-.. _quarter_beats:
 
-Quarter Beats
-^^^^^^^^^^^^^
+.. _onsets:
 
-A quarter beat always has the length of a quarter note. It is used as a standard unit to express positions and durations
-independently of the beat size suggested by the :ref:`time signature <timesig>` (e.g. three eighths), and can be
-:ref:`converted to a different beat size  <converting_quarter_beats>`.
+Onset positions
+^^^^^^^^^^^^^^^
 
-If the guidelines say *"xy is expressed as/in quarter beats"*,
-it **actually** means "as fractions of a whole note". So the duration of a half note, for example, is expressed
-as ``1/2``, and not as ``2`` (which but be the multiplier of quarter beats, or understanding quarter beats as unit).
-This is simply a terminological convention to speak consistently of beat sizes.
+Onsets express positions of events in a score as their distance from the beginning of the corresponding
+:ref:`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note. In other words, beat 1 has
+onset ``0``, an event on beat 2 of a 4/4 meter has onset ``1/4`` and so on.
 
-Functionality
--------------
+Since there are two ways of referencing measures (MC and MN), there are also two ways of expressing onsets:
 
-.. _converting_quarter_beats:
+* ``mc_onset`` expresses the distance from the corresponding MC
+* ``mn_onset`` expresses the distance from the corresponding MN
 
-Converting :ref:`quarter_beats`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*TODO*
+In most cases, the two values value will be identical, but take as an example the case where a 4/4 measure with MN 8
+is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat sign or a double bar line. Since MC 9
+corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
+differ: ``mc_onset`` is ``0`` but ``mn_onset`` is ``3/4`` because this is the distance from MN 8.
 
 .. _read_only:
 
 Read-only mode
 ^^^^^^^^^^^^^^
 
-For parsing faster using less memory.
+For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.
 
-Using the library
-=================
+Parsing
+=======
+
+This chapter explains how to
+
+* parse a single score to access and manipulate the contained information using a :py:class:`~ms3.score.Score` object
+* parse a group of scores to access and manipulate the contained information using a :py:class:`~ms3.parse.Parse` object.
+
+
 
 Parsing a single score
 ----------------------
@@ -67,7 +71,7 @@ Parsing a single score
 
 1. Import the library.
 
-    To parse a single score, we will use the class ``ms3.Score``. We could import the whole library:
+    To parse a single score, we will use the class :py:class:`~ms3.score.Score`. We could import the whole library:
 
     .. code-block:: python
 
@@ -84,11 +88,10 @@ Parsing a single score
 
 2. Locate the `MuseScore 3 <https://musescore.org/en/download>`__ score you want to parse.
 
-    Make sure it is uncompressed. i.e. it has the extension ``.mscx`` and not ``.mscz``.
-
     .. tip::
 
-        MSCZ files are ZIP files containing the uncompressed MSCX. A later version of ms3 will be able to deal with MSCZ, too.
+        MSCZ files are ZIP files containing the uncompressed MSCX. In order to trace the score's version history,
+        it is recommended to always work with MSCX files.
 
 
     In the examples, we parse the annotated first page of Giovanni
@@ -96,7 +99,7 @@ Parsing a single score
     `here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__ (open link and key ``Ctrl + S`` to save the file
     or right-click on the link to ``Save link as...``).
 
-3. Create a ``ms3.Score`` object.
+3. Create a :py:class:`~ms3.score.Score` object.
 
     In the example, the MuseScore 3 file is located at ``~/ms3/docs/stabat.mscx`` so we can simply create the object
     and bind it to the variable ``s`` like so:
@@ -105,6 +108,8 @@ Parsing a single score
 
         >>> from ms3 import Score
         >>> s = Score('~/ms3/docs/stabat.mscx')
+
+
 
 4. Inspect the object.
 
@@ -122,8 +127,11 @@ Parsing a single score
         --------------------
 
         48 labels:
-        staff  voice  label_type
-        3      2      dcml          48
+        staff  voice  label_type  color_name
+        3      2      0 (dcml)    default       48
+
+    .. .. program-output:: python examples/parse_single_score.py
+
 
 
 Parsing options
@@ -156,12 +164,11 @@ Parsing multiple scores
 
 2. Locate the folder containing MuseScore files.
 
-    In this example, we are going to parse all files included in
-    `this older version of ms3's Git repo <https://github.com/johentsch/ms3/tree/e25ec55c3bbf07664436a73db956f4855890516c>`__ which has been
+    In this example, we are going to parse all files included in the `ms3 repository <https://github.com/johentsch/ms3>`__ which has been
     `cloned <https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone>`__
     into the home directory and therefore has the path ``~/ms3``.
 
-3. Create a ``ms3.Parse`` object
+3. Create a :py:class:`~ms3.parse.Parse` object
 
     The object is created by calling it with the directory to scan, and bound
     to the variable ``p``. By default, scores are grouped by the subdirectories
@@ -173,82 +180,223 @@ Parsing multiple scores
         >>> from ms3 import Parse
         >>> p = Parse('~/ms3')
         >>> p
-        10 files.
-        KEY       -> EXTENSIONS
-        -----------------------
-        docs      -> {'.mscx': 4}
-        tests/MS3 -> {'.mscx': 6}
 
-        No mscx files have been parsed.
+    .. program-output:: python examples/parse_directory.py
 
-    As long as you always want to perform actions on all files, it may be convenient
-    to assign a simple key. This might be also useful if you want to add several
-    directories to the object using ``p.add_dir()``:
+    By default, present TSV files are detected and can be parsed as well, allowing one to access already extracted
+    information without parsing the scores anew. In order to select only particular files, a regular expression
+    can be passed to the parameter ``file_re``. In the following example, only files ending on ``mscx`` are collected
+    in the object (``$`` stands for the end of the filename, without it, files including the string 'mscx' anywhere
+    in their names would be selected, too):
 
     .. code-block:: python
 
-        >>> p = Parse('~/ms3', key='test')
-        >>> p.add_dir('~/other_folder', key='other')
+        >>> from ms3 import Parse
+        >>> p = Parse('~/ms3', file_re='mscx$', key='ms3')
         >>> p
-        237 files.
-        KEY   -> EXTENSIONS
-        -------------------
-        test  -> {'.mscx': 10}
-        other -> {'.mscx': 227}
 
-        No mscx files have been parsed.
+    .. program-output:: python examples/parse_directory_mscx.py
 
-    Note that the same 10 files that were distributed over two keys in the previous
-    example are now grouped under the key 'test'.
+    In this example, we assigned the key ``'ms3'``. Note that the same MSCX files that were distributed over several keys
+    in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
+    selected files. For example, we could add MSCX files from another folder using the method
+    :py:meth:`~ms3.parse.Parse.add_dir` and the key ``'other'``:
+
+    .. code-block:: python
+
+        >>> p.add_dir('~/other_folder', file_re='mscx$', key='other')
+        >>> p
+
+    .. program-output:: python examples/parse_other_directory.py
+
+    Most methods of the :py:class:`~ms3.parse.Parse` object have a ``keys`` parameter to perform an operation of a particular group of files.
 
 4. Parse the scores.
 
-    In order to simply parse all registered MuseScore files, call ``p.parse_mscx()``.
-    Instead, you can pass the argument ``key`` to parse only one (or several)
+    In order to simply parse all registered MuseScore files, call the method :py:meth:`~ms3.parse.Parse.parse_mscx`.
+    Instead, you can pass the argument ``keys`` to parse only one (or several)
     selected group(s) to save time. The argument ``level`` controls how many
     log messages you see; here, it is set to 'critical' or 'c' to suppress all
     warnings:
 
     .. code-block:: python
 
-        >>> p.parse_mscx(keys='test', level='c')
+        >>> p.parse_mscx(keys='ms3', level='c')
         >>> p
-        KEY   -> EXTENSIONS
-        -------------------
-        test  -> {'.mscx': 10}
-        other -> {'.mscx': 227}
 
-        10/237 MSCX files have been parsed.
-        7 of them have annotations attached.
-        KEY  -> ANNOTATION LAYERS
-        -------------------------
-        test -> staff  voice  label_type
-             -> 2      1      dcml          167
-             -> 3      1      dcml          26
-             ->        2      dcml          48
-             -> 1      1      0             7
-             ->               3             166
-             ->               dcml          568
+    .. program-output:: python examples/parse_key.py
 
-    As we can see, only the 10 files with the key 'test' were parsed and the
+    As we can see, only the files with the key 'ms3' were parsed and the
     table shows an overview of the counts of the included label types in the
-    different notational layers (i.e. staff & voice). For example, the 7 files
-    that include labels, have in their respective upper layers (staff 1, voice 1),
-    568 DCML harmony labels, 166 absolute chord labels (type 3) and 7 random
-    strings (type 0) overall.
+    different notational layers (i.e. staff & voice), grouped by their colours.
 
+Parsing options
+^^^^^^^^^^^^^^^
+
+.. automethod:: ms3.parse.Parse.__init__
+    :noindex:
 
 
 Extracting score information
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+============================
 
-Each of the :ref:`DataFrames holding score information<tabular_info>` can be
-automatically stored for every score. To select one or several aspects out of
-``{notes, measures, rests, notes_and_rests, events, labels, chords, expanded}``,
-it is enough to pass the respective ``_folder`` parameter to
-:py:meth:`~ms3.parse.Parsed.store_lists` distinguishing where to store the TSV
-files. Additionally, the method accepts one ``_suffix`` parameter per aspect,
-i.e. a slug added to the respective filenames. If the parameter
+One of ms3's main functionalities is storing the information contained in parsed scores as tabular files (TSV format).
+More information on the generated files is summarized :ref:`here <tabular_info>`
+
+Using the commandline
+---------------------
+
+The most convenient way to achieve this is the command ``ms3 extract`` and its capital-letter parameters summarize
+the available tables:
+
+.. code-block:: console
+
+    -M [folder], --measures [folder]
+                          Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.
+    -N [folder], --notes [folder]
+                          Folder where to store TSV files with information on all notes.
+    -R [folder], --rests [folder]
+                          Folder where to store TSV files with information on all rests.
+    -L [folder], --labels [folder]
+                          Folder where to store TSV files with information on all annotation labels.
+    -X [folder], --expanded [folder]
+                          Folder where to store TSV files with expanded DCML labels.
+    -E [folder], --events [folder]
+                          Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.
+    -C [folder], --chords [folder]
+                          Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.
+    -D [path], --metadata [path]
+                          Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv
+
+The typical way to use this command for a corpus of scores is to keep the MuseScore files in a subfolder (called,
+for example, ``MS3``) and to use the parameters' default values, effectively creating additional subfolders for each
+extracted aspect next to each folder containing MuseScore files. For example if we take the folder structure of
+the `ms3 repository <https://github.com/johentsch/ms3>`__:
+
+.. code-block:: console
+
+    ms3
+    ├── docs
+    │   ├── cujus.mscx
+    │   ├── o_quam.mscx
+    │   ├── quae.mscx
+    │   └── stabat.mscx
+    └── tests
+        ├── MS3
+        │   ├── 05_symph_fant.mscx
+        │   ├── 76CASM34A33UM.mscx
+        │   ├── BWV_0815.mscx
+        │   ├── D973deutscher01.mscx
+        │   ├── Did03M-Son_regina-1762-Sarti.mscx
+        │   ├── K281-3.mscx
+        │   └── stabat_03_coloured.mscx
+        └── repeat_dummies
+            ├── repeats0.mscx
+            ├── repeats1.mscx
+            └── repeats2.mscx
+
+Upon calling ``ms3 extract -N``, two new ``notes`` folders containing note lists are created:
+
+.. code-block:: console
+
+    ms3
+    ├── docs
+    │   ├── cujus.mscx
+    │   ├── o_quam.mscx
+    │   ├── quae.mscx
+    │   └── stabat.mscx
+    ├── notes
+    │   ├── cujus.tsv
+    │   ├── o_quam.tsv
+    │   ├── quae.tsv
+    │   └── stabat.tsv
+    └── tests
+        ├── MS3
+        │   ├── 05_symph_fant.mscx
+        │   ├── 76CASM34A33UM.mscx
+        │   ├── BWV_0815.mscx
+        │   ├── D973deutscher01.mscx
+        │   ├── Did03M-Son_regina-1762-Sarti.mscx
+        │   ├── K281-3.mscx
+        │   └── stabat_03_coloured.mscx
+        ├── notes
+        │   ├── 05_symph_fant.tsv
+        │   ├── 76CASM34A33UM.tsv
+        │   ├── BWV_0815.tsv
+        │   ├── D973deutscher01.tsv
+        │   ├── Did03M-Son_regina-1762-Sarti.tsv
+        │   ├── K281-3.tsv
+        │   ├── repeats0.tsv
+        │   ├── repeats1.tsv
+        │   ├── repeats2.tsv
+        │   └── stabat_03_coloured.tsv
+        └── repeat_dummies
+            ├── repeats0.mscx
+            ├── repeats1.mscx
+            └── repeats2.mscx
+
+We witness this behaviour because the default value is ``../notes``, interpreted as relative path in relation to
+each MuseScore file. Alternatively, a **relative path** can be specified **without** initial ``./`` or ``../``,
+e.g. ``ms3 extract -N notes``, to store the note lists in a recreated sub-directory structure:
+
+.. code-block:: console
+
+    ms3
+    ├── docs
+    ├── notes
+    │   ├── docs
+    │   └── tests
+    │       ├── MS3
+    │       └── repeat_dummies
+    └── tests
+        ├── MS3
+        └── repeat_dummies
+
+A third option consists in specifying an **absolute path** which causes all note lists to be stored in the specified
+folder, e.g. ``ms3 extract -N ~/notes``:
+
+.. code-block:: console
+
+    ~/notes
+    ├── 05_symph_fant.tsv
+    ├── 76CASM34A33UM.tsv
+    ├── BWV_0815.tsv
+    ├── cujus.tsv
+    ├── D973deutscher01.tsv
+    ├── Did03M-Son_regina-1762-Sarti.tsv
+    ├── K281-3.tsv
+    ├── o_quam.tsv
+    ├── quae.tsv
+    ├── repeats0.tsv
+    ├── repeats1.tsv
+    ├── repeats2.tsv
+    ├── stabat_03_coloured.tsv
+    └── stabat.tsv
+
+Note that this leads to problems if MuseScore files from different subdirectories have identical filenames.
+In any case it is good practice to not use nested folders to allow for easier file access. For example, a typical
+`DCML corpus <https://github.com/DCMLab/dcml_corpora>`__ will store all MuseScore files in the ``MS3`` folder and
+include at least the folders created by ``ms3 extract -N -M -X``:
+
+.. code-block:: console
+
+    .
+    ├── harmonies
+    ├── measures
+    ├── MS3
+    └── notes
+
+
+Extracting score information manually
+-------------------------------------
+
+What ``ms3 extract`` effectively does is creating a :py:class:`~ms3.parse.Parse` object, calling its method
+:py:meth:`~ms3.parse.Parse.parse_mscx` and then :py:meth:`~ms3.parse.Parse.store_lists`. In addition to the
+command, the method allows for storing two additional aspects, namely ``notes_and_rests`` and ``cadences`` (if
+the score contains cadence labels). For each of the available aspects,
+``{notes, measures, rests, notes_and_rests, events, labels, chords, cadences, expanded}``,
+the method provides two parameters, namely ``_folder`` (where to store TSVs) and ``_suffix``,
+i.e. a slug appended to the respective filenames. If the parameter
 ``simulate=True`` is passed, no files are written but the file paths to be
 created are returned. Since corpora might have quite diverse directory structures,
 ms3 gives you various ways of specifying folders which will be explained in detail
@@ -273,7 +421,7 @@ Specifying folders
 ^^^^^^^^^^^^^^^^^^
 
 Consider a two-level folder structure contained in the root directory ``.``
-which is the one passed to :obj:`Parse`:
+which is the one passed to :py:class:`~ms3.parse.Parse`:
 
 .. code-block:: console
 
@@ -378,7 +526,7 @@ is recreated in each of the folders:
                 └── K281-3.tsv
 
 Note that in this example, we have specified a ``root_dir``. Leaving this argument
-out will create the same structure in the directory from which the :obj:`Parse`
+out will create the same structure in the directory from which the :py:class:`~ms3.parse.Parse`
 object was created, i.e. the folder structure would be:
 
 .. code-block:: console
@@ -439,7 +587,7 @@ To exemplify both:
 The ``notes`` folders are created in directories where MuseScore files are located,
 and the ``measures`` folders one directory above, respectively. Leaving out the
 ``root_dir`` argument would lead to the same folder structure but in the directory
-from which the :obj:`Parse` object has been created. In a similar manner,
+from which the :py:class:`~ms3.parse.Parse` object has been created. In a similar manner,
 the arguments ``p.store_lists(notes_folder='.', measures_folder='.')`` would create
 the TSV files just next to the MuseScore files. However, this would lead to warnings
 such as
@@ -535,7 +683,8 @@ General Columns
 ^^^^^^^^^^^^^^^^^^^^^
 
 Measure count, identifier for the measure units in the XML encoding.
-Always starts with 1 for correspondence to MuseScore's status bar.
+Always starts with 1 for correspondence to MuseScore's status bar. For more detailed information, please refer to
+:ref:`mc_vs_mn`.
 
 .. _mn:
 
@@ -543,22 +692,41 @@ Always starts with 1 for correspondence to MuseScore's status bar.
 ^^^^^^^^^^^^^^^^^^^^^^
 
 Measure number, continuous count of complete measures as used in printed editions.
-Starts with 1 except for pieces beginning with a pickup measure, numbered as 0.
+Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. MNs are identical for first and
+second endings! For more detailed information, please refer to :ref:`mc_vs_mn`.
 
-.. _onset:
+.. _mc_onset:
 
-**onsets**
-^^^^^^^^^^
-The value for ``onset`` represents, expressed as :ref:`quarter beats <quarter_beats>`, a position in a measure where ``0``
-corresponds to the earliest possible position (in most cases beat 1), and some other fraction corresponds to an onset's offset from ``0``.
-:ref:`Quarter beats <quarter_beats>` can be :ref:`converted to beats <converting_quarter_beats>`, e.g. to half beats or dotted eighth beats;
-However, the operation may rely on the value of :ref:`mc_offset <mc_offset>`.
+**mc_onset**
+^^^^^^^^^^^^
+The value for ``mc_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
+corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
+refer to :ref:`onsets`.
 
 .. tip::
 
-    When loading a table from a file, it is recommended to parse the text of this
+    When loading a table from a TSV file, it is recommended to parse the text of this
     column with :obj:`fractions.Fraction` to be able to calculate with the values.
     MS3 does this automatically.
+
+.. _mn_onset:
+
+**mn_onset**
+^^^^^^^^^^^^
+The value for ``mn_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
+corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
+please refer to :ref:`onsets`.
+
+.. _quarterbeats:
+
+quarterbeats
+^^^^^^^^^^^^
+
+This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
+quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
+last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
+repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
+account correctly.
 
 Measures
 --------
@@ -615,7 +783,7 @@ negative, the number of flats. E.g.: ``3``: three sharps, ``-2``: two flats,
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The column ``mc_offset`` , in most cases, has the value ``0`` because it expresses the deviation of this MC's
-:ref:`onset <onset>` ``0`` (beginning of the MC)
+:ref:`mc_onset` ``0`` (beginning of the MC)
 from beat 1 of the corresponding MN. If the value is a fraction > 0, it means that this MC is part of a MN which is
 composed of at least two MCs, and it expresses the current MC's offset in terms of the duration of all (usually 1) preceding MCs
 which are also part of the corresponding MN. In the standard case that one MN would be split in two MCs, the first MC
@@ -637,7 +805,7 @@ the inferred MNs might be wrong. Also, it is needed for MS3's unfold repeats fun
 
     Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without parenthesis. For
     example, the tuple ``(17, 1)`` is stored as ``'17, 1'``. However, users might have extracted and stored a raw DataFrame
-    from a :obj:`Score` object and MS3 needs to handle both formats.
+    from a :py:class:`~ms3.score.Score` object and MS3 needs to handle both formats.
 
 .. _numbering_offset:
 

@@ -32,7 +32,7 @@ class MeasureList(LoggedClass):
 
     """
 
-    def __init__(self, df, sections=True, secure=False, reset_index=True, columns={}, logger_cfg={}):
+    def __init__(self, df, sections=True, secure=True, reset_index=True, columns={}, logger_cfg={}):
         """
 
         Parameters
@@ -87,7 +87,7 @@ class MeasureList(LoggedClass):
 
 
 
-    def make_ml(self, section_breaks=True, secure=False, reset_index=True, logger_cfg={}):
+    def make_ml(self, section_breaks=True, secure=True, reset_index=True, logger_cfg={}):
         if logger_cfg != {}:
             self.update_logger_cfg(logger_cfg=logger_cfg)
         self.sections = section_breaks
@@ -96,7 +96,7 @@ class MeasureList(LoggedClass):
 
         self.ml = self.get_unique_measure_list()
         info_cols = ['barline', 'breaks', 'dont_count', 'endRepeat', 'jump_bwd', 'jump_fwd', 'len_col', 'markers', 'numbering_offset',
-                   'play_until', 'startRepeat', 'volta_start', 'volta_length']
+                   'play_until', 'sigD_col', 'sigN_col', 'startRepeat', 'volta_start', 'volta_length']
         for col in [self.cols[col] for col in info_cols]:
             if not col in self.ml.columns:
                 self.ml[col] = np.nan
@@ -327,6 +327,8 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                         self.next[jump_to_mc].append(to_mc)
                         self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+        else: # no backward jumps
+            bwd_jumps = pd.DataFrame(columns=['mc'])
                 
         self.repeats = dict(df[['mc', 'repeats']].values)
         self.start = None
@@ -353,10 +355,19 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             # and they are set to True if
             lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
             for l in lasts:
-                if not pd.isnull(self.repeats[l]):
+                has_repeat = not pd.isnull(self.repeats[l])
+                has_backward_jump = l in bwd_jumps.mc.values
+                if has_repeat or has_backward_jump:
                     if self.repeats[l] == 'end':
                         self.check_volta_repeats[l] = False
                         self.wasp_nest[l] = lasts_with_repeat
+                        # for voltas with and endRepeat, the wasp_nest makes sure that once the sections' beginning is
+                        # determined in end_section(), it becomes their 'next' value
+                    elif has_backward_jump:
+                        # if there is a backward jump, it is already part of the 'next' column
+                        pass
+                        self.logger.debug(
+                            f"MC {l}, which is the last MC of a volta, has no repeat sign but a jump back to '{bwd_jumps.loc[bwd_jumps.mc == l, 'jump_bwd'].values[0]}'")
                     else:
                         self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
                 elif mc_after_voltas is None:
@@ -364,7 +375,6 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
-
 
 
 
@@ -397,7 +407,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
                 if "section break" in msg:
                     self.logger.debug(msg)
                 else:
-                    self.logger.warning(msg)
+                    self.logger.info(msg)
         else:
             start = None
 
@@ -518,7 +528,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
     drop_rows = ~keep_rows & empty_rows
     result = df.drop(df[drop_rows].index)
 
-    def compress(df):
+    def squash_staves(df):
         if len(df) == 1:
             return df.iloc[0]
         if differentiating_val is None:
@@ -532,8 +542,10 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
         if len(remaining) == 1:
             return keep_row
         which = keep_row[compress_col]
+        dont_warn = ['vspacerDown', 'voice/BarLine', 'voice/BarLine/span']
         for val, (col_name, col) in zip(*keep_row[consider_for_notna].itertuples(index=False, name=None),
                                         remaining[consider_for_notna].items()):
+            log_this = logger.debug if col_name in dont_warn else logger.warning
             if col.isna().all():
                 continue
             vals = col[col.notna()].unique()
@@ -543,17 +555,17 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 new_val = vals[0]
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
-                    logger.warning(
-                        f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}.")
+                    msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}."
+                    log_this(msg)
                     continue
-                logger.warning(
+                log_this(
                     f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values} is lost.")
                 continue
-            logger.warning(
+            log_this(
                 f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.")
         return keep_row
 
-    result = result.groupby(compress_col, group_keys=False).apply(compress)
+    result = result.groupby(compress_col, group_keys=False).apply(squash_staves)
     return result.drop(columns=differentiating_col) if drop_differentiating else result
 
 

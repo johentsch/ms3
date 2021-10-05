@@ -2,6 +2,72 @@
 Changelog
 =========
 
+Version 0.4.9
+=============
+
+
+* enabled ``import from ms3`` for all utils
+* new command ``ms3 update`` for converting files and moving annotations to the Roman Numeral Analysis layer
+* new command ``ms3 metadata`` for writing manually changed information from ``metadata.tsv`` to the metadata fields of the corresponding MuseScore files
+* improved the ``ms3 extract`` command:
+  * added option ``-D`` for extracting and updating ``metadata.tsv`` and ``README.md``
+  * added option ``-q`` for adding 'quarterbeats' and 'durations_quarterbeats' columns
+  * included default paths for the capital-letter parameters
+* improved the ``ms3 compare`` command:
+  * now works with 'expanded' TSVs, too (not only with 'labels')
+  * allows 'label' column to include NaN values
+* improvements to Parse() objects:
+  * attempts to parse scores that need file conversion (e.g. XML, MIDI)
+  * ``get_lists()`` method now allows for adding the columns ``quarterbeats`` and ``durations_quarterbeats``, even without unfolding repeats
+  * adding 'quarterbeats' without unfolding repeats excludes voltas
+  * new method ``get_tsvs()`` for retrieving and concatenating parsed TSV files
+  * Parse() now recognizes ``metadata.tsv`` files, expanded TSVs, and TSVs containing cadence labels only
+  * parsed ``metadata.tsv`` files can be retrieved/included via the method ``metadata()``
+  * new method ``update_metadata()`` for the new ``ms3 metadata`` command
+  * decided on standard index levels ``rel_paths`` and ``fnames``
+  * improved matching of corresponding score and TSV files
+* improvements to Score() objects:
+  * new property Score.mscx.volta_structure for retrieving information on first and second endings
+* improvements to Annotations() objects:
+  * correct propagation of ``localkey`` for voltas
+* improvements to commandline interface:
+  * added parameter ``-o`` for specifying output directory
+  * harmonized the interface of the ``ms3 convert`` command
+  * parameter ``exclude_re`` now also filters paths passed via ``-f``
+* changed logging behaviours:
+  * write only WARNINGs to log file
+  * combine loggers for filenames independently of file extensions
+* improved extraction of instrument names for metadata
+* improved ``ms3 compare`` functionality
+* restructured code architecture
+* renamed master branch to 'main'
+* many bug fixes
+
+Version 0.4.8
+=============
+
+* now reads DCML labels with cadence annotations
+* unified command-line interface file options and included ``-f file.json``
+* Parse got more options for creating DataFrame index levels
+* Parse.measures property for convenience
+* bug fixes for better GitHub workflows
+
+Version 0.4.7
+=============
+
+* Labels can be attached to MuseScore's Roman Numeral Analysis (RNA) layer
+  * parameter `label_type=1` in both `Score.attach_labels()` and `Parse.attach_labels()`
+  * `Annotations.remove_initial_dots()` before inserting into the RNA layer
+  * `Annotations.add_initial_dots()` before inserting into the absolute chord layer
+* interpret all `#vii` in major contexts as `vii` when computing chord tones
+* code cosmetics and bug fixes
+
+Version 0.4.6
+=============
+
+* ms3 extract and Parse.store_lists() now have the option unfold to account for repeats
+* minor bug fixes
+
 Version 0.4.5
 =============
 
@@ -29,7 +95,7 @@ Version 0.4.1
 =============
 
 * ms3 0.4.1 supports parsing (but not storing) compressed MuseScore files (.mscz)
-* Install "ms3 convert" command to your system for batch conversion using your local MuseScore installation
+* Installs "ms3 convert" command to your system for batch conversion using your local MuseScore installation
 * "ms3 extract" command now supports creation of log files
 * take ``labels_cfg`` into account when creating expanded chord tables
 

@@ -2,47 +2,37 @@
 Developers' Reference
 =====================
 
-When using ms3, we are dealing with four main object types:
 
-1. :py:class:`~.MSCX` objects hold the information of a single
+The library installs a couple of commands to your system. The documentation for these commands can be found
+:ref:`below <cli_doc>` or by executing ``ms3 -h``.
+
+When using ms3 as a module, we are dealing with four main object types:
+
+1. :py:class:`~ms3.score.MSCX` objects hold the information of a single
    parsed MuseScore file;
-2. :py:class:`~.Annotations` objects hold a set of annotation labels
+2. :py:class:`~ms3.annotations.Annotations` objects hold a set of annotation labels
    which can be either attached to a score (i.e., contained in its XML structure),
    or detached.
-3. Both types of objects are contained within a :py:class:`~.Score` object.
-   For example, a set of :py:class:`~.Annotations` read from a TSV
+3. Both types of objects are contained within a :py:class:`~ms3.score.Score` object.
+   For example, a set of :py:class:`~ms3.annotations.Annotations` read from a TSV
    file can be attached to the XML of an :py:class:`~ms3.score.MSCX` object, which
    can then be output as a MuseScore file.
-4. To manipulate many :py:class:`~.Score` objects at once, for example
-   those of an entire corpus, we use :py:class:`~.Parse` objects.
+4. To manipulate many :py:class:`~ms3.score.Score` objects at once, for example
+   those of an entire corpus, we use :py:class:`~ms3.parse.Parse` objects.
 
-Since :py:class:`~.MSCX` and :py:class:`~.Annotations`
-objects are always attached to a :py:class:`~.Score`, the documentation
+Since :py:class:`~ms3.score.MSCX` and :py:class:`~ms3.annotations.Annotations`
+objects are always attached to a :py:class:`~ms3.score.Score`, the documentation
 starts with this central class.
 
 
 The Score class
 ===============
 
-Objects of this class contain a parsed MuseScore file and may contain so-called *detached* :py:class:`~.Annotations`
-objects. Attached annotations are those currently included in the parsed MuseScore file and can be accessed via
-the shortcut :py:attr:`Score.annotations <.Score.annotations>` The detached annotations can either represent a subset
-of the attached labels created with :py:meth:`Score.detach_labels()<.Score.detach_labels>` or a complete set loaded from
-a TSV file using :py:meth:`Score.load_annotations()<.Score.load_annotations>`. Detached annotations are stored in
-the ``{key -> Annotations}`` dictionary exposed as :py:attr:`~.Score._annotations` but the :py:class:`~.Annotations`
-objects can conviently be accessed by using the keys as properties, in the sense of ``Score.key``.
-
-Information from the parsed score itself can be accessed via :py:attr:`Score.mscx<.Score.mscx>`.
-
 .. autoclass:: ms3.score.Score
     :members:
 
 The MSCX class
-==============
-
-The function of this class is exposing an interface to the sister class that implements an actual score parser. Currently,
-the only implemented parser uses `BeautifulSoup <https://www.crummy.com/software/BeautifulSoup/bs4/doc/>`_ and the
-corresponding sister class is :py:class:`._MSCX_bs4`. It can be directly accessed via :py:attr:`.MSCX.parsed`.
+--------------
 
 .. autoclass:: ms3.score.MSCX
     :members:
@@ -65,15 +55,15 @@ The expand_dcml module
 .. automodule:: ms3.expand_dcml
     :members:
 
-The BeautifulSoup parser
-========================
+.. _cli_doc:
 
-This section is relevant for developers who want to implement new features for the existing BeautifulSoup (bs4) parser.
+The commandline interface
+=========================
 
-.. automodule:: ms3.bs4_parser
-    :members:
-    :private-members:
-
+.. argparse::
+    :module: ms3.cli
+    :func: get_arg_parser
+    :prog: ms3
 
 Developing a new parser
 =======================

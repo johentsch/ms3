@@ -1,4 +1,5 @@
-import sys, os
+import sys, os, re
+import json
 import traceback
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
@@ -8,10 +9,11 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass
+from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import commonprefix, compute_mn, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, load_tsv, make_id_tuples, metadata2series,\
-    next2sequence, no_collections_no_booleans, pretty_dict, resolve_dir, scan_directory, string2lines, unfold_repeats, update_labels_cfg
+from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, join_tsvs, load_tsv, \
+    make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict,\
+    resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -19,28 +21,38 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
     """
 
-    def __init__(self, dir=None, paths=None, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, directory=None, paths=None, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
         Parameters
         ----------
-        dir, key, index, file_re, folder_re, exclude_re, recursive : optional
+        directory, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
             List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
             WARNING: If you want to use a custom index, don't use both arguments simultaneously.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
-            The following options are available:
-            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
-            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
-            'path': Directory in which log files are stored. If 'file' is relative, this path is used as root, otherwise, it is ignored.
-            'file': PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.
-                If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
-                If 'path' is set, the corresponding subdirectory structure is created there.
+            | The following options are available:
+            | 'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            | 'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            | 'path': Directory in which log files are stored. If 'file' is relative, this path is used as root, otherwise, it is ignored.
+            | 'file': PATH_TO_LOGFILE Pass absolute path to store all log messages in a single log file.
+              If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
+              If 'path' is set, the corresponding subdirectory structure is created there.
         ms : :obj:`str`, optional
             If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command
             of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
@@ -49,7 +61,7 @@ class Parse(LoggedClass):
         if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
             # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
             # if `dir` is also None, Parse.log will not be created and a warning will be shown.
-            logger_cfg['path'] = dir
+            logger_cfg['path'] = directory
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
@@ -86,6 +98,11 @@ class Parse(LoggedClass):
         self.fexts = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
+        """
+
+        self.logger_names = {'root': 'Parse'}
+        """:obj:`dict`
+        ``{(key, i): :obj:`str`}`` dictionary of logger names.
         """
 
         self._ms = get_musescore(ms, logger=self.logger)
@@ -138,6 +155,11 @@ class Parse(LoggedClass):
         {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.expanded` tables.
         """
 
+        self._cadencelists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.cadences` tables.
+        """
+
         self._index = {}
         """:obj:`dict`
         {(key, i): :obj:`tuple`} dictionary of index tuples where every element represents one index level.
@@ -151,6 +173,11 @@ class Parse(LoggedClass):
         self._measurelists = {}
         """:obj:`dict`
         {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.measures` tables.
+        """
+
+        self._metadata = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        Concatenation of all parsed metadata TSVs.
         """
 
         self._parsed_tsv = {}
@@ -167,6 +194,13 @@ class Parse(LoggedClass):
         self._unfolded_mcs = {}
         """:obj:`dict`
         {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
+        """
+
+        self._quarter_offsets = {True: {}, False: {}}
+        """:obj:`dict`
+        { unfolded? -> {(key, i) -> {mc_playthrough -> quarter_offset}} } dictionary with keys True and false.
+        True: For every mc_playthrough (i.e., after 'unfolding' all repeats) the total sum of preceding quarter beats, measured from m. 1, b. 0. 
+        False: For every mc the total sum of preceding quarter beats after deleting all but second endings.
         """
 
         self.labels_cfg = {
@@ -192,28 +226,121 @@ class Parse(LoggedClass):
             'labels': self._labellists,
             'chords': self._chordlists,
             'expanded': self._expandedlists,
+            'cadences': self._cadencelists,
         }
         """:obj:`dict`
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
         """
 
-        self._matches = pd.DataFrame(columns=['scores', 'annotations']+list(self._lists.keys()))
+        self._possible_levels = {
+            'full_paths': self.full_paths,
+            'rel_paths': self.rel_paths,
+            'scan_paths': self.scan_paths,
+            'paths': self.paths,
+            'files': self.files,
+            'fnames': self.fnames,
+            'fexts': self.fexts,
+        }
+        """:obj:`dict`
+        Dictionary including the various constituents of the file paths which can be used as index levels.
+        """
+
+        self._matches = pd.DataFrame(columns=['scores']+list(self._lists.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
 
-        self.last_scanned_dir = dir
+
+
+        self.last_scanned_dir = directory
         """:obj:`str`
         The directory that was scanned for files last.
         """
-        if dir is not None:
-            self.add_dir(dir=dir, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+        if directory is not None:
+            if isinstance(directory, str):
+                directory = [directory]
+            for d in directory:
+                self.add_dir(directory=d, key=key, index=index, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
             if isinstance(paths, str):
                 paths = [paths]
-            _ = self.add_files(paths, key=key, index=index)
+            if len(paths) == 1 and paths[0].endswith('.json'):
+                # TODO: allow for any number of JSON files
+                with open(paths[0]) as f:
+                    paths = json.load(f)
+            _ = self.add_files(paths, key=key, index=index, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+
+    def _concat_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False):
+        """ Boiler plate for concatenating DataFrames with the same type of information.
+
+        Parameters
+        ----------
+        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests'}
+        keys
+        ids
+
+        Returns
+        -------
+
+        """
+        # if quarterbeats and not unfold:
+        #     self.logger.info('Adding quarterbeats without unfolding repeats has not been implemented yet, sorry.')
+        #     quarterbeats = False
+        d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
+        d = d[which] if which in d else {}
+        msg = {
+            'cadences': 'cadence lists',
+            'chords': '<chord> tables',
+            'events': 'event tables',
+            'expanded': 'expandable annotation tables',
+            'labels': 'annotation tables',
+            'measures': 'measure lists',
+            'notes': 'note lists',
+            'notes_and_rests': 'note and rest lists',
+            'rests': 'rest lists',
+        }
+        if len(d) == 0:
+            if keys is None and ids is None:
+                self.logger.info(f'This Parse object does not include any {msg[which]}.')
+            else:
+                self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
+            return pd.DataFrame()
+        return pd.concat(d.values(), keys=d.keys())
+
+    def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def events(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    @property
+    def ids(self):
+        d = self._index
+        return pd.DataFrame({'id': d.keys()}, index=d.values()).sort_index()
 
 
     @property
@@ -223,6 +350,7 @@ class Parse(LoggedClass):
     @ms.setter
     def ms(self, ms):
         self._ms = get_musescore(ms)
+
 
     @property
     def parsed_mscx(self):
@@ -244,7 +372,7 @@ class Parse(LoggedClass):
             detached_keys = pd.Series(detached_keys, index=ix,
                                   name='detached_annotations')
             res = pd.concat([paths, attached, detached_keys], axis=1)
-        return res
+        return res.sort_index()
 
     @property
     def parsed_tsv(self):
@@ -258,7 +386,7 @@ class Parse(LoggedClass):
         paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
         types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
         res = pd.concat([paths, types], axis=1)
-        return res
+        return res.sort_index()
 
 
 
@@ -290,10 +418,11 @@ class Parse(LoggedClass):
                 matches = self.match_files(keys=[score_key, tsv_key])
             else:
                 matches = self._matches[self._matches.labels.notna() | self._matches.expanded.notna()]
-            matches.labels.fillna(matches.expanded)
+            matches.labels.fillna(matches.expanded, inplace=True)
             match_dict = dict(matches[['scores', 'labels']].values)
         if len(match_dict) == 0:
-            self.logger.info(f"No files could be matched. You may want to use the method match_files() before or pass the match_dict argument.")
+            self.logger.info(f"No files could be matched based on file names, have you added the folder containing annotation tables?"
+                    f"Instead, you could pass the match_dict argument with a mapping of Score IDs to Annotations IDs.")
             return
         for score_id, labels_id in match_dict.items():
             if score_id in self._parsed_mscx and not pd.isnull(labels_id):
@@ -317,7 +446,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
 
 
-    def add_dir(self, dir, key=None, index=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
+    def add_dir(self, directory, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
         """
         This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
@@ -325,23 +454,23 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
         Parameters
         ----------
-        dir : :obj:`str`
+        directory : :obj:`str`
             Directory to scan for files.
         key : :obj:`str`, optional
             | Pass a string to identify the loaded files.
             | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
               itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
             | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
               index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
-            | 'fname' evokes an index level made from file names.
-        dir : :obj:`str`
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
+        directory : :obj:`str`
             Directory to be scanned for files.
         file_re : :obj:`str`, optional
             Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected.
@@ -352,15 +481,15 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
-        dir = resolve_dir(dir)
-        self.last_scanned_dir = dir
+        directory = resolve_dir(directory)
+        self.last_scanned_dir = directory
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True)
-        paths = scan_directory(dir, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger)
+        paths = tuple(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
         _ = self.add_files(paths=paths, key=key, index=index)
 
 
-    def add_files(self, paths, key, index=None):
+    def add_files(self, paths, key, index=None, exclude_re=None):
         """
 
         Parameters
@@ -371,29 +500,35 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             | Pass a string to identify the loaded files.
             | If None is passed, paths relative to :py:attr:`last_scanned_dir` are used as keys. If :py:meth:`add_dir`
               hasn't been used before, the longest common prefix of all paths is used.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i', :obj:`~collections.abc.Collection`}
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
             | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈ {'key', 'fname', 'i', :obj:`~collections.abc.Collection`} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of {'key', 'fname', 'i'}, it is interpreted as an
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
               index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs.
-            | 'fname' evokes an index level made from file names.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
 
         Returns
         -------
         :obj:`list`
             The IDs of the added files.
         """
+        if paths is None or len(paths) == 0:
+            self.logger.debug(f"add_files() was called with paths = '{paths}'.")
+            return []
         if isinstance(paths, str):
             paths = [paths]
+        if exclude_re is not None:
+            paths = [p for p in paths if re.search(exclude_re, p) is None]
         if self.last_scanned_dir is None:
-            if len(paths) > 1:
-                self.last_scanned_dir = commonprefix(paths, os.path.sep)
-            else:
-                self.last_scanned_dir = os.path.dirname(paths[0])
+            # if len(paths) > 1:
+            #     self.last_scanned_dir = commonprefix(paths, os.path.sep)
+            # else:
+            #     self.last_scanned_dir = os.path.dirname(paths[0])
+            self.last_scanned_dir = os.getcwd()
 
         ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
@@ -448,14 +583,16 @@ Therefore, the index for this key has been adapted.""")
             Key(s) under which score files are stored. By default, all keys are selected.
         new_key : :obj:`str`, optional
             Pass a string to identify the loaded files. By default, the keys of the score files are being used.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'fname', 'i'}
-            | By default, the index levels of the existing scores are used (does not work with custom levels).
-            | Change this parameter if you want to create particular indices for multi-piece DataFrames.
-              If the index levels differ from existing ones, you need to set a ``new_key``.
-            | Every single element ∈ {'key', 'fname', 'i'} stands for an index level.
-            | In other words, a single level will result in a single index and a collection of levels will result in a
-              :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | 'fname', for example, evokes an index level made from file names.
+        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+            | Change this parameter if you want to create particular indices for output DataFrames.
+            | The resulting index must be unique (for identification) and have as many elements as added files.
+            | Every single element or Collection of elements ∈
+              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
+              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
+            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
+              index level itself and needs to have at least as many elements as the number of added files.
+            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
+            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
         """
         ids = self._score_ids(keys, score_extensions)
         grouped_ids = group_id_tuples(ids)
@@ -479,9 +616,10 @@ Therefore, the index for this key has been adapted.""")
                 index_levels = {k: self._levelnames[k] for k in existing.keys()}
         else:
             index_levels = {k: index for k in existing.keys()}
+        new_ids = []
         for k, paths in existing.items():
             key_param = k if new_key is None else new_key
-            new_ids = self.add_files(paths, key_param, index_levels[k])
+            new_ids.extend(self.add_files(paths, key_param, index_levels[k]))
         self.parse_tsv(ids=new_ids)
         for score_id, tsv_id in zip(ids, new_ids):
             ix = self._index[score_id]
@@ -500,7 +638,7 @@ Therefore, the index for this key has been adapted.""")
 
 
 
-    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, check_for_clashes=True):
+    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, label_type=None, check_for_clashes=True):
         """ Attach all :obj:`~ms3.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
         respective :obj:`~ms3.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
         MuseScore files where the annotations show in the score.
@@ -523,7 +661,7 @@ Therefore, the index for this key has been adapted.""")
             :obj:`ms3.annotations.Annotations.df` will be used.
         check_for_clashes : :obj:`bool`, optional
             By default, warnings are thrown when there already exists a label at a position (and in a notational
-            layer) where a new one is attached. Pass False to deactivate this warnings.
+            layer) where a new one is attached. Pass False to deactivate these warnings.
         """
         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
         if len(layers) == 0:
@@ -552,7 +690,7 @@ Continuing with {annotation_key}.""")
         for id in ids:
             for anno_key in annotation_key:
                 if anno_key in self._parsed_mscx[id]:
-                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, check_for_clashes=check_for_clashes)
+                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
                     goal += g
@@ -596,7 +734,7 @@ Continuing with {annotation_key}.""")
 
 
     def collect_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                      labels=False, chords=False, expanded=False, only_new=True):
+                      labels=False, chords=False, expanded=False, cadences=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
 
         Parameters
@@ -605,17 +743,17 @@ Continuing with {annotation_key}.""")
             Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
         ids : :obj:`~collections.abc.Collection`
             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
-        notes, rests, notes_and_rests, measures, events, labels, chords, expanded : :obj:`bool`, optional
+        notes, rests, notes_and_rests, measures, events, labels, chords, expanded, cadences : :obj:`bool`, optional
         only_new : :obj:`bool`, optional
             Set to False to also retrieve lists that had already been retrieved.
         """
-        if len(self._parsed_mscx) == 0:
-            self.logger.debug("No scores have been parsed so far. Use parse_mscx()")
+        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
+            self.logger.debug("Nothing has been parsed so far.")
             return
         if ids is None:
             only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
-        scores = {id: self._parsed_mscx[id] for id in ids}
+        scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
         bool_params = list(self._lists.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
@@ -656,6 +794,7 @@ Continuing with {annotation_key}.""")
                 self.logger.warning("No scores have been parsed so far.")
                 return
             self.logger.warning("None of the parsed score include detached labels to compare.")
+            return
         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
         if detached_key not in available_keys:
             self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
@@ -721,12 +860,13 @@ Available keys: {available_keys}""")
                 return pd.Series()
             data = counts.values()
             ks = list(counts.keys())
-            levels = len(ks[0])
-            names = ['staff', 'voice', 'label_type', 'color'][:levels]
+            #levels = len(ks[0])
+            names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
             try:
-                ix = pd.Index(counts.keys(), names=names)
+                ix = pd.MultiIndex.from_tuples(ks, names=names)
             except:
-                print(counts)
+                cs = {k: v for k, v in counts.items() if len(k) != levels}
+                print(f"names: {names}, counts:\n{cs}")
                 raise
             return pd.Series(data, ix)
 
@@ -838,6 +978,8 @@ Available keys: {available_keys}""")
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         ids = list(self._iterids(keys, only_attached_annotations=True))
+        if len(ids) == 0:
+            self.logger.info(f"Selection did not contain scores with labels: keys = '{keys}'")
         prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
@@ -879,13 +1021,15 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, simulate=False):
+    def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                  labels=False, chords=False, expanded=False, cadences=False, simulate=False, flat=True, unfold=False,
+                  quarterbeats=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
         ----------
         keys
+        ids
         notes
         rests
         notes_and_rests
@@ -894,40 +1038,213 @@ Available keys: {available_keys}""")
         labels
         chords
         expanded
+        cadences
         simulate
+        flat : :obj:`bool`, optional
+            By default, you get a dictionary {(id, list_type) -> list}.
+            By passing False you get a nested dictionary {list_type -> {index -> list}}
+        unfold : :obj:`bool`, optional
+            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
+            Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
+            is set to True.
+        quarterbeats : :obj:`bool`, optional
+            Pass True to add a `quarterbeats` column with a continuous offset from the piece's beginning. If ``unfold``
+            is False, this option will remove second endings and the ``volta`` column.
 
         Returns
         -------
 
         """
-        if len(self._parsed_mscx) == 0 and len(self._annotations) == 0:
-            self.logger.error("No scores or annotation files have been parsed so far.")
+        if ids is None:
+            ids = list(self._iterids(keys))
+        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
+            self.logger.error("No scores or TSV files have been parsed so far.")
             return {}
-        keys = self._treat_key_param(keys)
         bool_params = list(self._lists.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
-        self.collect_lists(keys, only_new=True, **params)
+        self.collect_lists(ids=ids, only_new=True, **params)
         res = {}
+        if unfold:
+            mc_sequences = self.get_unfolded_mcs(ids=ids)
+        if unfold or quarterbeats:
+            _ = self.match_files(ids=ids)
         for param, li in self._lists.items():
             if params[param]:
-                for id in (i for i in self._iterids(keys) if i in li):
-                    res[id + (param,)] = li[id]
+                if not flat:
+                    res[param] = {}
+                for id in (i for i in ids if i in li):
+                    key, i = id
+                    df = li[id]
+                    if unfold:
+                        if id in mc_sequences:
+                            df = unfold_repeats(df, mc_sequences[id])
+                            if quarterbeats:
+                                offset_dict = self.get_continuous_offsets(key, i, unfold=True)
+                                df = add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough')
+                        else:
+                            self.logger.info(f"Cannot unfold {id} without measure information.")
+                    elif quarterbeats:
+                        if 'volta' in df.columns:
+                            self.logger.debug("Only second voltas were included when computing quarterbeats.")
+                        offset_dict = self.get_continuous_offsets(key, i, unfold=False)
+                        df = add_quarterbeats_col(df, offset_dict)
+                    if flat:
+                        res[id + (param,)] = df
+                    else:
+                        res[param][self._index[id]] = df
         return res
 
 
-    def get_unfolded_mcs(self, key, i):
+    def get_tsvs(self, keys=None, types=None):
+        if len(self._tsv_types) == 0:
+            self.info(f"No TSV files have been parsed, use method parse_tsv().")
+            return pd.DataFrame()
+        if types is None:
+            potential = self._tsv_types
+            types = sorted(set(self._tsv_types.values()))
+        elif isinstance(types, str):
+            types = [types]
+            potential = {id: typ for id, typ in self._tsv_types.items() if typ in types}
+        plural = f"type {types[0]}" if len(types) == 1 else f"one of the types {types}"
+
+        if len(potential) == 0:
+            self.info(f"None of the parsed TSV files have been recognized as {plural}.")
+            return pd.DataFrame()
+        ids = [id for id in self._iterids(keys, only_parsed_tsv=True) if id in potential]
+        if len(ids) == 0:
+            self.info(f"None of the parsed TSV files with key {keys} have been recognized as {plural}.")
+            return pd.DataFrame()
+        keys = self.ids2idx(ids, pandas_index=True)
+        return pd.concat([self._parsed_tsv[id] for id in ids], keys=keys)
+
+
+    def get_unfolded_mcs(self, keys=None, ids=None):
+        if ids is None:
+            ids = list(self._iterids(keys))
+        _ = self.match_files(ids=ids)
+        res = {}
+        for key, i in ids:
+            unf_mcs = self._get_unfolded_mcs(key, i)
+            if unf_mcs is not None:
+                res[(key, i)] = unf_mcs
+        return res
+
+    def _get_measure_list(self, key, i, unfold=False):
+        """ Tries to retrieve the corresponding measure list, e.g. for unfolding repeats. Preference is given to
+        parsed MSCX files, then checks for parsed TSVs.
+
+        Parameters
+        ----------
+        key, i
+            ID
+        unfold : :obj:`bool` or ``'raw'``
+            Defaults to False, meaning that all voltas except second ones are dropped.
+            If set to True, the measure list is unfolded.
+            Pass the string 'raw' to leave the measure list as it is, with all voltas.
+
+        Returns
+        -------
+
+        """
+        id = (key, i)
+        res = None
+        if id in self._measurelists:
+            res = self._measurelists[id]
+        elif id in self._parsed_mscx:
+            self.collect_lists(ids=[id], measures=True)
+            res = self._measurelists[id]
+        else:
+            # trying to find a matched file to retrieve the measure list from
+            ix = self._index[id]
+            if ix not in self._matches.index:
+                self.logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
+                return
+            matched_row = self._matches.loc[ix]
+            if not pd.isnull(matched_row['measures']):
+                matched_id = matched_row['measures']
+                res = self._measurelists[matched_id]
+            elif not pd.isnull(matched_row['scores']):
+                matched_id = matched_row['scores']
+                if matched_id in self._measurelists:
+                    res = self._measurelists[matched_id]
+                else:
+                    self.collect_lists(ids=[matched_id], measures=True)
+                    res = self._measurelists[matched_id]
+            else:
+                if matched_row.notna().sum() > 1:
+                    self.logger.info(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
+                else:
+                    self.logger.info(f"No matches found for ID {id} and therefore no measure list.")
+        if res is not None:
+            res = res.copy()
+            if unfold == 'raw':
+                return res
+            if unfold:
+                mc_sequence = self._get_unfolded_mcs(key, i)
+                res = unfold_repeats(res, mc_sequence)
+            elif 'volta' in res.columns:
+                if 3 in res.volta.values:
+                    self.logger.warning(f"Piece contains third endings, note that only second endings are taken into account.")
+                res = res.drop(index=res[res.volta.fillna(2) != 2].index, columns='volta')
+            return res
+
+
+
+    def _get_unfolded_mcs(self, key, i):
         id = (key, i)
         if id in self._unfolded_mcs:
             return self._unfolded_mcs[id]
         if not id in self._measurelists:
             self.collect_lists(ids=[id], measures=True)
-        ml = self._measurelists[id].set_index('mc')
+        ml = self._get_measure_list(key, i, unfold='raw')
+        if ml is None:
+            return
+        ml = ml.set_index('mc')
         seq = next2sequence(ml.next)
-        playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
-        res = pd.Series(seq, index=playthrough)
-        self._unfolded_mcs[id] = res
-        return res
+        ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
+        # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+        mc_playthrough = pd.Series(seq, name='mc_playthrough')
+        if seq[0] == 1:
+            mc_playthrough.index += 1
+        else:
+            assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
+        # res = pd.Series(seq, index=playthrough)
+        self._unfolded_mcs[id] = mc_playthrough
+        return mc_playthrough
+
+
+    def get_continuous_offsets(self, key, i, unfold):
+        """ Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,
+            measured in quarter notes.
+
+        Parameters
+        ----------
+        key, i:
+            ID
+        unfold : :obj:`bool`
+            If True, return ``{mc_playthrough -> offset}``, otherwise ``{mc -> offset}``, keeping only second endings.
+
+        Returns
+        -------
+
+        """
+        id = (key, i)
+        if id in self._quarter_offsets[unfold]:
+            return self._quarter_offsets[unfold][id]
+        ml = self._get_measure_list(key, i, unfold=unfold)
+        if ml is None:
+            self.logger.warning(f"Could not find measure list for key {id}.")
+            return None
+        if unfold:
+            act_durs = ml.set_index('mc_playthrough').act_dur
+        else:
+            act_durs = ml.set_index('mc').act_dur
+        offset_col = make_continuous_offset(act_durs, quarters=True)
+        offsets = offset_col.to_dict()
+        self._quarter_offsets[unfold][id] = offsets
+        return offsets
+
 
 
     def ids2idx(self, ids=None, pandas_index=False):
@@ -970,10 +1287,49 @@ Available keys: {available_keys}""")
                 names = tuple(level_names.values())[0]
 
         if pandas_index:
-            idx = pd.Index(idx, names=names)
+            idx = pd.MultiIndex.from_tuples(idx, names=names)
             return idx
 
         return idx, names
+
+
+    def idx2id(self, full_path=None, rel_path=None, scan_path=None, path=None, file=None, fname=None, fext=None):
+        """ Turn the respective value combinations of an index into an ID.
+
+        Parameters
+        ----------
+        full_paths
+        rel_paths
+        scan_paths
+        paths
+        files
+        fnames
+        fexts
+
+        Returns
+        -------
+        :obj:`tuple`
+            the (key, i) pair corresponding to the index
+        """
+        levels = {name: str(l) for name, l in zip(('full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'),
+                                  (full_path, rel_path, scan_path, path, file, fname, fext))
+                            if l is not None}
+        sets = []
+        for name, l in levels.items():
+            ids = set((k, i) for k, vals in self._possible_levels[name].items() for i, val in enumerate(vals) if val == l)
+            if len(ids) > 0:
+                sets.append(ids)
+        res = set.intersection(*sets)
+        l = len(res)
+        if l == 0:
+            self.logger.warning(f"No parsed file matches these values: {levels}")
+            return None
+        if l > 1:
+            self.logger.warning(f"The selection is ambiguous: {levels}")
+            return None
+        return list(res)[0]
+
+
 
 
 
@@ -1024,7 +1380,7 @@ Available keys: {available_keys}""")
             if mscx > 0:
                 info += f"\n\nNone of the {mscx} score files have been parsed."
                 if by_conversion > 0 and self.ms is None:
-                    info += f"\n{by_conversion} files would beed to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
+                    info += f"\n{by_conversion} files would need to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
         if self.ms is not None:
             info += "\n\nMuseScore 3 executable has been found."
 
@@ -1046,15 +1402,31 @@ Available keys: {available_keys}""")
         print(info)
 
 
+    def join(self, keys=None, ids=None, what=None, use_index=True):
+        if what is not None:
+            what = [w for w in what if w != 'scores']
+        matches = self.match_files(keys=keys, ids=ids, what=what)
+        join_this = set(map(tuple, matches.values))
+        key_ids, *_ = zip(*join_this)
+        if use_index:
+            key_ids = self.ids2idx(key_ids, pandas_index=True)
+        join_this = [[self._parsed_tsv[id] for id in ids if not pd.isnull(id)] for ids in join_this]
+        joined = [join_tsvs(dfs) for dfs in join_this]
+        return pd.concat(joined, keys=key_ids)
 
-    def match_files(self, keys=None, what=['scores', 'labels', 'expanded'], only_new=True):
-        """ Match files based on their file names.
+
+
+    def keys(self):
+        return list(self.files.keys())
+
+    def match_files(self, keys=None, ids=None, what=None, only_new=True):
+        """ Match files based on their file names and return the matches for the requested keys or ids.
 
         Parameters
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Which key(s) to consider for matching files.
-        what : :obj:`list` or ∈ {'scores', 'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded'}
+            Which key(s) to return after matching matching files.
+        what : :obj:`list` or ∈ {'scores', 'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'cadences'}
             If you pass only one element, the corresponding files will be matched to all other types.
             If you pass several elements the first type will be matched to the following types.
         only_new : :obj:`bool`, optional
@@ -1065,79 +1437,113 @@ Available keys: {available_keys}""")
         :obj:`pandas.DataFrame`
             Those files that were matched. This is a subsection of self._matches
         """
-        lists = dict(self._lists)
-        lists['scores'] = self._parsed_mscx
-        lists['annotations'] = self._annotations
-        if isinstance(what, str):
+        lists = {'scores': self._parsed_mscx}
+        lists.update(dict(self._lists))
+        if what is None:
+            what = list(lists.keys())
+        elif isinstance(what, str):
             what = [what]
-        assert all(True for wh in what if wh in lists), f"Unknown matching parameter(s) for 'what': {[wh for wh in what if wh not in lists]}"
         if len(what) == 1:
-            what.extend([wh for wh in lists if wh != what[0]])
+            what.extend([wh for wh in lists.keys() if wh != what[0]])
+        assert all(True for wh in what if
+                   wh in lists), f"Unknown matching parameter(s) for 'what': {[wh for wh in what if wh not in lists]}"
         for wh in what:
             if wh not in self._matches.columns:
                 self._matches[wh] = np.nan
 
-        start = what[0]
-        existing = lists[start]
-        ids = list(self._iterids(keys))
-        ids_to_match = [id for id in ids if id in existing]
-        matching_candidates = {wh: {(key, i): self.fnames[key][i] for key, i in ids if (key, i) in lists[wh]} for wh in what[1:]}
+        matching_candidates = {wh: {id: self.fnames[id[0]][id[1]] for id in lists[wh].keys()} for wh in what}
         remove = []
-        for i, wh in enumerate(what[1:], 1):
+        for i, wh in enumerate(what):
             if len(matching_candidates[wh]) == 0:
-                self.logger.warning(f"There are no candidates for '{wh}' in the keys {keys}.")
+                self.logger.debug(f"There are no candidates for '{wh}' in the selected IDs.")
                 remove.append(i)
         for i in reversed(remove):
-            del(what[i])
-        res_ix = []
-        for key, i in ids_to_match:
-            ix = self._index[(key, i)]
+            del (what[i])
+
+        def get_row(ix):
             if ix in self._matches.index:
-                row = self._matches.loc[ix].copy()
+                return self._matches.loc[ix].copy()
+            return pd.Series(np.nan, index=lists.keys(), name=ix)
+
+        def update_row(ix, row):
+            if ix in self._matches.index:
+                self._matches.loc[ix, :] = row
             else:
-                row = pd.Series(np.nan, index=lists.keys(), name=ix)
-            row[start] = (key, i)
-            for wh in what[1:]:
-                if not pd.isnull(row[wh]) and only_new:
-                    self.logger.debug(f"{ix} had already been matched to {wh} {row[wh]}")
-                else:
-                    row[wh] = np.nan
-                    fname = self.fnames[key][i]
-                    file  = self.files[key][i]
-                    matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wh].items()}
-                    lengths = {id: len(prefix) for id, prefix in matches.items()}
-                    longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max(lengths.values())}
+                self._matches = self._matches.append(row)
+                if len(self._matches) == 1:
+                    self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
 
-                    if len(longest) == 0:
-                        self.logger.info(f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
-                    elif len(longest) > 1:
-                        ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in longest.items()}
-                        self.logger.info(f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+        #res_ix = set()
+        for j, wh in enumerate(what):
+            for id, fname in matching_candidates[wh].items():
+                ix = self._index[id]
+                row = get_row(ix)
+                row[wh] = id
+                for wha in what[j + 1:]:
+                    if not pd.isnull(row[wha]) and only_new:
+                        self.logger.debug(f"{ix} had already been matched to {wha} {row[wha]}")
                     else:
-                        id = list(longest.keys())[0]
-                        row[wh] = id
-                        match_file = self.files[id[0]][id[1]]
-                        self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[id]}")
+                        row[wha] = np.nan
+                        key, i = id
+                        file = self.files[key][i]
+                        matches = {id: os.path.commonprefix([fname, c]) for id, c in matching_candidates[wha].items()}
+                        lengths = {id: len(prefix) for id, prefix in matches.items()}
+                        max_length = max(lengths.values())
+                        if max_length == 0:
+                            self.logger.debug(f"No matches for {id}")
+                            break
+                        longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max_length}
 
-                    if ix in self._matches.index:
-                        self._matches.loc[ix, :] = row
-                    else:
-                        self._matches = self._matches.append(row)
-                        if len(self._matches) == 1:
-                            self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
-                    res_ix.append(ix)
-        return self._matches.loc[res_ix]
+                        if len(longest) == 0:
+                            self.logger.info(
+                                f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                        elif len(longest) > 1:
+                            ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in
+                                         longest.items()}
+                            self.logger.info(
+                                f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                        else:
+                            match_id = list(longest.keys())[0]
+                            row[wha] = match_id
+                            match_ix = self._index[match_id]
+                            match_row = get_row(match_ix)
+                            match_row[wh] = id
+                            update_row(match_ix, match_row)
+                            #res_ix.add(match_ix)
+                            match_file = self.files[match_id[0]][match_id[1]]
+                            self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[match_id]}")
+
+                update_row(ix, row)
+                #res_ix.add(ix)
+
+        if ids is None:
+            ids = list(self._iterids(keys))
+        ids = [i for i in ids if any(i in lists[w] for w in what)]
+        res_ix = self.ids2idx(ids, pandas_index=True)
+        return self._matches.loc[res_ix, what].sort_index()
 
 
-    def metadata(self, keys=None):
+    def metadata(self, keys=None, include_tsv=False):
         parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+        df = pd.DataFrame()
+        first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+                      'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
+                      'movementTitle',
+                      'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                      'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
         if len(parsed_ids) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
             idx = self.ids2idx(ids, pandas_index=True)
-            return pd.DataFrame(meta_series, index=idx)
-        if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
-        return pd.DataFrame()
+            df = pd.DataFrame(meta_series, index=idx)
+        if include_tsv and len(self._parsed_tsv) > 0:
+            tsv_df = self.get_tsvs(keys, types='metadata')
+            if len(tsv_df) > 0:
+                df = pd.concat([df, tsv_df])
+        if len(df) > 0:
+            return column_order(df, first_cols).sort_index()
+        else:
+            self.logger.info("No scores or metadata TSVs have been parsed so far.")
+            return pd.DataFrame()
 
 
     def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
@@ -1150,7 +1556,7 @@ Available keys: {available_keys}""")
 
 
 
-    def parse_mscx(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
+    def parse_mscx(self, keys=None, ids=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
         """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -1159,6 +1565,8 @@ Available keys: {available_keys}""")
         ----------
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             For which key(s) to parse all MSCX files.
+        ids : :obj:`~collections.abc.Collection`
+            To parse only particular files, pass their IDs. ``keys`` and ``fexts`` are ignored in this case.
         read_only : :obj:`bool`, optional
             If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
@@ -1182,20 +1590,33 @@ Available keys: {available_keys}""")
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
 
-        if only_new:
-            paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] in ('.mscx', '.mscz') and (key, i) not in self._parsed_mscx]
+        if ids is not None:
+            pass
+        elif only_new:
+            ids = [id for id in self._score_ids(keys) if id not in self._parsed_mscx]
         else:
-            paths = [(key, i) for key, i in self._iterids(keys) if
-                     self.fexts[key][i] in ('.mscx', '.mscz')]
+            ids = self._score_ids(keys)
 
-        if len(paths) == 0:
-            reason = 'in the entire object' if keys is None else f"for '{keys}'"
-            self.logger.info(f"No MSCX files found {reason}.")
+        exts = self.count_extensions(ids=ids)
+
+        if any(ext[1:].lower() in Score.convertible_formats for ext in exts.keys()) and parallel:
+            msg = f"The file extensions [{', '.join(ext[1:] for ext in exts.keys() if ext[1:].lower() in Score.convertible_formats )}] " \
+                  f"require temporary conversion with your local MuseScore, which is not possible with parallel " \
+                  f"processing. Parse with parallel=False or exclude these files from parsing."
+            if self.ms is None:
+                msg += "\n\nIn case you want to temporarily convert these files, you will also have to set the" \
+                       "property ms of this object to the path of your MuseScore 3 executable."
+            self.logger.error(msg)
+            return
+
+        if len(ids) == 0:
+            reason = 'in this Parse object' if keys is None else f"for '{keys}'"
+            self.logger.debug(f"No parseable scores found {reason}.")
             return
         if level is None:
             level = self.logger.logger.level
         cfg = {'level': level}
+
         ### If log files are going to be created, compute their paths and configure loggers for individual parses
         if self.logger_cfg['file'] is not None or self.logger_cfg['path'] is not None:
             file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
@@ -1214,18 +1635,18 @@ Available keys: {available_keys}""")
             if file_path is not None and os.path.isabs(file_path):
                 if os.path.isdir(file):
                     self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
-                    configs = [cfg for i in range(len(paths))]
+                    configs = [cfg for i in range(len(ids))]
                 else:
                     cfg['file'] = file
-                    configs = [cfg for i in range(len(paths))]
+                    configs = [cfg for i in range(len(ids))]
             elif not (file_path is None and file_name is None):
                 root_dir = None if path is None else path
                 if file_name is None:
                     log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in paths]
+                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in ids]
                 else:
                     log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                             file_name)) for k, i in paths}
+                                                             file_name)) for k, i in ids}
                     are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
                     if len(are_dirs) > 0:
                         NL = '\n'
@@ -1238,16 +1659,16 @@ Available keys: {available_keys}""")
             elif path is not None:
                 configs = [dict(cfg, file=os.path.abspath(
                                             os.path.join(path, f"{self.logger_names[(k, i)]}.log")
-                                          )) for k, i in paths]
+                                          )) for k, i in ids]
             else:
-                configs = [cfg for i in range(len(paths))]
+                configs = [cfg for i in range(len(ids))]
         else:
             if self.logger.logger.file_handler is not None:
                 cfg['file'] = self.logger.logger.file_handler.baseFilename
-            configs = [cfg for i in range(len(paths))]
+            configs = [cfg for i in range(len(ids))]
 
         ### collect argument tuples for calling self._parse
-        parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(paths, configs)]
+        parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(ids, configs)]
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''
@@ -1328,7 +1749,7 @@ Available keys: {available_keys}""")
         if ids is not None:
             pass
         elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] != '.mscx']
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
         else:
             if isinstance(fexts, str):
                 fexts = [fexts]
@@ -1336,17 +1757,19 @@ Available keys: {available_keys}""")
             ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
 
         for key, i in ids:
-            rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
+            #rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
             path = self.full_paths[key][i]
             try:
                 df = load_tsv(path, **kwargs)
             except:
-                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter.\n{path}")
+                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
+                                 f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
             label_col = cols['label'] if 'label' in cols else 'label'
+            id = (key, i)
             try:
-                self._parsed_tsv[(key, i)] = df
-                if label_col in df.columns:
+                self._parsed_tsv[id] = df
+                if 'label' in cols and label_col in df.columns:
                     tsv_type = 'labels'
                 else:
                     tsv_type = self._infer_tsv_type(df)
@@ -1355,21 +1778,24 @@ Available keys: {available_keys}""")
                     self.logger.warning(
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                 else:
-                    self._tsv_types[(key, i)] = tsv_type
-                    self._lists[tsv_type][(key, i)] = self._parsed_tsv[(key, i)]
-                    if tsv_type == 'labels':
-                        if label_col in df.columns:
-                            logger_name = self.files[key][i]
-                            self._annotations[(key, i)] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                      logger_cfg={'name': logger_name}, level=level)
-                            self.logger.debug(
-                                f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
-                        else:
-                            self.logger.info(
-f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                    self._tsv_types[id] = tsv_type
+                    if tsv_type == 'metadata':
+                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
                     else:
-                        self.logger.info(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
+                        self._lists[tsv_type][id] = self._parsed_tsv[id]
+                        if tsv_type in ['labels', 'expanded']:
+                            if label_col in df.columns:
+                                logger_name = self.files[key][i]
+                                self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                                                          logger_cfg={'name': logger_name}, level=level)
+                                self.logger.debug(
+                                    f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
+                            else:
+                                self.logger.info(
+    f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+    Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                        else:
+                            self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
 
             except:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -1384,7 +1810,45 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                                                     labels_folder=None, labels_suffix='',
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
-                                                    simulate=None, unfold=False):
+                                                    cadences_folder=None, cadences_suffix='',
+                                                    metadata_path=None, markdown=True,
+                                                    simulate=None, unfold=False, quarterbeats=False):
+        """ Store score information as TSV files.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which score files are stored. By default, all keys are selected.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing
+            absolute paths, ``root_dir`` is ignored.
+        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder : str, optional
+            Specify directory where to store the corresponding TSV files.
+        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix : str, optional
+            Optionally specify suffixes appended to the TSVs' file names.
+        metadata_path : str, optional
+            Where to store an overview file with the MuseScore files' metadata.
+            If no file name is specified, the file will be named ``metadata.tsv``.
+        markdown : bool, optional
+            By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+            the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
+            this table will be appended or overwritten after the heading ``# Overview``.
+        simulate : bool, optional
+            Defaults to ``None``. Pass a value to set the object attribute :py:attr:`~ms3.parse.Parse.simulate`.
+        unfold : bool, optional
+            By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
+            playthrough, including correct positioning of first and second endings.
+        quarterbeats : bool, optional
+            By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
+            Pass True to add the columns ``quarterbeats`` and ``durations_quarterbeats``. If a score has first and second endings,
+            the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
+            continuous count. If repetitions are being unfolded, all endings are taken into account.
+
+        Returns
+        -------
+
+        """
         if simulate is None:
             simulate = self.simulate
         else:
@@ -1394,17 +1858,14 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         folder_vars = [t + '_folder' for t in list_types]
         suffix_vars = [t + '_suffix' for t in list_types]
         folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
-        if len(folder_params) == 0:
+        if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
-        suffix_params = {t: l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
-        if unfold:
-            suffix_params = {k: v + '_unfolded' for k, v in suffix_params.items()}
-            self.collect_lists(keys, measures=True)
+        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_lists(keys, **list_params)
+        lists = self.get_lists(keys, unfold=unfold, quarterbeats=quarterbeats, **list_params)
         modus = 'would ' if simulate else ''
-        if len(lists) == 0:
+        if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
             return [] if simulate else None
         paths = {}
@@ -1412,9 +1873,6 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
-            if unfold:
-                mc_seq = self.get_unfolded_mcs(key, i)
-                li = unfold_repeats(li, mc_seq)
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
@@ -1426,15 +1884,32 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
         l_target = len(lists)
-        if l_infos > 0:
-            if l_infos < l_target:
+        if l_target > 0:
+            if l_infos == 0:
+                self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
+            elif l_infos < l_target:
                 msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
             else:
                 msg = f"\n\nAll {l_infos} {modus}have been written."
             self.logger.info('\n'.join(infos) + msg)
-        else:
-            self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
         #self.logger = prev_logger
+        if metadata_path is not None:
+            md = self.metadata()
+            if len(md.index) > 0:
+                fname, ext = os.path.splitext(metadata_path)
+                if ext != '':
+                    path, file = os.path.split(metadata_path)
+                else:
+                    path = metadata_path
+                    file = 'metadata.tsv'
+                path = resolve_dir(path)
+                if not os.path.isdir(path):
+                    os.makedirs(path)
+                full_path = os.path.join(path, file)
+                write_metadata(self.metadata(), full_path, markdown=markdown, logger=self.logger)
+            else:
+                self.logger.debug(f"\n\nNo metadata to write.")
+
         if simulate:
             return list(set(paths.keys()))
 
@@ -1448,11 +1923,12 @@ Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
         paths = []
         for key, i in ids:
             new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
-            if new_path in paths:
-                modus = 'would have' if simulate else 'has'
-                self.logger.warning(f"The score at {new_path} {modus} been overwritten.")
-            else:
-                paths.append(new_path)
+            if new_path is not None:
+                if new_path in paths:
+                    modus = 'would have' if simulate else 'has'
+                    self.logger.info(f"The score at {new_path} {modus} been overwritten.")
+                else:
+                    paths.append(new_path)
         if simulate:
             return list(set(paths))
 
@@ -1538,7 +2014,7 @@ Load one of the identically named files with a different key using add_dir(key='
             self.rel_paths[key].append(rel_path)
             self.paths[key].append(file_path)
             self.files[key].append(file)
-            self.logger_names[(key, i)] = file.replace('.', '')
+            self.logger_names[(key, i)] = file_name.replace('.', '')
             self.fnames[key].append(file_name)
             self.fexts[key].append(file_ext)
             return key, len(self.paths[key]) - 1
@@ -1554,14 +2030,17 @@ Load one of the identically named files with a different key using add_dir(key='
             'chords': ['chord_id'],
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
-            'labels': ['label_type', 'mc', 'mn'],
+            'expanded': ['numeral'],
+            'labels': ['label_type'],
+            'cadences': ['cadence'],
+            'metadata': ['last_mn', 'md5'],
         }
-        res = None
         for t, columns in type2cols.items():
             if any(True for c in columns if c in df.columns):
-                res = t
-                break
-        return res
+                return t
+        if any(True for c in ['mc', 'mn'] if c in df.columns):
+            return 'labels'
+        return
 
     def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
@@ -1621,12 +2100,15 @@ Load one of the identically named files with a different key using add_dir(key='
                     yield e
 
     def _make_index_level(self, level, ids, selector=None):
-        if level == 'key':
-            return {id: id[0] for id in ids}
-        if level == 'i':
-            return {id: id[1] for id in ids}
-        if level == 'fname':
-            return {(key, i): self.fnames[key][i] for key, i in ids}
+        if isinstance(level, str) or len(level) == 1:
+            if not isinstance(level, str):
+                level = level[0]
+            if level == 'key':
+                return {id: id[0] for id in ids}
+            if level == 'i':
+                return {id: id[1] for id in ids}
+            if level in self._possible_levels:
+                return {(key, i): self._possible_levels[level][key][i] for key, i in ids}
         ll, li = len(level), len(ids)
         ls = 0 if selector is None else len(selector)
         if ll < li:
@@ -1710,42 +2192,37 @@ Using the first {li} elements, discarding {discarded}""")
 
         """
 
-        def restore_logger(val):
-            nonlocal prev_logger
-            self.logger = prev_logger
-            return val
-
-        prev_logger = self.logger
-        fname = self.fnames[key][i]
-        self.update_logger_cfg(name= self.logger_names[(key, i)])
         id = (key, i)
+        logger = get_logger(self.logger_names[id])
+        fname = self.fnames[key][i]
+
         if id not in self._parsed_mscx:
-            self.logger.error(f"No Score object found. Call parse_mscx() first.")
-            return restore_logger(None)
+            logger.error(f"No Score object found. Call parse_mscx() first.")
+            return
         path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
         if path is None:
-            return restore_logger(None)
+            return
 
         fname = fname + suffix + '.mscx'
         file_path = os.path.join(path, fname)
         if os.path.isfile(file_path):
             if simulate:
                 if overwrite:
-                    self.logger.warning(f"Would have overwritten {file_path}.")
-                    return restore_logger(file_path)
-                self.logger.warning(f"Would have skipped {file_path}.")
-                return restore_logger(None)
+                    logger.warning(f"Would have overwritten {file_path}.")
+                    return
+                logger.warning(f"Would have skipped {file_path}.")
+                return
             elif not overwrite:
-                self.logger.warning(f"Skipped {file_path}.")
-                return restore_logger(None)
+                logger.warning(f"Skipped {file_path}.")
+                return
         if simulate:
-            self.logger.debug(f"Would have written score to {file_path}.")
+            logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
             self._parsed_mscx[id].store_mscx(file_path)
-            self.logger.debug(f"Score written to {file_path}.")
+            logger.debug(f"Score written to {file_path}.")
 
-        return restore_logger(file_path)
+        return file_path
 
 
     def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
@@ -1782,8 +2259,8 @@ Using the first {li} elements, discarding {discarded}""")
         prev_logger = self.logger
         fname = self.fnames[key][i]
         # make sure all subloggers store their information into Parse.log if it is being used
-        file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
-        self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
+        # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
+        # self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
         if df is None:
             self.logger.debug(f"No DataFrame for {what}.")
             return restore_logger(None)
@@ -1811,6 +2288,24 @@ Using the first {li} elements, discarding {discarded}""")
 
 
     def _treat_index_param(self, index_param, ids, selector=None):
+        """ Turns an index parameter (string or collection) and turns each elemeht into an index level.
+
+        Parameters
+        ----------
+        index_param
+        ids
+        selector : :obj:`~collections.abc.Collection`
+            Pass a collection of list indices to create index tuples for only those.
+
+
+        Returns
+        -------
+        :obj:`pandas.core.indexes.multi.MultiIndex` or :obj:`pandas.core.indexes.base.Index`
+            Newly created index.
+        :obj:`tuple`
+            Names of the index levels.
+
+        """
         if index_param is None:
             names = ('key', 'i')
             return {id: id for id in ids}, names
@@ -1821,7 +2316,7 @@ Using the first {li} elements, discarding {discarded}""")
         names = []
         for i, level in enumerate(index_param):
             if isinstance(level, str):
-                if level in ['key', 'fname', 'i']:
+                if level in self._possible_levels or level in ('key', 'i'):
                     new_level = self._make_index_level(level, ids=ids, selector=selector)
                     index_levels.append(new_level)
                     names.append(level)
@@ -1854,9 +2349,9 @@ Using the first {li} elements, discarding {discarded}""")
         if l_counts > 0 or l_existing > 0:
             new_index, names = self._treat_index_param(None, ids=ids)
             if l_counts > 0:
-                plural_phrase = "These values occur" if l_counts > 1 else "This value occurs"
+                plural_phrase = "These index values occur" if l_counts > 1 else "This index value occurs"
                 self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
-To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
+To avoid the problem, define sufficient distinguishing index levels, e.g. ['fname', 'key', 'i'].\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
@@ -1890,6 +2385,48 @@ To avoid the problem, add another index level, e.g. 'i'.\n{plural_phrase} severa
             self.logger.warning(
                 f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
+
+    def update_metadata(self):
+        """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
+        the IDs of those that have been changed."""
+        if len(self._metadata) == 0:
+            self.logger.debug("No parsed metadata found.")
+            return
+        old = self._metadata.set_index(['rel_paths', 'fnames'])
+        new = self.metadata()
+        excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
+                         'TimeSig']
+        old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
+
+        parsed = old.index.map(lambda i: i in new.index)
+        relevant = old.loc[parsed, old_cols]
+        updates = defaultdict(dict)
+        for i, row in relevant.iterrows():
+            new_row = new.loc[i]
+            for j, val in row[row.notna()].iteritems():
+                val = str(val)
+                if j not in new_row or str(new_row[j]) != val:
+                    updates[i][j] = val
+
+        l = len(updates)
+        ids = []
+        if l > 0:
+            for (rel_path, fname), new_dict in updates.items():
+                id = self.idx2id(rel_path=rel_path, fname=fname)
+                if id not in self._parsed_mscx:
+                    continue
+                tags = self._parsed_mscx[id].mscx.parsed.metatags
+                for name, val in new_dict.items():
+                    tags[name] = val
+                self._parsed_mscx[id].mscx.parsed.update_metadata()
+                get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
+                ids.append(id)
+
+            self.logger.info(f"{l} files updated.")
+        else:
+            self.logger.info("Nothing to update.")
+        return ids
+
 
     def __getstate__(self):
         """ Override the method of superclass """

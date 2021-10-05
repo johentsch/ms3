@@ -47,8 +47,8 @@ class LoggedClass:
             name = logger_cfg['name']
         else:
             name = subclass
-        if name in logging.root.manager.loggerDict:
-            del(logging.root.manager.loggerDict[name])
+        # if name in logging.root.manager.loggerDict:
+        #     del(logging.root.manager.loggerDict[name])
         self.logger_names = {}
         self.update_logger_cfg(logger_cfg=logger_cfg)
 
@@ -108,7 +108,8 @@ def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapt
     logger = logging.getLogger(params['name'])
     logger.setLevel(CURRENT_LEVEL)
     for h in logger.handlers:
-        h.setLevel(CURRENT_LEVEL)
+        if h.__class__ != logging.FileHandler:
+            h.setLevel(CURRENT_LEVEL)
 
     if adapter is not None:
         return adapter(logger, {})
@@ -149,11 +150,12 @@ but no 'path' has been configured.""")
         log_file = os.path.abspath(os.path.join(path, f"{name}.log"))
 
     if log_file is not None and not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
-        dir, _ = os.path.split(log_file)
-        if not os.path.isdir(dir):
-            os.makedirs(dir, exist_ok=True)
+        log_dir, _ = os.path.split(log_file)
+        if not os.path.isdir(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
         logger.debug(f"Storing logs as {log_file}")
         fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
+        fileHandler.setLevel(LEVELS['W'])
         file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
         fileHandler.setFormatter(file_formatter)
         logger.addHandler(fileHandler)
@@ -215,14 +217,14 @@ def function_logger(f):
     return logger
 
 
-def resolve_dir(dir):
+def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
     """
-    if dir is None:
+    if d is None:
         return None
-    if '~' in dir:
-        return os.path.expanduser(dir)
-    return os.path.abspath(dir)
+    if '~' in d:
+        return os.path.expanduser(d)
+    return os.path.abspath(d)
 
 
 @function_logger

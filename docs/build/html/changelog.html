@@ -7,9 +7,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Changelog &#8212; ms3 0.4.6 documentation</title>
+    <title>Changelog &#8212; ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/ansi.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
@@ -53,7 +54,7 @@
         <li class="right" >
           <a href="authors.html" title="Contributors"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
@@ -68,6 +69,74 @@
             
   <div class="section" id="changelog">
 <span id="changes"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="version-0-4-9">
+<h2>Version 0.4.9<a class="headerlink" href="#version-0-4-9" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>enabled <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">from</span> <span class="pre">ms3</span></code> for all utils</p></li>
+<li><p>new command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">update</span></code> for converting files and moving annotations to the Roman Numeral Analysis layer</p></li>
+<li><p>new command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code> for writing manually changed information from <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> to the metadata fields of the corresponding MuseScore files</p></li>
+<li><p>improved the <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code> command:
+* added option <code class="docutils literal notranslate"><span class="pre">-D</span></code> for extracting and updating <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> and <code class="docutils literal notranslate"><span class="pre">README.md</span></code>
+* added option <code class="docutils literal notranslate"><span class="pre">-q</span></code> for adding ‘quarterbeats’ and ‘durations_quarterbeats’ columns
+* included default paths for the capital-letter parameters</p></li>
+<li><p>improved the <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">compare</span></code> command:
+* now works with ‘expanded’ TSVs, too (not only with ‘labels’)
+* allows ‘label’ column to include NaN values</p></li>
+<li><p>improvements to Parse() objects:
+* attempts to parse scores that need file conversion (e.g. XML, MIDI)
+* <code class="docutils literal notranslate"><span class="pre">get_lists()</span></code> method now allows for adding the columns <code class="docutils literal notranslate"><span class="pre">quarterbeats</span></code> and <code class="docutils literal notranslate"><span class="pre">durations_quarterbeats</span></code>, even without unfolding repeats
+* adding ‘quarterbeats’ without unfolding repeats excludes voltas
+* new method <code class="docutils literal notranslate"><span class="pre">get_tsvs()</span></code> for retrieving and concatenating parsed TSV files
+* Parse() now recognizes <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> files, expanded TSVs, and TSVs containing cadence labels only
+* parsed <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> files can be retrieved/included via the method <code class="docutils literal notranslate"><span class="pre">metadata()</span></code>
+* new method <code class="docutils literal notranslate"><span class="pre">update_metadata()</span></code> for the new <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code> command
+* decided on standard index levels <code class="docutils literal notranslate"><span class="pre">rel_paths</span></code> and <code class="docutils literal notranslate"><span class="pre">fnames</span></code>
+* improved matching of corresponding score and TSV files</p></li>
+<li><p>improvements to Score() objects:
+* new property Score.mscx.volta_structure for retrieving information on first and second endings</p></li>
+<li><p>improvements to Annotations() objects:
+* correct propagation of <code class="docutils literal notranslate"><span class="pre">localkey</span></code> for voltas</p></li>
+<li><p>improvements to commandline interface:
+* added parameter <code class="docutils literal notranslate"><span class="pre">-o</span></code> for specifying output directory
+* harmonized the interface of the <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">convert</span></code> command
+* parameter <code class="docutils literal notranslate"><span class="pre">exclude_re</span></code> now also filters paths passed via <code class="docutils literal notranslate"><span class="pre">-f</span></code></p></li>
+<li><p>changed logging behaviours:
+* write only WARNINGs to log file
+* combine loggers for filenames independently of file extensions</p></li>
+<li><p>improved extraction of instrument names for metadata</p></li>
+<li><p>improved <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">compare</span></code> functionality</p></li>
+<li><p>restructured code architecture</p></li>
+<li><p>many bug fixes</p></li>
+</ul>
+</div>
+<div class="section" id="version-0-4-8">
+<h2>Version 0.4.8<a class="headerlink" href="#version-0-4-8" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>now reads DCML labels with cadence annotations</p></li>
+<li><p>unified command-line interface file options and included <code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">file.json</span></code></p></li>
+<li><p>Parse got more options for creating DataFrame index levels</p></li>
+<li><p>Parse.measures property for convenience</p></li>
+<li><p>bug fixes for better GitHub workflows</p></li>
+</ul>
+</div>
+<div class="section" id="version-0-4-7">
+<h2>Version 0.4.7<a class="headerlink" href="#version-0-4-7" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Labels can be attached to MuseScore’s Roman Numeral Analysis (RNA) layer
+* parameter <cite>label_type=1</cite> in both <cite>Score.attach_labels()</cite> and <cite>Parse.attach_labels()</cite>
+* <cite>Annotations.remove_initial_dots()</cite> before inserting into the RNA layer
+* <cite>Annotations.add_initial_dots()</cite> before inserting into the absolute chord layer</p></li>
+<li><p>interpret all <cite>#vii</cite> in major contexts as <cite>vii</cite> when computing chord tones</p></li>
+<li><p>code cosmetics and bug fixes</p></li>
+</ul>
+</div>
+<div class="section" id="version-0-4-6">
+<h2>Version 0.4.6<a class="headerlink" href="#version-0-4-6" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>ms3 extract and Parse.store_lists() now have the option unfold to account for repeats</p></li>
+<li><p>minor bug fixes</p></li>
+</ul>
+</div>
 <div class="section" id="version-0-4-5">
 <h2>Version 0.4.5<a class="headerlink" href="#version-0-4-5" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
@@ -97,7 +166,7 @@
 <h2>Version 0.4.1<a class="headerlink" href="#version-0-4-1" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>ms3 0.4.1 supports parsing (but not storing) compressed MuseScore files (.mscz)</p></li>
-<li><p>Install “ms3 convert” command to your system for batch conversion using your local MuseScore installation</p></li>
+<li><p>Installs “ms3 convert” command to your system for batch conversion using your local MuseScore installation</p></li>
 <li><p>“ms3 extract” command now supports creation of log files</p></li>
 <li><p>take <code class="docutils literal notranslate"><span class="pre">labels_cfg</span></code> into account when creating expanded chord tables</p></li>
 </ul>
@@ -184,6 +253,10 @@
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-9">Version 0.4.9</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-8">Version 0.4.8</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-7">Version 0.4.7</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-4-6">Version 0.4.6</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-4-5">Version 0.4.5</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-4-3">Version 0.4.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-4-2">Version 0.4.2</a></li>
@@ -254,7 +327,7 @@
         <li class="right" >
           <a href="authors.html" title="Contributors"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.6 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.4.8.post0.dev12+gf2419e0.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
