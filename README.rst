@@ -36,10 +36,6 @@ Welcome to **ms3**, a Python library for parsing annotated `MuseScore 3 <https:/
 
 View the documentation on `GitHub <https://johentsch.github.io/ms3/>`__.
 
-.. raw:: html
-
-  <iframe width="560" height="315" src="https://www.youtube-nocookie.com/embed/UBY3wuIS4wc" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
 Video `available on YouTube <https://youtu.be/UBY3wuIS4wc>`__
 
 Note
