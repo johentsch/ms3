@@ -40,6 +40,7 @@ Version 0.4.9
 * improved extraction of instrument names for metadata
 * improved ``ms3 compare`` functionality
 * restructured code architecture
+* renamed master branch to 'main'
 * many bug fixes
 
 Version 0.4.8
