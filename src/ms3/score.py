@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile as Temp
 import pandas as pd
 
 from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, get_ms_version, get_musescore, no_collections_no_booleans,\
-    resolve_dir, rgba, rgba2attrs, rgba2params, test_binary, unpack_mscz, update_labels_cfg, update_cfg
+    resolve_dir, rgba2params, unpack_mscz, update_labels_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -66,8 +66,8 @@ class Score(LoggedClass):
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
             of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.
         labels_cfg : :obj:`dict`
-            Store a configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
-            object representing the currently attached annotations. See :obj:`MSCX.labels_cfg`.
+            Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+            object representing the currently attached annotations. See :py:attr:`MSCX.labels_cfg`.
         logger_cfg : :obj:`dict`, optional
             The following options are available:
             'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
@@ -85,31 +85,31 @@ class Score(LoggedClass):
         self.full_paths = {}
         """:obj:`dict`
         ``{KEY: {i: full_path}}`` dictionary holding the full paths of all parsed MuseScore and TSV files,
-        including file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        including file names. Handled internally by :py:meth:`~.Score._handle_path`.
         """
 
         self.paths = {}
         """:obj:`dict`
         ``{KEY: {i: file path}}`` dictionary holding the paths of all parsed MuseScore and TSV files,
-        excluding file names. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        excluding file names. Handled internally by :py:meth:`~.Score._handle_path`.
         """
 
         self.files = {}
         """:obj:`dict`
         ``{KEY: {i: file name with extension}}`` dictionary holding the complete file name  of each parsed file,
-        including the extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        including the extension. Handled internally by :py:meth:`~.Score._handle_path`.
         """
 
         self.fnames = {}
         """:obj:`dict`
         ``{KEY: {i: file name without extension}}`` dictionary holding the file name  of each parsed file,
-        without its extension. Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        without its extension. Handled internally by :py:meth:`~.Score._handle_path`.
         """
 
         self.fexts = {}
         """:obj:`dict`
         ``{KEY: {i: file extension}}`` dictionary holding the file extension of each parsed file.
-        Handled internally by :py:meth:`~ms3.score.Score._handle_path`.
+        Handled internally by :py:meth:`~.Score._handle_path`.
         """
 
         self.ms = get_musescore(ms, logger=self.logger)
@@ -123,7 +123,7 @@ class Score(LoggedClass):
 
         self._detached_annotations = {}
         """:obj:`dict`
-        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~ms3.annotations.Annotations` objects.
+        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~.annotations.Annotations` objects.
         """
 
         self._types_to_infer = []
@@ -131,7 +131,7 @@ class Score(LoggedClass):
         Current order in which types are being recognized."""
 
         self._label_types = {
-            0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
+            0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
             1: "MuseScore's Roman Numeral Annotation format",
             2: "MuseScore's Nashville Number format",
             3: "Absolute chord encoded by MuseScore",
@@ -139,7 +139,7 @@ class Score(LoggedClass):
         }
         """:obj:`dict`
         Mapping label types to their descriptions.
-        0: "Simple string (should not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
+        0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
         1: "MuseScore's Roman Numeral Annotation format",
         2: "MuseScore's Nashville Number format",
         3: "Absolute chord encoded by MuseScore",
@@ -167,13 +167,13 @@ class Score(LoggedClass):
             'positioning': True,
             'decode': False,
             'column_name': 'label',
-            'color_format': 'html',
+            'color_format': None,
         }
         """:obj:`dict`
-        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
-        objects contained in :obj:`._annotations``. 
+        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+        objects contained in the current object, especially when calling :py:attr:`Score.mscx.labels<.MSCX.labels>`.
         The default options correspond to the default parameters of
-        :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
+        :py:meth:`Annotations.get_labels()<.annotations.Annotations.get_labels>`.
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
@@ -184,7 +184,7 @@ class Score(LoggedClass):
 
         self.infer_label_types = infer_label_types
         if musescore_file is not None:
-            self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=labels_cfg)
+            self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -192,7 +192,7 @@ class Score(LoggedClass):
     def infer_label_types(self):
         """:obj:`list` or :obj:`dict`, optional
         The order in which label types are to be inferred.
-        Assigning a new value results in a call to :py:meth:`~ms3.annotations.Annotations.infer_types`.
+        Assigning a new value results in a call to :py:meth:`~.annotations.Annotations.infer_types`.
         Passing a {label type: regex} dictionary is a shortcut to update type regex's or to add new ones.
         The inference will take place in the order in which they appear in the dictionary. To reuse an existing
         regex will updating others, you can refer to them as None, e.g. ``{'dcml': None, 'my_own': r'^(PAC|HC)$'}``.
@@ -228,7 +228,7 @@ class Score(LoggedClass):
     @property
     def has_detached_annotations(self):
         """:obj:`bool`
-        Is True as long as the score contains :py:class:`~ms3.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.
+        Is True as long as the score contains :py:class:`~.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.
         """
         return len(self._detached_annotations) > 0
 
@@ -266,7 +266,7 @@ class Score(LoggedClass):
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.
         remove_detached : :obj:`bool`, optional
-            By default, the detached :py:class:`~ms3.annotations.Annotations` object is removed after successfully attaching it.
+            By default, the detached :py:class:`~.annotations.Annotations` object is removed after successfully attaching it.
             Pass False to have it remain in detached state.
 
         Returns
@@ -304,6 +304,26 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self.mscx.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
         return reached, goal
 
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None,
+                          column_name=None, color_format=None):
+        """ Update :py:attr:`.Score.labels_cfg` and :py:attr:`.MSCX.labels_cfg`.
+
+        Parameters
+        ----------
+        labels_cfg : :obj:`dict`
+            Using an entire dictionary or, to change only particular options, choose from:
+        staff, voice, label_type, positioning, decode
+            Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
+        """
+        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        for k in keys:
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
+        self.mscx.labels_cfg.update(updated)
+
 
     def check_labels(self, keys='annotations', regex=None, label_type='dcml', **kwargs):
         """ Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``label_type``.
@@ -320,7 +340,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             To use the regular expression of a registered type, pass its name, defaults to 'dcml'. Pass a new name and
             a ``regex`` to register a new label type on the fly.
         kwargs :
-            Parameters passed to :py:func:`~ms3.utils.check_labels`.
+            Parameters passed to :py:func:`~.utils.check_labels`.
 
         Returns
         -------
@@ -445,7 +465,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
     def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
-        The extracted labels are stored as a new :py:class:`~ms3.annotations.Annotations` object that is accessible via ``Score.{key}``.
+        The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
         By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_mscx` afterwards,
         the created MuseScore file will not contain the detached labels.
 
@@ -472,7 +492,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not self.mscx.has_annotations:
             self.mscx.logger.info("No annotations present in score.")
             return
-        assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
+        assert key not in dir(self) + ['annotations'], f"The key {key} is reserved, please choose a different one."
         if not key.isidentifier():
             self.logger.warning(
                 f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
@@ -515,7 +535,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         description : :obj:`str`, optional
             Human readable description that appears when calling the property ``Score.types``.
         infer : :obj:`bool`, optional
-            By default, the labels of all :py:class:`~ms3.annotations.Annotations` objects are matched against the new type.
+            By default, the labels of all :py:class:`~.annotations.Annotations` objects are matched against the new type.
             Pass False to not change any label's type.
         """
         assert name not in self._label_types, f"'{name}' already added to types: {self._label_types[name]}"
@@ -527,19 +547,19 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self[key].infer_types(self.get_infer_regex())
 
     def load_annotations(self, tsv_path=None, anno_obj=None, key='tsv', cols={}, infer=True):
-        """ Attach an :py:class:`~ms3.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
+        """ Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
         Parameters
         ----------
         tsv_path : :obj:`str`
-            If you want to create a new :py:class:`~ms3.annotations.Annotations` object from a TSV file, pass its path.
-        anno_obj : :py:class:`~ms3.annotations.Annotations`
+            If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
+        anno_obj : :py:class:`~.annotations.Annotations`
             Instead, you can pass an existing object.
         key : :obj:`str`, defaults to 'tsv'
             Specify a new key for accessing the set of annotations. The string needs to be usable
             as an identifier, e.g. not start with a number, not contain special characters etc. In return you
-            may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~ms3.annotations.Annotations` as
+            may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
             ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
         cols : :obj:`dict`, optional
             If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
@@ -570,7 +590,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         Parameters
         ----------
         key : :obj:`str`, optional
-            Key of the :py:class:`~ms3.annotations.Annotations` object which you want to output as TSV file.
+            Key of the :py:class:`~.annotations.Annotations` object which you want to output as TSV file.
             By default, the annotations attached to the score (key='annotations') are stored.
         tsv_path : :obj:`str`, optional
             Path of the newly created TSV file including the file name.
@@ -664,7 +684,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         and in the case of a compressed MuseScore file (.mscz), a temporary uncompressed file is generated
         which is removed after the parsing process.
         Essentially, parsing means to initiate a :obj:`MSCX` object and to make it available as ``Score.mscx``
-        and, if the score includes annotations, to initiate an :py:class:`~ms3.annotations.Annotations` object that
+        and, if the score includes annotations, to initiate an :py:class:`~.annotations.Annotations` object that
         can be accessed as ``Score.annotations``.
         The method doesn't systematically clean up data from a hypothetical previous parse.
 
@@ -678,8 +698,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         parser : 'bs4', optional
             The only XML parser currently implemented is BeautifulSoup 4.
         labels_cfg : :obj:`dict`, optional
-            Store a configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
-            object representing the currently attached annotations. See :obj:`MSCX.labels_cfg`.
+            Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+            object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
         """
         if parser is not None:
             self.parser = parser
@@ -726,13 +746,25 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
     def __repr__(self):
         msg = ''
-        if 'mscx' in self.full_paths:
-            msg = f"MuseScore file"
-            if self._mscx.changed:
-                msg += " (CHANGED!!!)\n---------------!!!!!!!!!!!!"
+        if any(ext in self.full_paths for ext in ('mscx', 'mscz')):
+            if 'mscx' in self.full_paths:
+                path = self.full_paths['mscx']
+                msg = f"Uncompressed MuseScore file"
             else:
-                msg += "\n--------------"
-            msg += f"\n\n{self.full_paths['mscx']}\n\n"
+                path = self.full_paths['mscz']
+                msg = f"ZIP compressed MuseScore file"
+            if self._mscx.changed:
+                msg += " (CHANGED!!!)"
+        else:
+            frst = list(self.full_paths.keys())[0]
+            path = self.full_paths[frst]
+            msg = f"Temporarily converted {frst.upper()} file"
+        n_chars = len(msg)
+        if self._mscx.changed:
+            msg += '\n' + (n_chars-12) * '-' + 12 * '!'
+        else:
+            msg += '\n' + n_chars * '-'
+        msg += f"\n\n{path}\n\n"
         if self.mscx.has_annotations:
             msg += f"Attached annotations\n--------------------\n\n{self.annotations}\n\n"
         else:
@@ -804,8 +836,8 @@ class MSCX(LoggedClass):
         parser : :obj:`str`, optional
             Which XML parser to use.
         labels_cfg : :obj:`dict`, optional
-            Store a configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
-            object representing the currently attached annotations. See :obj:`MSCX.labels_cfg`.
+            Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+            object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
         logger_cfg : :obj:`dict`, optional
             The following options are available:
             'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
@@ -840,7 +872,7 @@ class MSCX(LoggedClass):
         of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information."""
 
         self._annotations = None
-        """:py:class:`~ms3.annotations.Annotations` or None
+        """:py:class:`~.annotations.Annotations` or None
         If the score contains at least one <Harmony> tag, this attribute points to the object representing all
         annotations, otherwise it is None."""
 
@@ -859,10 +891,10 @@ class MSCX(LoggedClass):
 
         self.labels_cfg = labels_cfg
         """:obj:`dict`
-        Configuration dictionary to determine the output format of the :py:class:`~ms3.annotations.Annotations`
-        object representing the labels that are attached to a score (stored as :obj:`._annotations``). 
+        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+        object representing the labels that are attached to a score (stored as :py:attr:`._annotations``). 
         The options correspond to the parameters of
-        :py:meth:`Annotations.get_labels()<ms3.annotations.Annotations.get_labels>`.
+        :py:meth:`Annotations.get_labels()<.annotations.Annotations.get_labels>`.
         """
 
         ms_version = get_ms_version(self.mscx_src)
@@ -940,7 +972,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     @property
     def labels(self):
         """:obj:`pandas.DataFrame`
-        DataFrame representing all <Harmony> tags in the score as returned by calling :py:meth:`~ms3.annotations.Annotations.get_labels`
+        DataFrame representing all <Harmony> tags in the score as returned by calling :py:meth:`~.annotations.Annotations.get_labels`
         on the object at :obj:`._annotations` with the current :obj:`._labels_cfg`."""
         if self._annotations is None:
             self.logger.info("The score does not contain any annotations.")
@@ -1027,12 +1059,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
     def add_labels(self, annotations_object):
-        """ Receives the labels from an :py:class:`~ms3.annotations.Annotations` object and adds them to the XML structure
+        """ Receives the labels from an :py:class:`~.annotations.Annotations` object and adds them to the XML structure
         representing the MuseScore file that might be written to a file afterwards.
 
         Parameters
         ----------
-        annotations_object : :py:class:`~ms3.annotations.Annotations`
+        annotations_object : :py:class:`~.annotations.Annotations`
             Object of labels to be added.
 
         Returns
@@ -1099,21 +1131,24 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                               color_name=color_name, color_html=color_html, color_r=color_r,
                                               color_g=color_g, color_b=color_b, color_a=color_a)
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, color_format=None):
-        """ Update :obj:`MSCX.labels_cfg`.
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None,
+                          column_name=None, color_format=None):
+        """ Update :py:attr:`.MSCX.labels_cfg`.
 
         Parameters
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
         staff, voice, label_type, positioning, decode
-            Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
+            Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
         """
-        for k in self.labels_cfg.keys():
+        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
-        self.labels_cfg.update(update_labels_cfg(labels_cfg), logger=self.logger)
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
 
 
 
@@ -1148,7 +1183,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         Parameters
         ----------
-        annotations_object : :py:class:`~ms3.annotations.Annotations`
+        annotations_object : :py:class:`~.annotations.Annotations`
             Object of labels to be added.
 
         Returns

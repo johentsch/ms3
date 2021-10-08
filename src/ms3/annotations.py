@@ -205,7 +205,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format='html'):
+    def get_labels(self, staff=None, voice=None, label_type=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format=None):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -262,25 +262,36 @@ Possible values are {{1, 2, 3, 4}}.""")
             res = res.rename(columns={label_col: column_name})
         color_cols = ['color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'color_name']
         rgb_cols = ['color_r', 'color_g', 'color_b']
-        if color_format is not None and any(True for c in color_cols if c in res):
-            if color_format == 'html' and 'color_html' not in res.columns:
-                if 'color_name' in res.columns:
-                    html = name2format(res, 'html')
-                elif 'color_r' in res.columns:
-                    if any(True for c in rgb_cols if c not in res.columns):
-                        logger.warning(f"The following columns are missing: {list(c for c in rgb_cols if c not in res.columns)}")
-                    else:
-                        html = rgb2format(res, 'html')
-                res['color_html'] = html
-            elif color_format == 'name' and 'color_name' not in res.columns:
-                if 'color_html' in res.columns:
-                    name = html2format(res, 'name')
-                elif 'color_r' in res.columns:
-                    if any(True for c in rgb_cols if c not in res.columns):
-                        logger.warning(f"The following columns are required")
-                    else:
-                        name = rgb2format(res, 'name')
-                res['color_name'] = name
+        present_cols = [c for c in color_cols if c in res.columns]
+        if color_format is not None and len(present_cols) > 0:
+            res['color'] = pd.NA
+            has_html = 'color_html' in res.columns
+            has_name = 'color_name' in res.columns
+            has_rgb  = all(col in res.columns for col in rgb_cols)
+            has_rgba = has_rgb and 'color_a' in res.columns
+
+            def tuple_or_na(row):
+                if row.isna().all():
+                    return pd.NA
+                return tuple(row)
+
+            if color_format == 'html' and has_html:
+                res.color = res.color_html
+            elif color_format == 'name' and has_name:
+                res.color = res.color_name
+            elif color_format == 'rgb' and has_rgb:
+                res.color = res[rgb_cols].apply(tuple_or_na, axis=1)
+            elif color_format == 'rgba' and has_rgba:
+                res.color = res[rgb_cols + ['color_a']].apply(tuple_or_na, axis=1)
+            elif has_html:
+                res.color = html2format(res, color_format)
+            elif has_name:
+                res.color = name2format(res, color_format)
+            elif has_rgb:
+                res.color = rgb2format(res, color_format)
+            else:
+                logger.warning(f"Color format '{color_format}' could not be computed from columns {present_cols}.")
+            res.drop(columns=present_cols, inplace=True)
 
         if self.mscx_obj is not None:
             res = column_order(self.mscx_obj.parsed.add_standard_cols(res))

@@ -210,6 +210,7 @@ class Parse(LoggedClass):
             'positioning': True,
             'decode': False,
             'column_name': 'label',
+            'color_format': None,
         }
         """:obj:`dict`
         Configuration dictionary to determine the output format of :obj:`~ms3.score.Score.labels` and
@@ -308,6 +309,7 @@ class Parse(LoggedClass):
             else:
                 self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
             return pd.DataFrame()
+        d = {k: v for k, v in d.items() if len(v.index) > 0}
         return pd.concat(d.values(), keys=d.keys())
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
@@ -698,21 +700,25 @@ Continuing with {annotation_key}.""")
         self._collect_annotations_objects_references(ids=ids)
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None):
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, label_type, positioning, decode
+        staff, voice, label_type, positioning, decode, column_name
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
-        for k in self.labels_cfg.keys():
+        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        for k in keys:
             val = locals()[k]
             if val is not None:
                 labels_cfg[k] = val
-        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
+        for score in self._parsed_mscx.values():
+            score.change_labels_cfg(labels_cfg=updated)
         ids = list(self._labellists.keys())
         if len(ids) > 0:
             self.collect_lists(ids=ids, labels=True)

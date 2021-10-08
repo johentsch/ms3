@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Next version
+============
+
+* Made the use of ``labels_cfg`` more consistent.
+* improved chord lists:
+  * include system and tempo texts
+  * new algorithm for correct spanner IDs (i.e. for Slurs, Pedal, HairPins, Ottava)
+
 Version 0.4.9
 =============
 
