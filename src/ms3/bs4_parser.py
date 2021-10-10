@@ -15,7 +15,7 @@ from .utils import color2rgba, color_params2rgba, column_order, fifths2name, ord
 
 
 class _MSCX_bs4(LoggedClass):
-    """ This sister class implements MSCX's methods for a score parsed with beautifulsoup4.
+    """ This sister class implements :py:class:`~.score.MSCX`'s methods for a score parsed with beautifulsoup4.
 
     Attributes
     ----------
@@ -395,10 +395,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         voice : :obj:`int`
             Get information from a particular voice only (1 = only the first layer of every staff)
         mode : {'auto', 'all', 'strict'}, optional
-            Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
-                DataFrame has no empty columns except for those parameters that are set to True.
-            'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+            | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+              DataFrame has no empty columns except for those parameters that are set to True.
+            | 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+            | 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
         lyrics : :obj:`bool`, optional
             Include lyrics.
         dynamics : :obj:`bool`, optional
@@ -425,6 +425,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
                 'syllabic': 'Chord/Lyrics/syllabic',
+                'verses' : 'Chord/Lyrics/no',
                 'articulation': 'Chord/Articulation/subtype',
                 'dynamics': 'Dynamic/subtype',
                 'system_text': 'SystemText/text'}
@@ -473,18 +474,29 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations) # replace string values by fractions
         new_cols = {}
         if params['lyrics']:
-            main_cols.append('lyrics')
-            if 'syllabic' in df:
+            if 'verses' in df.columns:
+                verses = pd.to_numeric(df.verses).astype('Int64')
+                verses.loc[df.lyrics.notna()] = verses[df.lyrics.notna()].fillna(0)
+                verses += 1
+                n_verses = verses.max()
+                if n_verses > 1:
+                    self.logger.warning(f"Detected lyrics with {n_verses} verses. Unfortunately, only the last "
+                                   f"one (for each chord) can currently be extracted.")
+                verse_range = range(1, n_verses + 1)
+                lyr_cols = [f"lyrics:{verse}" for verse in verse_range]
+                columns = [df.lyrics.where(verses == verse, pd.NA).rename(col_name) for verse, col_name in enumerate(lyr_cols, 1)]
+            else:
+                lyr_cols = ['lyrics:1']
+                columns = [df.lyrics.rename('lyrics:1')] if 'lyrics' in df.columns else []
+            main_cols.extend(lyr_cols)
+            if 'syllabic' in df.columns:
                 # turn the 'syllabic' column into the typical dashs
-                sy = df.syllabic
-                empty = pd.Series(pd.NA, index=df.index)
-                syl_start, syl_mid, syl_end = [empty.where(sy != which, '-').fillna('') for which in
-                                               ['begin', 'middle', 'end']]
-                lyrics_col = syl_end + syl_mid + df.lyrics + syl_mid + syl_start
-                if 'lyrics' in df:
-                    df.loc[:, 'lyrics'] = lyrics_col
-                else:
-                    new_cols['lyrics'] = lyrics_col
+                empty = pd.Series(index=df.index)
+                for col in columns:
+                    syl_start, syl_mid, syl_end = [empty.where(col.isna() | (df.syllabic != which), '-').fillna('')
+                                                   for which in ['begin', 'middle', 'end']]
+                    col = syl_end + syl_mid + col + syl_mid + syl_start
+            df = pd.concat([df] + columns, axis=1)
         if params['dynamics']:
             main_cols.append('dynamics')
         if params['articulation']:
@@ -1391,13 +1403,12 @@ def make_spanner_cols(df, spanner_types=None):
         # select rows corresponding to spanner_type
         sel = df[type_col] == spanner_type
         # then select only beginnings
-        sel &= df[f_cols].notna().any(axis=1)
+        existing = [c for c in f_cols if c in df.columns]
+        sel &= df[existing].notna().any(axis=1)
         if subtype is not None:
             sel &= df[subtype_col] == subtype
-        # existing = [c for c in f_cols if c in df.columns]
-        # if a column should be missing, the assignment within spanner_ids() needs to be adapted, e.g. using .itertuples() to call it
         features = pd.DataFrame(index=df.index, columns=f_cols)
-        features.loc[sel, f_cols] = df.loc[sel, f_cols]
+        features.loc[sel, existing] = df.loc[sel, existing]
         features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
         features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
         features = pd.concat([df[['mc', 'mc_onset', 'staff']], features], axis=1)
@@ -1461,6 +1472,7 @@ def make_spanner_cols(df, spanner_types=None):
         'HairPin:2': 'crescendo_line',
         'HairPin:3': 'diminuendo_line',
         'Slur': 'slur',
+        'Pedal': 'pedal'
     }
     return pd.DataFrame(merged_dict, index=df.index).rename(columns=renaming)
 

@@ -9,6 +9,7 @@ Next version
 * improved chord lists:
   * include system and tempo texts
   * new algorithm for correct spanner IDs (i.e. for Slurs, Pedal, HairPins, Ottava)
+  * lyrics: still extracts only the last verse but now in the corresponding column, e.g. ``lyrics:3`` for verse 3.
 
 Version 0.4.9
 =============
