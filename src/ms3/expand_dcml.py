@@ -46,9 +46,9 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
     Split harmony labels complying with the DCML syntax into columns holding their various features
     and allows for additional computations and transformations.
 
-    Uses: :py:func:`compute_chord_tones`, :py:func:`features2type`, :py:func:`labels2global_tonic`, :py:func:`propagate_keys`,
-    :py:func:`propagate_pedal`, :py:func:`replace_special`, :py:func:`roman_numeral2tpc`, :py:func:`split_alternatives`, :py:func:`split_labels`,
-    :py:func:`transform`, :py:func:`transpose`
+    Uses: :py:func:`compute_chord_tones`, :py:func:`features2type`, :py:func:`~.utils.labels2global_tonic`, :py:func:`propagate_keys`,
+    :py:func:`propagate_pedal`, :py:func:`replace_special`, :py:func:`~.utils.roman_numeral2fifths`, :py:func:`~.utils.split_alternatives`, :py:func:`split_labels`,
+    :py:func:`~.utils.transform`, :py:func:`transpose`
 
 
     Parameters
@@ -670,8 +670,8 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     in the order of the inversion, starting from the bass note. The tones are
     expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.
 
-    Uses: :py:func:`changes2list`, :py:func:`name2tpc`, :py:func:`resolve_relative_keys`, :py:func:`roman_numeral2tpc`,
-    :py:func:`sort_tpcs`, :py:func:`str_is_minor`
+    Uses: :py:func:`~.utils.changes2list`, :py:func:`~.utils.name2fifths`, :py:func:`~.utils.resolve_relative_keys`, :py:func:`~.utils.roman_numeral2fifths`,
+    :py:func:`~.utils.sort_tpcs`, :py:func:`~.utils.str_is_minor`
 
     Parameters
     ----------

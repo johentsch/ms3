@@ -2,22 +2,33 @@
 Quick Reference
 ===============
 
-This page is a quick guide for using ms3 for different tasks. It supposes you are working in an interactive Python
-interpreter such as IPython, Jupyter, Google Colab, or just the console.
+.. figure:: ms3_architecture.png
+    :alt: The archicture of ms3
 
-Parsing a single score
-======================
+There are two ways of interacting with ms3, namely using the commands that it installs to your system (such as
+``ms3 extract``), or using its main objects, :py:class:`~ms3.score.Score` and :py:class:`~ms3.parse.Parse`, for example
+in an interactive Python interpreter such as IPython, Jupyter, Google Colab, or just the console.
+
+
+
+Parsing a single score: Working with the Score object
+=====================================================
 
 The example score is called ``stabat.mscx`` and can be downloaded from
 `here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__.
+
+Creating a Score object
+-----------------------
+
+Simply pass the path to the MuseScore 3 file that you want to parse:
 
 .. code-block:: python
 
     >>> from ms3 import Score
     >>> s = Score('~/ms3/docs/stabat.mscx')
     >>> s
-        MuseScore file
-        --------------
+        Uncompressed MuseScore file
+        ---------------------------
 
         ~/ms3/docs/stabat.mscx
 
@@ -25,8 +36,24 @@ The example score is called ``stabat.mscx`` and can be downloaded from
         --------------------
 
         48 labels:
-        staff  voice  label_type
-        3      2      dcml          48
+        staff  voice  label_type  color_name
+        3      2      0 (dcml)    default       48
+
+As you see, upon inspecting the new object, the 48 detected labels are summarized. For the explanation of the various
+label types, :ref:`see here <label_types>`.
+
+A score object can also be created from a file that first needs to be converted (convertible format are, to date,
+CAP, CAPX, MID, MIDI, MUSICXML, MXL), as long as you have MuseScore 3 installed on your computer:
+
+.. code-block:: python
+
+    >>> s = Score('stabat.mxl')
+    ValueError: To open a mxl file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
+
+Ooops, we also need to tell ms3 where it can find the MuseScore executable. If you are lucky, you can let ms3 go check
+the default installation path for your system by trying ``Score('stabat.xml', ms='auto')``. Otherwise pass the path
+to the executable. Linux users might want to use the `AppImage <https://musescore.org/en/download#AppImage-(recommended)>`__
+which can be stored anywhere on the system.
 
 
 Storing the labels
@@ -39,10 +66,10 @@ and stored as a tab-separated file (TSV) like this:
 
     >>> s.annotations
     48 labels:
-    staff  voice  label_type
-    3      2      0             48
+    staff  voice  label_type  color_name
+    3      2      0 (dcml)    default       48
 
-    >>> s.annotations.output_tsv('~/stabat_chords.tsv')
+    >>> s.annotations.store_tsv('stabat_chords.tsv')
     True
 
 .. _detaching:
@@ -56,8 +83,8 @@ The annotations will be stored with a keyword that you choose. It needs to be di
 
     >>> s.detach_labels(key='chords')
     >>> s
-    MuseScore file (CHANGED!!!)
-    ---------------!!!!!!!!!!!!
+    Uncompressed MuseScore file (CHANGED!!!)
+    ----------------------------!!!!!!!!!!!!
 
     ~/ms3/docs/stabat.mscx
 
@@ -67,12 +94,12 @@ The annotations will be stored with a keyword that you choose. It needs to be di
     --------------------
 
     chords -> 48 labels:
-    staff  voice  label_type
-    3      2      dcml          48
+    staff  voice  label_type  color_name
+    3      2      0 (dcml)    default       48
 
 Upon inspecting the object we see that the 48 labels are not attached to the score anymore. They are stored in a new
 :py:class:`~ms3.annotations.Annotations` object which can be accessed via ``s.chords``, i.e. the key we've chosen.
-The warning ``CHANGED!!!`` does not mean that the file on disc has been changed, only the inner representation. Overwriting
+The warning ``CHANGED!!!`` does not mean that the file on disc has been changed, only the object. Overwriting
 the original file could mean a loss of the labels unless they are stored separately.
 
 
@@ -80,10 +107,11 @@ Storing the changed score
 -------------------------
 
 To output the changed score without the labels, choose a different path unless you really want to overwrite the annotated file.
+The output will always be uncompressed, so make sure to use ``.mscx`` as extension, not ``.mscz``.
 
 .. code-block:: python
 
-    >>> s.output_mscx('~/stabat_empty.mscx')
+    >>> s.store_mscx('stabat_empty.mscx')
     True
 
 
@@ -95,13 +123,13 @@ The method :py:meth:`~ms3.score.Score.attach_labels` can be used to re-attach a 
 
 .. code-block:: python
 
-    >>> e = Score('~/stabat_empty.mscx')
-    >>> e.load_annotations('~/stabat_chords.tsv', key='tsv_chords')
+    >>> e = Score('stabat_empty.mscx')
+    >>> e.load_annotations('stabat_chords.tsv', key='tsv_chords')
     >>> e
-    MuseScore file
-    --------------
+    Uncompressed MuseScore file
+    ---------------------------
 
-    ~/stabat_empty.mscx
+    ~/ms3/docs/stabat_empty.mscx
 
     No annotations attached.
 
@@ -109,32 +137,29 @@ The method :py:meth:`~ms3.score.Score.attach_labels` can be used to re-attach a 
     --------------------
 
     tsv_chords (stored as stabat_chords.tsv) -> 48 labels:
-    staff  voice  label_type
-    3      2      0             48
+    staff  voice  label_type  color_name
+    3      2      0 (dcml)    default       48
 
-    >>> e.attach_labels(key='tsv_chords', voice=1)
+    >>> e.attach_labels(key='tsv_chords', voice=1, label_type=1)
+    >>> e.store_mscx('stabat_rna.mscx')
     >>> e
-    MuseScore file (CHANGED!!!)
-    ---------------!!!!!!!!!!!!
+    Uncompressed MuseScore file (CHANGED!!!)
+    ----------------------------!!!!!!!!!!!!
 
-    ~/stabat_empty.mscx
+    ~/ms3/docs/stabat_empty.mscx
 
     Attached annotations
     --------------------
 
     48 labels:
-    staff  voice  label_type
-    3      1      0             48
-
-    Detached annotations
-    --------------------
-
-    tsv_chords (stored as stabat_chords.tsv) -> 48 labels:
-    staff  voice  label_type
-    3      2      0             48
+    staff  voice  label_type  color_name
+    3      1      1           default       48
 
 As we can see, the parameter ``voice=1`` has been used to insert the labels in the first layer (coloured blue in MuseScore)
-of staff 3 when originally they had been attached to layer two (coloured in green in the software).
+of staff 3 when originally they had been attached to layer two (coloured in green in the software). Additionally,
+the parameter ``label_type=1`` resulted in the labels being attached to MuseScore's Roman Numeral Analysis layer
+(for information on the various label types, :ref:`see here <label_types>`). If you followed the steps above,
+you may open the new file ``stabat_rna.mscx`` to inspect the result.
 
 
 Accessing score information
@@ -147,7 +172,7 @@ Since this information is attached to the parsed MSCX file (and not, say, to loa
 via ``s.mscx``.
 
 Metadata
-~~~~~~~~
+^^^^^^^^
 
 The metadata contains the data that can be accessed and altered in MuseScore 3 through the menu ``File -> Score Properties``
 as well as information computed from the score, such as the names and ambitus of the contained staves. Note that the
@@ -155,48 +180,61 @@ ambitus in the example here pertain to the first page only.
 
 .. code-block:: python
 
+    >>> from ms3 import Score
+    >>> s = Score('~/ms3/docs/stabat.mscx')
     >>> s.mscx.metadata
-    {'arranger': None,
+    {'arranger': '',
      'composer': 'Giovanni Battista Pergolesi',
      'copyright': 'Editions FREDIPI',
      'creationDate': '2019-07-23',
-     'lyricist': None,
+     'lyricist': '',
      'movementNumber': '1',
      'movementTitle': 'Stabat Mater dolorosa',
      'platform': 'Microsoft Windows',
-     'poet': None,
+     'poet': '',
      'source': 'http://musescore.com/user/1630246/scores/5653570',
      'translator': 'fredipi',
-     'workNumber': None,
-     'workTitle': 'Stabat Mater',   #  <- Score Properties until here
-     'last_mc': 13,                 #  <- computed information from here
+     'workNumber': '',
+     'workTitle': 'Stabat Mater',
+     'musescore': '3.5.0',
+     'last_mc': 13,
      'last_mn': 13,
      'label_count': 48,
      'TimeSig': {1: '4/4'},
      'KeySig': {1: -4},
      'annotated_key': 'f',
-     'parts':  {'Soprano': {1:  {'min_midi': 65,
-                                'min_name': 'F4',
-                                'max_midi': 70,
-                                'max_name': 'Bb4'}
-                              },
-                  'Alto':  {2:  {'min_midi': 64,
-                                'min_name': 'E4',
-                                'max_midi': 68,
-                                'max_name': 'Ab4'}
-                              },
-                  'Piano': {3: {'min_midi': 56,
-                                'min_name': 'Ab3',
-                                'max_midi': 85,
-                                'max_name': 'Db6'},
-                            4: {'min_midi': 44,
-                                'min_name': 'Ab2',
-                                'max_midi': 70,
-                                'max_name': 'Bb4'}
-                              }
-                  },
-     'musescore': '3.5.0'}
-
+     'parts': {'part_1': {'staves': [1],
+       'trackName': 'Soprano',
+       'longName': 'Soprano',
+       'instrument': 'Soprano',
+       'staff_1_ambitus': {'min_midi': 65,
+        'min_name': 'F4',
+        'max_midi': 70,
+        'max_name': 'Bb4'}},
+      'part_2': {'staves': [2],
+       'trackName': 'Alto',
+       'longName': 'Alto',
+       'instrument': 'Alto',
+       'staff_2_ambitus': {'min_midi': 64,
+        'min_name': 'E4',
+        'max_midi': 68,
+        'max_name': 'Ab4'}},
+      'part_3': {'staves': [3, 4],
+       'trackName': 'Piano',
+       'longName': 'Violino I/II\nViola\nVioloncello\nContrabasso\ne organo',
+       'instrument': 'Piano',
+       'staff_3_ambitus': {'min_midi': 56,
+        'min_name': 'Ab3',
+        'max_midi': 85,
+        'max_name': 'Db6'},
+       'staff_4_ambitus': {'min_midi': 44,
+        'min_name': 'Ab2',
+        'max_midi': 70,
+        'max_name': 'Bb4'}}},
+     'ambitus': {'min_midi': 44,
+      'min_name': 'Ab2',
+      'max_midi': 85,
+      'max_name': 'Db6'}}
 
 The computed information contains the following:
 
@@ -207,85 +245,45 @@ The computed information contains the following:
     for the piano part contains staves 3 and for, one for the right hand (Ab3-Db6) and one for the left hand (Ab2-Bb4).
 * ``musescore``: The MuseScore version with which the files has been saved.
 
+
 .. _tabular_info:
 
 Tabular information
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
-The accessible DataFrames with score information are:
+
+All score information, except the metadata, is contained in the following two tables:
 
 * ``measures``: A list of all measures together with the strictly increasing **measure counts (MC)** mapped to the actual
   **measure numbers (MN)**. Read more on the difference in the :ref:`manual<mc_vs_mn>`.
+* ``events``: A raw version of the score where the XML tags of all events have been transformed to column names.
+
+However, ``events`` tables are very cumbersome to work with, which is why you might be interested in the following pretty and
+standardized tables:
+
 * ``notes``: A list of all notes contained in the score together with their respective features.
-* ``chords``: Not to confound with labels or chord annotations, a chord is a notational unit in which all included
+* ``rests``: A list of all rests contained in the score together with their respective features.
+* ``notes_and_rests``: A combination of the two.
+* ``chords``: Not to be confounded with labels or chord annotations, a chord is a notational unit in which all included
   notes are part of the same notational layer and have the same onset. Every chord has a ``chord_id`` and every note
   is part of a chord. These tables are used to convey score information that is not attached to a particular note,
   such as lyrics, staff text, dynamics and other markup.
-* ``rests``: A list of rests.
-* ``events``: For sake of completeness, a raw version of the score information for debugging purposes.
+* ``labels``: The annotation labels contained in the score, formatted according to :py:attr:`.MSCX.labels_cfg`.
+* ``expanded``: If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__, return them split
+  into the encoded features.
+* ``cadences``: If DCML harmony labels include cadence labels, return only those (simply a filter on ``expanded``).
+
+In order to retrieve any of these tables, simply call the corresponding property from ``Score.mscx``, e.g.
+
 
 .. code-block:: python
 
-    >>> s.mscx.measures
+    >>> from ms3 import Score
+    >>> s = Score('~/ms3/docs/stabat.mscx')
+    >>> s.mscx.labels
 
-.. |act_dur| replace:: :ref:`act_dur <act_dur>`
-.. |barline| replace:: :ref:`barline <barline>`
-.. |breaks| replace:: :ref:`breaks <breaks>`
-.. |dont_count| replace:: :ref:`dont_count <dont_count>`
-.. |keysig| replace:: :ref:`keysig <keysig>`
-.. |mc| replace:: :ref:`mc <mc>`
-.. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
-.. |mn| replace:: :ref:`mn <mn>`
-.. |next| replace:: :ref:`next <next>`
-.. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
-.. |timesig| replace:: :ref:`timesig <timesig>`
-.. |repeats| replace:: :ref:`repeats <repeats>`
-.. |volta| replace:: :ref:`volta <volta>`
+.. program-output:: python examples/access_score_info.py
 
-
-+------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
-| |mc| | |mn| | |keysig| | |timesig| | |act_dur| | |mc_offset| | |breaks| | |repeats|    | |volta| | |barline| | |numbering_offset| | |dont_count| | |next| |
-+------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
-| 1    | 1    | -4       | 4/4       | 1         | 0           | NaN      | firstMeasure | <NA>    | NaN       | <NA>               | <NA>         | (2,)   |
-+------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
-| 2    | 2    | -4       | 4/4       | 1         | 0           | NaN      | NaN          | <NA>    | NaN       | <NA>               | <NA>         | (3,)   |
-+------+------+----------+-----------+-----------+-------------+----------+--------------+---------+-----------+--------------------+--------------+--------+
-
-.. code-block:: python
-
-    >>> s.mscx.notes
-
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
-| mc | mn | timesig | onset | staff | voice | duration | gracenote | nominal_duration | scalar | tied | tpc | midi | volta | chord_id |
-+====+====+=========+=======+=======+=======+==========+===========+==================+========+======+=====+======+=======+==========+
-| 1  | 1  | 4/4     | 0     | 4     | 2     | 1/8      | NaN       | 1/8              | 1      | <NA> | -1  | 53   | <NA>  | 4        |
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
-| 1  | 1  | 4/4     | 0     | 3     | 2     | 3/4      | NaN       | 1/2              | 3/2    | <NA> | -1  | 77   | <NA>  | 1        |
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
-
-.. code-block:: python
-
-    >>> s.mscx.chords
-
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
-| mc | mn | timesig | onset | staff | voice | duration | gracenote | nominal_duration | scalar | volta | chord_id | staff_text | lyrics | articulation | dynamics | Slur | decrescendo | diminuendo |
-+====+====+=========+=======+=======+=======+==========+===========+==================+========+=======+==========+============+========+==============+==========+======+=============+============+
-| 1  | 1  | 4/4     | 1/2   | 3     | 1     | 1/2      | NaN       | 1/2              | 1      | <NA>  | 0        | NaN        | NaN    | NaN          | NaN      | NaN  | NaN         | NaN        |
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
-| 1  | 1  | 4/4     | 0     | 3     | 2     | 3/4      | NaN       | 1/2              | 3/2    | <NA>  | 1        | NaN        | NaN    | NaN          | NaN      | 0    | NaN         | NaN        |
-+----+----+---------+-------+-------+-------+----------+-----------+------------------+--------+-------+----------+------------+--------+--------------+----------+------+-------------+------------+
-
-.. code-block:: python
-
-    >>> s.mscx.rests
-
-+----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
-| mc | mn | timesig | onset | staff | voice | duration | nominal_duration | scalar | volta |
-+====+====+=========+=======+=======+=======+==========+==================+========+=======+
-| 1  | 1  | 4/4     | 0     | 1     | 1     | 1        | 1                | 1      | <NA>  |
-+----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
-| 1  | 1  | 4/4     | 0     | 2     | 1     | 1        | 1                | 1      | <NA>  |
-+----+----+---------+-------+-------+-------+----------+------------------+--------+-------+
 
 
 Parsing multiple scores

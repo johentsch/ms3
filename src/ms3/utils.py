@@ -1021,6 +1021,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         'rightParen': str,
         'root': 'Int64',
         'rootCase': 'Int64',
+        'slur': str,
         'special': str,
         'staff': 'Int64',
         'tied': 'Int64',
@@ -1381,7 +1382,7 @@ def pretty_dict(d, heading=None):
 
 
 def resolve_dir(d):
-    """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
+    """ Resolves '~' to HOME directory and turns ``d`` into an absolute path.
     """
     if d is None:
         return None

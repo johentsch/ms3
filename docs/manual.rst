@@ -9,13 +9,11 @@ interpreter such as IPython, Jupyter, Google Colab, or just the console.
 Good to know
 ============
 
-Terminology
------------
 
 .. _mc_vs_mn:
 
 Measure counts (MC) vs. measure numbers (MN)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
 
 Measure counts are strictly increasing numbers for all <measure> nodes in the score, regardless of their length. This
 information is crucial for correctly addressing positions in a MuseScore file and are shown in the software's status
@@ -30,7 +28,7 @@ computers, therefore a mapping MC -> MN is preserved in the score information Da
 .. _onsets:
 
 Onset positions
-^^^^^^^^^^^^^^^
+---------------
 
 Onsets express positions of events in a score as their distance from the beginning of the corresponding
 :ref:`MC or MN <mc_vs_mn>`. The distances are expressed as fractions of a whole note. In other words, beat 1 has
@@ -46,21 +44,494 @@ is divided into MC 9 of length 3/4 and MC 10 of length 1/4 because of a repeat s
 corresponds to the first part of MN 8, the two onset values are identical. But for the anacrusis on beat 4, the values
 differ: ``mc_onset`` is ``0`` but ``mn_onset`` is ``3/4`` because this is the distance from MN 8.
 
+
+.. _label_types:
+
+Label types
+-----------
+
+ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:
+
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| label_type | explanation                                                                                                                            |
++============+========================================================================================================================================+
+| 0          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
+|            | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 1          | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 2          | Nashville number (Add->Text->Nashville Number).                                                                                        |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 3          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
+|            | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+
+Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
+information will appear with a subtype, e.g. ``0 (dcml)``. If instead or additionally you want other subtypes to be
+recognized, specify the :py:attr:`~.score.Score.infer_label_types` attribute.
+
+
+.. _fifths:
+
+Stacks-of-fifths intervals
+--------------------------
+
+In order to express note names (tonal pitch classes, |tpc|), and scale degrees, ms3 uses stacks of fifths (the only
+way to express these as a single integer). For note names, ``0`` corresponds to C, for scale degrees to the local tonic.
+
++--------+-----------+----------+-----------------+
+| fifths | note name | interval | scale degree    |
++========+===========+==========+=================+
+| -6     | Gb        | d5       | b5              |
++--------+-----------+----------+-----------------+
+| -5     | Db        | m2       | b2              |
++--------+-----------+----------+-----------------+
+| -4     | Ab        | m6       | b6 (6 in minor) |
++--------+-----------+----------+-----------------+
+| -3     | Eb        | m3       | b3 (3 in minor) |
++--------+-----------+----------+-----------------+
+| -2     | Bb        | m7       | b7 (7 in minor) |
++--------+-----------+----------+-----------------+
+| -1     | F         | P4       | 4               |
++--------+-----------+----------+-----------------+
+| 0      | C         | P1       | 1               |
++--------+-----------+----------+-----------------+
+| 1      | G         | P5       | 5               |
++--------+-----------+----------+-----------------+
+| 2      | D         | M2       | 2               |
++--------+-----------+----------+-----------------+
+| 3      | A         | M6       | 6 (#6 in minor) |
++--------+-----------+----------+-----------------+
+| 4      | E         | M3       | 3 (#3 in minor) |
++--------+-----------+----------+-----------------+
+| 5      | B         | M7       | 7 (#7 in minor) |
++--------+-----------+----------+-----------------+
+| 6      | F#        | A4       | #4              |
++--------+-----------+----------+-----------------+
+
+
 .. _read_only:
 
 Read-only mode
-^^^^^^^^^^^^^^
+--------------
 
 For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
 XML structure is not kept in memory.
+
+
+.. _voltas:
+
+Voltas
+------
+
+"Prima/Seconda volta" is the Italian designation for "First/Second time". Therefore, in the context of ms3, we refer
+to 'a volta' as one of several endings. By convention, all endings should have the same measure numbers (MN), which are
+often differentiated by lowercase letters, e.g. ``8a`` for the first ending and ``8b`` for the second ending. In
+MuseScore, correct bar numbers can be achieved by excluding ``8b`` from the count or, if the endings have more than
+one bar, by subtracting the corresponding number from the second ending's count. For example, in order to achieve
+the correct MNs ``[7a 8a][7b 8b]``, you would add ``-2`` to 7b's count which otherwise would come out as 9.
+
+ms3 checks for incorrect MNs and warns you if the score needs correction. It will also ask you to make all voltas the
+same length. If this is not possible for editorial reasons (although often the length of the second volta is arbitrary),
+ignore the warning and check in the :ref:`measures <measures>` table if the MN are correct for your purposes.
+
+
+.. _score_information:
+
+Tables with score information
+=============================
+
+.. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |added_tones| replace:: :ref:`added_tones <chord_tones>`
+.. |articulation| replace:: :ref:`articulation <articulation>`
+.. |bass_note| replace:: :ref:`bass_note <bass_note>`
+.. |barline| replace:: :ref:`barline <barline>`
+.. |breaks| replace:: :ref:`breaks <breaks>`
+.. |cadence| replace:: :ref:`cadence <cadence>`
+.. |changes| replace:: :ref:`changes <changes>`
+.. |chord| replace:: :ref:`chord <chord>`
+.. |chord_id| replace:: :ref:`chord_id <chord_id>`
+.. |chord_tones| replace:: :ref:`chord_tones <chord_tones>`
+.. |chord_type| replace:: :ref:`chord_type <chord_type>`
+.. |crescendo_hairpin| replace:: :ref:`crescendo_hairpin <hairpins>`
+.. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
+.. .. |decrescendo| replace:: :ref:`decrescendo <decrescendo>`
+.. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
+.. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |dynamics| replace:: :ref:`dynamics <dynamics>`
+.. |figbass| replace:: :ref:`figbass <figbass>`
+.. |form| replace:: :ref:`form <form>`
+.. |globalkey| replace:: :ref:`globalkey <globalkey>`
+.. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
+.. |diminuendo| replace:: :ref:`diminuendo <diminuendo>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |duration| replace:: :ref:`duration <duration>`
+.. |gracenote| replace:: :ref:`gracenote <gracenote>`
+.. |keysig| replace:: :ref:`keysig <keysig>`
+.. |label| replace:: :ref:`label <label>`
+.. |label_type| replace:: :ref:`label_type <label_type>`
+.. |localkey| replace:: :ref:`localkey <localkey>`
+.. |localkey_is_minor| replace:: :ref:`localkey_is_minor <localkey_is_minor>`
+.. |lyrics:1| replace:: :ref:`lyrics:1 <lyrics_1>`
+.. |mc| replace:: :ref:`mc <mc>`
+.. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
+.. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
+.. |midi| replace:: :ref:`midi <midi>`
+.. |mn| replace:: :ref:`mn <mn>`
+.. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
+.. |next| replace:: :ref:`next <next>`
+.. |nominal_duration| replace:: :ref:`nominal_duration <nominal_duration>`
+.. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
+.. |numeral| replace:: :ref:`numeral <numeral>`
+.. |Ottava:15mb| replace:: :ref:`Ottava:15mb <ottava>`
+.. |Ottava:8va| replace:: :ref:`Ottava:8va <ottava>`
+.. |pedal| replace:: :ref:`pedal <pedal>`
+.. |phraseend| replace:: :ref:`phraseend <phraseend>`
+.. |qpm| replace:: :ref:`qpm <qpm>`
+.. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
+.. |repeats| replace:: :ref:`repeats <repeats>`
+.. |root| replace:: :ref:`root <root>`
+.. |scalar| replace:: :ref:`scalar <scalar>`
+.. |slur| replace:: :ref:`slur <slur>`
+.. |staff| replace:: :ref:`staff <staff>`
+.. |staff_text| replace:: :ref:`staff_text <staff_text>`
+.. |system_text| replace:: :ref:`system_text <system_text>`
+.. |tempo| replace:: :ref:`tempo <tempo>`
+.. |tied| replace:: :ref:`tied <tied>`
+.. |timesig| replace:: :ref:`timesig <timesig>`
+.. |tpc| replace:: :ref:`tpc <tpc>`
+.. |volta| replace:: :ref:`volta <volta>`
+.. |voice| replace:: :ref:`voice <voice>`
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This section gives an overview of the various tables that ms3 exposes after parsing a MuseScore file. Their names, e.g.
+``measures``, correspond to the properties of :py:class:`~.score.Score` and the methods of :py:class:`~.parse.Parse`
+with which they can be retrieved. They come as :obj:`pandas.DataFrame` objects. The available tables are:
+
+All score information, except the metadata, is contained in the following two tables:
+
+* :ref:`measures <measures>`: A list of all measures contained in the score together with their respective features.
+* :ref:`notes <notes>`: A list of all notes contained in the score together with their respective features.
+* :ref:`rests <rests>`: A list of all rests contained in the score together with their respective features.
+* :ref:`notes_and_rests <notes_and_rests>`: A combination of the two above.
+* :ref:`chords <chords>`: **Not to be confounded with labels or chord annotations**, a chord is a notational unit in which all included
+  notes are part of the same notational layer and have the same onset and duration. Every chord has a ``chord_id`` and every note
+  is part of a chord. These tables are used to convey score information that is not attached to a particular note,
+  such as lyrics, staff text, dynamics and other markup.
+* :ref:`labels <labels>`: The annotation labels contained in the score. The output can be controlled by changing
+  the ``labels_cfg`` configuration.
+* :ref:`expanded <expanded>`: If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__,
+  return them after being split into the encoded features.
+* :ref:`cadences <cadences>`: If DCML harmony labels include cadence labels, return only those (simply a filter on ``expanded``).
+* :ref:`events <events>`: A raw version of the score where the XML tags of all events have been transformed to column
+  names. Cumbersome to work with and only needed in special cases.
+
+For each of the available tables you will see an example and you can click on the columns to learn about their meanings.
+
+.. _measures:
+
+Measures
+--------
+
+.. code-block:: python
+
+    >>> s.mscx.measures   # access through a Score object
+    >>> p.measures()      # access through a Parse object
+
+
+
+
++----+----+--------+---------+---------+-----------+-------+------------------+------------+---------+--------+------------+------+
+||mc|||mn|||keysig|||timesig|||act_dur|||mc_offset|||volta|||numbering_offset|||dont_count|||barline|||breaks|| |repeats|  ||next||
++====+====+========+=========+=========+===========+=======+==================+============+=========+========+============+======+
+|   1|   1|      -4|4/4      |        1|          0|<NA>   |<NA>              |<NA>        |NaN      |NaN     |firstMeasure|(2,)  |
++----+----+--------+---------+---------+-----------+-------+------------------+------------+---------+--------+------------+------+
+|   2|   2|      -4|4/4      |        1|          0|<NA>   |<NA>              |<NA>        |NaN      |NaN     |nan         |(3,)  |
++----+----+--------+---------+---------+-----------+-------+------------------+------------+---------+--------+------------+------+
+
+.. _notes:
+
+Notes
+-----
+
+.. code-block:: python
+
+    >>> s.mscx.notes   # access through a Score object
+    >>> p.notes()      # access through a Parse object
+
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||duration|||gracenote|||nominal_duration|||scalar|||tied|||tpc|||midi|||volta|||chord_id||
++====+====+==========+==========+=========+=======+=======+==========+===========+==================+========+======+=====+======+=======+==========+
+|   1|   1|         0|         0|4/4      |      4|      2|1/8       |NaN        |1/8               |       1|<NA>  |   -1|    53|<NA>   |         4|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+|   1|   1|         0|         0|4/4      |      3|      2|3/4       |NaN        |1/2               |3/2     |<NA>  |   -1|    77|<NA>   |         1|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+
+
+.. _rests:
+
+Rests
+-----
+
+.. code-block:: python
+
+    >>> s.mscx.rests   # access through a Score object
+    >>> p.rests()      # access through a Parse object
+
++----+----+----------+----------+---------+-------+-------+----------+------------------+--------+-------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||duration|||nominal_duration|||scalar|||volta||
++====+====+==========+==========+=========+=======+=======+==========+==================+========+=======+
+|   1|   1|         0|         0|4/4      |      1|      1|         1|                 1|       1|<NA>   |
++----+----+----------+----------+---------+-------+-------+----------+------------------+--------+-------+
+|   1|   1|         0|         0|4/4      |      2|      1|         1|                 1|       1|<NA>   |
++----+----+----------+----------+---------+-------+-------+----------+------------------+--------+-------+
+
+
+.. _notes_and_rests:
+
+Notes and Rests
+---------------
+
+.. code-block:: python
+
+    >>> s.mscx.notes_and_rests   # access through a Score object
+    >>> p.notes_and_rests()      # access through a Parse object
+
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||duration|||gracenote|||nominal_duration|||scalar|||tied|||tpc|||midi|||volta|||chord_id||
++====+====+==========+==========+=========+=======+=======+==========+===========+==================+========+======+=====+======+=======+==========+
+|   1|   1|         0|         0|4/4      |      4|      2|1/8       |NaN        |1/8               |       1|<NA>  |   -1|    53|<NA>   |         4|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+|   1|   1|         0|         0|4/4      |      3|      2|3/4       |NaN        |1/2               |3/2     |<NA>  |   -1|    77|<NA>   |         1|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+|   1|   1|         0|         0|4/4      |      3|      1|1/2       |NaN        |1/2               |       1|<NA>  |<NA> |<NA>  |<NA>   |<NA>      |
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+|   1|   1|         0|         0|4/4      |      4|      1|1/2       |NaN        |1/2               |       1|<NA>  |<NA> |<NA>  |<NA>   |<NA>      |
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
+
+
+.. _chords:
+
+Chords
+------
+
+In a MuseScore file, every note is enclosed by a <Chord> tag. One <Chord> tag can enclose several notes, as long
+as they occur in the same |staff| and |voice| (notational layer). As a consequence, notes
+belonging to the same <Chord> have the same onset and the same duration.
+
+**Why chord lists?** Most of the markup (such as articulation, lyrics etc.) in a MuseScore file is attached
+not to individual notes but instead to <Chord> tags. It might be a matter of interpretation to what notes exactly
+the symbols pertain, which is why it is left for the interested user to link the chord list with the corresponding
+note list by joining on the |chord_id| column of each.
+
+
+
+Standard columns
+^^^^^^^^^^^^^^^^
+
+The output of the analogous commands depends on what markup is available in the score (:ref:`see below <chords_dynamic>`).
+The columns that are always present in a chord list are exactly the same as (and correspond to) those of a
+:ref:`note list <notes>` except for |tied|, |tpc|, and |midi|.
+
+
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+-------+----------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||duration|||gracenote|||nominal_duration|||scalar|||volta|||chord_id||
++====+====+==========+==========+=========+=======+=======+==========+===========+==================+========+=======+==========+
+|   1|   1|1/2       |1/2       |4/4      |      3|      1|1/2       |NaN        |1/2               |       1|<NA>   |         0|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+-------+----------+
+|   1|   1|0         |0         |4/4      |      3|      2|3/4       |NaN        |1/2               |3/2     |<NA>   |         1|
++----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+-------+----------+
+
+Such a reduced table can be retrieved using :py:meth:`Score.mscx.parsed.get_chords(mode='strict') <.bs4_parser._MSCX_bs4.get_chords()>`
+
+
+.. _chords_dynamic:
+
+Dynamic columns
+^^^^^^^^^^^^^^^
+
+Leaving the standard columns aside, the normal interface for accessing chord lists calls
+:py:meth:`Score.mscx.parsed.get_chords(mode='auto') <.bs4_parser._MSCX_bs4.get_chords()>` meaning that only columns
+are included that have at least one non empty value. The following table shows the first two non-empty values
+for each column when parsing all scores included in the `ms3 repository <https://github.com/johentsch/ms3>`__
+for demonstration purposes:
+
+.. code-block:: python
+
+    >>> s.mscx.chords   # access through a Score object
+    >>> p.chords()      # access through a Parse object
+
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+||lyrics:1||  |dynamics|  |  |articulation|  ||staff_text||    |tempo|    ||qpm|||slur|||decrescendo_hairpin|||diminuendo_line|||crescendo_hairpin|||crescendo_line|||Ottava:15mb|||Ottava:8va|||pedal|||system_text||
++==========+==============+==================+============+===============+=====+======+=====================+=================+===================+================+=============+============+=======+=============+
+|<NA>      |<NA>          |<NA>              |<NA>        |Grave          |   45|<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |0     |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |0     |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |p             |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |articStaccatoBelow|<NA>        |<NA>           |<NA> |2     |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |articStaccatoBelow|<NA>        |<NA>           |<NA> |2     |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |simile      |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |espr.       |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |other-dynamics|<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |0                    |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |0, 1                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |0                |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |0                |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|Sta       |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|bat       |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |Andante amoroso|55   |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |0                  |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |0                  |<NA>            |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |0               |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |0               |<NA>         |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |0      |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |0      |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |0           |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |0           |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |0            |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |0            |<NA>        |<NA>   |<NA>         |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+|<NA>      |<NA>          |<NA>              |<NA>        |<NA>           |<NA> |<NA>  |<NA>                 |<NA>             |<NA>               |<NA>            |<NA>         |<NA>        |<NA>   |Swing        |
++----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
+
+
+
+.. _labels:
+
+Labels
+------
+
+.. code-block:: python
+
+    >>> s.mscx.labels   # access through a Score object
+    >>> p.labels()      # access through a Parse object
+
+
++----+----+----------+----------+---------+-------+-------+-------+-------+------------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||volta|||label|||label_type||
++====+====+==========+==========+=========+=======+=======+=======+=======+============+
+|   1|   1|         0|         0|4/4      |      3|      2|<NA>   |.f.i   |0 (dcml)    |
++----+----+----------+----------+---------+-------+-------+-------+-------+------------+
+|   1|   1|1/4       |1/4       |4/4      |      3|      2|<NA>   |i6     |0 (dcml)    |
++----+----+----------+----------+---------+-------+-------+-------+-------+------------+
+
+
+.. _expanded:
+
+Expanded
+--------
+
+.. code-block:: python
+
+    >>> s.mscx.expanded   # access through a Score object
+    >>> p.expanded()      # access through a Parse object
+
++----+----+----------+----------+---------+-------+-------+-------+-------+-----------+----------+-------+-------+---------+------+---------+---------+--------------+---------+-----------+------------+--------------------+-------------------+-------------+-------------+------+-----------+
+||mc|||mn|||mc_onset|||mn_onset|||timesig|||staff|||voice|||volta|||label|||globalkey|||localkey|||pedal|||chord|||numeral|||form|||figbass|||changes|||relativeroot|||cadence|||phraseend|||chord_type|||globalkey_is_minor|||localkey_is_minor|||chord_tones|||added_tones|||root|||bass_note||
++====+====+==========+==========+=========+=======+=======+=======+=======+===========+==========+=======+=======+=========+======+=========+=========+==============+=========+===========+============+====================+===================+=============+=============+======+===========+
+|   1|   1|         0|         0|4/4      |      3|      2|<NA>   |.f.i   |f          |i         |NaN    |i      |i        |NaN   |      NaN|NaN      |NaN           |NaN      |NaN        |m           |True                |True               |(0, -3, 1)   |()           |     0|          0|
++----+----+----------+----------+---------+-------+-------+-------+-------+-----------+----------+-------+-------+---------+------+---------+---------+--------------+---------+-----------+------------+--------------------+-------------------+-------------+-------------+------+-----------+
+|   1|   1|1/4       |1/4       |4/4      |      3|      2|<NA>   |i6     |f          |i         |NaN    |i6     |i        |NaN   |        6|NaN      |NaN           |NaN      |NaN        |m           |True                |True               |(-3, 1, 0)   |()           |     0|         -3|
++----+----+----------+----------+---------+-------+-------+-------+-------+-----------+----------+-------+-------+---------+------+---------+---------+--------------+---------+-----------+------------+--------------------+-------------------+-------------+-------------+------+-----------+
+
+
+.. _cadences:
+
+Cadences
+--------
+
+This table is simply a filter on :ref:`expanded <expanded>`. The table has the same columns and contains only rows
+that include a cadence label. Just for convenience...
+
+.. code-block:: python
+
+    >>> s.mscx.cadences   # access through a Score object
+    >>> p.cadences()      # access through a Parse object
+
+
+.. _events:
+
+Events
+------
+
+This table is the original tabular representation of the MuseScore file's source code from which all other tables,
+except ``measures`` are generated. The nested XML tags are transformed into column names.
+
+The value ``'∅'`` is used for empty tags. For example, in the column ``Chord/Spanner/Slur`` it would correspond to
+the tag structure (formatting as in an MSCX file):
+
+.. code-block:: xml
+
+    <Chord>
+      <Spanner type="Slur">
+        <Slur>
+          </Slur>
+        </Spanner>
+      </Chord>
+
+The value ``'/'`` on the other hand represents a shortcut empty tag. For example, in the column ``Chord/grace16``
+it would correspond to the tag structure (formatting as in an MSCX file):
+
+.. code-block:: xml
+
+    <Chord>
+      <grace16/>
+      </Chord>
+
 
 Parsing
 =======
 
 This chapter explains how to
 
-* parse a single score to access and manipulate the contained information using a :py:class:`~ms3.score.Score` object
-* parse a group of scores to access and manipulate the contained information using a :py:class:`~ms3.parse.Parse` object.
+* parse a single score to access and manipulate the contained information using a :py:class:`~.score.Score` object
+* parse a group of scores to access and manipulate the contained information using a :py:class:`~.parse.Parse` object.
 
 
 
@@ -71,7 +542,7 @@ Parsing a single score
 
 1. Import the library.
 
-    To parse a single score, we will use the class :py:class:`~ms3.score.Score`. We could import the whole library:
+    To parse a single score, we will use the class :py:class:`~.score.Score`. We could import the whole library:
 
     .. code-block:: python
 
@@ -99,7 +570,7 @@ Parsing a single score
     `here <https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx>`__ (open link and key ``Ctrl + S`` to save the file
     or right-click on the link to ``Save link as...``).
 
-3. Create a :py:class:`~ms3.score.Score` object.
+3. Create a :py:class:`~.score.Score` object.
 
     In the example, the MuseScore 3 file is located at ``~/ms3/docs/stabat.mscx`` so we can simply create the object
     and bind it to the variable ``s`` like so:
@@ -147,7 +618,7 @@ Parsing multiple scores
 
 1. Import the library.
 
-    To parse multiple scores, we will use the class ``ms3.Parse``. We could import the whole library:
+    To parse multiple scores, we will use the class :py:class:`ms3.Parse <.parse.Parse>`. We could import the whole library:
 
     .. code-block:: python
 
@@ -168,7 +639,7 @@ Parsing multiple scores
     `cloned <https://www.atlassian.com/git/tutorials/setting-up-a-repository/git-clone>`__
     into the home directory and therefore has the path ``~/ms3``.
 
-3. Create a :py:class:`~ms3.parse.Parse` object
+3. Create a :py:class:`~.parse.Parse` object
 
     The object is created by calling it with the directory to scan, and bound
     to the variable ``p``. By default, scores are grouped by the subdirectories
@@ -200,7 +671,7 @@ Parsing multiple scores
     In this example, we assigned the key ``'ms3'``. Note that the same MSCX files that were distributed over several keys
     in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
     selected files. For example, we could add MSCX files from another folder using the method
-    :py:meth:`~ms3.parse.Parse.add_dir` and the key ``'other'``:
+    :py:meth:`~.parse.Parse.add_dir` and the key ``'other'``:
 
     .. code-block:: python
 
@@ -209,11 +680,11 @@ Parsing multiple scores
 
     .. program-output:: python examples/parse_other_directory.py
 
-    Most methods of the :py:class:`~ms3.parse.Parse` object have a ``keys`` parameter to perform an operation of a particular group of files.
+    Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation of a particular group of files.
 
 4. Parse the scores.
 
-    In order to simply parse all registered MuseScore files, call the method :py:meth:`~ms3.parse.Parse.parse_mscx`.
+    In order to simply parse all registered MuseScore files, call the method :py:meth:`~.parse.Parse.parse_mscx`.
     Instead, you can pass the argument ``keys`` to parse only one (or several)
     selected group(s) to save time. The argument ``level`` controls how many
     log messages you see; here, it is set to 'critical' or 'c' to suppress all
@@ -390,8 +861,8 @@ include at least the folders created by ``ms3 extract -N -M -X``:
 Extracting score information manually
 -------------------------------------
 
-What ``ms3 extract`` effectively does is creating a :py:class:`~ms3.parse.Parse` object, calling its method
-:py:meth:`~ms3.parse.Parse.parse_mscx` and then :py:meth:`~ms3.parse.Parse.store_lists`. In addition to the
+What ``ms3 extract`` effectively does is creating a :py:class:`~.parse.Parse` object, calling its method
+:py:meth:`~.parse.Parse.parse_mscx` and then :py:meth:`~.parse.Parse.store_lists`. In addition to the
 command, the method allows for storing two additional aspects, namely ``notes_and_rests`` and ``cadences`` (if
 the score contains cadence labels). For each of the available aspects,
 ``{notes, measures, rests, notes_and_rests, events, labels, chords, cadences, expanded}``,
@@ -421,7 +892,7 @@ Specifying folders
 ^^^^^^^^^^^^^^^^^^
 
 Consider a two-level folder structure contained in the root directory ``.``
-which is the one passed to :py:class:`~ms3.parse.Parse`:
+which is the one passed to :py:class:`~.parse.Parse`:
 
 .. code-block:: console
 
@@ -526,7 +997,7 @@ is recreated in each of the folders:
                 └── K281-3.tsv
 
 Note that in this example, we have specified a ``root_dir``. Leaving this argument
-out will create the same structure in the directory from which the :py:class:`~ms3.parse.Parse`
+out will create the same structure in the directory from which the :py:class:`~.parse.Parse`
 object was created, i.e. the folder structure would be:
 
 .. code-block:: console
@@ -587,7 +1058,7 @@ To exemplify both:
 The ``notes`` folders are created in directories where MuseScore files are located,
 and the ``measures`` folders one directory above, respectively. Leaving out the
 ``root_dir`` argument would lead to the same folder structure but in the directory
-from which the :py:class:`~ms3.parse.Parse` object has been created. In a similar manner,
+from which the :py:class:`~.parse.Parse` object has been created. In a similar manner,
 the arguments ``p.store_lists(notes_folder='.', measures_folder='.')`` would create
 the TSV files just next to the MuseScore files. However, this would lead to warnings
 such as
@@ -674,13 +1145,43 @@ same four files but this time from the perspective of ``~/ms3``:
 Column Names
 ============
 
+Glossary of the meaning and types of column types. In order to correctly restore the types when loading TSV files,
+either use an :py:class:`~.annotations.Annotations` object or the function :py:func:`~.utils.load_tsv`.
+
 General Columns
 ---------------
+
+.. _duration:
+
+**duration**
+^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
+Duration of an event expressed in fractions of a whole note. Note that in note lists, the duration does not take
+into account if notes are :ref:`tied <tied>` together; in other words, the column expresses no durations that
+surpass the final bar line.
+
+
+.. _keysig:
+
+**keysig** Key Signatures
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+The feature ``keysig`` represents the key signature of a particular measure.
+It is an integer which, if positive, represents the number of sharps, and if
+negative, the number of flats. E.g.: ``3``: three sharps, ``-2``: two flats,
+``0``: no accidentals.
+
 
 .. _mc:
 
 **mc** Measure Counts
 ^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
 
 Measure count, identifier for the measure units in the XML encoding.
 Always starts with 1 for correspondence to MuseScore's status bar. For more detailed information, please refer to
@@ -691,6 +1192,8 @@ Always starts with 1 for correspondence to MuseScore's status bar. For more deta
 **mn** Measure Numbers
 ^^^^^^^^^^^^^^^^^^^^^^
 
+:obj:`int`
+
 Measure number, continuous count of complete measures as used in printed editions.
 Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. MNs are identical for first and
 second endings! For more detailed information, please refer to :ref:`mc_vs_mn`.
@@ -699,34 +1202,90 @@ second endings! For more detailed information, please refer to :ref:`mc_vs_mn`.
 
 **mc_onset**
 ^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
 The value for ``mc_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
 corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
 refer to :ref:`onsets`.
 
-.. tip::
-
-    When loading a table from a TSV file, it is recommended to parse the text of this
-    column with :obj:`fractions.Fraction` to be able to calculate with the values.
-    MS3 does this automatically.
 
 .. _mn_onset:
 
 **mn_onset**
 ^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
 The value for ``mn_onset`` represents, expressed as fraction of a whole note, a position in a measure where ``0``
 corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
 please refer to :ref:`onsets`.
 
+
 .. _quarterbeats:
 
-quarterbeats
-^^^^^^^^^^^^
+**quarterbeats**
+^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
 
 This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
 quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
 last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
 repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
 account correctly.
+
+
+.. _staff:
+
+**staff**
+^^^^^^^^^
+
+:obj:`int`
+
+In which staff an event occurs. ``1`` = upper staff.
+
+
+
+.. _timesig:
+
+**timesig** Time Signatures
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+The time signature ``timesig`` of a particular measure is expressed as a string, e.g. ``'2/2'``.
+The :ref:`actual duration <act_dur>` of a measure can deviate from the time signature for notational reasons: For example,
+a pickup bar could have an actual duration of ``1/4``  but still be part of a ``'3/8'`` meter, which usually
+has an actual duration of ``3/8``.
+
+
+.. _volta:
+
+**volta**
+^^^^^^^^^
+
+:obj:`int`
+
+In the case of first and second (third etc.) endings, this column holds the number of every "bracket", "house", or _volta_,
+which should increase from 1. This is required for MS3's unfold repeats function to work. For more information,
+:ref:`see here <voltas>`.
+
+
+.. _voice:
+
+**voice**
+^^^^^^^^^
+
+:obj:`int`
+
+In which notational layer an event occurs. Each :ref:`staff` has (can have) up to four layers:
+
+* ``1`` = upper, default layer (blue)
+* ``2`` = second layer, downward stems (green)
+* ``3`` = third layer, upward stems (orange)
+* ``4`` = fourth layer, downward stems (purple)
+
 
 Measures
 --------
@@ -735,6 +1294,8 @@ Measures
 
 **act_dur** Actual duration of a measure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
 
 The value of ``act_dur`` in most cases equals the time signature, expressed as a fraction; meaning for example that
 a "normal" measure in 6/8 has ``act_dur = 3/4``. If the measure has an irregular length, for example a pickup measure
@@ -748,12 +1309,16 @@ from :ref:`MCs <mc>`. See also the columns :ref:`dont_count <dont_count>` and :r
 **barline**
 ^^^^^^^^^^^
 
+:obj:`str`
+
 The column ``barline`` encodes information about the measure's final bar line.
 
 .. _breaks:
 
 **breaks**
 ^^^^^^^^^^
+
+:obj:`str`
 
 The column ``breaks`` may include three different values: ``{'line', 'page', 'section'}`` which represent the different
 breaks types. In the case of section breaks, MuseScore
@@ -763,24 +1328,20 @@ breaks types. In the case of section breaks, MuseScore
 **dont_count** Measures excluded from bar count
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+:obj:`int`
+
 This is a binary value that corresponds to MuseScore's setting ``Exclude from bar count`` from the ``Bar Properties`` menu.
 The value is ``1`` for pickup bars, second :ref:`MCs <mc>` of divided :ref:`MNs <mn>` and some volta measures,
 and ``NaN`` otherwise.
 
-.. _keysig:
 
-**keysig** Key Signatures
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The feature ``keysig`` represents the key signature of a particular measure.
-It is an integer which, if positive, represents the number of sharps, and if
-negative, the number of flats. E.g.: ``3``: three sharps, ``-2``: two flats,
-``0``: no accidentals.
 
 .. _mc_offset:
 
 **mc_offset** Offset of a MC
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
 
 The column ``mc_offset`` , in most cases, has the value ``0`` because it expresses the deviation of this MC's
 :ref:`mc_onset` ``0`` (beginning of the MC)
@@ -794,23 +1355,22 @@ would have mc_offset = ``0`` , and the second one mc_offset = ``the previous MC'
 **next**
 ^^^^^^^^
 
+:obj:`tuple`
+
 Every cell in this column has at least one integer, namely the MC of the subsequent bar, or ``-1`` in the cast of the last.
 In the case of repetitions, measures can have more than one subsequent MCs, in which case the integers are separated by
 ``', '`` .
 
 The column is used for checking whether :ref:`irregular measure lengths <act_dur>` even themselves out because otherwise
-the inferred MNs might be wrong. Also, it is needed for MS3's unfold repeats functionality (TODO).
+the inferred MNs might be wrong. Also, it is needed for MS3's unfold repetitions functionality.
 
-.. topic:: Developers
-
-    Within MS3, the ``next`` column holds tuples, which MS3 should normally store as strings without parenthesis. For
-    example, the tuple ``(17, 1)`` is stored as ``'17, 1'``. However, users might have extracted and stored a raw DataFrame
-    from a :py:class:`~ms3.score.Score` object and MS3 needs to handle both formats.
 
 .. _numbering_offset:
 
 **numbering_offset** Offsetting MNs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
 
 MuseScore's measure number counter can be reset at a given MC by using the ``Add to bar number`` setting from the
 ``Bar Properties`` menu. If ``numbering_offset`` ≠ 0, the counting offset is added to the current MN and all subsequent
@@ -827,37 +1387,495 @@ sometimes, instead of using section :ref:`breaks <breaks>`, use ``numbering_offs
 **repeats**
 ^^^^^^^^^^^
 
+:obj:`str`
+
 The column ``repeats`` indicates the presence of repeat signs and can have the values
 ``{'start', 'end', 'startend', 'firstMeasure', 'lastMeasure'}``. MS3 performs a test on the
 repeat signs' plausibility and throws warnings when some inference is required for this.
 
 The ``repeats`` column needs to have the correct repeat sign structure in order to have a correct :ref:`next <next>`
-column which, in return, is required for MS3's unfolding repetitions functionality. (TODO)
+column which, in return, is required for MS3's unfolding repetitions functionality.
 
 
-.. _timesig:
 
-**timesig** Time Signatures
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The time signature ``timesig`` of a particular measure is expressed as a string, e.g. ``'2/2'``.
-The :ref:`actual duration <act_dur>` of a measure can deviate from the time signature for notational reasons: For example,
-a pickup bar could have an actual duration of ``1/4``  but still be part of a ``'3/8'`` meter, which usually
-has an actual duration of ``3/8``.
 
-.. tip::
 
-    When loading a table from a file, time signatures are not parsed as fractions because then both
-    ``'2/2'`` and ``'4/4'``, for example, would become ``1``.
 
-.. _volta:
 
-**volta**
+
+Notes and Rests
+---------------
+
+.. _chord_id:
+
+**chord_id**
+^^^^^^^^^^^^
+
+:obj:`int`
+
+Every note keeps the ID of the ``<Chord>`` tag to which it belongs in the score. This is necessary because in
+MuseScore XML, most markup (e.g. articulation, lyrics etc.) are attached to :ref:`chords <chords>` rather than
+to individual notes. This column allows for relating markup to notes at a later point.
+
+
+.. _gracenote:
+
+**gracenote**
+^^^^^^^^^^^^^
+
+:obj:`str`
+
+For grace notes, type of the grace note as encoded in the MuseScore source code. They are assigned a
+:ref:`duration <duration>` of 0.
+
+
+.. _midi:
+
+**midi** Piano key
+^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+MIDI pitch with ``60`` = C4, ``61`` = C#4/Db4/B##3 etc. For the actual note name, refer to the
+:ref:`tpc <tpc>` column.
+
+
+.. _nominal_duration:
+
+**nominal_duration**
+^^^^^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
+Note's or rest's duration without taking into account dots or tuplets. Multiplying by :ref:`scalar <scalar>`
+results in the actual :ref:`duration <duration>`.
+
+.. _scalar:
+
+**scalar**
+^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
+Value reflecting dots and tuples by which to multiply a note's or rest's :ref:`nominal_duration <nominal_duration>`.
+
+
+.. _tied:
+
+**tied**
+^^^^^^^^
+
+:obj:`int`
+
+Encodes ties on the note's left (``-1``), on its right (``1``) or both (``0``).
+A tie merges a note with an adjacent one having the same pitch.
+
++-------+--------------------------------------------------------------------------------------------------------+
+| value | explanation                                                                                            |
++=======+========================================================================================================+
+| <NA>  | No ties. This note represents an onset and ends after the given duration.                              |
++-------+--------------------------------------------------------------------------------------------------------+
+| 1     | This note is tied to the next one. It represents an onset but not a note ending.                       |
++-------+--------------------------------------------------------------------------------------------------------+
+| 0     | This note is being tied to and tied to the next one. It represents neither an onset nor a note ending. |
++-------+--------------------------------------------------------------------------------------------------------+
+| -1    | This note is being tied to. That is, it does not represent an onset,                                   |
+|       | instead it adds to the duration of a previous note on the same pitch and ends it.                      |
++-------+--------------------------------------------------------------------------------------------------------+
+
+
+.. _tpc:
+
+**tpc** Tonal pitch class
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+Encodes note names by their position on the line of fifth with ``0`` = C, ``1`` = G, ``2`` = D, ``-1`` = F,
+``-2`` = Bb etc. The octave is defined by :ref:`midi <midi>` DIV 12 - 1
+
+
+
+
+
+
+Chords
+------
+
+The various <Chord> tags are identified by increasing integer counts in the column ``chord_id``. Within a note list,
+a :ref:`column of the same name <chord_id>` specifies which note belongs to which <Chord> tag. A chord and all the
+notes belonging to it have identical values in the columns :ref:`mc <mc>`, :ref:`mn <mn>`, :ref:`mc_onset <mc_onset>`,
+:ref:`mn_onset <mn_onset>`, :ref:`timesig <timesig>`, :ref:`staff <staff>`, :ref:`voice <voice>`,
+:ref:`duration <duration>`, :ref:`gracenote <gracenote>`, :ref:`nominal_duration <nominal_duration>`,
+:ref:`scalar <scalar>`, :ref:`volta <volta>`, and of course :ref:`chord_id <chord_id>`.
+
+
+.. _articulation:
+
+**articulation**
+^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+Articulation signs named as in the MuseScore file, e.g. ``articStaccatoBelow``.
+
+
+.. _dynamics:
+
+**dynamics**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+Dynamic signs such as ``p``, ``ff`` etc. Other dynamic markings such as ``dolce`` are currently displayed as
+``other-dynamics``. Velocity values are currently not extracted. These features can easily be implemented
+`upon request <https://github.com/johentsch/ms3/issues/>`__.
+
+
+.. _lyrics_1:
+
+**lyrics:1**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+When a voice includes only a single verse, all syllables are contained in the column ``lyrics:1``. If it has more
+than one verse, for each <Chord> the last verse's syllable is contained in the respective column, e.g. ``lyrics:3`` if
+the 3rd verse is the last one with a syllable for this chord. Each syllable has a trailing ``-`` if it's the first
+syllable of a word, a leading ``-`` if it's the last syllable of a word, and both if it's in the middle of a word.
+
+
+.. _qpm:
+
+**qpm** Quarter notes per minute
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+Defined for every |tempo| mark. Normalizes the metronome value to quarter notes. For example, ``𝅘𝅥. = 112`` gets the
+value ``qbm = 112 * 1.5 = 168``.
+
+
+
+
+.. _staff_text:
+
+**staff_text**
+^^^^^^^^^^^^^^
+
+:obj:`str`
+
+Free-form text such as ``dolce`` or ``div.``. Depending on the encoding standard, this layer may include dynamics
+such as ``cresc.``, articulation such as ``stacc.``, movement titles, and many more. Staff texts are added in MuseScore
+via ``[C] + T``.
+
+
+.. _system_text:
+
+**system_text**
+^^^^^^^^^^^^^^^
+
+Free-form text not attached to a particular staff but to the entire system. This frequently includes movement names or
+playing styles such as ``Swing``. System texts are added in MuseScore via ``[C] + [S] + T``.
+
+
+.. _tempo:
+
+**tempo**
 ^^^^^^^^^
 
-In the case of first and second (third etc.) endings, this column holds the number of every "bracket", "house", or *volta*,
-which should increase from 1. This is required for MS3's unfold repeats function (TODO) to work.
+Metronome markings and tempo texts. Unfortunately, for tempo texts that include a metronome mark, e.g.
+``Larghetto. (𝅘𝅥 = 63)``, the text before the 𝅘𝅥 symbol is lost. This can be fixed
+`upon request <https://github.com/johentsch/ms3/issues/>`__.
 
-The MNs for all voltas except those of the first one need to be amended to match those of the
-first volta. In the case where these voltas have only one measure each, the :ref:`dont_count <dont_count>` option suffices. If
-the voltas have more than one measure, the :ref:`numbering_offset <numbering_offset>` setting needs to be used.
+
+.. _spanners:
+
+Spanners
+^^^^^^^^
+
+:obj:`str` (-> :obj:`tuple`)
+
+Spanners designate markup that spans several <Chord> tags, such as slurs, hairpins, pedal and ottava lines. The values
+in a spanner column are IDs such that all chords with the same ID belong to the same spanner. Each cell can have more
+than one ID, separated by commas. For evaluating spanner columns, the values should be turned into tuples.
+
+Spanners span all chords belonging to the same |staff|, except for slurs which span only chords in the same |voice|. In
+other words, won't find the ending of a slur that goes from one |voice| to another.
+
+
+.. _slur:
+
+**slur**
+""""""""
+
+:obj:`str` (-> :obj:`tuple`)
+
+Slurs expressing legato and/or phrasing. These :ref:`spanners <spanners>` always pertain to a particular |voice|.
+
+
+.. _hairpins:
+
+**(de)crescendo_hairpin**
+"""""""""""""""""""""""""
+
+:obj:`str` (-> :obj:`tuple`)
+
+``crescendo_hairpin`` is a ``<`` :ref:`spanner <spanners>`, ``decrescendo_hairpin`` a ``>`` :ref:`spanner <spanners>`.
+These always pertain to an entire |staff|.
+
+
+.. _cresc_lines:
+
+**crescendo_line**, **diminuendo_line**
+"""""""""""""""""""""""""""""""""""""""
+
+:obj:`str` (-> :obj:`tuple`)
+
+These are :ref:`spanners <spanners>` starting with a word, by default ``cresc.`` or ``dim.``, followed by a dotted line.
+These always pertain to an entire |staff|.
+
+
+.. _ottava:
+
+**Ottava**
+""""""""""
+
+:obj:`str` (-> :obj:`tuple`)
+
+These :ref:`spanners <spanners>` are always specified with a subtype such as ``Ottava:8va`` or ``Ottava:15mb``. They
+always pertain to an entire |staff|
+
+.. _pedal:
+
+**pedal**
+"""""""""
+
+:obj:`str` (-> :obj:`tuple`)
+
+Pedal line :ref:`spanners <spanners>` always pertain to an entire |staff|.
+
+
+
+
+
+
+Labels
+------
+
+.. _label:
+
+**label**
+^^^^^^^^^
+
+:obj:`str`
+
+Annotation labels from MuseScores <Harmony> tags. Depending on the |label_type| the column can include complete
+strings (decoded) or partial strings (encoded).
+
+
+.. _label_type:
+
+**label_type**
+
+:obj:`str`
+
+See :ref:`label types <label_types>` above.
+
+
+
+
+
+
+Expanded
+--------
+
+.. _bass_note:
+
+**bass_note**
+^^^^^^^^^^^^^
+
+:obj:`int`
+
+The bass note designated by the label, expressed as :ref:`scale degree <fifths>`.
+
+
+.. _cadence:
+
+**cadence**
+^^^^^^^^^^^
+
+:obj:`str`
+
+Currently allows for the values
+
++-------+---------------------+
+| value | cadence             |
++=======+=====================+
+| PAC   | perfect authentic   |
++-------+---------------------+
+| IAC   | imperfect authentic |
++-------+---------------------+
+| HC    | half                |
++-------+---------------------+
+| DC    | deceptive           |
++-------+---------------------+
+| EC    | evaded              |
++-------+---------------------+
+| PC    | plagal              |
++-------+---------------------+
+
+.. _chord:
+
+**chord**
+^^^^^^^^^
+
+:obj:`str`
+
+This column stands in no relation to the <Chord> tags :ref:`discussed above <chords>`. Instead, it holds the substring
+of the original labels that includes only the actual chord label, i.e. excluding information about modulations,
+pedal tones, phrases, and cadences. In other words, it comprises the features |numeral|, |form|, |figbass|, |changes|,
+and |relativeroot|.
+
+
+.. _chord_tones:
+
+**chord_tones**, **added_tones**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`str` (-> :obj:`tuple`)
+
+Chord tones designated by the label, expressed as :ref:`scale degrees <fifths>`. Includes 3 scale degrees for triads,
+4 for tetrads, ordered according to the inversion (i.e. the first value is the |bass_note|). Accounts for chord tone
+replacement expressed through intervals <= 8 within parentheses, without leading +.
+``added_tones`` reflects only those non-chord tones that were added using, again within parentheses,
+intervals preceded by + or/and greater than 8.
+
+
+.. _chord_type:
+
+**chord_type**
+^^^^^^^^^^^^^^
+
+:obj:`str`
+
+A summary of information that otherwise depends on the three columns |numeral|, |form|, |figbass|.
+It can be one of the wide-spread abbreviations for triads: ``M, m, o, +`` or for seventh chords: ``o7, %7, +7, +M7``
+(for diminished, half-diminished and augmented chords with minor/major seventh),
+or ``Mm7, mm7, MM7, mM7`` for all combinations of a major/minor triad with a minor/major seventh.
+
+
+.. _figbass:
+
+**figbass** Inversion
+^^^^^^^^^^^^^^^^^^^^^
+
+Figured bass notation of the chord inversion. For triads, this feature can be ``<NA>, '6', '64'``,
+for seventh chords ``'7', '65', '43', '2'``. This column plays into computing the |chord_type|.
+This feature is decisive for :ref:`which chord tone is in the bass <bass_note>`.
+
+
+.. _form:
+
+**form**
+^^^^^^^^
+
+:obj:`str`
+
+This column conveys part of the information what |chord_type| a label expresses.
+
++----------+---------------------------------------------------------------------------------------------------------------+
+| value    | chord type                                                                                                    |
++==========+===============================================================================================================+
+| <NA>     | If |figbass| is one of ``<NA>, '6', '64'``, the chord is either a major or minor triad. Otherwise, it is      |
+|          | either a major or a minor chord with a minor seventh.                                                         |
++----------+---------------------------------------------------------------------------------------------------------------+
+| o, +     | Diminished or augmented chord. Again, it depends on |figbass| whether it is a triad or a seventh chord.       |
++----------+---------------------------------------------------------------------------------------------------------------+
+| %, M, +M | Half diminished or major seventh chord. For the latter, the chord form (MM7 or mM7) depends on the |numeral|. |
++----------+---------------------------------------------------------------------------------------------------------------+
+
+
+.. _globalkey:
+
+**globalkey**
+^^^^^^^^^^^^^
+
+:obj:`str`
+
+Tonality of the piece, expressed as absolute note name, e.g. ``Ab`` for A flat major, or ``g#`` for G sharp minor.
+
+
+.. _globalkey_is_minor:
+
+**globalkey_is_minor**
+^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`bool`
+
+Auxiliary column which is True if the |globalkey| is a minor key, False otherwise.
+
+
+.. _localkey:
+
+**localkey**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+Local key expressed as Roman numeral relative to the |globalkey|, e.g. ``IV`` for the major key on the 4th scale degree
+or ``#iv`` for the minor scale on the raised 4th scale degree.
+
+
+.. _localkey_is_minor:
+
+**localkey_is_minor**
+^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`bool`
+
+Auxiliary column which is True if the |localkey| is a minor key, False otherwise.
+
+
+.. _numeral:
+
+**numeral**
+^^^^^^^^^^^
+
+:obj:`str`
+
+Roman numeral defining the chordal root relative to the local key. An uppercase numeral stands for a major chordal
+third, lowercase for a minor third. The column |root| expresses the same information as :ref:`scale degree <fifths>`.
+
+
+.. _phraseend:
+
+**phraseend** Phrase annotations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In versions < 2.2.0, only phrase endings where annotated, designated by ``\\``. From version 2.2.0 onwards,
+``{`` means beginning and ``}`` ending of a phrase. Everything between ``}`` and the subsequent ``{`` is to be
+considered as part of the previous phrase, a 'codetta' after the strong end point.
+
+
+.. _relativeroot:
+
+**relativeroot** Tonicized key
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+This feature designates a lower-level key to which the current chord relates. It is expressed relative to the local key.
+For example, if the current |numeral| is a ``V`` and it is a secondary dominant,
+relativeroot is the Roman numeral of the key that is being tonicized.
+
+
+.. _root:
+
+**root**
+^^^^^^^^
+
+:obj:`int`
+
+The |numeral| expressed as :ref:`scale degree <fifths>`.

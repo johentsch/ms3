@@ -30,9 +30,14 @@ The Score class
 
 .. autoclass:: ms3.score.Score
     :members:
+    :private-members:
 
 The MSCX class
 --------------
+
+This class defines the user interface for accessing score information via :py:attr:`Score.mscx <.score.Score.mscx>`.
+It consists mainly of shortcuts for interacting with the parser in use, currently
+:ref:`Beautifulsoup exclusively <bs4_parser>`.
 
 .. autoclass:: ms3.score.MSCX
     :members:
@@ -49,10 +54,25 @@ The Parse class
 .. automodule:: ms3.parse
     :members:
 
+.. _bs4_parser:
+
+The BeautifulSoup parser
+========================
+
+.. automodule:: ms3.bs4_parser
+    :members:
+    :private-members:
+
 The expand_dcml module
 ======================
 
 .. automodule:: ms3.expand_dcml
+    :members:
+
+Utils
+=====
+
+.. automodule:: ms3.utils
     :members:
 
 .. _cli_doc:
