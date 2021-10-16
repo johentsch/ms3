@@ -4,7 +4,8 @@ from tempfile import NamedTemporaryFile as Temp
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, get_ms_version, get_musescore, no_collections_no_booleans,\
+from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies,\
+    get_ms_version, get_musescore, no_collections_no_booleans,\
     resolve_dir, rgba2params, unpack_mscz, update_labels_cfg
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
@@ -511,6 +512,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         return
 
 
+
     def get_infer_regex(self):
         """
         Returns
@@ -774,6 +776,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             for key, obj in self._detached_annotations.items():
                 key_info = key + f" (stored as {self.files[key]})" if key in self.files else key
                 msg += f"{key_info} -> {obj}\n\n"
+        if self.mscx.n_form_labels > 0:
+            msg += f"Score contains {self.mscx.n_form_labels} form labels."
         return msg
 
 
@@ -967,6 +971,23 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     @has_annotations.setter
     def has_annotations(self, val):
         self.parsed.has_annotations = val
+
+
+    @property
+    def n_form_labels(self):
+        """:obj:`int`
+        Shortcut for ``MSCX.parsed.n_form_labels``.
+        Is True if at least one StaffText seems to constitute a form label."""
+        return self.parsed.n_form_labels
+
+
+    @property
+    def form_labels(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing a filtered event list containing only StaffTexts that include the regular expression
+        :py:const:`.utils.FORM_DETECTION_REGEX`
+        """
+        return self.parsed.fl
 
 
     @property
@@ -1343,7 +1364,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Parameters
         ----------
         what : :obj:`str` or :obj:`Collection`, optional
-            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded'}
+            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
         folder : :obj:`str`, optional
             Where to store. Defaults to the directory of the parsed MSCX file.
         suffix : :obj:`str` or :obj:`Collection`, optional
@@ -1391,7 +1412,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 self.logger.debug(f"{w} empty, no file written.")
 
     def _treat_storing_params(self, what, suffix):
-        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded']
+        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
         if what == 'all':
             if suffix is None:
                 return tables, [f"_{t}" for t in tables]

@@ -5,6 +5,7 @@ Changelog
 Next version
 ============
 
+* Enabled extraction of score labels.
 * Made the use of ``labels_cfg`` more consistent.
 * improved chord lists:
   * include system and tempo texts

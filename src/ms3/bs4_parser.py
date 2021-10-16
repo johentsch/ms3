@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, column_order, fifths2name, ordinal_suffix, pretty_dict,\
+from .utils import color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, ordinal_suffix, pretty_dict,\
     resolve_dir, rgba2attrs, rgba2params, sort_note_list
 
 
@@ -62,10 +62,11 @@ class _MSCX_bs4(LoggedClass):
         self.measure_nodes = {}
         self.tags = {} # only used if not self.read_only
         self.has_annotations = False
+        self.n_form_labels = 0
         self._ml = None
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
-        self._nl, self._cl, self._rl, self._nrl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(
-            columns=cols), pd.DataFrame(columns=cols)
+        self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
+                                                            pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
         self._style = None
 
         self.parse_measures()
@@ -211,6 +212,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.warning("Empty score?")
         else:
             self.has_annotations = 'Harmony' in self._events.event.values
+            if 'StaffText/text' in self._events.columns:
+                form_labels = self._events['StaffText/text'].str.contains(FORM_DETECTION_REGEX).fillna(False)
+                if form_labels.any():
+                    self.n_form_labels = sum(form_labels)
         self.update_metadata()
 
 
@@ -254,6 +259,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     @property
     def events(self):
         return column_order(self.add_standard_cols(self._events))
+
+    @property
+    def fl(self):
+        """Getting self._fl but without recomputing."""
+        if len(self._fl) == 0 and 'StaffText/text' in self._events.columns:
+            is_form_label = self._events['StaffText/text'].str.contains(FORM_DETECTION_REGEX).fillna(False)
+            form_labels = self._events[is_form_label].rename(columns={'StaffText/text': 'form_label'})
+            cols = ['mc', 'mc_onset', 'mn', 'mn_onset', 'staff', 'voice', 'timesig', 'volta', 'form_label']
+            self._fl = self.add_standard_cols(form_labels)[cols]
+        return self._fl
 
     @property
     def measures(self):
