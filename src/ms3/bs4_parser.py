@@ -1449,7 +1449,8 @@ def make_spanner_cols(df, spanner_types=None):
 
 
         # create the ID column for the currently selected spanner (sub)type
-        res = {column_name: [spanner_ids(row, distinguish_voices=(spanner_type == 'Slur')) for row in features.values]}
+        distinguish_voices = (spanner_type == 'Slur') or 'Trill' in spanner_type
+        res = {column_name: [spanner_ids(row, distinguish_voices=distinguish_voices) for row in features.values]}
         ### With the new algorithm, remaining 'open' spanners result from no further event occurring in the respective layer
         ### after the end of the last spanner.
         # open_ids = {layer: d for layer, d in staff_stacks.items() if len(d) > 0}
