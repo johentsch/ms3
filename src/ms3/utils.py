@@ -85,6 +85,9 @@ Constant with a regular expression that recognizes complete labels conforming to
 including those consisting of two alternatives, without having to split them. It is simply a doubled version of DCML_REGEX.
 """
 
+FORM_DETECTION_REGEX = r"\d{1,2}(?:i+|\w)?:"
+FORM_LEVEL_REGEX = r"((?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):((?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
             '#aa0000': 'ms3_darkred',

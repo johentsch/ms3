@@ -18,7 +18,7 @@ from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group
 
 class Parse(LoggedClass):
     """
-    Class for storing and manipulating the information from multiple parses (i.e. :obj:`~ms3.score.Score` objects).
+    Class for storing and manipulating the information from multiple parses (i.e. :py:attr:`~.score.Score` objects).
     """
 
     def __init__(self, directory=None, paths=None, key=None, index=['rel_paths', 'fnames'], file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
@@ -112,52 +112,57 @@ class Parse(LoggedClass):
 
         self._parsed_mscx = {}
         """:obj:`dict`
-        ``{(key, i): :obj:`~ms3.score.Score`}`` dictionary of parsed scores.
+        ``{(key, i): :py:attr:`~.score.Score`}`` dictionary of parsed scores.
         """
 
         self._annotations = {}
         """:obj:`dict`
-        {(key, i): :obj:`~ms3.annotations.Annotations`} dictionary of parsed sets of annotations.
+        {(key, i): :py:attr:`~.annotations.Annotations`} dictionary of parsed sets of annotations.
+        """
+        
+        self._fl_lists = {}
+        """:obj:`dict`
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.form_labels` tables.
         """
 
         self._notelists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.notes` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.notes` tables.
         """
 
         self._restlists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.rests` tables 
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.rests` tables 
         """
 
         self._noterestlists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.notes_and_rests` tables
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.notes_and_rests` tables
         """
 
         self._eventlists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.events` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.events` tables.
         """
 
         self._labellists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.labels` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.labels` tables.
         """
 
         self._chordlists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.chords` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.chords` tables.
         """
 
         self._expandedlists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.expanded` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.expanded` tables.
         """
 
         self._cadencelists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.cadences` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.cadences` tables.
         """
 
         self._index = {}
@@ -172,7 +177,7 @@ class Parse(LoggedClass):
 
         self._measurelists = {}
         """:obj:`dict`
-        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :obj:`~ms3.score.Score.measures` tables.
+        {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.measures` tables.
         """
 
         self._metadata = pd.DataFrame()
@@ -213,8 +218,8 @@ class Parse(LoggedClass):
             'color_format': None,
         }
         """:obj:`dict`
-        Configuration dictionary to determine the output format of :obj:`~ms3.score.Score.labels` and
-        :obj:`~ms3.score.Score.expanded` tables. The dictonary is passed to :obj:`~ms3.score.Score` upon parsing.
+        Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
+        :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
@@ -228,6 +233,7 @@ class Parse(LoggedClass):
             'chords': self._chordlists,
             'expanded': self._expandedlists,
             'cadences': self._cadencelists,
+            'form_labels': self._fl_lists,
         }
         """:obj:`dict`
         Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
@@ -279,7 +285,7 @@ class Parse(LoggedClass):
 
         Parameters
         ----------
-        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests'}
+        which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests', 'form_labels'}
         keys
         ids
 
@@ -394,7 +400,7 @@ class Parse(LoggedClass):
 
 
     def add_detached_annotations(self, score_key=None, tsv_key=None, new_key=None, match_dict=None):
-        """ Add :obj:`~ms3.annotations.Annotations` objects generated from TSV files to the :obj:`~ms3.score.Score`
+        """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
         Parameters
@@ -406,11 +412,11 @@ class Parse(LoggedClass):
             A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
             If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
         new_key : :obj:`str`, optional
-            The key under which the :obj:`~ms3.annotations.Annotations` objects will be available after attaching
-            them to the :obj:`~ms3.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
+            The key under which the :py:attr:`~.annotations.Annotations` objects will be available after attaching
+            them to the :py:attr:`~.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
             is used.
         match_dict : :obj:`dict`, optional
-            Dictionary mapping IDs of parsed :obj:`~ms3.score.Score` objects to IDs of parsed :obj:`~ms3.annotations.Annotations`
+            Dictionary mapping IDs of parsed :py:attr:`~.score.Score` objects to IDs of parsed :py:attr:`~.annotations.Annotations`
             objects.
         """
         if new_key is None:
@@ -641,8 +647,8 @@ Therefore, the index for this key has been adapted.""")
 
 
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, label_type=None, check_for_clashes=True):
-        """ Attach all :obj:`~ms3.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-        respective :obj:`~ms3.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
+        """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
+        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
         MuseScore files where the annotations show in the score.
 
         Parameters
@@ -650,8 +656,8 @@ Therefore, the index for this key has been adapted.""")
         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
         annotation_key : :obj:`str` or :obj:`list` or :obj:`tuple`, optional
-            Key(s) under which the :obj:`~ms3.annotations.Annotations` objects to be attached are stored in the
-            :obj:`~ms3.score.Score` objects. By default, all keys are selected.
+            Key(s) under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the
+            :py:attr:`~.score.Score` objects. By default, all keys are selected.
         staff : :obj:`int`, optional
             If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
             By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
@@ -740,7 +746,7 @@ Continuing with {annotation_key}.""")
 
 
     def collect_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                      labels=False, chords=False, expanded=False, cadences=False, only_new=True):
+                      labels=False, chords=False, expanded=False, form_labels=False, cadences=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
 
         Parameters
@@ -1028,7 +1034,7 @@ Available keys: {available_keys}""")
 
 
     def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, cadences=False, simulate=False, flat=True, unfold=False,
+                  labels=False, chords=False, expanded=False, cadences=False, form_labels=False, simulate=False, flat=True, unfold=False,
                   quarterbeats=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
@@ -1045,6 +1051,7 @@ Available keys: {available_keys}""")
         chords
         expanded
         cadences
+        form_labels
         simulate
         flat : :obj:`bool`, optional
             By default, you get a dictionary {(id, list_type) -> list}.
@@ -1817,6 +1824,7 @@ Available keys: {available_keys}""")
                                                     chords_folder=None, chords_suffix='',
                                                     expanded_folder=None, expanded_suffix='',
                                                     cadences_folder=None, cadences_suffix='',
+                                                    form_labels_folder=None, form_labels_suffix='',
                                                     metadata_path=None, markdown=True,
                                                     simulate=None, unfold=False, quarterbeats=False):
         """ Store score information as TSV files.
@@ -1829,9 +1837,9 @@ Available keys: {available_keys}""")
             Defaults to None, meaning that the original root directory is used that was added to the Parse object.
             Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing
             absolute paths, ``root_dir`` is ignored.
-        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder : str, optional
+        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder, form_labels_folder : str, optional
             Specify directory where to store the corresponding TSV files.
-        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix : str, optional
+        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix, form_labels_suffix : str, optional
             Optionally specify suffixes appended to the TSVs' file names.
         metadata_path : str, optional
             Where to store an overview file with the MuseScore files' metadata.
