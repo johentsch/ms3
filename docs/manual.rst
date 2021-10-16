@@ -1597,11 +1597,11 @@ Spanners
 
 :obj:`str` (-> :obj:`tuple`)
 
-Spanners designate markup that spans several <Chord> tags, such as slurs, hairpins, pedal and ottava lines. The values
+Spanners designate markup that spans several <Chord> tags, such as slurs, hairpins, pedal, trill and ottava lines. The values
 in a spanner column are IDs such that all chords with the same ID belong to the same spanner. Each cell can have more
 than one ID, separated by commas. For evaluating spanner columns, the values should be turned into tuples.
 
-Spanners span all chords belonging to the same |staff|, except for slurs which span only chords in the same |voice|. In
+Spanners span all chords belonging to the same |staff|, except for slurs and trills which span only chords in the same |voice|. In
 other words, won't find the ending of a slur that goes from one |voice| to another.
 
 
@@ -1657,7 +1657,15 @@ always pertain to an entire |staff|
 Pedal line :ref:`spanners <spanners>` always pertain to an entire |staff|.
 
 
+.. _trill:
 
+**Trill**
+
+:obj:`str`
+
+
+Trills :ref:`spanners <spanners>` can have different subtypes specified after a colon, e.g. ``'Trill:trill'``.
+They always pertain to a particular |voice|.
 
 
 
