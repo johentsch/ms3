@@ -1417,7 +1417,8 @@ def make_spanner_cols(df, spanner_types=None):
         column_name = spanner_type
         if subtype:
             column_name += ':' + subtype
-        if spanner_type == 'Slur':
+        distinguish_voices = spanner_type in ['Slur', 'Trill']
+        if distinguish_voices:
             # slurs need to be ended by the same voice, there can be several going on in parallel in different voices
             features.insert(3, 'voice', df.voice)
             staff_stacks = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
@@ -1449,7 +1450,6 @@ def make_spanner_cols(df, spanner_types=None):
 
 
         # create the ID column for the currently selected spanner (sub)type
-        distinguish_voices = (spanner_type == 'Slur') or 'Trill' in spanner_type
         res = {column_name: [spanner_ids(row, distinguish_voices=distinguish_voices) for row in features.values]}
         ### With the new algorithm, remaining 'open' spanners result from no further event occurring in the respective layer
         ### after the end of the last spanner.
