@@ -2357,7 +2357,7 @@ Using the first {li} elements, discarding {discarded}""")
             if l_counts > 0:
                 plural_phrase = "These index values occur" if l_counts > 1 else "This index value occurs"
                 self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
-To avoid the problem, define sufficient distinguishing index levels, e.g. ['fname', 'key', 'i'].\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
+To avoid the problem, define sufficient distinguishing index levels, e.g. index= ['fnames', 'key', 'i'] or ['rel_paths', 'fnames', 'fexts'] or simply None or 'full_paths'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
             if l_existing > 0:
                 plural_phrase = "s are" if l_existing > 1 else " is"
                 self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
