@@ -714,7 +714,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             mc_onset
         empty_only : :obj:`bool`, optional
             Set to True if you want to delete only empty harmonies. Since normally all labels at the defined position
-            are deleted, this flag is needed to prevent non-empty <Harmony> tags.
+            are deleted, this flag is needed to prevent deleting non-empty <Harmony> tags.
 
         Returns
         -------
@@ -737,7 +737,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         ix = onsets.index(mc_onset)
         is_first = ix == 0
         is_last = ix == len(onsets) - 1
-        delete_locations = True
+        # delete_locations = True
 
         _, name = get_duration_event(elements)
         if name is None:
@@ -750,8 +750,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                     assert n_locs > 0, f"""The label on MC {mc}, mc_onset {mc_onset}, staff {staff}, voice {voice} is the first onset
 in a measure with subsequent durational events but has no <location> tag"""
                 prv_n_locs = 0
-                if not is_last:
-                    delete_locations = False
+                # if not is_last:
+                #     delete_locations = False
             else:
                 prv_onset = onsets[ix - 1]
                 prv_elements = measure[prv_onset]
@@ -843,7 +843,10 @@ f"Too many location tags in MC {mc}, mc_onset {prv_onset}, staff {staff}, voice 
 
         ##### Here the actual removal takes place.
         deletions = []
-        delete_location = not (mc_onset == 0 and not is_last)
+        delete_location = False
+        if name is None and 'location' in element_names:
+            other_elements = sum(e not in ('Harmony', 'location') for e in element_names)
+            delete_location = is_last or (mc_onset > 0 and other_elements == 0)
         labels = [e for e in elements if e['name'] == 'Harmony']
         if empty_only:
             empty = [e for e in labels if e['tag'].find('name') is None or e['tag'].find('name').string is None]
@@ -1045,7 +1048,7 @@ and {loc_after} before the subsequent\n{nxt}.""")
                 try:
                     loc_ix = next(i for i, name in zip(range(len(prv_names) - 1, -1, -1), reversed(prv_names)) if name == 'location')
                 except:
-                    self.logger.error(f"MC {mc}, staff {staff}, voice {voice}: The tags of mc_onset {prv_pos} should include a <location> tag but don't:\n{prv}")
+                    self.logger.error(f"Trying to add {label_name} to MC {mc}, staff {staff}, voice {voice}, onset {mc_onset}: The tags of mc_onset {prv_pos} should include a <location> tag but don't:\n{prv}")
                     raise
                 prv[loc_ix]['tag'].fractions.string = str(loc_before)
                 prv[loc_ix]['duration'] = loc_before
@@ -1056,11 +1059,11 @@ and {loc_after} before the subsequent\n{nxt}.""")
                 self.logger.debug(f"""MC {mc}: Added {label_name} at {loc_before} after the previous {prv_name} at mc_onset {prv_pos}
 and {loc_after} before the subsequent {nxt_name}.""")
 
-        if remember[0]['name'] == 'location':
-            measure[prv_pos].append(remember[0])
-            measure[mc_onset] = remember[1:]
-        else:
-            measure[mc_onset] = remember
+        # if remember[0]['name'] == 'location':
+        #     measure[prv_pos].append(remember[0])
+        #     measure[mc_onset] = remember[1:]
+        # else:
+        measure[mc_onset] = remember
         return True
 
 
