@@ -598,6 +598,79 @@ def dict2oneliner(d):
     """ Turns a dictionary into a single-line string without brackets."""
     return ', '.join(f"{k}: {v}" for k, v in d.items())
 
+@function_logger
+def expand_form_labels(fl, fill_mn_until=None):
+    """Expands form labels into a hierarchical view of levels.
+
+    Parameters
+    ----------
+    fill_mn_until : :obj:`int`, optional
+        Pass the last measure number in order to insert rows for every measure without a form label.
+        If you pass -1, the measure number of the last form label will be used.
+    """
+
+    def distribute_levels(df, mc=None):
+        """Takes the regex matches of one label and turns them into one row where
+        the levels become column names. Pass label's MC to display it in error messages.
+        """
+        col2val = {}
+        levels_re = r"(\d{1,2})(i+|\w)?[\&=]?"
+        for levels, token in df.values:
+            for level, hybrid in re.findall(levels_re, levels):
+                key = (hybrid, level)  # hybrid becomes first index level, e.g. 'a' and 'b'
+                if key in col2val:
+                    mc_string = '' if mc is None else f"MC {mc}: "
+                    logger.warning(
+                        f"{mc_string}The token '{col2val[key]}' for level {key} was overwritten with '{token}':\n{df}")
+                col2val[key] = token
+        return col2val
+
+    matches = fl.form_label.str.extractall(FORM_LEVEL_REGEX)
+    matches.token = matches.token.str.strip('\n ,')
+    mcs = fl.mc.to_dict()
+    levels = list(range(matches.index.nlevels - 1))  # all index levels except the one for the matches
+    res = {i: distribute_levels(df, mcs[i]) for i, df in matches.groupby(level=levels)}
+    res = pd.DataFrame.from_dict(res, orient='index')
+    res.columns = pd.MultiIndex.from_tuples(res.columns)
+    form_types = res.columns.levels[0]
+    if len(form_types) > 1:
+        # columns will be MultiIndex
+        if '' in form_types:
+            # there are labels pertaining to all form_types
+            forms = [f for f in form_types if f != '']
+            pertaining_to_all = res.loc[:, '']
+            distributed_to_all = pd.concat([pertaining_to_all] * len(forms), keys=forms, axis=1)
+            level_exists = distributed_to_all.columns.isin(res.columns)
+            existing_level_names = distributed_to_all.columns[level_exists]
+            res = pd.concat([res.loc[:, forms], distributed_to_all.loc[:, ~level_exists]], axis=1)
+            potentially_preexistent = distributed_to_all.loc[:, level_exists]
+            check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
+            if check_double_attribution.any().any():
+                logger.warning(
+                    "Could not distribute levels to all form types because some had already been individually specified.")
+            res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
+        fl_multiindex = pd.concat([fl], keys=[''], axis=1)
+        res = pd.concat([fl_multiindex, res.sort_index(axis=1)], axis=1)
+    else:
+        if form_types[0] == '':
+            res = pd.concat([fl, res.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
+        else:
+            raise NotImplementedError(f"Syntax for several form types used for a single one: '{form_types[0]}'")
+
+    if fill_mn_until is not None:
+        if len(form_types) == 1:
+            mn_col, mn_onset = 'mn', 'mn_onset'
+        else:
+            mn_col, mn_onset = ('', 'mn'), ('', 'mn_onset')
+        first_mn = fl.mn.min()
+        last_mn = fill_mn_until if fill_mn_until > -1 else fl.mn.max()
+        all_mns = set(range(first_mn, last_mn + 1))
+        missing = all_mns.difference(set(res[mn_col]))
+        missing_mn = pd.DataFrame({mn_col: list(missing)}).reindex(res.columns, axis=1)
+        res = pd.concat([res, missing_mn], ignore_index=True).sort_values([mn_col, mn_onset]).reset_index(drop=True)
+    return res
+
+
 
 def fifths2acc(fifths):
     """ Returns accidentals for a stack of fifths that can be combined with a
