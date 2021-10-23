@@ -86,7 +86,7 @@ including those consisting of two alternatives, without having to split them. It
 """
 
 FORM_DETECTION_REGEX = r"\d{1,2}(?:i+|\w)?:"
-FORM_LEVEL_REGEX = r"((?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):((?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_REGEX = r"(?P<levels>(?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
