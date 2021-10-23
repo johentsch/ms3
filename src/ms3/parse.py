@@ -308,6 +308,7 @@ class Parse(LoggedClass):
             'notes': 'note lists',
             'notes_and_rests': 'note and rest lists',
             'rests': 'rest lists',
+            'form_labels': 'form label tables'
         }
         if len(d) == 0:
             if keys is None and ids is None:
@@ -315,7 +316,7 @@ class Parse(LoggedClass):
             else:
                 self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
             return pd.DataFrame()
-        d = {k: v for k, v in d.items() if len(v.index) > 0}
+        d = {k: v for k, v in d.items() if v.shape[0] > 0}
         return pd.concat(d.values(), keys=d.keys())
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
@@ -329,6 +330,9 @@ class Parse(LoggedClass):
 
     def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False):
         return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+
+    def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
+        return self._concat_lists('form_labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
 
     def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
         return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
