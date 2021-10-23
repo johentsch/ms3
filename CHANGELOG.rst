@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Next version
-============
+Version 0.4.10
+==============
 
 * Enabled extraction of score labels.
 * Made the use of ``labels_cfg`` more consistent.
@@ -11,6 +11,11 @@ Next version
   * include system and tempo texts
   * new algorithm for correct spanner IDs (i.e. for Slurs, Pedal, HairPins, Ottava)
   * lyrics: still extracts only the last verse but now in the corresponding column, e.g. ``lyrics:3`` for verse 3.
+* new feature (still in beta): extraction of form labels
+  * ``Score.mscx.form_labels``
+  * ``Parse.form_labels()``
+  * added ``form_labels`` -related parameters to ``Parse.get_lists()`` and ``Parse.store_lists()``
+  * added ``utils.expand_form_labels()`` for hierarchical display of form labels
 
 Version 0.4.9
 =============
