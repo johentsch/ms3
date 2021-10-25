@@ -2209,8 +2209,7 @@ def labels2global_tonic(df, cols={}, inplace=False):
     df[cols['changes']] = transform(df, transpose_changes, param_cols, logger=logger)
 
     # Combine the new chord features
-    df[cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes + ')').fillna(
-        '')  # + ('/' + df.relativeroot).fillna('')
+    df[cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes.astype('string') + ')').fillna('')  # + ('/' + df.relativeroot).fillna('')
 
     if tmp_index:
         df.index = ix
