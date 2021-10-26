@@ -2,6 +2,12 @@
 Changelog
 =========
 
+
+Next version
+============
+
+* added utils.make_gantt_data()
+
 Version 0.4.10
 ==============
 

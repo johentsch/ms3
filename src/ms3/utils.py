@@ -504,32 +504,70 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
             convert(o, n, ms)
 
 
-def make_gantt_data(at, last_mn=None, relativeroots=True):
-    """ Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
+def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
+    """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
+        based on the column ``localkey``. The column names are suited for the plotly library.
+    Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
+
+    Parameters
+    ----------
+    at : :obj:`pandas.DataFrame`
+        Expanded DCML annotation table.
+    last_mn : :obj:`int`, optional
+        By default, the column ``quarterbeats`` is used for computing Start and Finish unless the column is not present,
+        in which case a continuous version of measure numbers (MN) is used. In the latter case you should pass the last
+        measure number of the piece in order to calculate the correct duration of the last key segment; otherwise it
+        will go until the end of the last label's MN. As soon as you pass a value, the column ``quarterbeats`` is ignored
+        even if present. If you want to ignore it but don't know the last MN, pass -1.
+    relativeroots : :obj:`bool`, optional
+        By default, additional rows are added based on the column ``relativeroot``. Pass False to prevent that.
+    mode_agnostic_adjacency : :obj:`bool`, optional
+        By default (if ``relativeroots`` is True), additional rows are added for labels adjacent to temporarily tonicized
+        roots, no matter if the mode is identical or not. For example, before and after a V/V, all V _and_ v labels will
+        be grouped as adjacent segments. Pass False to group only labels with the same mode (only V labels in the example),
+        or None to not include adjacency at all.
+
+    Returns
+    -------
+
     """
     at = at[at.numeral.notna() & (at.numeral != '@none')].copy()
-    if 'mn_fraction' not in at.columns:
-        mn_fraction = (at.mn + (at.mn_onset.astype(float) / at.timesig.map(frac).astype(float))).astype(float)
-        at.insert(at.columns.get_loc('mn') + 1, 'mn_fraction', mn_fraction)
-    if last_mn is None:
-        last_mn = at.mn.max()
-    at.sort_values('mn_fraction', inplace=True)
-    interval_breaks = at.mn_fraction.append(pd.Series(last_mn + 1.0), ignore_index=True)
+    if last_mn is not None or 'quarterbeats' not in at.columns:
+        position_col = 'mn_fraction'
+        if last_mn is None or last_mn < 0:
+            last_mn = at.mn.max()
+        last_val = last_mn + 1.0
+        if 'mn_fraction' not in at.columns:
+            mn_fraction = (at.mn + (at.mn_onset.astype(float) / at.timesig.map(frac).astype(float))).astype(float)
+            at.insert(at.columns.get_loc('mn') + 1, 'mn_fraction', mn_fraction)
+    else:
+        position_col = 'quarterbeats'
+        at = at[at.quarterbeats.notna()].copy()
+        at.quarterbeats = at.quarterbeats.astype(float)
+        last_label = at.iloc[-1]
+        last_val = float(last_label.quarterbeats) + last_label.durations_quarterbeats
+
+    at.sort_values(position_col, inplace=True)
+    interval_breaks = at[position_col].to_list() + [last_val]
     at.index = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
 
-    key_groups = at.loc[
-        at.localkey != at.localkey.shift(), ['mn_fraction', 'localkey', 'globalkey', 'globalkey_is_minor']].rename(
-        columns={'mn_fraction': 'Start'})
-    key_groups['numeral'] = key_groups.localkey
-    key_groups.insert(2, 'semitones', transform(key_groups, roman_numeral2semitones, ['numeral', 'globalkey_is_minor']))
-    key_groups.insert(2, 'fifths', transform(key_groups, roman_numeral2fifths, ['numeral', 'globalkey_is_minor']))
-    interval_breaks = key_groups.Start.append(pd.Series(last_mn + 1.0), ignore_index=True)
+    key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'globalkey', 'globalkey_is_minor']]\
+                    .rename(columns={position_col: 'Start'})
+    interval_breaks = key_groups.Start.to_list() + [last_val]
     iix = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
     key_groups.index = iix
-    insert_pos = key_groups.columns.get_loc('Start') + 1
-    key_groups.insert(insert_pos, 'Resource', 'local')
-    key_groups.insert(insert_pos, 'Duration', iix.length)
-    key_groups.insert(insert_pos, 'Finish', iix.right)
+    fifths = transform(key_groups, roman_numeral2fifths, ['localkey', 'globalkey_is_minor']).rename('fifths')
+    semitones = transform(key_groups, roman_numeral2semitones, ['localkey', 'globalkey_is_minor']).rename('semitones')
+    key_groups = pd.DataFrame({
+        'Start': key_groups.Start,
+        'Finish': iix.right,
+        'Duration': iix.length,
+        'Resource': 'local',
+        'fifths': fifths,
+        'semitones': semitones,
+        'localkey': key_groups.localkey,
+        'globalkey': key_groups.globalkey,
+    })
 
     if not relativeroots or at.relativeroot.isna().all():
         return key_groups
@@ -541,6 +579,8 @@ def make_gantt_data(at, last_mn=None, relativeroots=True):
         has_applied = df.Resource.notna()
         if has_applied.any():
             df.Resource.fillna('tonic of adjacent applied chord(s)', inplace=True)
+            # relativeroot gets filled in with numeral because it is needed for the Description. However, if mode_agnostic_adjacency=True,
+            # only the numeral of the first row of each subgroup will be displayed.
             df.relativeroot = df.relativeroot.where(has_applied, df.numeral)
             df['subgroup'] = df.Resource != df.Resource.shift()
             return df
@@ -563,27 +603,26 @@ def make_gantt_data(at, last_mn=None, relativeroots=True):
     at['relativeroot_resolved'] = transform(at, resolve_relative_keys, ['relativeroot', 'localkey_is_minor'])
     at['abs_numeral'] = transform(at, rel2abs_key, ['relativeroot_resolved', 'localkey', 'globalkey_is_minor'])
     at.abs_numeral = at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
-    # print(global_numerals)
-    # print(at.abs_numeral)
     at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
     at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
-    # using the semitones column includes adjacent variant labels;
-    # if only labels of the same mode are to be included, use the numeral column
-    adjacent_groups = (at.semitones != at.semitones.shift()).cumsum()
-    try:
-        at = at.groupby(adjacent_groups, group_keys=False).apply(select_groups).astype(
-            {'semitones': int, 'fifths': int})
-    except:
-        print(at.groupby(adjacent_groups, group_keys=False).apply(select_groups))
-        raise
-    at.subgroup = at.subgroup.cumsum()
-    at = at.groupby(['subgroup', 'localkey'], group_keys=False).apply(gantt_data)
-    res = pd.concat([key_groups, at])[
-        ['Start', 'Finish', 'Duration', 'Resource', 'abs_numeral', 'fifths', 'semitones', 'localkey', 'globalkey',
-         'relativeroot']]
-    res[['Start', 'Finish', 'Duration']] = res[['Start', 'Finish', 'Duration']].round(2)
-    res['Description'] = 'Duration: ' + res.Duration.astype(str) + '<br>Tonicized key: ' + res.abs_numeral + (
-                '<br>In context of localkey ' + res.localkey + ': ' + res.relativeroot).fillna('')
+
+    if mode_agnostic_adjacency is not None:
+        adjacent_groups = (at.semitones != at.semitones.shift()).cumsum() if mode_agnostic_adjacency else (at.abs_numeral != at.abs_numeral.shift()).cumsum()
+        try:
+            at = at.groupby(adjacent_groups, group_keys=False).apply(select_groups).astype({'semitones': int, 'fifths': int})
+        except:
+            print(at.groupby(adjacent_groups, group_keys=False).apply(select_groups))
+            raise
+        at.subgroup = at.subgroup.cumsum()
+        at = at.groupby(['subgroup', 'localkey'], group_keys=False).apply(gantt_data)
+    else:
+        subgroups = ((at.relativeroot != at.relativeroot.shift()) | (at.localkey != at.localkey.shift())).cumsum()
+        at = at[at.relativeroot.notna()].groupby(subgroups, group_keys=False).apply(gantt_data)
+    res = pd.concat([key_groups, at])[['Start', 'Finish', 'Duration', 'Resource', 'abs_numeral', 'fifths', 'semitones', 'localkey', 'globalkey', 'relativeroot']]
+    res.loc[:, ['Start', 'Finish', 'Duration']] = res[['Start', 'Finish', 'Duration']].round(2)
+    res['Description'] = 'Duration: ' + res.Duration.astype(str) + \
+                         '<br>Tonicized key: ' + res.abs_numeral + \
+                         ('<br>In context of localkey ' + res.localkey + ': ' + res.relativeroot).fillna('')
     return res
 
 
