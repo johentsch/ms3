@@ -504,6 +504,89 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
             convert(o, n, ms)
 
 
+def make_gantt_data(at, last_mn=None, relativeroots=True):
+    """ Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
+    """
+    at = at[at.numeral.notna() & (at.numeral != '@none')].copy()
+    if 'mn_fraction' not in at.columns:
+        mn_fraction = (at.mn + (at.mn_onset.astype(float) / at.timesig.map(frac).astype(float))).astype(float)
+        at.insert(at.columns.get_loc('mn') + 1, 'mn_fraction', mn_fraction)
+    if last_mn is None:
+        last_mn = at.mn.max()
+    at.sort_values('mn_fraction', inplace=True)
+    interval_breaks = at.mn_fraction.append(pd.Series(last_mn + 1.0), ignore_index=True)
+    at.index = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
+
+    key_groups = at.loc[
+        at.localkey != at.localkey.shift(), ['mn_fraction', 'localkey', 'globalkey', 'globalkey_is_minor']].rename(
+        columns={'mn_fraction': 'Start'})
+    key_groups['numeral'] = key_groups.localkey
+    key_groups.insert(2, 'semitones', transform(key_groups, roman_numeral2semitones, ['numeral', 'globalkey_is_minor']))
+    key_groups.insert(2, 'fifths', transform(key_groups, roman_numeral2fifths, ['numeral', 'globalkey_is_minor']))
+    interval_breaks = key_groups.Start.append(pd.Series(last_mn + 1.0), ignore_index=True)
+    iix = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
+    key_groups.index = iix
+    insert_pos = key_groups.columns.get_loc('Start') + 1
+    key_groups.insert(insert_pos, 'Resource', 'local')
+    key_groups.insert(insert_pos, 'Duration', iix.length)
+    key_groups.insert(insert_pos, 'Finish', iix.right)
+
+    if not relativeroots or at.relativeroot.isna().all():
+        return key_groups
+
+    levels = list(range(at.index.nlevels))
+
+    def select_groups(df):
+        nonlocal levels
+        has_applied = df.Resource.notna()
+        if has_applied.any():
+            df.Resource.fillna('tonic of adjacent applied chord(s)', inplace=True)
+            df.relativeroot = df.relativeroot.where(has_applied, df.numeral)
+            df['subgroup'] = df.Resource != df.Resource.shift()
+            return df
+        else:
+            return pd.DataFrame(columns=levels).set_index(levels, drop=True)
+
+    def gantt_data(df):
+        frst = df.iloc[[0]]
+        start, finish = df.index[0].left, df.index[-1].right
+        frst['Start'] = start
+        frst['Finish'] = finish
+        frst['Duration'] = finish - start
+        frst.index = pd.IntervalIndex.from_tuples([(start, finish)], closed='left')
+        return frst
+
+    key_groups['abs_numeral'] = key_groups.localkey
+    global_numerals = labels2global_tonic(at).numeral
+    at['Resource'] = pd.NA
+    at.Resource = at.Resource.where(at.relativeroot.isna(), 'applied')
+    at['relativeroot_resolved'] = transform(at, resolve_relative_keys, ['relativeroot', 'localkey_is_minor'])
+    at['abs_numeral'] = transform(at, rel2abs_key, ['relativeroot_resolved', 'localkey', 'globalkey_is_minor'])
+    at.abs_numeral = at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
+    # print(global_numerals)
+    # print(at.abs_numeral)
+    at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
+    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
+    # using the semitones column includes adjacent variant labels;
+    # if only labels of the same mode are to be included, use the numeral column
+    adjacent_groups = (at.semitones != at.semitones.shift()).cumsum()
+    try:
+        at = at.groupby(adjacent_groups, group_keys=False).apply(select_groups).astype(
+            {'semitones': int, 'fifths': int})
+    except:
+        print(at.groupby(adjacent_groups, group_keys=False).apply(select_groups))
+        raise
+    at.subgroup = at.subgroup.cumsum()
+    at = at.groupby(['subgroup', 'localkey'], group_keys=False).apply(gantt_data)
+    res = pd.concat([key_groups, at])[
+        ['Start', 'Finish', 'Duration', 'Resource', 'abs_numeral', 'fifths', 'semitones', 'localkey', 'globalkey',
+         'relativeroot']]
+    res[['Start', 'Finish', 'Duration']] = res[['Start', 'Finish', 'Duration']].round(2)
+    res['Description'] = 'Duration: ' + res.Duration.astype(str) + '<br>Tonicized key: ' + res.abs_numeral + (
+                '<br>In context of localkey ' + res.localkey + ': ' + res.relativeroot).fillna('')
+    return res
+
+
 def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
     """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
     the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
