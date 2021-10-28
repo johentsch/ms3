@@ -1397,7 +1397,7 @@ def midi2octave(midi, fifths=None):
     ----------
     midi : :obj:`int`
         MIDI pitch (positive integer)
-    tpc : :obj:`int`, optional
+    fifths : :obj:`int`, optional
         To be precise, for some Tonal Pitch Classes, the octave deviates
         from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.
     """
@@ -1428,6 +1428,21 @@ def midi2octave(midi, fifths=None):
             i += 1
     return midi // 12 + i
 
+
+def midi2name(midi):
+    names = {0: 'C',
+             1: 'C#/Db',
+             2: 'D',
+             3: 'D#/Eb',
+             4: 'E',
+             5: 'F',
+             6: 'F#/Gb',
+             7: 'G',
+             8: 'G#/Ab',
+             9: 'A',
+             10: 'A#/Bb',
+             11: 'B'}
+    return names[midi % 12]
 
 
 def mn2int(mn_series):
@@ -1464,8 +1479,26 @@ def name2fifths(nn):
         return nn
     name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': -1, 'G': 1, 'A': 3, 'B': 5}
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
+    if note_name is None:
+        return None
     step_tpc = name_tpcs[note_name.upper()]
     return step_tpc + 7 * accidentals
+
+
+@function_logger
+def name2pc(nn):
+    """ Turn a note name such as `Ab` into a tonal pitch class, such that -1=F, 0=C, 1=G etc.
+        Uses: split_note_name()
+    """
+    if nn.__class__ == int or pd.isnull(nn):
+        return nn
+    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 8, 'B': 11}
+    accidentals, note_name = split_note_name(nn, count=True, logger=logger)
+    if note_name is None:
+        return None
+    step_pc = name_tpcs[note_name.upper()]
+    return (step_pc + accidentals) % 12
+
 
 
 def next2sequence(nxt):
