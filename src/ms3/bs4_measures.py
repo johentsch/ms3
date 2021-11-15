@@ -314,8 +314,11 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             #bwd_jumps.jump_fwd = bwd_jumps.jump_fwd.replace({'/': None})
             for mc, jumpb, jumpf, until in bwd_jumps.itertuples(name=None, index=False):
                 jump_to_mc, end_of_jump_mc = jump2marker(mc, jumpb, until)
-                self.next[mc] = [jump_to_mc]
-                self.logger.debug(f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                if not pd.isnull(jump_to_mc):
+                    self.next[mc] = [jump_to_mc]
+                    self.logger.debug(f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                else:
+                    self.logger.debug(f"Could not include backward jump from MC {mc}.")
                 if not pd.isnull(jumpf):
                     if end_of_jump_mc is None:
                         if jumpf in markers:
@@ -325,8 +328,11 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                         self.logger.warning(f"The jump from MC {mc} to {self.next[mc][0]} is supposed to jump forward from {until} to {jumpf}, but {reason}")
                     else:
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
-                        self.next[jump_to_mc].append(to_mc)
-                        self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+                        if not pd.isnull(to_mc):
+                            self.next[jump_to_mc].append(to_mc)
+                            self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+                        else:
+                            self.logger.debug(f"Could not include forward jump from the {jumpb} in MC {jump_to_mc}.")
         else: # no backward jumps
             bwd_jumps = pd.DataFrame(columns=['mc'])
                 
