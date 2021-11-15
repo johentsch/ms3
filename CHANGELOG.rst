@@ -7,7 +7,7 @@ Next version
 ============
 
 * added utils.make_gantt_data()
-* bug fixes
+* bug fixes (failing less on incoherent repeat structures)
 
 Version 0.4.10
 ==============

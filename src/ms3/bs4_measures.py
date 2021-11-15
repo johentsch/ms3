@@ -325,7 +325,8 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                             reason = f"{until} was not found in the score."
                         else:
                             reason = "neither of them was found in the score."
-                        self.logger.warning(f"The jump from MC {mc} to {self.next[mc][0]} is supposed to jump forward from {until} to {jumpf}, but {reason}")
+                        if len(self.next[mc]) > 0:
+                            self.logger.warning(f"The jump from MC {mc} to {self.next[mc][0]} is supposed to jump forward from {until} to {jumpf}, but {reason}")
                     else:
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                         if not pd.isnull(to_mc):
