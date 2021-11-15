@@ -1139,7 +1139,15 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
     """
 
     def str2inttuple(l):
-        return tuple() if l == '' else tuple(int(s) for s in l.split(', '))
+        if l == '':
+            return tuple()
+        res = []
+        for s in l.split(', '):
+            try:
+                res.append(int(s))
+            except:
+                print(f"String value '{s}' could not be converted to a tuple.")
+        return tuple(res)
 
     def int2bool(s):
         try:
