@@ -387,7 +387,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return
         self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
-        self._nl = self._nl.astype({'midi': 'Int64', 'tpc': 'Int64'})
+        self._nl.loc[:, ['midi', 'tpc']] = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
         self._nl.tpc -= 14
         self._nl = self._nl.merge(self.cl[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']

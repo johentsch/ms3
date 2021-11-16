@@ -134,7 +134,7 @@ class MeasureList(LoggedClass):
         else:
             ml_cols += remove_if_empty + ['next']
         self.ml = self.ml[ml_cols]
-        self.ml[['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
+        self.ml.loc[:, ['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
         self.check_measure_numbers()
 
 
