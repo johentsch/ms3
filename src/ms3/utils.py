@@ -504,6 +504,7 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
             convert(o, n, ms)
 
 
+@function_logger
 def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
     """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
         based on the column ``localkey``. The column names are suited for the plotly library.
@@ -525,7 +526,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         By default (if ``relativeroots`` is True), additional rows are added for labels adjacent to temporarily tonicized
         roots, no matter if the mode is identical or not. For example, before and after a V/V, all V _and_ v labels will
         be grouped as adjacent segments. Pass False to group only labels with the same mode (only V labels in the example),
-        or None to not include adjacency at all.
+        or None to include no adjacency at all.
 
     Returns
     -------
@@ -547,26 +548,39 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         last_label = at.iloc[-1]
         last_val = float(last_label.quarterbeats) + last_label.durations_quarterbeats
 
+    check_columns = ('localkey', 'globalkey_is_minor')
+    if any(c not in at.columns for c in check_columns):
+        logger.error(f"Annotation table is missing the columns {', '.join(c for c in check_columns if c not in at.columns)}. Cannot make Gantt data")
+        return pd.DataFrame()
+
     at.sort_values(position_col, inplace=True)
     interval_breaks = at[position_col].to_list() + [last_val]
     at.index = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
 
-    key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'globalkey', 'globalkey_is_minor']]\
+    at['localkey_resolved'] = transform(at, resolve_relative_keys, ['localkey', 'globalkey_is_minor'])
+
+    key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'localkey_resolved', 'globalkey', 'globalkey_is_minor']]\
                     .rename(columns={position_col: 'Start'})
     interval_breaks = key_groups.Start.to_list() + [last_val]
     iix = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
     key_groups.index = iix
-    fifths = transform(key_groups, roman_numeral2fifths, ['localkey', 'globalkey_is_minor']).rename('fifths')
-    semitones = transform(key_groups, roman_numeral2semitones, ['localkey', 'globalkey_is_minor']).rename('semitones')
+    fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
+    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename('semitones')
+    description = 'Duration: ' + iix.length.astype(str) + \
+                  '<br>Tonicized global scale degree: ' + key_groups.localkey_resolved + \
+                  '<br>Local tonic: ' + key_groups.localkey
+
     key_groups = pd.DataFrame({
         'Start': key_groups.Start,
         'Finish': iix.right,
         'Duration': iix.length,
         'Resource': 'local',
+        'abs_numeral': key_groups.localkey_resolved,
         'fifths': fifths,
         'semitones': semitones,
         'localkey': key_groups.localkey,
         'globalkey': key_groups.globalkey,
+        'Description': description
     })
 
     if not relativeroots or at.relativeroot.isna().all():
@@ -596,13 +610,12 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         frst.index = pd.IntervalIndex.from_tuples([(start, finish)], closed='left')
         return frst
 
-    key_groups['abs_numeral'] = key_groups.localkey
     global_numerals = labels2global_tonic(at).numeral
     at['Resource'] = pd.NA
     at.Resource = at.Resource.where(at.relativeroot.isna(), 'applied')
     at['relativeroot_resolved'] = transform(at, resolve_relative_keys, ['relativeroot', 'localkey_is_minor'])
-    at['abs_numeral'] = transform(at, rel2abs_key, ['relativeroot_resolved', 'localkey', 'globalkey_is_minor'])
-    at.abs_numeral = at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
+    at['abs_numeral'] = transform(at, rel2abs_key, ['relativeroot_resolved', 'localkey_resolved', 'globalkey_is_minor'])
+    at.abs_numeral.fillna(global_numerals, inplace=True) #= at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
     at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
     at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
 
@@ -621,8 +634,9 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     res = pd.concat([key_groups, at])[['Start', 'Finish', 'Duration', 'Resource', 'abs_numeral', 'fifths', 'semitones', 'localkey', 'globalkey', 'relativeroot']]
     res.loc[:, ['Start', 'Finish', 'Duration']] = res[['Start', 'Finish', 'Duration']].round(2)
     res['Description'] = 'Duration: ' + res.Duration.astype(str) + \
-                         '<br>Tonicized key: ' + res.abs_numeral + \
-                         ('<br>In context of localkey ' + res.localkey + ': ' + res.relativeroot).fillna('')
+                         '<br>Tonicized global scale degree: ' + res.abs_numeral + \
+                         '<br>Local tonic: ' + res.localkey + \
+                         ('<br>Tonicized local scale degree: ' + res.relativeroot).fillna('')
     return res
 
 
@@ -2347,9 +2361,14 @@ def labels2global_tonic(df, cols={}, inplace=False):
         df[global_minor] = series_is_minor(df[cols['globalkey']], is_name=True)
         logger.debug(f"Boolean column '{global_minor} created.'")
 
+    if df[cols['localkey']].str.contains('/').any():
+        df.loc[:, cols['localkey']] = transform(df, resolve_relative_keys, [cols['localkey'], global_minor])
+    if df[cols['pedal']].str.contains('/').any():
+        df.loc[:, cols['pedal']] = transform(df, resolve_relative_keys, [cols['pedal'], local_minor])
+
     # Express pedals in relation to the global tonic
     param_cols = [cols[col] for col in ['pedal', 'localkey']] + [global_minor]
-    df['pedal'] = transform(df, rel2abs_key, param_cols)
+    df.loc[:, cols['pedal']] = transform(df, rel2abs_key, param_cols)
 
     # Make relativeroots to local keys
     param_cols = [cols[col] for col in ['relativeroot', 'localkey']] + [local_minor, global_minor]
@@ -2369,10 +2388,10 @@ def labels2global_tonic(df, cols={}, inplace=False):
 
     # Transpose changes to be valid with the new numeral
     param_cols = [cols[col] for col in ['changes', 'numeral']] + ['abs_numeral', local_minor, global_minor]
-    df[cols['changes']] = transform(df, transpose_changes, param_cols, logger=logger)
+    df.loc[:, cols['changes']] = transform(df, transpose_changes, param_cols, logger=logger)
 
     # Combine the new chord features
-    df[cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes.astype('string') + ')').fillna('')  # + ('/' + df.relativeroot).fillna('')
+    df.loc[:, cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes.astype('string') + ')').fillna('')  # + ('/' + df.relativeroot).fillna('')
 
     if tmp_index:
         df.index = ix

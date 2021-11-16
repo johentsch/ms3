@@ -464,10 +464,14 @@ def propagate_keys(df, volta_structure=None, globalkey='globalkey', localkey='lo
         df[localkey].fillna(method='ffill', inplace=True)
 
     if add_bool:
-        local_minor = series_is_minor(df[localkey])
         gm = f"{globalkey}_is_minor"
         lm = f"{localkey}_is_minor"
         df[gm] = global_minor
+        if df[localkey].str.contains('/').any():
+            lk = transform(df, resolve_relative_keys, [localkey, gm])
+        else:
+            lk = df[localkey]
+        local_minor = series_is_minor(lk)
         df[lm] = local_minor
     return df
 

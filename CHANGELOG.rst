@@ -7,6 +7,7 @@ Next version
 ============
 
 * added utils.make_gantt_data()
+* handling hierarchical localkeys and pedals (i.e. we can modulate to the key of `V/III`)
 * bug fixes (failing less on incoherent repeat structures)
 
 Version 0.4.10
