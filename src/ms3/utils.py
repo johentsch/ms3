@@ -213,9 +213,8 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
                 df.insert(insert_here + 1, 'duration_qb', dur)
             elif 'end' in offset_dict:
                 present_qb = df.quarterbeats.notna()
-                breaks = df.loc[present_qb, 'quarterbeats'].astype(float).round(3).to_list()
-                breaks = sorted(breaks) + [float(offset_dict['end'])]
-                ivs = pd.IntervalIndex.from_breaks(breaks, closed='left')
+                ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
+                                          end_value=float(offset_dict['end']))
                 df.insert(insert_here + 1, 'duration_qb', pd.NA)
                 df.loc[present_qb, 'duration_qb'] = ivs.length
             else:
@@ -554,15 +553,15 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         return pd.DataFrame()
 
     at.sort_values(position_col, inplace=True)
-    interval_breaks = at[position_col].to_list() + [last_val]
-    at.index = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
+    at.index = make_interval_index(at[position_col].to_list(),
+                                   end_value=last_val)
 
     at['localkey_resolved'] = transform(at, resolve_relative_keys, ['localkey', 'globalkey_is_minor'])
 
     key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'localkey_resolved', 'globalkey', 'globalkey_is_minor']]\
                     .rename(columns={position_col: 'Start'})
-    interval_breaks = key_groups.Start.to_list() + [last_val]
-    iix = pd.IntervalIndex.from_breaks(interval_breaks, closed='left')
+    iix = make_interval_index(key_groups.Start.to_list(),
+                              end_value=last_val)
     key_groups.index = iix
     fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
     semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename('semitones')
@@ -1316,7 +1315,7 @@ def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
 
 
 def make_id_tuples(key, n):
-    """ For a given key, this function return index tuples in the form [(key, 0), ..., (key, n)]
+    """ For a given key, this function returns index tuples in the form [(key, 0), ..., (key, n)]
 
     Returns
     -------
@@ -1325,6 +1324,31 @@ def make_id_tuples(key, n):
 
     """
     return list(zip(repeat(key), range(n)))
+
+
+def make_interval_index(S, end_value=None, closed='left', **kwargs):
+    """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
+
+    Parameters
+    ----------
+    S : :obj:`pandas.Series`
+        Interval breaks
+    end_value : numeric
+        Often you want to pass the right border of the last interval.
+    closed : :obj:`str`
+        Defaults to 'left'. This and the kwargs are fed to :py:meth:`pandas.IntervalIndex.from_breaks`.
+    kwargs
+
+    Returns
+    -------
+
+    """
+    breaks = sorted(S.to_list())
+    if end_value is not None:
+        breaks += [end_value]
+    iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, **kwargs)
+    return iix
+
 
 
 
