@@ -207,7 +207,7 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
             quarterbeats += df.mc_onset * 4
         insert_here = df.columns.get_loc(insert_after) + 1
         df.insert(insert_here, 'quarterbeats', quarterbeats)
-        if 'duration_quarterbeats' not in df.columns:
+        if 'duration_qb' not in df.columns:
             if 'duration' in df.columns:
                 dur = (df.duration * 4).astype(float).round(3)
                 df.insert(insert_here + 1, 'duration_qb', dur)
