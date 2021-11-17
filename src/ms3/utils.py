@@ -1748,6 +1748,31 @@ def roman_numeral2semitones(rn, global_minor=False):
     return step_tpc + accidentals
 
 
+def scale_degree2name(sd, localkey, globalkey):
+    """ For example, scale degree -1 (fifths, i.e. the subdominant) of the localkey of 'VI' within 'E' minor is 'F'.
+
+    Parameters
+    ----------
+    sd : :obj:`int`
+        Scale degree expressed as distance from the tonic in fifths.
+    localkey : :obj:`str`
+        Local key in which the scale degree is situated, as Roman numeral (can include slash notation such as V/ii).
+    globalkey : :obj:`str`
+        Global key as a note name. E.g. `Ab` for Ab major, or 'c#' for C# minor.
+
+    Returns
+    -------
+    :obj:`str`
+        The given scale degree, expressed as a note name.
+
+    """
+    global_minor = globalkey.islower()
+    if '/' in localkey:
+        localkey = resolve_relative_keys(localkey, global_minor)
+    lk_fifths = roman_numeral2fifths(localkey, global_minor)
+    gk_fifths = name2fifths(globalkey)
+    sd_transposed = sd + lk_fifths + gk_fifths
+    return fifths2name(sd_transposed)
 
 
 @function_logger
