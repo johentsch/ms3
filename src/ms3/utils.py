@@ -200,6 +200,9 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
     -------
 
     """
+    if offset_dict is None:
+        logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
+        return df
     if 'quarterbeats' not in df.columns:
         df = df.copy()
         quarterbeats = df[insert_after].map(offset_dict)
