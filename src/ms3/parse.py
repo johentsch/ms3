@@ -1859,7 +1859,7 @@ Available keys: {available_keys}""")
             playthrough, including correct positioning of first and second endings.
         quarterbeats : bool, optional
             By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
-            Pass True to add the columns ``quarterbeats`` and ``durations_quarterbeats``. If a score has first and second endings,
+            Pass True to add the columns ``quarterbeats`` and ``duration_qb``. If a score has first and second endings,
             the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
             continuous count. If repetitions are being unfolded, all endings are taken into account.
 

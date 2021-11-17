@@ -8,6 +8,7 @@ Next version
 
 * added utils.make_gantt_data()
 * handling hierarchical localkeys and pedals (i.e. we can modulate to the key of `V/III`)
+* Renamed column 'durations_quarterbeats' to 'duration_qb'
 * bug fixes (failing less on incoherent repeat structures)
 
 Version 0.4.10

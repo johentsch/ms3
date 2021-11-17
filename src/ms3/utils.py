@@ -210,16 +210,16 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
         if 'duration_quarterbeats' not in df.columns:
             if 'duration' in df.columns:
                 dur = (df.duration * 4).astype(float).round(3)
-                df.insert(insert_here + 1, 'durations_quarterbeats', dur)
+                df.insert(insert_here + 1, 'duration_qb', dur)
             elif 'end' in offset_dict:
                 present_qb = df.quarterbeats.notna()
                 breaks = df.loc[present_qb, 'quarterbeats'].astype(float).round(3).to_list()
                 breaks = sorted(breaks) + [float(offset_dict['end'])]
                 ivs = pd.IntervalIndex.from_breaks(breaks, closed='left')
-                df.insert(insert_here + 1, 'durations_quarterbeats', pd.NA)
-                df.loc[present_qb, 'durations_quarterbeats'] = ivs.length
+                df.insert(insert_here + 1, 'duration_qb', pd.NA)
+                df.loc[present_qb, 'duration_qb'] = ivs.length
             else:
-                logger.warning("Column 'durations_quarterbeats' could not be created.")
+                logger.warning("Column 'duration_qb' could not be created.")
     else:
         logger.debug("quarterbeats column was already present.")
     return df
@@ -546,7 +546,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         at = at[at.quarterbeats.notna()].copy()
         at.quarterbeats = at.quarterbeats.astype(float)
         last_label = at.iloc[-1]
-        last_val = float(last_label.quarterbeats) + last_label.durations_quarterbeats
+        last_val = float(last_label.quarterbeats) + last_label.duration_qb
 
     check_columns = ('localkey', 'globalkey_is_minor')
     if any(c not in at.columns for c in check_columns):
