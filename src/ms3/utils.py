@@ -216,10 +216,13 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
                 df.insert(insert_here + 1, 'duration_qb', dur)
             elif 'end' in offset_dict:
                 present_qb = df.quarterbeats.notna()
-                ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
-                                          end_value=float(offset_dict['end']))
-                df.insert(insert_here + 1, 'duration_qb', pd.NA)
-                df.loc[present_qb, 'duration_qb'] = ivs.length
+                try:
+                    ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
+                                              end_value=float(offset_dict['end']))
+                    df.insert(insert_here + 1, 'duration_qb', pd.NA)
+                    df.loc[present_qb, 'duration_qb'] = ivs.length
+                except:
+                    logger.warning("Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
             else:
                 logger.warning("Column 'duration_qb' could not be created.")
     else:
