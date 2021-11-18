@@ -559,15 +559,13 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         return pd.DataFrame()
 
     at.sort_values(position_col, inplace=True)
-    at.index = make_interval_index(at[position_col].to_list(),
-                                   end_value=last_val)
+    at.index = make_interval_index(at[position_col], end_value=last_val)
 
     at['localkey_resolved'] = transform(at, resolve_relative_keys, ['localkey', 'globalkey_is_minor'])
 
     key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'localkey_resolved', 'globalkey', 'globalkey_is_minor']]\
                     .rename(columns={position_col: 'Start'})
-    iix = make_interval_index(key_groups.Start.to_list(),
-                              end_value=last_val)
+    iix = make_interval_index(key_groups.Start, end_value=last_val)
     key_groups.index = iix
     fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
     semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename('semitones')
