@@ -1468,7 +1468,7 @@ Available keys: {available_keys}""")
             if wh not in self._matches.columns:
                 self._matches[wh] = np.nan
 
-        matching_candidates = {wh: {id: self.fnames[id[0]][id[1]] for id in lists[wh].keys()} for wh in what}
+        matching_candidates = {wh: {(key, i): self.fnames[key][i] for key, i in lists[wh].keys()} for wh in what}
         remove = []
         for i, wh in enumerate(what):
             if len(matching_candidates[wh]) == 0:
@@ -1507,28 +1507,44 @@ Available keys: {available_keys}""")
                         lengths = {id: len(prefix) for id, prefix in matches.items()}
                         max_length = max(lengths.values())
                         if max_length == 0:
-                            self.logger.debug(f"No matches for {id}")
+                            self.logger.debug(f"No {wha} matches for {wh} {id} with filename {file}. Candidates:\n{matching_candidates[wha].values()}")
                             break
                         longest = {id: prefix for id, prefix in matches.items() if lengths[id] == max_length}
 
                         if len(longest) == 0:
                             self.logger.info(
-                                f"No match found for {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                                f"No {wha} match found for {wh} {file} among the candidates\n{pretty_dict(matching_candidates[wh])}")
+                            continue
                         elif len(longest) > 1:
-                            ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in
-                                         longest.items()}
-                            self.logger.info(
-                                f"Matching {file} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                            # try to disambiguate by keys
+                            key_similarities = {(k, i): len(os.path.commonprefix([key, k])) for k, i in longest.keys()}
+                            max_sim = max(key_similarities.values())
+                            disambiguated = [id for id, length in key_similarities.items() if length == max_sim]
+                            if max_sim == 0 or len(disambiguated) == 0:
+                                ambiguity = {f"{key}: {self.full_paths[key][i]}": prefix for (key, i), prefix in
+                                             longest.items()}
+                                self.logger.info(
+                                    f"Matching {wh} {file} to {wha} is ambiguous. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                                continue
+                            elif len(disambiguated) > 1:
+                                ambiguity = {f"{key}: {self.full_paths[key][i]}": longest[(key, i)] for key, i in
+                                             disambiguated}
+                                self.logger.info(
+                                    f"Matching {wh} {file} to {wha} is ambiguous, even after comparing keys. Disambiguate using keys:\n{pretty_dict(ambiguity)}")
+                                continue
+                            match_id = disambiguated[0]
+                            msg = " after disambiguation by keys."
                         else:
                             match_id = list(longest.keys())[0]
-                            row[wha] = match_id
-                            match_ix = self._index[match_id]
-                            match_row = get_row(match_ix)
-                            match_row[wh] = id
-                            update_row(match_ix, match_row)
-                            #res_ix.add(match_ix)
-                            match_file = self.files[match_id[0]][match_id[1]]
-                            self.logger.debug(f"Matched {file} to {match_file} based on the prefix {longest[match_id]}")
+                            msg = "."
+                        row[wha] = match_id
+                        match_ix = self._index[match_id]
+                        match_row = get_row(match_ix)
+                        match_row[wh] = id
+                        update_row(match_ix, match_row)
+                        #res_ix.add(match_ix)
+                        match_file = self.files[match_id[0]][match_id[1]]
+                        self.logger.debug(f"Matched {wh} {file} to {wha} {match_file} based on the prefix {longest[match_id]}{msg}")
 
                 update_row(ix, row)
                 #res_ix.add(ix)
