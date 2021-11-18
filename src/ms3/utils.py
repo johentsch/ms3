@@ -1342,7 +1342,7 @@ def make_interval_index(S, end_value=None, closed='left', **kwargs):
     Parameters
     ----------
     S : :obj:`pandas.Series`
-        Interval breaks
+        Interval breaks. It is assumed that the breaks are sorted.
     end_value : numeric
         Often you want to pass the right border of the last interval.
     closed : :obj:`str`
@@ -1353,10 +1353,18 @@ def make_interval_index(S, end_value=None, closed='left', **kwargs):
     -------
 
     """
-    breaks = sorted(S.to_list())
+    breaks = S.to_list()
     if end_value is not None:
-        breaks += [end_value]
-    iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, **kwargs)
+        last = breaks[-1]
+        if end_value > last:
+            breaks += [end_value]
+        else:
+            breaks += [last]
+    try:
+        iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, **kwargs)
+    except:
+        print(breaks)
+        raise
     return iix
 
 
