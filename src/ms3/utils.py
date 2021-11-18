@@ -1776,6 +1776,8 @@ def scale_degree2name(sd, localkey, globalkey):
         The given scale degree, expressed as a note name.
 
     """
+    if any(pd.isnull(val) for val in (sd, localkey, globalkey)):
+        return pd.NA
     global_minor = globalkey.islower()
     if '/' in localkey:
         localkey = resolve_relative_keys(localkey, global_minor)
