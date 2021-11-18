@@ -1826,7 +1826,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         for dir_entry in os.scandir(d):
             name = dir_entry.name
             path = os.path.join(d, name)
-            if dir_entry.is_dir() and recursive:
+            if dir_entry.is_dir() and (recursive or folder_re != '.*'):
                 for res in traverse(path):
                     yield res
             else:
@@ -1836,8 +1836,11 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                     folder_passes = True
                 else:
                     folder_path = os.path.dirname(path)
-                    folder = os.path.basename(folder_path)
-                    folder_passes = check_regex(folder_re, folder, excl='^$') # passes if the folder name itself matches the regex
+                    if recursive:
+                        folder_passes = check_regex(folder_re, folder_path, excl='^$')  # passes if the folder path matches the regex
+                    else:
+                        folder = os.path.basename(folder_path)
+                        folder_passes = check_regex(folder_re, folder, excl='^$')  # passes if the folder name itself matches the regex
                     if folder_passes and not exclude_files_only: # True if the exclude_re should also exclude folder names
                         folder_passes = check_regex(folder_re, folder_path) # is false if any part of the folder path matches exclude_re
                 if dir_entry.is_file() and folder_passes and check_regex(file_re, name):
