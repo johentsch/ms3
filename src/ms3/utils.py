@@ -1137,6 +1137,32 @@ def join_tsvs(dfs, sort_cols=False):
     return column_order(res, sort=sort_cols).reset_index(drop=True)
 
 
+def str2inttuple(l):
+    if l == '':
+        return tuple()
+    res = []
+    for s in l.split(', '):
+        try:
+            res.append(int(s))
+        except:
+            print(f"String value '{s}' could not be converted to a tuple.")
+    return tuple(res)
+
+
+def int2bool(s):
+    try:
+        return bool(int(s))
+    except:
+        return s
+
+
+def safe_frac(s):
+    try:
+        return frac(s)
+    except:
+        return s
+
+
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
@@ -1154,28 +1180,6 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         to be using the new `string` datatype that includes the new null type `pd.NA`.
     """
 
-    def str2inttuple(l):
-        if l == '':
-            return tuple()
-        res = []
-        for s in l.split(', '):
-            try:
-                res.append(int(s))
-            except:
-                print(f"String value '{s}' could not be converted to a tuple.")
-        return tuple(res)
-
-    def int2bool(s):
-        try:
-            return bool(int(s))
-        except:
-            return s
-
-    def safe_frac(s):
-        try:
-            return frac(s)
-        except:
-            return s
 
     CONVERTERS = {
         'added_tones': str2inttuple,
