@@ -662,12 +662,16 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['label_count'] = len(self.get_raw_labels())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
-        first_label =  self.soup.find('Harmony')
-        first_label_name = first_label.find('name') if first_label is not None else None
-        if first_label_name is not None and first_label_name.string is not None:
-            m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", first_label_name.string)
-            if m is not None:
-                data['annotated_key'] = m.group(1)
+        annotated_key = None
+        for harmony_tag in self.soup.find_all('Harmony'):
+            label = harmony_tag.find('name')
+            if label is not None and label.string is not None:
+                m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", label.string)
+                if m is not None:
+                    annotated_key = m.group(1)
+                    break
+        if annotated_key is not None:
+            data['annotated_key'] = annotated_key
         if len(self.nl.index) == 0:
             return data
         staff_groups = self.nl.groupby('staff').midi
