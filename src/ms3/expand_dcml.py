@@ -631,7 +631,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
         df[global_minor] = series_is_minor(df[cols['globalkey']], is_name=True)
         logger.debug(f"Boolean column '{global_minor}' created.'")
 
-    param_cols = {col: cols[col] for col in ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'mc'] if cols[col] is not None}
+    param_cols = {col: cols[col] for col in ['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'mc'] if col in cols and cols[col] is not None}
     param_cols['minor'] = local_minor
     param_tuples = list(df[param_cols.values()].itertuples(index=False, name=None))
     #result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}
