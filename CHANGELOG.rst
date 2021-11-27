@@ -9,6 +9,7 @@ Next version
 * added utils.make_gantt_data()
 * handling hierarchical localkeys and pedals (i.e. we can modulate to the key of `V/III`)
 * Renamed column 'durations_quarterbeats' to 'duration_qb'
+* When adding quarterbeat columns, you can now set ``interval_index = True`` to add the quarterbeat intervals to the index
 * New behaviour of the ``folder_re`` argument: It now gets to all paths matching the regEx rather than stopping at a
   higher level that doesn't match. Effectively, this allows, for example, to do ``Parse(path, folder_re='notes')`` to
   select all files from folders called notes.

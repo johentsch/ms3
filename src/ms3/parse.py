@@ -12,8 +12,8 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, join_tsvs, load_tsv, \
-    make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict,\
-    resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
+    make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, \
+    replace_index_by_intervals, resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -280,7 +280,7 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    def _concat_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False):
+    def _concat_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
         """ Boiler plate for concatenating DataFrames with the same type of information.
 
         Parameters
@@ -293,10 +293,7 @@ class Parse(LoggedClass):
         -------
 
         """
-        # if quarterbeats and not unfold:
-        #     self.logger.info('Adding quarterbeats without unfolding repeats has not been implemented yet, sorry.')
-        #     quarterbeats = False
-        d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, **{which: True})
+        d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index, **{which: True})
         d = d[which] if which in d else {}
         msg = {
             'cadences': 'cadence lists',
@@ -319,35 +316,44 @@ class Parse(LoggedClass):
         d = {k: v for k, v in d.items() if v.shape[0] > 0}
         return pd.concat(d.values(), keys=d.keys())
 
-    def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index)
 
-    def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def events(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def events(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('form_labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('form_labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
-    def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False):
-        return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold)
+    def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+        return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
     @property
     def ids(self):
@@ -1039,7 +1045,7 @@ Available keys: {available_keys}""")
 
     def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
                   labels=False, chords=False, expanded=False, cadences=False, form_labels=False, simulate=False, flat=True, unfold=False,
-                  quarterbeats=False):
+                  quarterbeats=False, interval_index=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
@@ -1065,8 +1071,13 @@ Available keys: {available_keys}""")
             Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
             is set to True.
         quarterbeats : :obj:`bool`, optional
-            Pass True to add a `quarterbeats` column with a continuous offset from the piece's beginning. If ``unfold``
-            is False, this option will remove second endings and the ``volta`` column.
+            Pass True to add a ``quarterbeats`` column with a continuous offset from the piece's beginning. If ``unfold``
+            is False, first endings will not be assigned a quarterbeat position. If, additionally, ``interval_index``
+            is set to True, they are removed from the DataFrame.
+        interval_index : :obj:`bool`, optional
+            Sets ``quarterbeats`` to True. Pass True to replace the indices of the returned DataFrames by
+            :obj:`pandas.IntervalIndex <pandas.IntervalIndex>` with quarterbeat intervals. Rows that don't have a
+            quarterbeat position are removed.
 
         Returns
         -------
@@ -1084,6 +1095,8 @@ Available keys: {available_keys}""")
         res = {}
         if unfold:
             mc_sequences = self.get_unfolded_mcs(ids=ids)
+        if interval_index:
+            quarterbeats = True
         if unfold or quarterbeats:
             _ = self.match_files(ids=ids)
         for param, li in self._lists.items():
@@ -1106,6 +1119,8 @@ Available keys: {available_keys}""")
                             self.logger.debug("Only second voltas were included when computing quarterbeats.")
                         offset_dict = self.get_continuous_offsets(key, i, unfold=False)
                         df = add_quarterbeats_col(df, offset_dict)
+                    if interval_index:
+                        df = replace_index_by_intervals(df)
                     if flat:
                         res[id + (param,)] = df
                     else:

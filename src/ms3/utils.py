@@ -181,7 +181,7 @@ class map_dict(dict):
         return key
 
 @function_logger
-def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
+def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=False):
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the ``insert_after`` column's measure counts.
 
@@ -195,6 +195,8 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
         You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parsed.Parse.get_continuous_offsets>`
     insert_after : :obj:`str`, optional
         Name of the column after which the new column will be inserted.
+    interval_index : :obj:`bool`, optional
+        Defaults to False. Pass True to replace the index with an :obj:`pandas.
 
     Returns
     -------
@@ -227,6 +229,8 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc'):
                 logger.warning("Column 'duration_qb' could not be created.")
     else:
         logger.debug("quarterbeats column was already present.")
+    if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
+        df = replace_index_by_intervals(df)
     return df
 
 def assert_all_lines_equal(before, after, original, tmp_file):
@@ -292,6 +296,58 @@ def ambitus2oneliner(ambitus):
     if 'max_midi' in ambitus:
         return f"{ambitus['max_midi']}-{ambitus['max_midi']} ({ambitus['max_name']}-{ambitus['max_name']})"
     return ''
+
+
+
+def changes2list(changes, sort=True):
+    """ Splits a string of changes into a list of 4-tuples.
+
+    Example
+    -------
+    >>> changes2list('+#7b5')
+    [('+#7', '+', '#', '7'),
+     ('b5',  '',  'b', '5')]
+    """
+    res = [t for t in re.findall(r"((\+|-|\^|v)?(#+|b+)?(1\d|\d))", changes)]
+    return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
+
+
+
+def changes2tpc(changes, numeral, minor=False, root_alterations=False):
+    """
+    Given a numeral and changes, computes the intervals that the changes represent.
+    Changes do not express absolute intervals but instead depend on the numeral and the mode.
+
+    Uses: split_scale_degree(), changes2list()
+
+    Parameters
+    ----------
+    changes : :obj:`str`
+        A string of changes following the DCML harmony standard.
+    numeral : :obj:`str`
+        Roman numeral. If it is preceded by accidentals, it depends on the parameter
+        `root_alterations` whether these are taken into account.
+    minor : :obj:`bool`, optional
+        Set to true if the `numeral` occurs in a minor context.
+    root_alterations : :obj:`bool`, optional
+        Set to True if accidentals of the root should change the result.
+    """
+    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
+    # build 2-octave diatonic scale on C major/minor
+    root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
+    tpcs = 2 * [i for i in (0, 2, -3, -1, 1, -4, -2)] if minor else 2 * [i for i in (0, 2, 4, -1, 1, 3, 5)]
+    tpcs = tpcs[root:] + tpcs[:root]  # starting the scale from chord root
+    root = tpcs[0]
+    if root_alterations:
+        root += 7 * root_alteration
+        tpcs[0] = root
+
+    alts = changes2list(changes, sort=False)
+    acc2tpc = lambda accidentals: 7 * (accidentals.count('#') - accidentals.count('b'))
+    return [(full, added, acc, chord_interval,
+             (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root) if not chord_interval in ['3', '5'] else None) for
+            full, added, acc, chord_interval in alts]
+
 
 
 def check_labels(df, regex, column='label', split_regex=None, return_cols=['mc', 'mc_onset', 'staff', 'voice']):
@@ -1553,6 +1609,7 @@ def name2pc(nn):
         Uses: split_note_name()
     """
     if nn.__class__ == int or pd.isnull(nn):
+        logger.warning(f"'{nn}' is not a valid note name.")
         return nn
     name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 8, 'B': 11}
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
@@ -2483,11 +2540,47 @@ def labels2global_tonic(df, cols={}, inplace=False):
         return res
 
 
-def series_is_minor(S, is_name=True):
-    """ Returns boolean Series where every value in ``S`` representing a minor key/chord is True."""
-    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
-    # return S.str.replace(regex, lambda m: m.group(1)).str.islower()
-    return S.str.islower() # as soon as one character is not lowercase, it should be major
+@function_logger
+def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
+                               filter_zero_duration=False, round=3):
+    """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex <pandas.IntervalIndex>`.
+    Underspecified rows are removed.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Annotation table containing the columns of ``position_col`` (default: 'quarterbeats') and ``duration_col``
+        default: 'duration_qb').
+    position_col : :obj:`str`, optional
+        Name of the column containing positions.
+    duration_col : :obj:`str`, optional
+        Name of the column containing durations.
+    closed : :obj:`str`, optional
+        'left', 'right' or 'both' <- defining the interval boundaries
+    filter_zero_duration : :obj:`bool`, optional
+        Defaults to False, meaning that rows with zero durations are maintained. Pass True to remove them.
+    round : :obj:`int`, optional
+        To how many decimal places to round the intervals' boundary values.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+
+    """
+    if not all(c in df.columns for c in (position_col, duration_col)):
+        missing = [c for c in (position_col, duration_col) if c not in df.columns]
+        plural = 's' if len(missing) > 1 else ''
+        logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
+        return df
+    mask = df[position_col].notna()
+    if filter_zero_duration:
+        mask &= (df[duration_col] > 0)
+    df = df[mask]
+    left = df[position_col].astype(float)
+    right = left + df[duration_col].astype(float)
+    index_tuples = zip(left.round(round), right.round(round))
+    df.index = pd.IntervalIndex.from_arrays(left=left.round(round), right=right.round(round), closed=closed)
+    return df
 
 
 def resolve_relative_keys(relativeroot, minor=False):
@@ -2510,6 +2603,23 @@ def resolve_relative_keys(relativeroot, minor=False):
         return rel2abs_key(applied, to, minor)
     previous, last = '/'.join(spl[:-1]), spl[-1]
     return rel2abs_key(resolve_relative_keys(previous, str_is_minor(last, is_name=False)), last, minor)
+
+
+def series_is_minor(S, is_name=True):
+    """ Returns boolean Series where every value in ``S`` representing a minor key/chord is True."""
+    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
+    # return S.str.replace(regex, lambda m: m.group(1)).str.islower()
+    return S.str.islower()  # as soon as one character is not lowercase, it should be major
+
+
+def str_is_minor(tone, is_name=True):
+    """ Returns True if ``tone`` represents a minor key or chord."""
+    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
+    # m = re.match(regex, tone)
+    # if m is None:
+    #     return m
+    # return m.group(1).islower()
+    return tone.islower()
 
 
 @function_logger
@@ -2551,58 +2661,3 @@ def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=Fals
     return ''.join(res)
 
 
-def str_is_minor(tone, is_name=True):
-    """ Returns True if ``tone`` represents a minor key or chord."""
-    # regex = r'([A-Ga-g])[#|b]*' if is_name else '[#|b]*(\w+)'
-    # m = re.match(regex, tone)
-    # if m is None:
-    #     return m
-    # return m.group(1).islower()
-    return tone.islower()
-
-
-def changes2tpc(changes, numeral, minor=False, root_alterations=False):
-    """
-    Given a numeral and changes, computes the intervals that the changes represent.
-    Changes do not express absolute intervals but instead depend on the numeral and the mode.
-
-    Uses: split_scale_degree(), changes2list()
-
-    Parameters
-    ----------
-    changes : :obj:`str`
-        A string of changes following the DCML harmony standard.
-    numeral : :obj:`str`
-        Roman numeral. If it is preceded by accidentals, it depends on the parameter
-        `root_alterations` whether these are taken into account.
-    minor : :obj:`bool`, optional
-        Set to true if the `numeral` occurs in a minor context.
-    root_alterations : :obj:`bool`, optional
-        Set to True if accidentals of the root should change the result.
-    """
-    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
-    # build 2-octave diatonic scale on C major/minor
-    root = ['I','II','III','IV','V','VI','VII'].index(num_degree.upper())
-    tpcs = 2 * [i for i in (0,2,-3,-1,1,-4,-2)] if minor else 2 * [i for i in (0,2,4,-1,1,3,5)]
-    tpcs = tpcs[root:] + tpcs[:root]               # starting the scale from chord root
-    root = tpcs[0]
-    if root_alterations:
-        root += 7 * root_alteration
-        tpcs[0] = root
-
-    alts = changes2list(changes, sort=False)
-    acc2tpc = lambda accidentals: 7 * (accidentals.count('#') - accidentals.count('b'))
-    return [(full, added, acc, chord_interval, (tpcs[int(chord_interval) - 1] + acc2tpc(acc) - root) if not chord_interval in ['3', '5'] else None) for full, added, acc, chord_interval in alts]
-
-
-def changes2list(changes, sort=True):
-    """ Splits a string of changes into a list of 4-tuples.
-
-    Example
-    -------
-    >>> changes2list('+#7b5')
-    [('+#7', '+', '#', '7'),
-     ('b5',  '',  'b', '5')]
-    """
-    res = [t for t in re.findall(r"((\+|-|\^|v)?(#+|b+)?(1\d|\d))", changes)]
-    return sorted(res, key=lambda x: int(x[3]), reverse=True) if sort else res
