@@ -10,7 +10,11 @@ Next version
   * just as ``utils``, members can be imported directly via ``from ms3 import``
   * includes a couple of functions that were previously part of ``utils`` or ``expand_dcml``
   * includes a couple of new functions:
+    * get_chord_sequences()
+    * group_annotations_by_features()
     * make_gantt_data()
+    * transform_annotations()
+    * transform_multiple()
 * changes to ``Parse`` objects:
   * iterator p.annotation_objects()
 * handling hierarchical localkeys and pedals (i.e. we can modulate to the key of ``V/III``)

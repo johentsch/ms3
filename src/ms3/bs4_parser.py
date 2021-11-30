@@ -612,6 +612,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             mn_onset = frac(mn_onset)
         except:
             self.logger.error(f"The mn_onset {mn_onset} could not be interpreted as a fraction.")
+            raise
         candidates = self.ml[self.ml['mn'] == mn]
         if len(candidates) == 0:
             self.logger.error(f"MN {mn} does not occur in measure list, which ends at MN {self.ml['mn'].max()}.")

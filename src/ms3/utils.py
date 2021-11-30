@@ -1,6 +1,6 @@
 import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
-from collections.abc import Collection, Iterable
+from collections.abc import Iterable
 from contextlib import contextmanager
 from fractions import Fraction as frac
 from functools import reduce
@@ -563,140 +563,6 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
     else:
         for o, n, ms in conversion_params:
             convert(o, n, ms)
-
-
-@function_logger
-def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
-    """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
-        based on the column ``localkey``. The column names are suited for the plotly library.
-    Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
-
-    Parameters
-    ----------
-    at : :obj:`pandas.DataFrame`
-        Expanded DCML annotation table.
-    last_mn : :obj:`int`, optional
-        By default, the column ``quarterbeats`` is used for computing Start and Finish unless the column is not present,
-        in which case a continuous version of measure numbers (MN) is used. In the latter case you should pass the last
-        measure number of the piece in order to calculate the correct duration of the last key segment; otherwise it
-        will go until the end of the last label's MN. As soon as you pass a value, the column ``quarterbeats`` is ignored
-        even if present. If you want to ignore it but don't know the last MN, pass -1.
-    relativeroots : :obj:`bool`, optional
-        By default, additional rows are added based on the column ``relativeroot``. Pass False to prevent that.
-    mode_agnostic_adjacency : :obj:`bool`, optional
-        By default (if ``relativeroots`` is True), additional rows are added for labels adjacent to temporarily tonicized
-        roots, no matter if the mode is identical or not. For example, before and after a V/V, all V _and_ v labels will
-        be grouped as adjacent segments. Pass False to group only labels with the same mode (only V labels in the example),
-        or None to include no adjacency at all.
-
-    Returns
-    -------
-
-    """
-    at = at[at.numeral.notna() & (at.numeral != '@none')].copy()
-    if last_mn is not None or 'quarterbeats' not in at.columns:
-        position_col = 'mn_fraction'
-        if last_mn is None or last_mn < 0:
-            last_mn = at.mn.max()
-        last_val = last_mn + 1.0
-        if 'mn_fraction' not in at.columns:
-            mn_fraction = (at.mn + (at.mn_onset.astype(float) / at.timesig.map(frac).astype(float))).astype(float)
-            at.insert(at.columns.get_loc('mn') + 1, 'mn_fraction', mn_fraction)
-    else:
-        position_col = 'quarterbeats'
-        at = at[at.quarterbeats.notna()].copy()
-        at.quarterbeats = at.quarterbeats.astype(float)
-        last_label = at.iloc[-1]
-        last_val = float(last_label.quarterbeats) + last_label.duration_qb
-
-    check_columns = ('localkey', 'globalkey_is_minor')
-    if any(c not in at.columns for c in check_columns):
-        logger.error(f"Annotation table is missing the columns {', '.join(c for c in check_columns if c not in at.columns)}. Cannot make Gantt data")
-        return pd.DataFrame()
-
-    at.sort_values(position_col, inplace=True)
-    at.index = make_interval_index(at[position_col], end_value=last_val)
-
-    at['localkey_resolved'] = transform(at, resolve_relative_keys, ['localkey', 'globalkey_is_minor'])
-
-    key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'localkey_resolved', 'globalkey', 'globalkey_is_minor']]\
-                    .rename(columns={position_col: 'Start'})
-    iix = make_interval_index(key_groups.Start, end_value=last_val)
-    key_groups.index = iix
-    fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
-    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename('semitones')
-    description = 'Duration: ' + iix.length.astype(str) + \
-                  '<br>Tonicized global scale degree: ' + key_groups.localkey_resolved + \
-                  '<br>Local tonic: ' + key_groups.localkey
-
-    key_groups = pd.DataFrame({
-        'Start': key_groups.Start,
-        'Finish': iix.right,
-        'Duration': iix.length,
-        'Resource': 'local',
-        'abs_numeral': key_groups.localkey_resolved,
-        'fifths': fifths,
-        'semitones': semitones,
-        'localkey': key_groups.localkey,
-        'globalkey': key_groups.globalkey,
-        'Description': description
-    })
-
-    if not relativeroots or at.relativeroot.isna().all():
-        return key_groups
-
-    levels = list(range(at.index.nlevels))
-
-    def select_groups(df):
-        nonlocal levels
-        has_applied = df.Resource.notna()
-        if has_applied.any():
-            df.Resource.fillna('tonic of adjacent applied chord(s)', inplace=True)
-            # relativeroot gets filled in with numeral because it is needed for the Description. However, if mode_agnostic_adjacency=True,
-            # only the numeral of the first row of each subgroup will be displayed.
-            df.relativeroot = df.relativeroot.where(has_applied, df.numeral)
-            df['subgroup'] = df.Resource != df.Resource.shift()
-            return df
-        else:
-            return pd.DataFrame(columns=levels).set_index(levels, drop=True)
-
-    def gantt_data(df):
-        frst = df.iloc[[0]]
-        start, finish = df.index[0].left, df.index[-1].right
-        frst['Start'] = start
-        frst['Finish'] = finish
-        frst['Duration'] = finish - start
-        frst.index = pd.IntervalIndex.from_tuples([(start, finish)], closed='left')
-        return frst
-
-    global_numerals = labels2global_tonic(at).numeral
-    at['Resource'] = pd.NA
-    at.Resource = at.Resource.where(at.relativeroot.isna(), 'applied')
-    at['relativeroot_resolved'] = transform(at, resolve_relative_keys, ['relativeroot', 'localkey_is_minor'])
-    at['abs_numeral'] = transform(at, rel2abs_key, ['relativeroot_resolved', 'localkey_resolved', 'globalkey_is_minor'])
-    at.abs_numeral.fillna(global_numerals, inplace=True) #= at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
-    at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
-    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
-
-    if mode_agnostic_adjacency is not None:
-        adjacent_groups = (at.semitones != at.semitones.shift()).cumsum() if mode_agnostic_adjacency else (at.abs_numeral != at.abs_numeral.shift()).cumsum()
-        try:
-            at = at.groupby(adjacent_groups, group_keys=False).apply(select_groups).astype({'semitones': int, 'fifths': int})
-        except:
-            print(at.groupby(adjacent_groups, group_keys=False).apply(select_groups))
-            raise
-        at.subgroup = at.subgroup.cumsum()
-        at = at.groupby(['subgroup', 'localkey'], group_keys=False).apply(gantt_data)
-    else:
-        subgroups = ((at.relativeroot != at.relativeroot.shift()) | (at.localkey != at.localkey.shift())).cumsum()
-        at = at[at.relativeroot.notna()].groupby(subgroups, group_keys=False).apply(gantt_data)
-    res = pd.concat([key_groups, at])[['Start', 'Finish', 'Duration', 'Resource', 'abs_numeral', 'fifths', 'semitones', 'localkey', 'globalkey', 'relativeroot']]
-    res.loc[:, ['Start', 'Finish', 'Duration']] = res[['Start', 'Finish', 'Duration']].round(2)
-    res['Description'] = 'Duration: ' + res.Duration.astype(str) + \
-                         '<br>Tonicized global scale degree: ' + res.abs_numeral + \
-                         '<br>Local tonic: ' + res.localkey + \
-                         ('<br>Tonicized local scale degree: ' + res.relativeroot).fillna('')
-    return res
 
 
 def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
@@ -1422,6 +1288,15 @@ def make_interval_index(S, end_value=None, closed='left', **kwargs):
     return iix
 
 
+def make_name_columns(df):
+    """Relies on the columns ``localkey`` and ``globalkey`` to transform the columns ``root`` and ``bass_notes`` from
+    scale degrees (expressed as fifths) to absolute note names, e.g. in C major: 0 => 'C', 7 => 'C#', -5 => 'Db'
+    Uses: transform(), scale_degree2name"""
+    new_cols = {}
+    for col in ('root', 'bass_note'):
+        if col in df.columns:
+            new_cols[f"{col}_name"] = transform(df, scale_degree2name, [col, 'localkey', 'globalkey'])
+    return pd.DataFrame(new_cols)
 
 
 
@@ -1611,7 +1486,7 @@ def name2pc(nn):
     if nn.__class__ == int or pd.isnull(nn):
         logger.warning(f"'{nn}' is not a valid note name.")
         return nn
-    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 8, 'B': 11}
+    name_tpcs = {'C': 0, 'D': 2, 'E': 4, 'F': 5, 'G': 7, 'A': 9, 'B': 11}
     accidentals, note_name = split_note_name(nn, count=True, logger=logger)
     if note_name is None:
         return None
@@ -2408,8 +2283,8 @@ def rel2abs_key(rel, localkey, global_minor=False):
     The same examples hold if you're expressing in terms of the global key
     the root of a VI-chord within the local keys VI or vi.
     """
-    if pd.isnull(rel):
-        return np.nan
+    if pd.isnull(rel) or pd.isnull(localkey):
+        return rel
     maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
     min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
     shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
@@ -2433,111 +2308,6 @@ def rel2abs_key(rel, localkey, global_minor=False):
     shift += shifts[rel_num][key_num]
     acc = shift * '#' if shift > 0 else -shift * 'b'
     return acc + step
-
-
-@function_logger
-def labels2global_tonic(df, cols={}, inplace=False):
-    """
-    Transposes all numerals to their position in the global major or minor scale.
-    This eliminates localkeys and relativeroots. The resulting chords are defined
-    by [`numeral`, `figbass`, `changes`, `globalkey_is_minor`] (and `pedal`).
-
-    Uses: :py:func:`transform`, :py:func:`rel2abs_key^, :py:func:`resolve_relative_keys` -> :py:func:`str_is_minor()`
-    :py:func:`transpose_changes`, :py:func:`series_is_minor`,
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        Dataframe containing DCML chord labels that have been split by split_labels()
-        and where the keys have been propagated using propagate_keys(add_bool=True).
-    cols : :obj:`dict`, optional
-        In case the column names for ``['numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']`` deviate, pass a dict, such as
-
-        .. code-block:: python
-
-            {'chord':           'chord_col_name'
-             'pedal':           'pedal_col_name',
-             'numeral':         'numeral_col_name',
-             'form':            'form_col_name',
-             'figbass':         'figbass_col_name',
-             'changes':         'changes_col_name',
-             'relativeroot':    'relativeroot_col_name',
-             'localkey':        'localkey_col_name',
-             'globalkey':       'globalkey_col_name'}}
-
-    inplace : :obj:`bool`, optional
-        Pass True if you want to mutate the input.
-
-    Returns
-    -------
-    :obj:`pandas.DataFrame`
-        If `inplace=False`, the relevant features of the transposed chords are returned.
-        Otherwise, the original DataFrame is mutated.
-    """
-    if not inplace:
-        df = df.copy()
-
-    ### If the index is not unique, it has to be temporarily replaced
-    tmp_index = not df.index.is_unique or isinstance(df.index, pd.core.indexes.interval.IntervalIndex)
-    if tmp_index:
-        ix = df.index
-        df.reset_index(drop=True, inplace=True)
-
-    features = ['chord', 'pedal', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'localkey', 'globalkey']
-    for col in features:
-        if col in df.columns and not col in cols:
-            cols[col] = col
-    local_minor, global_minor = f"{cols['localkey']}_is_minor", f"{cols['globalkey']}_is_minor"
-    if not local_minor in df.columns:
-        df[local_minor] = series_is_minor(df[cols['localkey']], is_name=False)
-        logger.debug(f"Boolean column '{local_minor} created.'")
-    if not global_minor in df.columns:
-        df[global_minor] = series_is_minor(df[cols['globalkey']], is_name=True)
-        logger.debug(f"Boolean column '{global_minor} created.'")
-
-    if df[cols['localkey']].str.contains('/').any():
-        df.loc[:, cols['localkey']] = transform(df, resolve_relative_keys, [cols['localkey'], global_minor])
-    if df[cols['pedal']].str.contains('/').any():
-        df.loc[:, cols['pedal']] = transform(df, resolve_relative_keys, [cols['pedal'], local_minor])
-
-    # Express pedals in relation to the global tonic
-    param_cols = [cols[col] for col in ['pedal', 'localkey']] + [global_minor]
-    df.loc[:, cols['pedal']] = transform(df, rel2abs_key, param_cols)
-
-    # Make relativeroots to local keys
-    param_cols = [cols[col] for col in ['relativeroot', 'localkey']] + [local_minor, global_minor]
-    relativeroots = df.loc[df[cols['relativeroot']].notna(), param_cols]
-    rr_tuples = list(relativeroots.itertuples(index=False, name=None))
-    transposed_rr = {
-        (rr, localkey, local_minor, global_minor): rel2abs_key(resolve_relative_keys(rr, local_minor), localkey,
-                                                               global_minor) for
-        (rr, localkey, local_minor, global_minor) in set(rr_tuples)}
-    transposed_rr = pd.Series((transposed_rr[t] for t in rr_tuples), index=relativeroots.index)
-    df.loc[relativeroots.index, cols['localkey']] = transposed_rr
-    df.loc[relativeroots.index, local_minor] = series_is_minor(df.loc[relativeroots.index, cols['localkey']])
-
-    # Express numerals in relation to the global tonic
-    param_cols = [cols[col] for col in ['numeral', 'localkey']] + [global_minor]
-    df['abs_numeral'] = transform(df, rel2abs_key, param_cols)
-
-    # Transpose changes to be valid with the new numeral
-    param_cols = [cols[col] for col in ['changes', 'numeral']] + ['abs_numeral', local_minor, global_minor]
-    df.loc[:, cols['changes']] = transform(df, transpose_changes, param_cols, logger=logger)
-
-    # Combine the new chord features
-    df.loc[:, cols['chord']] = df.abs_numeral + df.form.fillna('') + df.figbass.fillna('') + ('(' + df.changes.astype('string') + ')').fillna('')  # + ('/' + df.relativeroot).fillna('')
-
-    if tmp_index:
-        df.index = ix
-
-    if inplace:
-        df[cols['numeral']] = df.abs_numeral
-        drop_cols = [cols[col] for col in ['localkey', 'relativeroot']] + ['abs_numeral', local_minor]
-        df.drop(columns=drop_cols, inplace=True)
-    else:
-        res_cols = ['abs_numeral'] + [cols[col] for col in ['form', 'figbass', 'changes', 'globalkey']] + [global_minor]
-        res = df[res_cols].rename(columns={'abs_numeral': cols['numeral']})
-        return res
 
 
 @function_logger
@@ -2661,3 +2431,251 @@ def transpose_changes(changes, old_num, new_num, old_minor=False, new_minor=Fals
     return ''.join(res)
 
 
+@function_logger
+def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=None, key='C', minor=None,
+                  merge_tones=True, bass_only=False, mc=None):
+    """
+    Given the features of a chord label, this function returns the chord tones
+    in the order of the inversion, starting from the bass note. The tones are
+    expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.
+
+    Uses: :py:func:`~.utils.changes2list`, :py:func:`~.utils.name2fifths`, :py:func:`~.utils.resolve_relative_keys`, :py:func:`~.utils.roman_numeral2fifths`,
+    :py:func:`~.utils.sort_tpcs`, :py:func:`~.utils.str_is_minor`
+
+    Parameters
+    ----------
+    numeral: :obj:`str`
+        Roman numeral of the chord's root
+    form: {None, 'M', 'o', '+' '%'}, optional
+        Indicates the chord type if not a major or minor triad (for which ``form`` is None).
+        '%' and 'M' can only occur as tetrads, not as triads.
+    figbass: {None, '6', '64', '7', '65', '43', '2'}, optional
+        Indicates chord's inversion. Pass None for triad root position.
+    changes: :obj:`str`, optional
+        Added steps such as '+6' or suspensions such as '4' or any combination such as (9+64).
+        Numbers need to be in descending order.
+    relativeroot: :obj:`str`, optional
+        Pass a Roman scale degree if `numeral` is to be applied to a different scale
+        degree of the local key, as in 'V65/V'
+    key : :obj:`str` or :obj:`int`, optional
+        The local key expressed as the root's note name or a tonal pitch class.
+        If it is a name and `minor` is `None`, uppercase means major and lowercase minor.
+        If it is a tonal pitch class, `minor` needs to be specified.
+    minor : :obj:`bool`, optional
+        Pass True for minor and False for major. Can be omitted if `key` is a note name.
+        This affects calculation of chords related to III, VI and VII.
+    merge_tones : :obj:`bool`, optional
+        Pass False if you want the function to return two tuples, one with (potentially suspended)
+        chord tones and one with added notes.
+    bass_only : :obj:`bool`, optional
+        Return only the bass note instead of all chord tones.
+    mc : int or str
+        Pass measure count to display it in warnings.
+
+    """
+    if pd.isnull(numeral) or numeral == '@none':
+        if bass_only or merge_tones:
+            return np.nan
+        else:
+            return {
+                'chord_tones': np.nan,
+                'added_tones': np.nan,
+                'root': np.nan,
+            }
+    form, figbass, changes, relativeroot = tuple(
+        '' if pd.isnull(val) else val for val in (form, figbass, changes, relativeroot))
+    label = f"{numeral}{form}{figbass}{'(' + changes + ')' if changes != '' else ''}{'/' + relativeroot if relativeroot != '' else ''}"
+    MC = '' if mc is None else f'MC {mc}: '
+    if minor is None:
+        try:
+            minor = str_is_minor(key, is_name=True)
+            logger.debug(f"Mode inferred from {key}.")
+        except:
+            raise ValueError(f"If parameter 'minor' is not specified, 'key' needs to be a string, not {key}")
+
+    key = name2fifths(key)
+
+    if form in ['%', 'M', '+M']:
+        assert figbass in ['7', '65', '43',
+                           '2'], f"{MC}{label}: {form} requires figbass (7, 65, 43, or 2) since it specifies a chord's seventh."
+
+    if relativeroot != '':
+        resolved = resolve_relative_keys(relativeroot, minor)
+        rel_minor = str_is_minor(resolved, is_name=False)
+        transp = roman_numeral2fifths(resolved, minor)
+        logger.debug(
+            f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
+        return features2tpcs(numeral=numeral, form=form, figbass=figbass, relativeroot=None, changes=changes,
+                             key=key + transp, minor=rel_minor, merge_tones=merge_tones, bass_only=bass_only, mc=mc,
+                             logger=logger)
+
+    if numeral.lower() == '#vii' and not minor:
+        # logger.warning(
+        #     f"{MC}{label} in a major context is most probably an annotation error.")
+        logger.warning(f"{MC}{numeral} in major context corrected to {numeral[1:]}.")
+        numeral = numeral[1:]
+
+    root_alteration, num_degree = split_scale_degree(numeral, count=True, logger=logger)
+
+    # build 2-octave diatonic scale on C major/minor
+    root = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII'].index(num_degree.upper())
+    tpcs = 2 * [i + key for i in (0, 2, -3, -1, 1, -4, -2)] if minor else 2 * [i + key for i in (0, 2, 4, -1, 1, 3, 5)]
+    # starting the scale from chord root, i.e. root will be tpcs[0], the chord's seventh tpcs[6] etc.
+    tpcs = tpcs[root:] + tpcs[:root]
+    root = tpcs[0] + 7 * root_alteration
+    tpcs[0] = root  # octave stays diatonic, is not altered
+    logger.debug(f"{num_degree}: The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
+
+    def set_iv(chord_interval, interval_size):
+        """ Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).
+
+        Parameters
+        ----------
+        chord_interval : :obj:`int`
+            Pass 0 for the root note, 2 for the third, 8 for the ninth etc.
+        interval_size : :obj:`int`
+            Stack-of-fifths interval.
+        """
+        nonlocal tpcs, root
+        iv = root + interval_size
+        tpcs[chord_interval] = iv
+        tpcs[chord_interval + 7] = iv
+
+    is_triad = figbass in ['', '6', '64']
+    is_seventh_chord = figbass in ['7', '65', '43', '2']
+    if not is_triad and not is_seventh_chord:
+        raise ValueError(f"{MC}{figbass} is not a valid chord inversion.")
+
+    if form == 'o':
+        set_iv(2, -3)
+        set_iv(4, -6)
+        if is_seventh_chord:
+            set_iv(6, -9)
+    elif form == '%':
+        set_iv(2, -3)
+        set_iv(4, -6)
+        set_iv(6, -2)
+    elif form == '+':
+        set_iv(2, 4)
+        set_iv(4, 8)
+        if is_seventh_chord:
+            set_iv(6, -2)
+    elif form == '+M':
+        set_iv(2, 4)
+        set_iv(4, 8)
+        set_iv(6, 5)
+    else:  # triad with or without major or minor seven
+        set_iv(4, 1)
+        if num_degree.isupper():
+            set_iv(2, 4)
+        else:
+            set_iv(2, -3)
+        if form == 'M':
+            set_iv(6, 5)
+        elif is_seventh_chord:
+            set_iv(6, -2)
+
+    tone_functions = (0, 2, 4, 6) if is_seventh_chord else (0, 2, 4)
+    root_position = {i: [tpcs[i]] for i in tone_functions}
+    replacements  = {i: [] for i in tone_functions}
+
+    def replace_chord_tone(which, by):
+        nonlocal root_position, replacements
+        if which in root_position:
+            root_position[which] = []
+            replacements[which].insert(0, by)
+        else:
+            logger.warning(f"Only chord tones [0,2,4,(6)] can be replaced, not {which}")
+
+    # apply changes
+    alts = changes2list(changes, sort=False)
+    added_notes = []
+    for full, add_remove, acc, chord_interval in alts:
+        added = add_remove == '+'
+        substracted = add_remove == '-'
+        replacing_upper = add_remove == '^'
+        replacing_lower = add_remove == 'v'
+        chord_interval = int(chord_interval) - 1
+        ### From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in `tpcs`)
+        if (chord_interval == 0 and not substracted) or chord_interval > 13:
+            logger.warning(
+                f"{MC}Change {full} is meaningless and ignored because it concerns chord tone {chord_interval + 1}.")
+            continue
+        next_octave = chord_interval > 7
+        shift = 7 * (acc.count('#') - acc.count('b'))
+        new_val = tpcs[chord_interval] + shift
+        if substracted:
+            if chord_interval not in tone_functions:
+                logger.warning(
+                    f"{MC}The change {full} has no effect because it concerns an interval which is not implied by {numeral}{form}{figbass}.")
+            else:
+                root_position[chord_interval] = []
+        elif added:
+            added_notes.append(new_val)
+        elif next_octave:
+            if any((replacing_lower, replacing_upper, substracted)):
+                logger.warning(f"{MC}{full[0]} has no effect in {full}  because the interval is larger than an octave.")
+            added_notes.append(new_val)
+        elif chord_interval in [1, 3, 5]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
+            if '#' in acc or replacing_upper:
+                if '#' in acc and replacing_upper:
+                    logger.warning(f"{MC}^ is redundant in {full}.")
+                if chord_interval == 5 and is_triad:  # leading tone to 7 but not in seventh chord
+                    added_notes.append(new_val)
+                else:
+                    replace_chord_tone(chord_interval + 1, new_val)
+            else:
+                if replacing_lower:
+                    logger.warning(f"{MC}v is redundant in {full}.")
+                replace_chord_tone(chord_interval - 1, new_val)
+        else:  # chord tone alterations
+            if replacing_lower:
+                # TODO: This must be possible, e.g. V(6v5) where 5 is suspension of 4
+                logger.warning(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
+            elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
+                if figbass == '':  # in root position triads they are added
+                    # TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced from below!
+                    added_notes.append(new_val)
+                elif figbass in ['6', '64'] or '#' in acc:  # in inverted triads they replace the root, as does #7
+                    replace_chord_tone(0, new_val)
+                else:  # otherwise they are unclear
+                    logger.warning(
+                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.")
+            elif tpcs[chord_interval] == new_val:
+                logger.warning(
+                    f"{MC}The change {full} has no effect in {numeral}{form}{figbass}")
+            else:
+                root_position[chord_interval] = [new_val]
+
+    figbass2bass = {
+        '': 0,
+        '7': 0,
+        '6': 1,
+        '65': 1,
+        '64': 2,
+        '43': 2,
+        '2': 3
+    }
+    bass = figbass2bass[figbass]
+    chord_tones = []
+    for tf in tone_functions[bass:] + tone_functions[:bass]:
+        chord_tone, replacing_tones = root_position[tf], replacements[tf]
+        if chord_tone == replacing_tones == []:
+            logger.debug(f"{MC}{label} results in a chord without {tf + 1}.")
+        if chord_tone != []:
+            chord_tones.append(chord_tone[0])
+            if replacing_tones != []:
+                logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.")
+        chord_tones.extend(replacing_tones)
+
+    bass_tpc = chord_tones[0]
+    if bass_only:
+        return bass_tpc
+    elif merge_tones:
+        return tuple(sort_tpcs(chord_tones + added_notes, start=bass_tpc))
+    else:
+        return {
+            'chord_tones': tuple(chord_tones),
+            'added_tones': tuple(added_notes),
+            'root': root,
+        }

@@ -88,7 +88,7 @@ class Annotations(LoggedClass):
             self.logger.warning(f"Annotations object not aware to which MSCX object it is attached.")
             return pd.DataFrame()
         df = self.df.copy()
-        cols = df.columns
+        cols = list(df.columns)
         error = False
         staff_col = self.cols['staff']
         if staff_col not in cols:
@@ -133,6 +133,7 @@ Possible values are {{1, 2, 3, 4}}.""")
                     self.logger.info(f"Measure counts and corresponding mc_onsets successfully inferred.")
                     df.insert(df.columns.get_loc('mn'), 'mc', inferred_positions['mc'])
                     df.loc[:, 'mc_onset'] = inferred_positions['mc_onset']
+                    cols.extend(['mc', 'mc_onset'])
 
         if self.cols['mc_onset' ] not in cols:
             self.logger.info("No 'mc_onset' column found. All labels will be inserted at mc_onset 0.")
