@@ -6,14 +6,20 @@ Changelog
 Next version
 ============
 
-* added utils.make_gantt_data()
-* handling hierarchical localkeys and pedals (i.e. we can modulate to the key of `V/III`)
+* new module ``transformations``
+  * just as ``utils``, members can be imported directly via ``from ms3 import``
+  * includes a couple of functions that were previously part of ``utils`` or ``expand_dcml``
+  * includes a couple of new functions:
+    * make_gantt_data()
+* changes to ``Parse`` objects:
+  * iterator p.annotation_objects()
+* handling hierarchical localkeys and pedals (i.e. we can modulate to the key of ``V/III``)
 * Renamed column 'durations_quarterbeats' to 'duration_qb'
-* When adding quarterbeat columns, you can now set ``interval_index = True`` to add the quarterbeat intervals to the index
+* You can now set ``interval_index = True`` to add quarterbeat columns **and** an index with quarterbeat intervals
 * New behaviour of the ``folder_re`` argument: It now gets to all paths matching the regEx rather than stopping at a
   higher level that doesn't match. Effectively, this allows, for example, to do ``Parse(path, folder_re='notes')`` to
   select all files from folders called notes.
-* bug fixes (failing less on incoherent repeat structures)
+* bug fixes (e.g. failing less on incoherent repeat structures)
 
 Version 0.4.10
 ==============

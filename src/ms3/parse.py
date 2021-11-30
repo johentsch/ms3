@@ -650,6 +650,9 @@ Therefore, the index for this key has been adapted.""")
 
 
 
+    def annotation_objects(self):
+        yield from self._annotations.items()
+
 
 
 
@@ -1017,7 +1020,8 @@ Available keys: {available_keys}""")
 
 
 
-    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None, concat=True):
+    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None,
+                   color_format=None, concat=True):
         """ This function does not take into account self.labels_cfg """
         if len(self._annotations) == 0:
             self.logger.error("No labels available so far. Add files using add_dir() and parse them using parse().")
@@ -1966,6 +1970,32 @@ Available keys: {available_keys}""")
 
     def store_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) for which to count file extensions.  By default, all keys are selected.
+        ids : :obj:`~collections.abc.Collection`
+            If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
+        folder : :obj:`str`
+            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
+            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
+            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
+            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
+        suffix : :obj:`str`, optional
+            Suffix to append to the original file name.
+        overwrite : :obj:`bool`, optional
+            Pass True to overwrite existing files.
+        simulate : :obj:`bool`, optional
+            Set to True if no files are to be written.
+
+        Returns
+        -------
+
         """
         if ids is None:
             ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
@@ -2227,10 +2257,19 @@ Using the first {li} elements, discarding {discarded}""")
         ----------
         key, i : (:obj:`str`, :obj:`int`)
             ID from which to construct the new path and filename.
-        folder, root_dir : :obj:`str`
-            Parameters passed to :py:meth:`_calculate_path`.
+        root_dir : :obj:`str`, optional
+            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
+            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
+        folder : :obj:`str`
+            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
+            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
+            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
+            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
         suffix : :obj:`str`, optional
             Suffix to append to the original file name.
+        overwrite : :obj:`bool`, optional
+            Pass True to overwrite existing files.
         simulate : :obj:`bool`, optional
             Set to True if no files are to be written.
 
@@ -2554,7 +2593,7 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. index=
         if id in self._parsed_tsv:
             return self._parsed_tsv[id]
         else:
-            self.logger.warning(f"{self.full_paths[id]} has or could not be parsed.")
+            self.logger.warning(f"{self.full_paths[id]} has or could not be(en) parsed.")
 
 
     def __repr__(self):
