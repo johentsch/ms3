@@ -1006,6 +1006,60 @@ def iterable2str(iterable):
         return iterable
 
 
+def iterate_subcorpora(path: str,
+                       prefixes: Iterable = None,
+                       suffixes: Iterable = None,
+                       ignore_case: bool = True):
+    """ Recursively walk through subdirectory and files but stop and return path as soon as
+    at least one file or at least one folder matches at least one prefix or at least one suffix.
+
+    Parameters
+    ----------
+    path : :obj:`str`
+        Directory to scan.
+    prefixes : :obj:`collections.abc.Iterable`, optional
+        Current directory is returned if at least one contained item starts with one of the prefixes.
+        Defaults to ``['metadata']``
+    suffixes : :obj:`collections.abc.Iterable`, optional
+        Current directory is returned if at least one contained item ends with one of the suffixes.
+        Files are tested against suffixes including file extensions.
+        Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+                    'harmonies', 'cadences', 'form_labels', 'MS3']``
+    ignore_case : :obj:`bool`, optional
+        Defaults to True, meaning that file and folder names match prefixes and suffixes independent
+        of capitalization.
+
+    Yields
+    ------
+    :obj:`str`
+        Full path of the next subcorpus.
+
+    """
+
+    def check_fname(s):
+        if ignore_case:
+            return any(s.lower().startswith(p) for p in prefixes) or \
+                   any(s.lower().endswith(suf) for suf in suffixes)
+        return any(s.startswith(p) for p in prefixes) or \
+               any(s.endswith(suf) for suf in suffixes)
+
+    if prefixes is None:
+        prefixes = ["metadata"]
+    if suffixes is None:
+        suffixes = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+                    'harmonies', 'cadences', 'form_labels', 'MS3']
+
+    if ignore_case:
+        prefixes = [p.lower() for p in prefixes]
+        suffixes = [s.lower() for s in suffixes]
+
+    for d, subdirs, files in os.walk(path):
+        if any(check_fname(f) for f in files) or \
+                any(check_fname(d) for d in subdirs):
+            subdirs = []
+            yield d
+
+
 @function_logger
 def join_tsvs(dfs, sort_cols=False):
     """ Performs outer join on the passed DataFrames based on 'mc' and 'mc_onset', if any.

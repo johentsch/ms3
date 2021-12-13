@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 Command line interface for ms3.
@@ -28,7 +29,7 @@ def check(args):
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              index=['key', 'fnames'], labels_cfg=labels_cfg, logger_cfg=logger_cfg)
+              labels_cfg=labels_cfg, logger_cfg=logger_cfg)
     if '.mscx' not in p.count_extensions():
         p.logger.warning("No MSCX files to check.")
         return
@@ -108,7 +109,7 @@ def extract(args):
     }
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
-              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore, index=['rel_paths', 'fnames'])
+              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
     p.parse_mscx(simulate=args.test)
     p.store_lists(root_dir=args.out,
                   notes_folder=args.notes,
@@ -136,7 +137,7 @@ def metadata(args):
     regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
 
     p = Parse(args.dir, paths=args.file, file_re=regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              logger_cfg=logger_cfg, index=['rel_paths', 'fnames'])
+              logger_cfg=logger_cfg)
     if not any('metadata' in fnames for fnames in p.fnames.values()):
         p.logger.info("metadata.tsv not found.")
         return
