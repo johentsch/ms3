@@ -2120,42 +2120,6 @@ Load one of the identically named files with a different key using add_dir(key='
                 if i in selector:
                     yield e
 
-    def _make_index_level(self, level, ids, selector=None):
-        if isinstance(level, str) or len(level) == 1:
-            if not isinstance(level, str):
-                level = level[0]
-            if level == 'key':
-                return {id: id[0] for id in ids}
-            if level == 'i':
-                return {id: id[1] for id in ids}
-            if level in self._possible_levels:
-                return {(key, i): self._possible_levels[level][key][i] for key, i in ids}
-        ll, li = len(level), len(ids)
-        ls = 0 if selector is None else len(selector)
-        if ll < li:
-            self.logger.error(f"Index level (length {ll}) has not enough values for {li} ids.")
-            return {}
-        if ll > li:
-            if ls == 0:
-                res = {i: l for i, l in self._itersel(zip(ids, level), tuple(range(li)))}
-                discarded = [l for l in self._itersel(level, tuple(range(li, ll)))]
-                self.logger.warning(
-                    f"""Index level (length {ll}) has more values than needed for {li} ids and no selector has been passed.
-Using the first {li} elements, discarding {discarded}""")
-            elif ls != li:
-                self.logger.error(
-                    f"The selector for picking elements from the overlong index level (length {ll}) should have length {li}, not {ls},")
-                res = {}
-            else:
-                if ls != ll:
-                    discarded = [l for l in self._itersel(level, selector, opposite=True)]
-                    plural_s = 's' if len(discarded) > 1 else ''
-                    self.logger.debug(
-                        f"Selector {selector} was applied, leaving out the index value{plural_s} {discarded}")
-                res = {i: l for i, l in zip(ids, self._itersel(level, selector))}
-        else:
-            res = {i: l for i, l in zip(ids, level)}
-        return res
 
 
     def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
@@ -2316,76 +2280,6 @@ Using the first {li} elements, discarding {discarded}""")
 
         return restore_logger(file_path)
 
-
-    def _treat_index_param(self, index_param, ids, selector=None):
-        """ Turns an index parameter (string or collection) and turns each elemeht into an index level.
-
-        Parameters
-        ----------
-        index_param
-        ids
-        selector : :obj:`~collections.abc.Collection`
-            Pass a collection of list indices to create index tuples for only those.
-
-
-        Returns
-        -------
-        :obj:`pandas.core.indexes.multi.MultiIndex` or :obj:`pandas.core.indexes.base.Index`
-            Newly created index.
-        :obj:`tuple`
-            Names of the index levels.
-
-        """
-        if index_param is None:
-            names = ('key', 'i')
-            return {id: id for id in ids}, names
-        if isinstance(index_param, str):
-            index_param = [index_param]
-        index_levels = []
-        is_index_level=False
-        names = []
-        for i, level in enumerate(index_param):
-            if isinstance(level, str):
-                if level in self._possible_levels or level in ('key', 'i'):
-                    new_level = self._make_index_level(level, ids=ids, selector=selector)
-                    index_levels.append(new_level)
-                    names.append(level)
-                    self.logger.debug(f"Level '{level}' generated: {new_level}")
-                else:
-                    assert len(index_levels) == 0, f"Failed to create index level '{level}', because it is neither a keyword nor a Collection."
-                    is_index_level = True
-                    break
-            elif isinstance(level, Collection):
-                new_level = self._make_index_level(level, ids=ids, selector=selector)
-                if len(new_level) > 0:
-                    index_levels.append(new_level)
-                    names.append(None)
-            else:
-                assert len(index_levels) == 0, f"Failed to create index level '{level}', because it is neither a keyword nor a Collection."
-                is_index_level = True
-                break
-        if is_index_level:
-            self.logger.debug(f"index_param is interpreted as a single index level rather than a collection of levels.")
-            new_level = self._make_index_level(index_param, ids=ids, selector=selector)
-            if len(new_level) > 0:
-                index_levels.append(new_level)
-                names = [None]
-        if len(index_levels) == 0:
-            self.logger.error(f"No index could be created.")
-        new_index = {id: ix for id, ix in zip(ids, zip(*[tuple(v.values()) for v in index_levels]))}
-        existing = [ix for ix in new_index if ix in self._index.keys()]
-        counts = {k: v for k, v in Counter(new_index.values()).items() if v > 1}
-        l_counts, l_existing = len(counts), len(existing)
-        if l_counts > 0 or l_existing > 0:
-            new_index, names = self._treat_index_param(None, ids=ids)
-            if l_counts > 0:
-                plural_phrase = "These index values occur" if l_counts > 1 else "This index value occurs"
-                self.logger.error(f"""The generated index is not unique and has been replaced by the standard index (IDs).
-To avoid the problem, define sufficient distinguishing index levels, e.g. index= ['fnames', 'key', 'i'] or ['rel_paths', 'fnames', 'fexts'] or simply None or 'full_paths'.\n{plural_phrase} several times:\n{pretty_dict(counts)}""")
-            if l_existing > 0:
-                plural_phrase = "s are" if l_existing > 1 else " is"
-                self.logger.error(f"The generated index cannot be used because the following element{plural_phrase} already in use:\n{existing}")
-        return new_index, tuple(names)
 
 
     def _treat_key_param(self, keys):
