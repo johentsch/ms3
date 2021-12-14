@@ -461,19 +461,27 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         self.last_scanned_dir = directory
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True)
-        directories = sorted(iterate_subcorpora(directory))
-        n_subcorpora = len(directories)
-        if key is note None and n_subcorpora == 0:
-            self.logger.debug("No subcorpora detected.")
+        if key is None:
+            directories = sorted(iterate_subcorpora(directory))
+            n_subcorpora = len(directories)
+            if n_subcorpora == 0:
+                key = os.path.basename(directory)
+                self.logger.debug(f"No subcorpora detected. Grouping all files under the key {key}.")
+                paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
+                                              recursive=recursive, logger=self.logger))
+                _ = self.add_files(paths=paths, key=key)
+            else:
+                self.logger.debug(f"{n_subcorpora} subcorpora detected.")
+                for d in directories:
+                    paths = sorted(scan_directory(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
+                                                  recursive=recursive, logger=self.logger))
+                    k = os.path.basename(d)
+                    _ = self.add_files(paths=paths, key=k)
+        else:
+            self.logger.debug(f"Grouping all detected files under the key {key}.")
             paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
             _ = self.add_files(paths=paths, key=key)
-        else:
-            self.logger.debug(f"{n_subcorpora} subcorpora detected.")
-            for d in directories:
-                paths = sorted(scan_directory(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                                              recursive=recursive, logger=self.logger))
-                k = os.path.basename(d)
-                _ = self.add_files(paths=paths, key=k)
+
 
     def add_files(self, paths, key, exclude_re=None):
         """
