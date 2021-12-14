@@ -1019,6 +1019,12 @@ Available keys: {available_keys}""")
 
 
 
+    def fname2id(self, fname, key=None):
+        # ToDo
+        pass
+
+
+
 
     def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None,
                    color_format=None, concat=True):
@@ -1960,11 +1966,12 @@ Available keys: {available_keys}""")
                     os.makedirs(path)
                 full_path = os.path.join(path, file)
                 write_metadata(self.metadata(), full_path, markdown=markdown, logger=self.logger)
+                paths[full_path] = 'metadata'
             else:
                 self.logger.debug(f"\n\nNo metadata to write.")
-
-        if simulate:
-            return list(set(paths.keys()))
+        return paths
+        # if simulate:
+        #     return list(set(paths.keys()))
 
 
 
@@ -2451,7 +2458,7 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. index=
             keys = list(self.full_paths.keys())
         elif isinstance(keys, str):
             keys = [keys]
-        return [k for k in set(keys) if k in self.files]
+        return [k for k in sorted(set(keys)) if k in self.files]
 
 
     def _treat_label_type_param(self, label_type):
@@ -2598,6 +2605,16 @@ To avoid the problem, define sufficient distinguishing index levels, e.g. index=
 
     def __repr__(self):
         return self.info(return_str=True)
+
+class View(Parse):
+
+    def __init__(self,
+                 p: Parse,
+                 key: str = None):
+        self.p = p
+        self.key = key
+
+
 
 
 
