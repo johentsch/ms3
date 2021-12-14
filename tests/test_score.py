@@ -12,7 +12,7 @@ from ms3.utils import assert_all_lines_equal, assert_dfs_equal, decode_harmonies
     params=['Did03M-Son_regina-1762-Sarti.mscx', 'D973deutscher01.mscx', '05_symph_fant.mscx', 'BWV_0815.mscx', 'K281-3.mscx', '76CASM34A33UM.mscx', 'stabat_03_coloured.mscx'],
 ids=['sarti', "schubert", "berlioz", 'bach', 'mozart', 'monty', 'pergolesi'])
 def score_object(request):
-    test_folder, _ = os.path.split(os.path.realpath(__file__))
+    test_folder = os.path.dirname(os.path.realpath(__file__))
     mscx_path = os.path.join(test_folder, 'MS3', request.param)
     s = ms3.Score(mscx_path)
     return s
@@ -26,7 +26,7 @@ class TestBasic:
             s.mscx
 
 
-class TestParser:
+class TestScore:
 
     test_folder = os.path.dirname(os.path.realpath(__file__))
 
