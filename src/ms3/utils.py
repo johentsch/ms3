@@ -1014,6 +1014,22 @@ def is_minor_mode(fifths, minor=False):
     return third == -3
 
 
+def iter_selection(collectio, selector=None, opposite=False):
+    """ Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
+    elements -- depending on ``opposite`` """
+    if selector is None:
+        for e in collectio:
+            yield e
+    if opposite:
+        for i, e in enumerate(collectio):
+            if i not in selector:
+                yield e
+    else:
+        for i, e in enumerate(collectio):
+            if i in selector:
+                yield e
+
+
 def iterable2str(iterable):
     try:
         return ', '.join(str(s) for s in iterable)

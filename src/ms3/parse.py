@@ -3,7 +3,6 @@ import json
 import traceback
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
-from collections.abc import Collection
 
 import pandas as pd
 import numpy as np
@@ -11,7 +10,8 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, iterate_subcorpora, join_tsvs, load_tsv, \
+from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
+    iter_selection, iterate_subcorpora, join_tsvs, load_tsv, \
     make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, \
     replace_index_by_intervals, resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
@@ -853,7 +853,7 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, keys=None, ids=None, per_key=False):
+    def count_extensions(self, keys=None, ids=None, per_key=False, per_subdir=False):
         """ Count file extensions.
 
         Parameters
@@ -865,26 +865,35 @@ Available keys: {available_keys}""")
         per_key : :obj:`bool`, optional
             If set to True, the results are returned as a dict {key: Counter},
             otherwise the counts are summed up in one Counter.
+        per_subdir : :obj:`bool`, optional
+            If set to True, the results are returned as {key: {subdir: Counter} }. ``per_key=True`` is therefore implied.
 
         Returns
         -------
-        :obj:`dict` or :obj:`collections.Counter`
-            By default, the function returns a Counter of file extensions.
+        :obj:`dict`
+            By default, the function returns a Counter of file extensions (Counters are converted to dicts).
             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
+            If ``per_subdir`` is set to True, a dictionary {key: {subdir: Counter} } is returned.
         """
 
-        res_dict = {}
-        if ids is not None:
-            grouped_ids = group_id_tuples(ids)
-            for k, ixs in grouped_ids.items():
-                res_dict[k] = Counter(self._itersel(self.fexts[k], ixs))
+        if per_subdir:
+            res_dict = defaultdict(dict)
+            for k, subdir, ixs in self._iter_subdir_selectors(keys=keys, ids=ids):
+                res_dict[k][subdir] = dict(Counter(iter_selection(self.fexts[k], ixs)))
+            return dict(res_dict)
         else:
-            keys = self._treat_key_param(keys)
-            for key in keys:
-                res_dict[key] = Counter(self.fexts[key])
-        if per_key:
-            return {k: dict(v) for k, v in res_dict.items()}
-        return dict(sum(res_dict.values(), Counter()))
+            res_dict = {}
+            if ids is not None:
+                grouped_ids = group_id_tuples(ids)
+                for k, ixs in grouped_ids.items():
+                    res_dict[k] = Counter(iter_selection(self.fexts[k], ixs))
+            else:
+                keys = self._treat_key_param(keys)
+                for k in keys:
+                    res_dict[k] = Counter(self.fexts[k])
+            if per_key:
+                return {k: dict(v) for k, v in res_dict.items()}
+            return dict(sum(res_dict.values(), Counter()))
 
 
 
@@ -1326,11 +1335,19 @@ Available keys: {available_keys}""")
 
 
 
-    def info(self, keys=None, return_str=False):
+    def info(self, keys=None, subdirs=False, return_str=False):
+        """"""
         ids = list(self._iterids(keys))
         info = f"{len(ids)} files.\n"
-        exts = self.count_extensions(keys, per_key=True)
-        info += pretty_dict(exts, heading='EXTENSIONS')
+        if subdirs:
+            exts = self.count_extensions(keys, per_subdir=True)
+            for key, subdir_exts in exts.items():
+                info += key + '\n'
+                for line in pretty_dict(subdir_exts).split('\n'):
+                    info += '    ' + line + '\n'
+        else:
+            exts = self.count_extensions(keys, per_key=True)
+            info += pretty_dict(exts, heading='EXTENSIONS')
         parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
         parsed_mscx = len(parsed_mscx_ids)
         ext_counts = self.count_extensions(keys, per_key=False)
@@ -2114,22 +2131,25 @@ Load one of the identically named files with a different key using add_dir(key='
 
                 yield id
 
+    def _iter_subdir_selectors(self, keys=None, ids=None):
+        """ Iterate through the specified ids grouped by subdirs.
 
+        Yields
+        ------
+        :obj:`tuple`
+            (key: str, subdir: str, ixs: list) tuples. IDs can be created by combining key with each i in ixs.
+            The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.
 
-    def _itersel(self, collectio, selector=None, opposite=False):
-        """ Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
-        elements -- depending on ``opposite`` """
-        if selector is None:
-            for e in collectio:
-                yield e
-        if opposite:
-            for i, e in enumerate(collectio):
-                if i not in selector:
-                    yield e
+        """
+        if ids is not None:
+            grouped_ids = group_id_tuples(ids)
         else:
-            for i, e in enumerate(collectio):
-                if i in selector:
-                    yield e
+            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+        for k, ixs in grouped_ids.items():
+            subdirs = self.subdirs[k]
+            for subdir in sorted(set(iter_selection(subdirs, ixs))):
+                yield k, subdir, [i for i in ixs if subdirs[i] == subdir]
+
 
 
 
