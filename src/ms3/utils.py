@@ -1374,9 +1374,11 @@ def metadata2series(d):
     d = dict(d)
     d['TimeSig'] = dict2oneliner(d['TimeSig'])
     d['KeySig'] = dict2oneliner(d['KeySig'])
-    d['ambitus'] = ambitus2oneliner(d['ambitus'])
-    d.update(parts_info(d['parts']))
-    del (d['parts'])
+    if 'ambitus' in d:
+        d['ambitus'] = ambitus2oneliner(d['ambitus'])
+    if 'parts' in d:
+        d.update(parts_info(d['parts']))
+        del (d['parts'])
     s = pd.Series(d)
     return s
 
