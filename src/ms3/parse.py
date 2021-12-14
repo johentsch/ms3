@@ -2144,6 +2144,30 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def _score_ids(self, keys=None, score_extensions=None, native=True, convertible=True, opposite=False):
+        """ Return IDs of all detected scores with particular file extensions, or all others if ``opposite==True``.
+
+        Parameters
+        ----------
+        keys : :obj:`str` or :obj:`collections.abc.Iterable`, optional
+            Only get IDs for particular keys.
+        score_extensions : :obj:`collections.abc.Collection`, optional
+            Get IDs for files with the given extensions (each starting with a dot). If this parameter is defined,
+            ``native```and ``convertible`` are being ignored.
+        native : :obj:`bool`, optional
+            If ``score_extensions`` is not set, ``native=True`` selects all scores that ms3 can parse without using
+            a MuseScore 3 executable.
+        convertible : :obj:`bool`, optional
+            If ``score_extensions`` is not set, ``convertible=True`` selects all scores that ms3 can parse as long as
+            a MuseScore 3 executable is defined.
+        opposite : :obj:`bool`, optional
+            Set to True if you want to get the IDs of all the scores that do NOT have the specified extensions.
+
+        Returns
+        -------
+        :obj:`list`
+            A list of IDs.
+
+        """
         if score_extensions is None:
             score_extensions = []
             if native:
