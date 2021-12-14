@@ -1327,14 +1327,6 @@ Available keys: {available_keys}""")
 
 
 
-    def index(self, keys=None, per_key=False):
-        if per_key:
-            keys = self._treat_key_param(keys)
-            return {k: self.index(k) for k in keys}
-        return [self._index[id] for id in self._iterids(keys)]
-
-
-
     def info(self, keys=None, subdirs=False, return_str=False):
         """"""
         ids = list(self._iterids(keys))
