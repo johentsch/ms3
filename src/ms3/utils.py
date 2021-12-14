@@ -927,6 +927,21 @@ def get_musescore(MS):
     return test_binary(MS, logger=logger)
 
 
+def get_path_component(path, after):
+    """Returns only the path's subfolders below ``after``. If ``after`` is the last
+    component, '.' is returned."""
+    dir1, base1 = os.path.split(path)
+    if dir1 in ('', '.', '/', '~'):
+        if base1 == after:
+            return '.'
+        return path
+    dir2, base2 = os.path.split(dir1)
+    if base2 == after:
+        return base1
+    higher_levels = get_path_component(dir1, after=after)
+    return os.path.join(higher_levels, base1)
+
+
 def group_id_tuples(l):
     """ Turns a list of (key, ix) into a {key: [ix]}
 

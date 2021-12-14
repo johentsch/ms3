@@ -11,7 +11,7 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, group_id_tuples, iterate_subcorpora, join_tsvs, load_tsv, \
+from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, iterate_subcorpora, join_tsvs, load_tsv, \
     make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, \
     replace_index_by_intervals, resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
 
@@ -63,6 +63,13 @@ class Parse(LoggedClass):
         self.rel_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
         ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
+        """
+
+        self.subdirs = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        ``{key: [subdir]}`` dictionary that differs from :obj:`.rel_paths` only if ``key`` is included in the file's
+        relative path: In these cases only the part after ``key`` is kept.
+        This is useful to inspect subdirectories in the case where keys correspond to subcorpora.
         """
 
         self.scan_paths = defaultdict(list)
@@ -2019,6 +2026,9 @@ Available keys: {available_keys}""")
             rel_path = os.path.relpath(file_path, self.last_scanned_dir)
             if key is None:
                 key = rel_path
+                subdir = rel_path
+            else:
+                subdir = get_path_component(rel_path, key)
             if file in self.files[key]:
                 same_name = [i for i, f in enumerate(self.files[key]) if f == file]
                 if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
@@ -2027,12 +2037,13 @@ Available keys: {available_keys}""")
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
                     return (None, None)
                 self.logger.debug(
-                    f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path.")
+                    f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path {rel_path}.")
 
             i = len(self.full_paths[key])
             self.full_paths[key].append(full_path)
             self.scan_paths[key].append(self.last_scanned_dir)
             self.rel_paths[key].append(rel_path)
+            self.subdirs[key].append(subdir)
             self.paths[key].append(file_path)
             self.files[key].append(file)
             self.logger_names[(key, i)] = file_name.replace('.', '')
