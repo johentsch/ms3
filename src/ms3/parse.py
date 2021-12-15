@@ -195,6 +195,11 @@ class Parse(LoggedClass):
         False: For every mc the total sum of preceding quarter beats after deleting all but second endings.
         """
 
+        self._views = {}
+        """:obj:`dict`
+        {key -> View} This dictionary caches :obj:`.View` objects to keep their state.
+        """
+
         self.labels_cfg = {
             'staff': None,
             'voice': None,
@@ -1730,6 +1735,7 @@ Available keys: {available_keys}""")
                     self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
+                        self.logger.debug(f"{self.files[key][i]} parsed as metadata.")
                     else:
                         self._lists[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
@@ -1744,7 +1750,7 @@ Available keys: {available_keys}""")
     f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
     Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                         else:
-                            self.logger.debug(f"{self.files[key][i]} parsed as a list of {tsv_type}.")
+                            self.logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
 
             except:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -2091,6 +2097,7 @@ Load one of the identically named files with a different key using add_dir(key='
         file = self.files[key][i]
         self.logger.debug(f"Attempting to parse {file}")
         try:
+            logger_cfg['name'] = self.logger_names[(key, i)]
             score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=self.ms)
             if score is None:
                 self.logger.debug(f"Encountered errors when parsing {file}")
@@ -2396,11 +2403,19 @@ Load one of the identically named files with a different key using add_dir(key='
     #         self.logger.info(f"Includes no files with the extension {ext}")
     #     return ids
 
+    def _get_view(self, key):
+        if key in self._views:
+            return self._views[key]
+        if key in self.files:
+            self._views[key] = View(self, key)
+            return self._views[key]
+        self.logger.info(f"Key '{key}' not found.")
+        return
 
 
     def __getitem__(self, item):
         if isinstance(item, str):
-            return View(self, item)
+            return self._get_view(item)
         elif isinstance(item, tuple):
             key, i, *_ = item
             if key in self.files and i < len(self.files[key]):
@@ -2430,37 +2445,82 @@ class View(Parse):
                  key: str = None):
         self.p = p
         self.key = key
-        self.metadata = pd.DataFrame()
+        logger_cfg = self.p.logger_cfg
+        logger_cfg['name'] = self.key
+        super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg)
+        self._metadata = pd.DataFrame()
         self.metadata_id = None
-        self.find_metadata()
+        """:obj:`tuple`
+        ID of the detected metadata TSV file if any. None means that none has been detected, meaning that :attr:`.metadata`
+        corresponds to the metadata included in the parsed scores.
+        """
 
-    def find_metadata(self):
-        metadata_tsv = self.p.metadata_tsv(self.key)
-        if len(metadata_tsv) > 0:
-            id = list(metadata_tsv.keys())[0]
-            self.metadata_id = id
-            self.metadata = metadata_tsv[id]
+
+    @property
+    def metadata(self):
+        if self.metadata_id is None:
+            # always give preference to parsed metadata files because they might contain additional information
+            metadata_tsv = self.p.metadata_tsv(self.key)
+            if len(metadata_tsv) > 0:
+                id = list(metadata_tsv.keys())[0]
+                self.metadata_id = id
+                self._metadata = metadata_tsv[id]
+                k, i = self.metadata_id
+                self.logger.debug(f"Metadata detected in '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
+
+        if self.metadata_id is None:
+            score_ids = self.score_ids
+            if len(score_ids) > 0:
+                _, indices = zip(*self.score_ids)
+                if len(score_ids) > len(self._metadata):
+                    self._metadata = self.score_metadata()
+                    self.logger.debug(f"Metadata updated from parsed scores at indices {indices}.")
+                else:
+                    self.logger.debug(f"Showing metadata from parsed scores at indices {indices}.")
         else:
-            self.metadata = self.p.metadata(self.key)
+            k, i = self.metadata_id
+            self.logger.debug(f"Showing metadata from '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
+        if len(self._metadata) == 0:
+            self.logger.info(f"No scores and no metadata TSV file have been parsed so far.")
+        return self._metadata
+
+
+    def score_metadata(self):
+        return self.p.metadata(self.key)
+
+    @property
+    def score_ids(self):
+        parsed = list(self.p._iterids(self.key, only_parsed_mscx=True))
+        n_parsed = len(parsed)
+        if n_parsed == 0:
+            self.logger.debug(f"No scores have been parsed. Use method Parse.parse_mscx(keys='{self.key}')")
+        return parsed
+
+
+    @property
+    def fnames(self):
+        if 'fnames' in self.metadata.columns:
+            return self.metadata.fnames.to_list()
+        self.logger.debug("No file names present in metadata.")
+        return []
 
 
     def info(self, return_str=False):
         info = f"View on key {self.key}"
         info += '\n' + '_' * len(info) + '\n\n'
+        md = self.metadata
         if self.metadata_id is None:
-            ids = list(self.p._iterids(self.key, only_parsed_mscx=True))
-            if len(ids) > 0:
-                grouped_ids = group_id_tuples(ids)
-                info += f"Constructed metadata from parsed scores at indices {grouped_ids[self.key]}.\n"
+            score_ids = self.score_ids
+            if len(score_ids) > 0:
+                _, indices = zip(*score_ids)
+                info += f"No metadata.tsv found. Constructed metadata from parsed scores at indices {indices}.\n"
             else:
-                info += f"No metadata present.\n"
+                info += f"No metadata present. Parse scores and/or metadata TSV files.\n"
         else:
             k, i = self.metadata_id
-            info += f"Using metadata from '{self.p.files[k][i]}'.\n"
-        if len(self.metadata) > 0:
-            if 'fnames' in self.metadata.columns:
-                info += f"\nFile names: \n{', '.join(self.metadata.fnames)}"
-
+            info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
+        if len(md) > 0:
+            info += f"\nFile names: \n{', '.join(self.fnames)}"
 
         if return_str:
             return info
