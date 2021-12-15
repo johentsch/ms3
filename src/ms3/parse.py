@@ -721,8 +721,8 @@ Continuing with {annotation_key}.""")
         only_new : :obj:`bool`, optional
             Set to False to also retrieve lists that had already been retrieved.
         """
-        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
-            self.logger.debug("Nothing has been parsed so far.")
+        if len(self._parsed_mscx) == 0:
+            self.logger.debug("No scores have been parsed so far. Use Parse.parse_mscx()")
             return
         if ids is None:
             only_new = False
@@ -1011,9 +1011,9 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                  labels=False, chords=False, expanded=False, cadences=False, form_labels=False, simulate=False, flat=True, unfold=False,
-                  quarterbeats=False, interval_index=False):
+    def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False,
+                  events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False,
+                  simulate=False, flat=False, unfold=False, quarterbeats=False, interval_index=False):
         """ Retrieve a dictionary with the selected feature matrices.
 
         Parameters
@@ -1032,8 +1032,8 @@ Available keys: {available_keys}""")
         form_labels
         simulate
         flat : :obj:`bool`, optional
-            By default, you get a dictionary {(id, list_type) -> list}.
-            By passing False you get a nested dictionary {list_type -> {index -> list}}
+            By default, you get a nested dictionary {list_type -> {index -> list}}.
+            By passing True you get a dictionary {(id, list_type) -> list}
         unfold : :obj:`bool`, optional
             Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
             Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
@@ -1096,27 +1096,27 @@ Available keys: {available_keys}""")
         return res
 
 
-    def get_tsvs(self, keys=None, types=None):
+    def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
+                 events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False, flat=False):
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_tsv=True))
         if len(self._tsv_types) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
-            return pd.DataFrame()
-        if types is None:
-            potential = self._tsv_types
-            types = sorted(set(self._tsv_types.values()))
-        elif isinstance(types, str):
-            types = [types]
-            potential = {id: typ for id, typ in self._tsv_types.items() if typ in types}
-        plural = f"type {types[0]}" if len(types) == 1 else f"one of the types {types}"
-
-        if len(potential) == 0:
-            self.info(f"None of the parsed TSV files have been recognized as {plural}.")
-            return pd.DataFrame()
-        ids = [id for id in self._iterids(keys, only_parsed_tsv=True) if id in potential]
-        if len(ids) == 0:
-            self.info(f"None of the parsed TSV files with key {keys} have been recognized as {plural}.")
-            return pd.DataFrame()
-        keys = self.ids2idx(ids, pandas_index=True)
-        return pd.concat([self._parsed_tsv[id] for id in ids], keys=keys)
+            return {}
+        bool_params = ['metadata'] + list(self._lists.keys())
+        l = locals()
+        types = [p for p in bool_params if l[p]]
+        res = {}
+        if not flat:
+            res.update({t: {} for t in types})
+        for id in ids:
+            tsv_type = self._tsv_types[id]
+            if tsv_type in types:
+                if flat:
+                    res[(id + (tsv_type,))] = self._parsed_tsv[id]
+                else:
+                    res[tsv_type][id] = self._parsed_tsv[id]
+        return res
 
 
     def get_unfolded_mcs(self, keys=None, ids=None):
@@ -1244,90 +1244,6 @@ Available keys: {available_keys}""")
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
-
-
-
-    def ids2idx(self, ids=None, pandas_index=False):
-        """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
-
-        Parameters
-        ----------
-        ids
-        pandas_index
-
-        Returns
-        -------
-        :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
-        """
-        if ids is None:
-            ids = list(self._iterids())
-        elif ids == []:
-            if pandas_index:
-                return pd.Index([])
-            return list(), tuple()
-        idx = [self._index[id] for id in ids]
-        levels = [len(ix) for ix in idx]
-        error = False
-        if not all(l == levels[0] for l in levels[1:]):
-            self.logger.warning(
-                f"Could not create index because the index values have different numbers of levels: {set(levels)}")
-            idx = ids
-            error = True
-
-        if  error:
-            names = ['key', 'i']
-        else:
-            grouped_ids = group_id_tuples(ids)
-            level_names = {k: self._levelnames[k] for k in grouped_ids}
-            if len(set(level_names.values())) > 1:
-                self.logger.warning(
-                    f"Could not set level names because they differ for the different keys:\n{pretty_dict(level_names, 'LEVEL_NAMES')}")
-                names = None
-            else:
-                names = tuple(level_names.values())[0]
-
-        if pandas_index:
-            idx = pd.MultiIndex.from_tuples(idx, names=names)
-            return idx
-
-        return idx, names
-
-
-    def idx2id(self, full_path=None, rel_path=None, scan_path=None, path=None, file=None, fname=None, fext=None):
-        """ Turn the respective value combinations of an index into an ID.
-
-        Parameters
-        ----------
-        full_paths
-        rel_paths
-        scan_paths
-        paths
-        files
-        fnames
-        fexts
-
-        Returns
-        -------
-        :obj:`tuple`
-            the (key, i) pair corresponding to the index
-        """
-        levels = {name: str(l) for name, l in zip(('full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'),
-                                  (full_path, rel_path, scan_path, path, file, fname, fext))
-                            if l is not None}
-        sets = []
-        for name, l in levels.items():
-            ids = set((k, i) for k, vals in self._possible_levels[name].items() for i, val in enumerate(vals) if val == l)
-            if len(ids) > 0:
-                sets.append(ids)
-        res = set.intersection(*sets)
-        l = len(res)
-        if l == 0:
-            self.logger.warning(f"No parsed file matches these values: {levels}")
-            return None
-        if l > 1:
-            self.logger.warning(f"The selection is ambiguous: {levels}")
-            return None
-        return list(res)[0]
 
 
 
@@ -1542,24 +1458,41 @@ Available keys: {available_keys}""")
     def metadata(self, keys=None, include_tsv=False):
         parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         df = pd.DataFrame()
-        first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
+        first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
                       'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                       'movementTitle',
                       'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                       'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
         if len(parsed_ids) > 0:
             ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
-            idx = self.ids2idx(ids, pandas_index=True)
-            df = pd.DataFrame(meta_series, index=idx)
+            ix = pd.MultiIndex.from_tuples(ids)
+            df = pd.DataFrame(meta_series, index=ix)
+            df['rel_paths'] = [self.rel_paths[k][i] for k, i in ids]
+            df['fnames'] = [self.fnames[k][i] for k, i in ids]
+
         if include_tsv and len(self._parsed_tsv) > 0:
-            tsv_df = self.get_tsvs(keys, types='metadata')
-            if len(tsv_df) > 0:
-                df = pd.concat([df, tsv_df])
+            tsv_dfs = metadata_tsv(keys=keys)
+            if len(tsv_dfs) > 0:
+                metadata_df = pd.concat(tsv_dfs.values(), keys=tsv_dfs.keys())
+                df = pd.concat([df, metadata_df])
         if len(df) > 0:
             return column_order(df, first_cols).sort_index()
         else:
             self.logger.info("No scores or metadata TSVs have been parsed so far.")
             return pd.DataFrame()
+
+    def metadata_tsv(self, keys=None):
+        keys = self._treat_key_param(keys)
+        if len(self._parsed_tsv) == 0:
+            self.logger.debug(f"No TSV files have been parsed so far. Use Parse.parse_tsv().")
+            return pd.DataFrame()
+        metadata_dfs = self.get_tsvs(keys, metadata=True)['metadata']
+        n_found = len(metadata_dfs)
+        if n_found == 0:
+            self.logger.info(f"No TSV file has been recognized as metadata for {', '.join(keys)}")
+            return {}
+        return metadata_dfs
+
 
 
     def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
@@ -2466,16 +2399,17 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
     def __getitem__(self, item):
-        if item in self._index:
-            id = item
-        elif item in self._index.values():
-            id = next(k for k, v in self._index.items() if v == item)
-        else:
-            if item in self.files:
-                self.logger.info(f"{item} is neither an ID nor an index, but a key with the following IDs:\n" + string2lines(make_id_tuples(item, len(self.files[item]))))
+        if isinstance(item, str):
+            return View(self, item)
+        elif isinstance(item, tuple):
+            key, i, *_ = item
+            if key in self.files and i < len(self.files[key]):
+                id = item
             else:
-                self.logger.warning(f"{item} is neither an ID nor an index.")
-            return
+                self.logger.info(f"{item} is an invalid ID.")
+                return None
+        else:
+            self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
         if id in self._parsed_mscx:
             return self._parsed_mscx[id]
         if id in self._annotations:
@@ -2496,7 +2430,41 @@ class View(Parse):
                  key: str = None):
         self.p = p
         self.key = key
+        self.metadata = pd.DataFrame()
+        self.metadata_id = None
+        self.find_metadata()
 
+    def find_metadata(self):
+        metadata_tsv = self.p.metadata_tsv(self.key)
+        if len(metadata_tsv) > 0:
+            id = list(metadata_tsv.keys())[0]
+            self.metadata_id = id
+            self.metadata = metadata_tsv[id]
+        else:
+            self.metadata = self.p.metadata(self.key)
+
+
+    def info(self, return_str=False):
+        info = f"View on key {self.key}"
+        info += '\n' + '_' * len(info) + '\n\n'
+        if self.metadata_id is None:
+            ids = list(self.p._iterids(self.key, only_parsed_mscx=True))
+            if len(ids) > 0:
+                grouped_ids = group_id_tuples(ids)
+                info += f"Constructed metadata from parsed scores at indices {grouped_ids[self.key]}.\n"
+            else:
+                info += f"No metadata present.\n"
+        else:
+            k, i = self.metadata_id
+            info += f"Using metadata from '{self.p.files[k][i]}'.\n"
+        if len(self.metadata) > 0:
+            if 'fnames' in self.metadata.columns:
+                info += f"\nFile names: \n{', '.join(self.metadata.fnames)}"
+
+
+        if return_str:
+            return info
+        print(info)
 
 
 
