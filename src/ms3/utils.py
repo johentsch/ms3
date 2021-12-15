@@ -18,6 +18,9 @@ from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg
 
+STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+                  'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
+
 DCML_REGEX = re.compile(r"""
 ^(\.?
     ((?P<globalkey>[a-gA-G](b*|\#*))\.)?
@@ -1077,8 +1080,7 @@ def iterate_subcorpora(path: str,
     if prefixes is None:
         prefixes = ["metadata"]
     if suffixes is None:
-        suffixes = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-                    'harmonies', 'cadences', 'form_labels', 'MS3']
+        suffixes = STANDARD_NAMES
 
     if ignore_case:
         prefixes = [p.lower() for p in prefixes]
@@ -1086,7 +1088,7 @@ def iterate_subcorpora(path: str,
 
     for d, subdirs, files in os.walk(path):
         if any(check_fname(f) for f in files) or \
-                any(check_fname(d) for d in subdirs):
+            any(check_fname(d) for d in subdirs):
             subdirs = []
             yield d
 
@@ -1668,6 +1670,47 @@ def parts_info(d):
     return res
 
 
+@function_logger
+def path2type(path):
+    """ Determine a file's type by scanning its path for default components in the constant STANDARD_NAMES.
+
+    Parameters
+    ----------
+    path
+
+    Returns
+    -------
+
+    """
+    comp2type = {comp: comp for comp in STANDARD_NAMES}
+    comp2type['MS3'] = 'scores'
+    comp2type['harmonies'] = 'expanded'
+    found_components = [comp for comp in comp2type.keys() if comp in path]
+    n_found = len(found_components)
+    if n_found == 0:
+        score_extensions = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
+        _, fext = os.path.splitext(path)
+        if fext.lower() in score_extensions:
+            logger.debug(f"Recognized file extension '{fext}' as score.")
+            return 'scores'
+        logger.debug(f"Type could not be inferred from path '{path}'.")
+        return 'unknown'
+    if n_found == 1:
+        typ = comp2type[found_components[0]]
+        logger.debug(f"Path '{path}' recognized as {typ}.")
+        return typ
+    else:
+        shortened_path = path
+        while shortened_path > 0:
+            shortened_path, base = os.path.split(shortened_path)
+            for comp in comp2type.keys():
+                if comp in base:
+                    typ = comp2type[comp]
+                    logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
+                    return typ
+        logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
+        return 'unknown'
+
 
 def pretty_dict(d, heading=None):
     """ Turns a dictionary into a string where the keys are printed in a column, separated by '->'.
@@ -2054,15 +2097,15 @@ def split_scale_degree(sd, count=False):
     return acc, num
 
 
-def chunkstring(string, length=80):
-    """ Generate chunks of a given length """
-    string = str(string)
-    return (string[0 + i:length + i] for i in range(0, len(string), length))
-
-
-def string2lines(string, length=80):
-    """ Use chunkstring() and make chunks into lines. """
-    return '\n'.join(chunkstring(string, length))
+# def chunkstring(string, length=80):
+#     """ Generate chunks of a given length """
+#     string = str(string)
+#     return (string[0 + i:length + i] for i in range(0, len(string), length))
+#
+#
+# def string2lines(string, length=80):
+#     """ Use chunkstring() and make chunks into lines. """
+#     return '\n'.join(chunkstring(string, length))
 
 
 @function_logger

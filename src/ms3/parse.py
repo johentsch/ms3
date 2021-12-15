@@ -10,10 +10,10 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
-    iter_selection, iterate_subcorpora, join_tsvs, load_tsv, \
-    make_continuous_offset, make_id_tuples, metadata2series, next2sequence, no_collections_no_booleans, pretty_dict, \
-    replace_index_by_intervals, resolve_dir, scan_directory, column_order, string2lines, unfold_repeats, update_labels_cfg, write_metadata
+from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
+    iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, metadata2series, \
+    next2sequence, no_collections_no_booleans, path2type, pretty_dict, replace_index_by_intervals, resolve_dir, \
+    scan_directory, unfold_repeats, update_labels_cfg, write_metadata
 
 
 class Parse(LoggedClass):
@@ -982,9 +982,13 @@ Available keys: {available_keys}""")
 
 
 
-    def fname2id(self, fname, key=None):
-        # ToDo
-        pass
+    def fname2ids(self, fname, key=None, allow_suffix=True):
+        if allow_suffix:
+            l = len(fname)
+            ids = {(k, i): self.fnames[k][i]  for k, i in self._iterids(key) if self.fnames[k][i][:l] == fname}
+        else:
+            ids = {(k, i): self.fnames[k][i] for k, i in self._iterids(key) if self.fnames[k][i] == fname}
+        return ids
 
 
 
@@ -2109,7 +2113,7 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.info("Process aborted.")
             raise
         except:
-            self.logger.error(traceback.format_exc())
+            self.logger.error(f"Unable to parse {path} due to the following exception:\n" + traceback.format_exc())
             return None
 
 
@@ -2500,9 +2504,62 @@ class View(Parse):
     @property
     def fnames(self):
         if 'fnames' in self.metadata.columns:
-            return self.metadata.fnames.to_list()
+            md = self.metadata
+            fnames = md.fnames.to_list()
+            if len(fnames) > md.fnames.nunique():
+                vc = md.fnames.value_counts(dropna=False)
+                self.logger.info(f"The following file names occur more than once in the metadata: {vc[vc > 1]}")
+            return fnames
         self.logger.debug("No file names present in metadata.")
         return []
+
+
+    def pieces(self):
+        pieces = {}
+        fnames = self.fnames
+        for metadata_i, fname in enumerate(fnames):
+            ids = self.p.fname2ids(fname, self.key)
+            detected = defaultdict(list)
+            suffixes = {}
+            for id, fn in ids.items():
+                if fn != fname:
+                    suffixes[id] = fn[len(fname):]
+                k, i = id
+                if id in self.p._parsed_mscx:
+                    detected['scores'].append(str(i))
+                elif id in self.p._tsv_types:
+                    detected[self.p._tsv_types[id]].append(str(i))
+                else:
+                    typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
+                    detected[typ].append(f"{i}*")
+            pieces[metadata_i] = dict(fnames=fname)
+            for typ, indices in detected.items():
+                n = len(indices)
+                if n == 1:
+                    pieces[metadata_i][typ] = indices[0]
+                elif n > 1:
+                    ixs = [int(re.match(r"(\d+)\*?", ix).group(1)) for ix in indices]
+                    k = self.key
+                    distinguish = [self.p.subdirs[k][ix] for ix in ixs]
+                    for j, ix in enumerate(ixs):
+                        id = (k, ix)
+                        if id in suffixes:
+                            distinguish[j] += f"[{suffixes[id]}]"
+                    if len(distinguish) > len(set(distinguish)):
+                        for j, ix in enumerate(ixs):
+                            distinguish[j] += self.p.fexts[k][ix]
+                    for ix, dist in zip(indices, distinguish):
+                        pieces[metadata_i][f"{typ}:{dist}"] = ix
+                # else: leave empty
+        try:
+            res = pd.DataFrame.from_dict(pieces, orient='index', dtype='string')
+            res.index.name = 'metadata_row'
+        except:
+            print(pieces)
+            raise
+        return res
+
+
 
 
     def info(self, return_str=False):
@@ -2520,7 +2577,7 @@ class View(Parse):
             k, i = self.metadata_id
             info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
         if len(md) > 0:
-            info += f"\nFile names: \n{', '.join(self.fnames)}"
+            info += f"\nFile names & associated indices (* means file has not been parsed; type inferred from path):\n\n{self.pieces().fillna('').to_string()}"
 
         if return_str:
             return info
