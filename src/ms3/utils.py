@@ -2203,7 +2203,7 @@ def update_labels_cfg(labels_cfg):
 
 
 @function_logger
-def write_metadata(df, path, markdown=True):
+def write_metadata(df, path, markdown=True, index=False):
     if os.path.isdir(path):
         path = os.path.join(path, 'metadata.tsv')
     if not os.path.isfile(path):
@@ -2228,7 +2228,7 @@ def write_metadata(df, path, markdown=True):
                   'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                   'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
     write_this.sort_index(inplace=True)
-    column_order(write_this, first_cols).to_csv(path, sep='\t')
+    column_order(write_this, first_cols).to_csv(path, sep='\t', index=index)
     logger.info(f"{msg} {path}")
     if markdown:
         rename4markdown = {
