@@ -31,8 +31,7 @@ class Parse(LoggedClass):
             Arguments for the method :py:meth:`~ms3.parse.add_folder`.
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
-            List of file paths you want to add. If ``dir`` is also passed, all files will be combined in the same object.
-            WARNING: If you want to use a custom index, don't use both arguments simultaneously.
+            List of file paths you want to add. If ``directory`` is also passed, all files will be combined in the same object.
         simulate : :obj:`bool`, optional
             Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
@@ -251,10 +250,6 @@ class Parse(LoggedClass):
         if paths is not None:
             if isinstance(paths, str):
                 paths = [paths]
-            if len(paths) == 1 and paths[0].endswith('.json'):
-                # TODO: allow for any number of JSON files
-                with open(paths[0]) as f:
-                    paths = json.load(f)
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -456,7 +451,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             Directory to scan for files.
         key : :obj:`str`, optional
             | Pass a string to identify the loaded files.
-            | By default, the relative sub-directories of ``dir`` are used as keys. For example, for files within ``dir``
+            | By default, the relative sub-directories of ``directory`` are used as keys. For example, for files within ``directory``
               itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
         directory : :obj:`str`
             Directory to be scanned for files.
@@ -518,6 +513,17 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             return []
         if isinstance(paths, str):
             paths = [paths]
+        json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
+        if len(json_ixs) > 0:
+            for i in reversed(json_ixs):
+                try:
+                    with open(paths[i]) as f:
+                        loaded_paths = json.load(f)
+                    paths.extend(loaded_paths)
+                    self.logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
+                    del(paths[i])
+                except:
+                    self.logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
         if exclude_re is not None:
             paths = [p for p in paths if re.search(exclude_re, p) is None]
         if self.last_scanned_dir is None:
@@ -527,10 +533,11 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             #     self.last_scanned_dir = os.path.dirname(paths[0])
             self.last_scanned_dir = os.getcwd()
 
+        self.logger.debug(f"Attempting to add {len(paths)} files...")
         ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
-            exts = self.count_extensions(ids=ids, per_key=True)
+            exts = self.count_extensions(ids=added_ids, per_key=True)
             self.logger.debug(f"{len(added_ids)} paths stored:\n{pretty_dict(exts, 'EXTENSIONS')}")
             return added_ids
         else:

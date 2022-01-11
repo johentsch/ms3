@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from pathlib import Path
-import pytest
+import pytest, os
 from ms3 import Parse, resolve_dir
 
 def test_folder_parse():
@@ -14,6 +14,14 @@ def test_paths_parse():
     paths = [str(p) for p in here.glob("**/*") if p.suffix in exts]
     p = Parse(paths=paths, logger_cfg=dict(level='d'))
     assert isinstance(p, Parse), "Failed to parse list of paths."
+
+def test_json_parse():
+    paths = ['paths2.json', 'truth/metadata.tsv', 'paths1.json']
+    directory = 'test_results'
+    goal = 72
+    p = Parse(directory=directory, paths=paths, key='tests', logger_cfg=dict(level='d'))
+    assert len(p.files['tests']) >= goal, f"Failed to parse list of paths that included several JSON files containing paths: Loaded only {len(p.files['tests'])} instead of {goal} or more."
+
 
 
 @pytest.fixture
