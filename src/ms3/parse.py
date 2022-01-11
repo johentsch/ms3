@@ -472,7 +472,8 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         directory = resolve_dir(directory)
         self.last_scanned_dir = directory
         if file_re is None:
-            file_re = Score._make_extension_regex(tsv=True)
+            convertible = self.ms is not None
+            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if key is None:
             directories = sorted(iterate_subcorpora(directory))
             n_subcorpora = len(directories)
@@ -983,6 +984,22 @@ Available keys: {available_keys}""")
 
 
     def fname2ids(self, fname, key=None, allow_suffix=True):
+        """For a given filename, return corresponding IDs.
+
+        Parameters
+        ----------
+        fname : :obj:`str`
+            Filename (without extension) to get IDs for.
+        key : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            If you want to scan through IDs of one or several particular keys, specify.
+        allow_suffix : :obj:`bool`, optional
+            By default, filenames are matched even if they continue with a suffix. Pass False to return only exact matches.
+
+        Returns
+        -------
+        :obj:`dict`
+            {ID -> filename)
+        """
         if allow_suffix:
             l = len(fname)
             ids = {(k, i): self.fnames[k][i]  for k, i in self._iterids(key) if self.fnames[k][i][:l] == fname}
@@ -1491,6 +1508,7 @@ Available keys: {available_keys}""")
             return pd.DataFrame()
 
     def metadata_tsv(self, keys=None):
+        """Returns a {id -> DataFrame} dictionary with all parsed TSVs recognized as metadata."""
         keys = self._treat_key_param(keys)
         if len(self._parsed_tsv) == 0:
             self.logger.debug(f"No TSV files have been parsed so far. Use Parse.parse_tsv().")
@@ -2436,7 +2454,7 @@ Load one of the identically named files with a different key using add_dir(key='
         if id in self._parsed_tsv:
             return self._parsed_tsv[id]
         else:
-            self.logger.warning(f"{self.full_paths[id]} has or could not be(en) parsed.")
+            self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
 
 
     def __repr__(self):
@@ -2503,8 +2521,10 @@ class View(Parse):
 
     @property
     def fnames(self):
-        if 'fnames' in self.metadata.columns:
-            md = self.metadata
+        """A list of the View's filenames used for matching corresponding files in different folders.
+           If metadata.tsv was parsed, the column ``fnames`` is used as authoritative list for this corpus."""
+        md = self.metadata
+        if 'fnames' in md.columns:
             fnames = md.fnames.to_list()
             if len(fnames) > md.fnames.nunique():
                 vc = md.fnames.value_counts(dropna=False)
@@ -2515,7 +2535,9 @@ class View(Parse):
 
 
     def pieces(self):
-        pieces = {}
+        """Based on :py:attr:`fnames`, return a DataFrame that matches the numerical part of IDs of files that
+           correspond to each other. """
+        pieces = {} # result
         fnames = self.fnames
         for metadata_i, fname in enumerate(fnames):
             ids = self.p.fname2ids(fname, self.key)
@@ -2532,7 +2554,7 @@ class View(Parse):
                 else:
                     typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
                     detected[typ].append(f"{i}*")
-            pieces[metadata_i] = dict(fnames=fname)
+            pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
             for typ, indices in detected.items():
                 n = len(indices)
                 if n == 1:
