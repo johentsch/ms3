@@ -1021,6 +1021,16 @@ def is_minor_mode(fifths, minor=False):
     return third == -3
 
 
+def iter_nested(nested):
+    """Iterate through any nested structure of lists and tuples from left to right."""
+    for elem in nested:
+        if isinstance(elem, list) or isinstance(elem, tuple):
+            for lower in iter_nested(elem):
+                yield lower
+        else:
+            yield elem
+
+
 def iter_selection(collectio, selector=None, opposite=False):
     """ Returns a generator of ``collectio``. ``selector`` can be a collection of index numbers to select or unselect
     elements -- depending on ``opposite`` """

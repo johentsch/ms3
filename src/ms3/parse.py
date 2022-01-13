@@ -11,7 +11,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
-    iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, metadata2series, \
+    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, metadata2series, \
     next2sequence, no_collections_no_booleans, path2type, pretty_dict, replace_index_by_intervals, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata
 
@@ -1356,6 +1356,14 @@ Available keys: {available_keys}""")
         print(info)
 
 
+    def iter(self, columns, keys=None):
+        keys = self._treat_key_param(keys)
+        for key in keys:
+            for tup in self[key].iter(columns=columns):
+                if tup is not None:
+                    yield tup
+
+
     def join(self, keys=None, ids=None, what=None, use_index=True):
         if what is not None:
             what = [w for w in what if w != 'scores']
@@ -2459,20 +2467,19 @@ Load one of the identically named files with a different key using add_dir(key='
         elif isinstance(item, tuple):
             key, i, *_ = item
             if key in self.files and i < len(self.files[key]):
-                id = item
+                id = (key, i)
             else:
                 self.logger.info(f"{item} is an invalid ID.")
                 return None
         else:
             self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
+        if id in self._parsed_tsv:
+            return self._parsed_tsv[id]
         if id in self._parsed_mscx:
             return self._parsed_mscx[id]
         if id in self._annotations:
             return self._annotations[id]
-        if id in self._parsed_tsv:
-            return self._parsed_tsv[id]
-        else:
-            self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
+        self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
 
 
     def __repr__(self):
@@ -2483,11 +2490,11 @@ class View(Parse):
     def __init__(self,
                  p: Parse,
                  key: str = None):
-        self.p = p
+        self.p = p # parent parse object
         self.key = key
         logger_cfg = self.p.logger_cfg
         logger_cfg['name'] = self.key
-        super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg)
+        super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg) # initialize loggers
         self._metadata = pd.DataFrame()
         self.metadata_id = None
         """:obj:`tuple`
@@ -2538,7 +2545,7 @@ class View(Parse):
 
 
     @property
-    def fnames(self):
+    def names(self):
         """A list of the View's filenames used for matching corresponding files in different folders.
            If metadata.tsv was parsed, the column ``fnames`` is used as authoritative list for this corpus."""
         md = self.metadata
@@ -2552,11 +2559,11 @@ class View(Parse):
         return []
 
 
-    def pieces(self):
+    def pieces(self, parsed_only=False):
         """Based on :py:attr:`fnames`, return a DataFrame that matches the numerical part of IDs of files that
            correspond to each other. """
         pieces = {} # result
-        fnames = self.fnames
+        fnames = self.names
         for metadata_i, fname in enumerate(fnames):
             ids = self.p.fname2ids(fname, self.key)
             detected = defaultdict(list)
@@ -2569,7 +2576,7 @@ class View(Parse):
                     detected['scores'].append(str(i))
                 elif id in self.p._tsv_types:
                     detected[self.p._tsv_types[id]].append(str(i))
-                else:
+                elif not parsed_only:
                     typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
                     detected[typ].append(f"{i}*")
             pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
@@ -2617,12 +2624,85 @@ class View(Parse):
             k, i = self.metadata_id
             info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
         if len(md) > 0:
-            info += f"\nFile names & associated indices (* means file has not been parsed; type inferred from path):\n\n{self.pieces().fillna('').to_string()}"
+            piece_matrix = self.pieces()
+            if len(piece_matrix.columns) == 1:
+                info += "\nNo files detected that would match the file names listed in the metadata"
+            else:
+                info += "\nFile names & associated indices"
+                asterisk = False
+                for _, column in piece_matrix.iteritems():
+                    try:
+                        if column.str.contains('*', regex=False).any():
+                            asterisk = True
+                            break
+                    except:
+                        pass
+                if asterisk:
+                    info += " (* means file has not been parsed; type inferred from path)"
+            info += f":\n\n{piece_matrix.fillna('').to_string()}"
 
         if return_str:
             return info
         print(info)
 
+
+    def iter(self, columns):
+        piece_matrix = self.pieces(parsed_only=True)
+        available = '\n'.join(sorted(piece_matrix.columns))
+        n, d = piece_matrix.shape
+        if n == 0 or d == 1:
+            self.logger.error("No files present.")
+            return
+
+        # look for and treat wildcard arguments
+        cols = []
+        if isinstance(columns, str):
+            columns = [columns]
+        for c in columns:
+            if isinstance(c, str) and c[-1] == '*':
+                resolved = [col for col in piece_matrix.columns if col.startswith(c[:-1])]
+                if len(resolved) == 0:
+                    self.logger.error(f"Unable to resolve wildcard expression '{c}'. Available columns:\n{available}")
+                    return
+                cols.append(resolved)
+            else:
+                cols.append(c)
+
+        # check if arguments correspond to existing columns
+        flattened = list(iter_nested(cols))
+        if any(c not in piece_matrix.columns for c in flattened):
+            missing = [c for c in flattened if c not in piece_matrix.columns]
+            self.logger.error(f"The following columns were not recognized: {missing}. You could try appending the wildcard *\nCurrently available types among parsed files:\n{available}")
+            return
+
+        plural = 's' if len(cols) > 1 else ''
+        self.logger.info(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
+        for md, ids in zip(self.metadata.to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+            result = (md, )
+            for c in cols:
+                i = None
+                if isinstance(c, str):
+                    i = ids[c]
+                else:
+                    for cc in c:
+                        if not pd.isnull(ids[cc]):
+                            i = ids[cc]
+                            break
+                if pd.isnull(i):
+                    result += (None, )
+                else:
+                    id = (self.key, int(i))
+                    result += (self.p[id], )
+            yield result
+
+
+
+
+
+
+    ### this would make sense if the arguments of parent's methods could be automatically called with keys=self.key
+    # def __getattr__(self, item):
+    #     return self.p.__getattribute__(item)
 
 
 
