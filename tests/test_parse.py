@@ -26,7 +26,7 @@ def test_json_parse():
 
 @pytest.fixture
 def parsed_mscx():
-    p = Parse('MS3', file_re='mscx$', logger_cfg=dict(level='d'))
+    p = Parse('.', file_re='mscx$', folder_re='MS3', logger_cfg=dict(level='d'))
     p.parse()
     return p
 
@@ -40,5 +40,5 @@ class TestParse:
         path_dict = parsed_mscx.store_lists(measures_folder=target, measures_suffix="_measures",
                                 notes_folder=target, notes_suffix='_notes',
                                 labels_folder=target, labels_suffix='_labels')
-        for path, what in path_dict.items():
-            original_path = os.path.join(test_folder, what, )
+        # for path, what in path_dict.items():
+        #     original_path = os.path.join(test_folder, what, )

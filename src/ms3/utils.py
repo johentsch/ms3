@@ -20,6 +20,10 @@ from .logger import function_logger, update_cfg
 
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
                   'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
+""":obj:`list`
+Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
+considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
+"""
 
 DCML_REGEX = re.compile(r"""
 ^(\.?

@@ -21,7 +21,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :py:attr:`~.score.Score` objects).
     """
 
-    def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|_)",
+    def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
         """
 
@@ -43,9 +43,10 @@ class Parse(LoggedClass):
               If PATH_TO_LOGFILE is relative, multiple log files are created dynamically, relative to the original MSCX files' paths.
               If 'path' is set, the corresponding subdirectory structure is created there.
         ms : :obj:`str`, optional
-            If you want to parse musicXML files or MuseScore 2 files by temporarily converting them, pass the path or command
-            of your local MuseScore 3 installation. If you're using the standard path, you may try 'auto', or 'win' for
-            Windows, 'mac' for MacOS, or 'mscore' for Linux.
+            If you pass the path to your local MuseScore 3 installation, ms3 will attempt to parse musicXML, MuseScore 2,
+            and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
+            Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
+            detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
         """
         if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
             # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
@@ -439,7 +440,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
 
 
 
-    def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=r"^(\.|__)", recursive=True):
+    def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
         """
         This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
         to the Parse object without looking at them. It is recommended to add different types of files with different keys,
@@ -451,16 +452,18 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             Directory to scan for files.
         key : :obj:`str`, optional
             | Pass a string to identify the loaded files.
-            | By default, the relative sub-directories of ``directory`` are used as keys. For example, for files within ``directory``
-              itself, the key would be ``'.'``, for files in the subfolder ``scores`` it would be ``'scores'``, etc.
-        directory : :obj:`str`
-            Directory to be scanned for files.
+            | By default, the function :py:func:`iterate_subcorpora` is used to detect subcorpora and use their folder
+              names as keys.
         file_re : :obj:`str`, optional
-            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected.
+            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
+            depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         folder_re : :obj:`str`, optional
             Regular expression for filtering certain folder names.
             The regEx is checked with search(), not match(), allowing for fuzzy search.
+        exclude_re : :obj:`str`, optional
+            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
+            whose file names include '_reviewed' or start with . or _ are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
@@ -469,6 +472,8 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         if file_re is None:
             convertible = self.ms is not None
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
+        if exclude_re is None:
+            exclude_re = r'(^(\.|_)|_reviewed)'
         if key is None:
             directories = sorted(iterate_subcorpora(directory))
             n_subcorpora = len(directories)
@@ -1125,7 +1130,7 @@ Available keys: {available_keys}""")
                     if flat:
                         res[id + (param,)] = df
                     else:
-                        res[param][self._index[id]] = df
+                        res[param][id] = df
         return res
 
 
@@ -1488,25 +1493,31 @@ Available keys: {available_keys}""")
         return self._matches.loc[res_ix, what].sort_index()
 
 
-    def metadata(self, keys=None, include_tsv=False):
-        parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+    def metadata(self, keys=None, from_scores=True, from_tsv=False):
         df = pd.DataFrame()
         first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
                       'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                       'movementTitle',
                       'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                       'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
-        if len(parsed_ids) > 0:
-            ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
-            ix = pd.MultiIndex.from_tuples(ids)
-            df = pd.DataFrame(meta_series, index=ix)
-            df['rel_paths'] = [self.rel_paths[k][i] for k, i in ids]
-            df['fnames'] = [self.fnames[k][i] for k, i in ids]
+        if from_scores:
+            parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+            if len(parsed_ids) > 0:
+                ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
+                ix = pd.MultiIndex.from_tuples(ids)
+                df = pd.DataFrame(meta_series, index=ix)
+                df['rel_paths'] = [self.rel_paths[k][i] for k, i in ids]
+                df['fnames'] = [self.fnames[k][i] for k, i in ids]
 
-        if include_tsv and len(self._parsed_tsv) > 0:
-            tsv_dfs = metadata_tsv(keys=keys)
+        if from_tsv and len(self._parsed_tsv) > 0:
+            tsv_dfs = self.metadata_tsv(keys=keys)
             if len(tsv_dfs) > 0:
-                metadata_df = pd.concat(tsv_dfs.values(), keys=tsv_dfs.keys())
+                grouped = group_id_tuples(tsv_dfs.keys())
+                if len(grouped) == len(tsv_dfs):
+                    multiindex = grouped.keys()
+                else:
+                    multiindex = tsv_dfs.keys()
+                metadata_df = pd.concat(tsv_dfs.values(), keys=multiindex)
                 df = pd.concat([df, metadata_df])
         if len(df) > 0:
             return column_order(df, first_cols).sort_index()
@@ -1848,7 +1859,7 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_lists(keys, unfold=unfold, quarterbeats=quarterbeats, **list_params)
+        lists = self.get_lists(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **list_params)
         modus = 'would ' if simulate else ''
         if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
