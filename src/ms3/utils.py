@@ -1092,7 +1092,7 @@ def iterate_subcorpora(path: str,
                any(s.endswith(suf) for suf in suffixes)
 
     if prefixes is None:
-        prefixes = ["metadata"]
+        prefixes = []
     if suffixes is None:
         suffixes = STANDARD_NAMES
 
@@ -1101,9 +1101,10 @@ def iterate_subcorpora(path: str,
         suffixes = [s.lower() for s in suffixes]
 
     for d, subdirs, files in os.walk(path):
+        subdirs[:] = sorted(subdirs)
         if any(check_fname(f) for f in files) or \
             any(check_fname(d) for d in subdirs):
-            subdirs = []
+            del(subdirs[:])
             yield d
 
 
