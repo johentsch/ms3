@@ -2664,6 +2664,8 @@ class View(Parse):
                 if len(resolved) == 0:
                     self.logger.error(f"Unable to resolve wildcard expression '{c}'. Available columns:\n{available}")
                     return
+                if len(resolved) == 1:
+                    resolved = resolved[0]
                 cols.append(resolved)
             else:
                 cols.append(c)
@@ -2676,9 +2678,9 @@ class View(Parse):
             return
 
         plural = 's' if len(cols) > 1 else ''
-        self.logger.info(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
+        self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata.to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
-            result = (md, )
+            result, paths = tuple(), tuple()
             for c in cols:
                 i = None
                 if isinstance(c, str):
@@ -2690,9 +2692,13 @@ class View(Parse):
                             break
                 if pd.isnull(i):
                     result += (None, )
+                    paths += (None, )
                 else:
-                    id = (self.key, int(i))
+                    i = int(i)
+                    id = (self.key, i)
                     result += (self.p[id], )
+                    paths += (self.p.full_paths[self.key][i], )
+            result = (md, paths) + result
             yield result
 
 
