@@ -3,9 +3,16 @@ Changelog
 =========
 
 
-Next version
-============
+Version 0.5.0
+=============
 
+* considerable changes to ``Parse`` objects (bugs might still be abundant, please report them)
+  * abolished custom DataFrame indices
+  * behaviour shaped towards ms3's standard corpus structure
+    * automatic detection of corpora and generation of keys
+    * this enables better matching of files that belong together through ``View`` objects (access via ``p['key']``)
+    * new method ``iter()`` for iterating through metadata and files that belong together
+  * new iterator ``p.annotation_objects()``
 * new module ``transformations``
   * just as ``utils``, members can be imported directly via ``from ms3 import``
   * includes a couple of functions that were previously part of ``utils`` or ``expand_dcml``
@@ -15,8 +22,6 @@ Next version
     * make_gantt_data()
     * transform_annotations()
     * transform_multiple()
-* changes to ``Parse`` objects:
-  * iterator p.annotation_objects()
 * handling hierarchical localkeys and pedals (i.e. we can modulate to the key of ``V/III``)
 * Renamed column 'durations_quarterbeats' to 'duration_qb'
 * You can now set ``interval_index = True`` to add quarterbeat columns **and** an index with quarterbeat intervals
