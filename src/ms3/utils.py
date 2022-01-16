@@ -2102,7 +2102,7 @@ def split_scale_degree(sd, count=False):
     count : :obj:`bool`, optional
         Pass True to get the accidentals as integer rather than as string.
     """
-    m = re.match("^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
+    m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
         logger.error(f"{sd} is not a valid scale degree.")
         return None, None

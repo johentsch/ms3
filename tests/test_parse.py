@@ -17,6 +17,7 @@ def test_paths_parse():
 
 def test_json_parse():
     paths = ['paths2.json', 'truth/metadata.tsv', 'paths1.json']
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
     directory = 'test_results'
     goal = 72
     p = Parse(directory=directory, paths=paths, key='tests', logger_cfg=dict(level='d'))
