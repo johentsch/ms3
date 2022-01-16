@@ -12,6 +12,8 @@ Version 0.5.0
     * automatic detection of corpora and generation of keys
     * this enables better matching of files that belong together through ``View`` objects (access via ``p['key']``)
     * new method ``iter()`` for iterating through metadata and files that belong together
+  * all JSON files passed under the ``paths`` argument are now scanned for a contained list of file paths to be extracted
+    (as opposed to before where the JSON file had to be passed as a single path)
   * new iterator ``p.annotation_objects()``
 * new module ``transformations``
   * just as ``utils``, members can be imported directly via ``from ms3 import``
