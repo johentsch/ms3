@@ -486,6 +486,8 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             else:
                 self.logger.debug(f"{n_subcorpora} subcorpora detected.")
                 for d in directories:
+                    if re.search(exclude_re, os.path.basename(d)) is not None:
+                        continue
                     paths = sorted(scan_directory(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                                                   recursive=recursive, logger=self.logger))
                     k = os.path.basename(d)

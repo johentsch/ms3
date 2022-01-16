@@ -2,12 +2,74 @@
 Manual
 ======
 
+.. figure:: ms3_architecture.png
+    :alt: The archicture of ms3
+
 This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
 interpreter such as IPython, Jupyter, Google Colab, or just the console.
 
 
 Good to know
 ============
+
+.. _corpus_structure:
+
+Corpus structure
+----------------
+
+ms3 extracts various aspects (e.g. notes, chord labels, dynamics) from a single MuseScore file and stores them in
+separate TSV files. In order to jointly evaluate this information (e.g. to combine harmony labels with the corresponding
+notes in the score), ms3 associates files by their names. Therefore it is important to not rename files at a later
+point and it is recommended to stick to one organizational principle for all corpora in use. The two main principles
+are suffixes and subfolders.
+
+`DCML corpora <https://github.com/DCMLab/dcml_corpora>`__ use the same subfolder structure: MuseScore files are stored
+in the ``MS3`` folder of a corpus and all other aspects are stored with identical filenames (but different extension)
+in sibling folders. This structure results naturally when using default parameters such as
+``ms3 extract -N -M -X``:
+
+.. code-block:: console
+
+    corpus1
+    ├── harmonies
+    ├── measures
+    ├── MS3
+    └── notes
+    corpus2
+    ├── harmonies
+    ├── measures
+    ├── MS3
+    └── notes
+
+When loading corpora, ms3 looks for the standard folder names (and suffixes) to indentify individual corpora and
+assign them keys automatically (e.g. in the example above, 'corpus1' and 'corpus2').
+Using the default names will therefore facilitate the use of the library considerably.
+
+
+.. _label_types:
+
+Label types
+-----------
+
+ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:
+
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| label_type | explanation                                                                                                                            |
++============+========================================================================================================================================+
+| 0          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
+|            | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 1          | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 2          | Nashville number (Add->Text->Nashville Number).                                                                                        |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 3          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
+|            | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
++------------+----------------------------------------------------------------------------------------------------------------------------------------+
+
+Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
+information will appear with a subtype, e.g. ``0 (dcml)``. If instead or additionally you want other subtypes to be
+recognized, specify the :py:attr:`~.score.Score.infer_label_types` attribute.
 
 
 .. _mc_vs_mn:
@@ -45,30 +107,13 @@ corresponds to the first part of MN 8, the two onset values are identical. But f
 differ: ``mc_onset`` is ``0`` but ``mn_onset`` is ``3/4`` because this is the distance from MN 8.
 
 
-.. _label_types:
+.. _read_only:
 
-Label types
------------
+Read-only mode
+--------------
 
-ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:
-
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| label_type | explanation                                                                                                                            |
-+============+========================================================================================================================================+
-| 0          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
-|            | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 1          | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 2          | Nashville number (Add->Text->Nashville Number).                                                                                        |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 3          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
-|            | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-
-Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
-information will appear with a subtype, e.g. ``0 (dcml)``. If instead or additionally you want other subtypes to be
-recognized, specify the :py:attr:`~.score.Score.infer_label_types` attribute.
+For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
+XML structure is not kept in memory.
 
 
 .. _fifths:
@@ -110,14 +155,6 @@ way to express these as a single integer). For note names, ``0`` corresponds to 
 +--------+-----------+----------+-----------------+
 
 
-.. _read_only:
-
-Read-only mode
---------------
-
-For parsing faster using less memory. Scores parsed in read-only mode cannot be changed because the original
-XML structure is not kept in memory.
-
 
 .. _voltas:
 
@@ -155,7 +192,6 @@ Tables with score information
 .. |chord_type| replace:: :ref:`chord_type <chord_type>`
 .. |crescendo_hairpin| replace:: :ref:`crescendo_hairpin <hairpins>`
 .. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
-.. .. |decrescendo| replace:: :ref:`decrescendo <decrescendo>`
 .. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
 .. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
 .. |dynamics| replace:: :ref:`dynamics <dynamics>`
@@ -163,7 +199,6 @@ Tables with score information
 .. |form| replace:: :ref:`form <form>`
 .. |globalkey| replace:: :ref:`globalkey <globalkey>`
 .. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
-.. |diminuendo| replace:: :ref:`diminuendo <diminuendo>`
 .. |dont_count| replace:: :ref:`dont_count <dont_count>`
 .. |duration| replace:: :ref:`duration <duration>`
 .. |gracenote| replace:: :ref:`gracenote <gracenote>`
@@ -641,10 +676,9 @@ Parsing multiple scores
 
 3. Create a :py:class:`~.parse.Parse` object
 
-    The object is created by calling it with the directory to scan, and bound
-    to the variable ``p``. By default, scores are grouped by the subdirectories
-    they are in and one key is automatically created for each of them to access
-    the files separately.
+    The object is created by calling it with the directory to scan, and bound to the typical variable ``p``.
+    ms3 scans the subdirectories for corpora (see :ref:`corpus_structure`) and assigns keys automatically based on
+    folder names (here 'docs', and 'tests'):
 
     .. code-block:: python
 
@@ -653,6 +687,19 @@ Parsing multiple scores
         >>> p
 
     .. program-output:: python examples/parse_directory.py
+
+    Without any further parameters, ms3 detects only file types that it can potentially parse, i.e. MSCX, MSCZ, and TSV.
+    In the following example, we infer the location of our local MuseScore 3 installation (if 'auto' fails,
+    indicate the path to your executable). As a result, ms3 also shows formats that MuseScore can convert, such as
+    XML, MIDI, or CAP.
+
+    .. code-block:: python
+
+        >>> from ms3 import Parse
+        >>> p = Parse('~/ms3', ms='auto')
+        >>> p
+
+    .. program-output:: python examples/parse_directory_xml.py
 
     By default, present TSV files are detected and can be parsed as well, allowing one to access already extracted
     information without parsing the scores anew. In order to select only particular files, a regular expression
@@ -680,7 +727,7 @@ Parsing multiple scores
 
     .. program-output:: python examples/parse_other_directory.py
 
-    Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation of a particular group of files.
+    Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation on a particular group of files.
 
 4. Parse the scores.
 
@@ -1597,11 +1644,11 @@ Spanners
 
 :obj:`str` (-> :obj:`tuple`)
 
-Spanners designate markup that spans several <Chord> tags, such as slurs, hairpins, pedal and ottava lines. The values
+Spanners designate markup that spans several <Chord> tags, such as slurs, hairpins, pedal, trill and ottava lines. The values
 in a spanner column are IDs such that all chords with the same ID belong to the same spanner. Each cell can have more
 than one ID, separated by commas. For evaluating spanner columns, the values should be turned into tuples.
 
-Spanners span all chords belonging to the same |staff|, except for slurs which span only chords in the same |voice|. In
+Spanners span all chords belonging to the same |staff|, except for slurs and trills which span only chords in the same |voice|. In
 other words, won't find the ending of a slur that goes from one |voice| to another.
 
 
@@ -1657,7 +1704,15 @@ always pertain to an entire |staff|
 Pedal line :ref:`spanners <spanners>` always pertain to an entire |staff|.
 
 
+.. _trill:
 
+**Trill**
+
+:obj:`str`
+
+
+Trills :ref:`spanners <spanners>` can have different subtypes specified after a colon, e.g. ``'Trill:trill'``.
+They always pertain to a particular |voice|.
 
 
 

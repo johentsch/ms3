@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.4.9 documentation</title>
+    <title>ms3.score &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
@@ -50,7 +50,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -71,7 +71,8 @@
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">check_labels</span><span class="p">,</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">convert</span><span class="p">,</span> <span class="n">DCML_DOUBLE_REGEX</span><span class="p">,</span> <span class="n">decode_harmonies</span><span class="p">,</span> <span class="n">get_ms_version</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">no_collections_no_booleans</span><span class="p">,</span>\
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">check_labels</span><span class="p">,</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">convert</span><span class="p">,</span> <span class="n">DCML_DOUBLE_REGEX</span><span class="p">,</span> <span class="n">decode_harmonies</span><span class="p">,</span>\
+    <span class="n">get_ms_version</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">no_collections_no_booleans</span><span class="p">,</span>\
     <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">unpack_mscz</span><span class="p">,</span> <span class="n">update_labels_cfg</span>
 <span class="kn">from</span> <span class="nn">.bs4_parser</span> <span class="kn">import</span> <span class="n">_MSCX_bs4</span>
 <span class="kn">from</span> <span class="nn">.annotations</span> <span class="kn">import</span> <span class="n">Annotations</span>
@@ -578,6 +579,7 @@
         <span class="k">return</span></div>
 
 
+
 <div class="viewcode-block" id="Score.get_infer_regex"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.get_infer_regex">[docs]</a>    <span class="k">def</span> <span class="nf">get_infer_regex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns</span>
@@ -841,6 +843,8 @@
             <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">obj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">key_info</span> <span class="o">=</span> <span class="n">key</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; (stored as </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="k">else</span> <span class="n">key</span>
                 <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key_info</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">obj</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">n_form_labels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;Score contains </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">n_form_labels</span><span class="si">}</span><span class="s2"> form labels.&quot;</span>
         <span class="k">return</span> <span class="n">msg</span>
 
 
@@ -1034,6 +1038,23 @@
     <span class="nd">@has_annotations</span><span class="o">.</span><span class="n">setter</span>
     <span class="k">def</span> <span class="nf">has_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="n">val</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_form_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`int`</span>
+<span class="sd">        Shortcut for ``MSCX.parsed.n_form_labels``.</span>
+<span class="sd">        Is True if at least one StaffText seems to constitute a form label.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">n_form_labels</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">form_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
+<span class="sd">        DataFrame representing a filtered event list containing only StaffTexts that include the regular expression</span>
+<span class="sd">        :py:const:`.utils.FORM_DETECTION_REGEX`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">fl</span>
 
 
     <span class="nd">@property</span>
@@ -1410,7 +1431,7 @@
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
 <span class="sd">        what : :obj:`str` or :obj:`Collection`, optional</span>
-<span class="sd">            Defaults to &#39;all&#39; but could instead be one or several strings out of {&#39;notes&#39;, &#39;rests&#39;, &#39;notes_and_rests&#39;, &#39;measures&#39;, &#39;events&#39;, &#39;labels&#39;, &#39;chords&#39;, &#39;expanded&#39;}</span>
+<span class="sd">            Defaults to &#39;all&#39; but could instead be one or several strings out of {&#39;notes&#39;, &#39;rests&#39;, &#39;notes_and_rests&#39;, &#39;measures&#39;, &#39;events&#39;, &#39;labels&#39;, &#39;chords&#39;, &#39;expanded&#39;, &#39;form_labels&#39;}</span>
 <span class="sd">        folder : :obj:`str`, optional</span>
 <span class="sd">            Where to store. Defaults to the directory of the parsed MSCX file.</span>
 <span class="sd">        suffix : :obj:`str` or :obj:`Collection`, optional</span>
@@ -1458,7 +1479,7 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s2"> empty, no file written.&quot;</span><span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_treat_storing_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
-        <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="s1">&#39;rests&#39;</span><span class="p">,</span> <span class="s1">&#39;notes_and_rests&#39;</span><span class="p">,</span> <span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">]</span>
+        <span class="n">tables</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="s1">&#39;rests&#39;</span><span class="p">,</span> <span class="s1">&#39;notes_and_rests&#39;</span><span class="p">,</span> <span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">what</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">tables</span><span class="p">,</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;_</span><span class="si">{</span><span class="n">t</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tables</span><span class="p">]</span>
@@ -1567,7 +1588,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 

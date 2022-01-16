@@ -2,7 +2,6 @@
 Developers' Reference
 =====================
 
-
 The library installs a couple of commands to your system. The documentation for these commands can be found
 :ref:`below <cli_doc>` or by executing ``ms3 -h``.
 

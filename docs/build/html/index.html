@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3 - Parsing MuseScore 3 &#8212; ms3 0.4.9 documentation</title>
+    <title>ms3 - Parsing MuseScore 3 &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
     <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="_static/ansi.css" />
@@ -54,7 +54,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="N">next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="#">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
       </ul>
@@ -112,11 +112,12 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="manual.html#good-to-know">Good to know</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#corpus-structure">Corpus structure</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#label-types">Label types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual.html#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual.html#onset-positions">Onset positions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#label-types">Label types</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#stacks-of-fifths-intervals">Stacks-of-fifths intervals</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual.html#read-only-mode">Read-only mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#stacks-of-fifths-intervals">Stacks-of-fifths intervals</a></li>
 <li class="toctree-l3"><a class="reference internal" href="manual.html#voltas">Voltas</a></li>
 </ul>
 </li>
@@ -142,7 +143,7 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="manual.html#parsing-multiple-scores">Parsing multiple scores</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="manual.html#id12">Parsing options</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#id13">Parsing options</a></li>
 </ul>
 </li>
 </ul>
@@ -170,7 +171,7 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#voice"><strong>voice</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id22">Measures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id23">Measures</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#act-dur-actual-duration-of-a-measure"><strong>act_dur</strong> Actual duration of a measure</a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#barline"><strong>barline</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#breaks"><strong>breaks</strong></a></li>
@@ -181,7 +182,7 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#repeats"><strong>repeats</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id27">Notes and Rests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id28">Notes and Rests</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#chord-id"><strong>chord_id</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#gracenote"><strong>gracenote</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#midi-piano-key"><strong>midi</strong> Piano key</a></li>
@@ -191,7 +192,7 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#tpc-tonal-pitch-class"><strong>tpc</strong> Tonal pitch class</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id33">Chords</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id34">Chords</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#articulation"><strong>articulation</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#dynamics"><strong>dynamics</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#lyrics-1"><strong>lyrics:1</strong></a></li>
@@ -202,11 +203,11 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#spanners">Spanners</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id44">Labels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id45">Labels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#label"><strong>label</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id46">Expanded</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id47">Expanded</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#bass-note"><strong>bass_note</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#cadence"><strong>cadence</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#chord"><strong>chord</strong></a></li>
@@ -261,7 +262,8 @@
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#next-version">Next version</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-5-0">Version 0.5.0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-4-10">Version 0.4.10</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-4-9">Version 0.4.9</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-4-8">Version 0.4.8</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-4-7">Version 0.4.7</a></li>
@@ -366,7 +368,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="#">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
       </ul>

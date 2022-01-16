@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.expand_dcml &#8212; ms3 0.4.9 documentation</title>
+    <title>ms3.expand_dcml &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
@@ -50,7 +50,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 
@@ -74,9 +74,10 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">abs2rel_key</span><span class="p">,</span> <span class="n">changes2list</span><span class="p">,</span> <span class="n">DCML_REGEX</span><span class="p">,</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> \
-    <span class="n">labels2global_tonic</span><span class="p">,</span> <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2fifths</span><span class="p">,</span> <span class="n">rel2abs_key</span><span class="p">,</span> <span class="n">resolve_relative_keys</span><span class="p">,</span> <span class="n">roman_numeral2fifths</span><span class="p">,</span> \
-    <span class="n">series_is_minor</span><span class="p">,</span> <span class="n">split_alternatives</span><span class="p">,</span> <span class="n">split_scale_degree</span><span class="p">,</span> <span class="n">str_is_minor</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">sort_tpcs</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">abs2rel_key</span><span class="p">,</span> <span class="n">changes2list</span><span class="p">,</span> <span class="n">DCML_REGEX</span><span class="p">,</span> <span class="n">features2tpcs</span><span class="p">,</span> <span class="n">fifths2iv</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">fifths2pc</span><span class="p">,</span> <span class="n">fifths2rn</span><span class="p">,</span> <span class="n">fifths2sd</span><span class="p">,</span> \
+    <span class="n">map2elements</span><span class="p">,</span> <span class="n">name2fifths</span><span class="p">,</span> <span class="n">rel2abs_key</span><span class="p">,</span> <span class="n">resolve_relative_keys</span><span class="p">,</span> <span class="n">roman_numeral2fifths</span><span class="p">,</span> \
+    <span class="n">series_is_minor</span><span class="p">,</span> <span class="n">split_alternatives</span><span class="p">,</span> <span class="n">transform</span>
+<span class="kn">from</span> <span class="nn">.transformations</span> <span class="kn">import</span> <span class="n">compute_chord_tones</span><span class="p">,</span> <span class="n">labels2global_tonic</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span>
 
 
@@ -531,10 +532,14 @@
         <span class="n">df</span><span class="p">[</span><span class="n">localkey</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="s1">&#39;ffill&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">add_bool</span><span class="p">:</span>
-        <span class="n">local_minor</span> <span class="o">=</span> <span class="n">series_is_minor</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">localkey</span><span class="p">])</span>
         <span class="n">gm</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">globalkey</span><span class="si">}</span><span class="s2">_is_minor&quot;</span>
         <span class="n">lm</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">localkey</span><span class="si">}</span><span class="s2">_is_minor&quot;</span>
         <span class="n">df</span><span class="p">[</span><span class="n">gm</span><span class="p">]</span> <span class="o">=</span> <span class="n">global_minor</span>
+        <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">localkey</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">lk</span> <span class="o">=</span> <span class="n">transform</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">resolve_relative_keys</span><span class="p">,</span> <span class="p">[</span><span class="n">localkey</span><span class="p">,</span> <span class="n">gm</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">lk</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">localkey</span><span class="p">]</span>
+        <span class="n">local_minor</span> <span class="o">=</span> <span class="n">series_is_minor</span><span class="p">(</span><span class="n">lk</span><span class="p">)</span>
         <span class="n">df</span><span class="p">[</span><span class="n">lm</span><span class="p">]</span> <span class="o">=</span> <span class="n">local_minor</span>
     <span class="k">return</span> <span class="n">df</span></div>
 
@@ -621,362 +626,6 @@
         <span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">ix</span>
 
     <span class="k">return</span> <span class="n">df</span></div>
-
-
-<div class="viewcode-block" id="compute_chord_tones"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.compute_chord_tones">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">compute_chord_tones</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="p">{}):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the chord tones for DCML harmony labels. They are returned as lists</span>
-<span class="sd">    of tonal pitch classes in close position, starting with the bass note. The</span>
-<span class="sd">    tonal pitch classes represent intervals relative to the local tonic:</span>
-
-<span class="sd">    -2: Second below tonic</span>
-<span class="sd">    -1: fifth below tonic</span>
-<span class="sd">    0: tonic</span>
-<span class="sd">    1: fifth above tonic</span>
-<span class="sd">    2: second above tonic, etc.</span>
-
-<span class="sd">    The labels need to have undergone :py:func:`split_labels` and :py:func:`propagate_keys`.</span>
-<span class="sd">    Pedal points are not taken into account.</span>
-
-<span class="sd">    Uses: :py:func:`features2tpcs`</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    df : :obj:`pandas.DataFrame`</span>
-<span class="sd">        Dataframe containing DCML chord labels that have been split by split_labels()</span>
-<span class="sd">        and where the keys have been propagated using propagate_keys(add_bool=True).</span>
-<span class="sd">    bass_only : :obj:`bool`, optional</span>
-<span class="sd">        Pass True if you need only the bass note.</span>
-<span class="sd">    expand : :obj:`bool`, optional</span>
-<span class="sd">        Pass True if you need chord tones and added tones in separate columns.</span>
-<span class="sd">    cols : :obj:`dict`, optional</span>
-<span class="sd">        In case the column names for ``[&#39;mc&#39;, &#39;numeral&#39;, &#39;form&#39;, &#39;figbass&#39;, &#39;changes&#39;, &#39;relativeroot&#39;, &#39;localkey&#39;, &#39;globalkey&#39;]`` deviate, pass a dict, such as</span>
-
-<span class="sd">        .. code-block:: python</span>
-
-<span class="sd">            {&#39;mc&#39;:              &#39;mc&#39;,</span>
-<span class="sd">             &#39;numeral&#39;:         &#39;numeral_col_name&#39;,</span>
-<span class="sd">             &#39;form&#39;:            &#39;form_col_name&#39;,</span>
-<span class="sd">             &#39;figbass&#39;:         &#39;figbass_col_name&#39;,</span>
-<span class="sd">             &#39;changes&#39;:         &#39;changes_col_name&#39;,</span>
-<span class="sd">             &#39;relativeroot&#39;:    &#39;relativeroot_col_name&#39;,</span>
-<span class="sd">             &#39;localkey&#39;:        &#39;localkey_col_name&#39;,</span>
-<span class="sd">             &#39;globalkey&#39;:       &#39;globalkey_col_name&#39;}</span>
-
-<span class="sd">        You may also deactivate columns by setting them to None, e.g. {&#39;changes&#39;: None}</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-<span class="sd">    :obj:`pandas.Series` or :obj:`pandas.DataFrame`</span>
-<span class="sd">        For every row of `df` one tuple with chord tones, expressed as tonal pitch classes.</span>
-<span class="sd">        If `expand` is True, the function returns a DataFrame with four columns:</span>
-<span class="sd">        Two with tuples for chord tones and added tones, one with the chord root,</span>
-<span class="sd">        and one with the bass note.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="c1">### If the index is not unique, it has to be temporarily replaced</span>
-    <span class="n">tmp_index</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">is_unique</span>
-    <span class="k">if</span> <span class="n">tmp_index</span><span class="p">:</span>
-        <span class="n">ix</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">index</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-    <span class="n">features</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">,</span> <span class="s1">&#39;changes&#39;</span><span class="p">,</span> <span class="s1">&#39;relativeroot&#39;</span><span class="p">,</span> <span class="s1">&#39;localkey&#39;</span><span class="p">,</span> <span class="s1">&#39;globalkey&#39;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">features</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
-            <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
-    <span class="n">local_minor</span><span class="p">,</span> <span class="n">global_minor</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;localkey&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">_is_minor&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;globalkey&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">_is_minor&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">local_minor</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-        <span class="n">df</span><span class="p">[</span><span class="n">local_minor</span><span class="p">]</span> <span class="o">=</span> <span class="n">series_is_minor</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;localkey&#39;</span><span class="p">]],</span> <span class="n">is_name</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Boolean column &#39;</span><span class="si">{</span><span class="n">local_minor</span><span class="si">}</span><span class="s2">&#39; created.&#39;&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">global_minor</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-        <span class="n">df</span><span class="p">[</span><span class="n">global_minor</span><span class="p">]</span> <span class="o">=</span> <span class="n">series_is_minor</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;globalkey&#39;</span><span class="p">]],</span> <span class="n">is_name</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Boolean column &#39;</span><span class="si">{</span><span class="n">global_minor</span><span class="si">}</span><span class="s2">&#39; created.&#39;&quot;</span><span class="p">)</span>
-
-    <span class="n">param_cols</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;numeral&#39;</span><span class="p">,</span> <span class="s1">&#39;form&#39;</span><span class="p">,</span> <span class="s1">&#39;figbass&#39;</span><span class="p">,</span> <span class="s1">&#39;changes&#39;</span><span class="p">,</span> <span class="s1">&#39;relativeroot&#39;</span><span class="p">,</span> <span class="s1">&#39;mc&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">cols</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
-    <span class="n">param_cols</span><span class="p">[</span><span class="s1">&#39;minor&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">local_minor</span>
-    <span class="n">param_tuples</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">param_cols</span><span class="o">.</span><span class="n">values</span><span class="p">()]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-    <span class="c1">#result_dict = {t: features2tpcs(**{a:b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger) for t in set(param_tuples)}</span>
-    <span class="n">result_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">if</span> <span class="n">bass_only</span><span class="p">:</span>
-        <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">elif</span> <span class="ow">not</span> <span class="n">expand</span><span class="p">:</span>
-        <span class="n">default</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">default</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">&#39;chord_tones&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(),</span>
-            <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(),</span>
-            <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="p">}</span>
-    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">param_tuples</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">features2tpcs</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">a</span><span class="p">:</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">param_cols</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">t</span><span class="p">)},</span> <span class="n">bass_only</span><span class="o">=</span><span class="n">bass_only</span><span class="p">,</span>
-                                           <span class="n">merge_tones</span><span class="o">=</span><span class="ow">not</span> <span class="n">expand</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">default</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]))</span>
-    <span class="k">if</span> <span class="n">expand</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([</span><span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">param_tuples</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
-        <span class="n">res</span><span class="p">[</span><span class="s1">&#39;bass_note&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">chord_tones</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">l</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">l</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">res</span><span class="p">[[</span><span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="s1">&#39;bass_note&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">res</span><span class="p">[[</span><span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="s1">&#39;bass_note&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">result_dict</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">param_tuples</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">tmp_index</span><span class="p">:</span>
-        <span class="n">res</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">ix</span>
-
-    <span class="k">return</span> <span class="n">res</span></div>
-
-
-<div class="viewcode-block" id="features2tpcs"><a class="viewcode-back" href="../../reference.html#ms3.expand_dcml.features2tpcs">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">features2tpcs</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">figbass</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">relativeroot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">merge_tones</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">mc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given the features of a chord label, this function returns the chord tones</span>
-<span class="sd">    in the order of the inversion, starting from the bass note. The tones are</span>
-<span class="sd">    expressed as tonal pitch classes, where -1=F, 0=C, 1=G etc.</span>
-
-<span class="sd">    Uses: :py:func:`~.utils.changes2list`, :py:func:`~.utils.name2fifths`, :py:func:`~.utils.resolve_relative_keys`, :py:func:`~.utils.roman_numeral2fifths`,</span>
-<span class="sd">    :py:func:`~.utils.sort_tpcs`, :py:func:`~.utils.str_is_minor`</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    numeral: :obj:`str`</span>
-<span class="sd">        Roman numeral of the chord&#39;s root</span>
-<span class="sd">    form: {None, &#39;M&#39;, &#39;o&#39;, &#39;+&#39; &#39;%&#39;}, optional</span>
-<span class="sd">        Indicates the chord type if not a major or minor triad (for which ``form`` is None).</span>
-<span class="sd">        &#39;%&#39; and &#39;M&#39; can only occur as tetrads, not as triads.</span>
-<span class="sd">    figbass: {None, &#39;6&#39;, &#39;64&#39;, &#39;7&#39;, &#39;65&#39;, &#39;43&#39;, &#39;2&#39;}, optional</span>
-<span class="sd">        Indicates chord&#39;s inversion. Pass None for triad root position.</span>
-<span class="sd">    changes: :obj:`str`, optional</span>
-<span class="sd">        Added steps such as &#39;+6&#39; or suspensions such as &#39;4&#39; or any combination such as (9+64).</span>
-<span class="sd">        Numbers need to be in descending order.</span>
-<span class="sd">    relativeroot: :obj:`str`, optional</span>
-<span class="sd">        Pass a Roman scale degree if `numeral` is to be applied to a different scale</span>
-<span class="sd">        degree of the local key, as in &#39;V65/V&#39;</span>
-<span class="sd">    key : :obj:`str` or :obj:`int`, optional</span>
-<span class="sd">        The local key expressed as the root&#39;s note name or a tonal pitch class.</span>
-<span class="sd">        If it is a name and `minor` is `None`, uppercase means major and lowercase minor.</span>
-<span class="sd">        If it is a tonal pitch class, `minor` needs to be specified.</span>
-<span class="sd">    minor : :obj:`bool`, optional</span>
-<span class="sd">        Pass True for minor and False for major. Can be omitted if `key` is a note name.</span>
-<span class="sd">        This affects calculation of chords related to III, VI and VII.</span>
-<span class="sd">    merge_tones : :obj:`bool`, optional</span>
-<span class="sd">        Pass False if you want the function to return two tuples, one with (potentially suspended)</span>
-<span class="sd">        chord tones and one with added notes.</span>
-<span class="sd">    bass_only : :obj:`bool`, optional</span>
-<span class="sd">        Return only the bass note instead of all chord tones.</span>
-<span class="sd">    mc : int or str</span>
-<span class="sd">        Pass measure count to display it in warnings.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">numeral</span><span class="p">)</span> <span class="ow">or</span> <span class="n">numeral</span> <span class="o">==</span> <span class="s1">&#39;@none&#39;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">bass_only</span> <span class="ow">or</span> <span class="n">merge_tones</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">{</span>
-                <span class="s1">&#39;chord_tones&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-                <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-                <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">,</span>
-            <span class="p">}</span>
-    <span class="n">form</span><span class="p">,</span> <span class="n">figbass</span><span class="p">,</span> <span class="n">changes</span><span class="p">,</span> <span class="n">relativeroot</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
-        <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">else</span> <span class="n">val</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="p">(</span><span class="n">form</span><span class="p">,</span> <span class="n">figbass</span><span class="p">,</span> <span class="n">changes</span><span class="p">,</span> <span class="n">relativeroot</span><span class="p">))</span>
-    <span class="n">label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">numeral</span><span class="si">}{</span><span class="n">form</span><span class="si">}{</span><span class="n">figbass</span><span class="si">}{</span><span class="s1">&#39;(&#39;</span> <span class="o">+</span> <span class="n">changes</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span> <span class="k">if</span> <span class="n">changes</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}{</span><span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">relativeroot</span> <span class="k">if</span> <span class="n">relativeroot</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="n">MC</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">mc</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="sa">f</span><span class="s1">&#39;MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s1">: &#39;</span>
-    <span class="k">if</span> <span class="n">minor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">minor</span> <span class="o">=</span> <span class="n">str_is_minor</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">is_name</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mode inferred from </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="k">except</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;If parameter &#39;minor&#39; is not specified, &#39;key&#39; needs to be a string, not </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">key</span> <span class="o">=</span> <span class="n">name2fifths</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">form</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;%&#39;</span><span class="p">,</span> <span class="s1">&#39;M&#39;</span><span class="p">,</span> <span class="s1">&#39;+M&#39;</span><span class="p">]:</span>
-        <span class="k">assert</span> <span class="n">figbass</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;65&#39;</span><span class="p">,</span> <span class="s1">&#39;43&#39;</span><span class="p">,</span>
-                           <span class="s1">&#39;2&#39;</span><span class="p">],</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">form</span><span class="si">}</span><span class="s2"> requires figbass (7, 65, 43, or 2) since it specifies a chord&#39;s seventh.&quot;</span>
-
-    <span class="k">if</span> <span class="n">relativeroot</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
-        <span class="n">resolved</span> <span class="o">=</span> <span class="n">resolve_relative_keys</span><span class="p">(</span><span class="n">relativeroot</span><span class="p">,</span> <span class="n">minor</span><span class="p">)</span>
-        <span class="n">rel_minor</span> <span class="o">=</span> <span class="n">str_is_minor</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">is_name</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">transp</span> <span class="o">=</span> <span class="n">roman_numeral2fifths</span><span class="p">(</span><span class="n">resolved</span><span class="p">,</span> <span class="n">minor</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">Chord applied to </span><span class="si">{</span><span class="n">relativeroot</span><span class="si">}</span><span class="s2">. Therefore transposing it by </span><span class="si">{</span><span class="n">transp</span><span class="si">}</span><span class="s2"> fifths.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">features2tpcs</span><span class="p">(</span><span class="n">numeral</span><span class="o">=</span><span class="n">numeral</span><span class="p">,</span> <span class="n">form</span><span class="o">=</span><span class="n">form</span><span class="p">,</span> <span class="n">figbass</span><span class="o">=</span><span class="n">figbass</span><span class="p">,</span> <span class="n">relativeroot</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">,</span>
-                             <span class="n">key</span><span class="o">=</span><span class="n">key</span> <span class="o">+</span> <span class="n">transp</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="n">rel_minor</span><span class="p">,</span> <span class="n">merge_tones</span><span class="o">=</span><span class="n">merge_tones</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="n">bass_only</span><span class="p">,</span> <span class="n">mc</span><span class="o">=</span><span class="n">mc</span><span class="p">,</span>
-                             <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">numeral</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;#vii&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">minor</span><span class="p">:</span>
-        <span class="c1"># logger.warning(</span>
-        <span class="c1">#     f&quot;{MC}{label} in a major context is most probably an annotation error.&quot;)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">numeral</span><span class="si">}</span><span class="s2"> in major context corrected to </span><span class="si">{</span><span class="n">numeral</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="n">numeral</span> <span class="o">=</span> <span class="n">numeral</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
-
-    <span class="n">root_alteration</span><span class="p">,</span> <span class="n">num_degree</span> <span class="o">=</span> <span class="n">split_scale_degree</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-
-    <span class="c1"># build 2-octave diatonic scale on C major/minor</span>
-    <span class="n">root</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">,</span> <span class="s1">&#39;III&#39;</span><span class="p">,</span> <span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;VII&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">num_degree</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
-    <span class="n">tpcs</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">key</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="mi">2</span> <span class="o">*</span> <span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">key</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">)]</span>
-    <span class="c1"># starting the scale from chord root, i.e. root will be tpcs[0], the chord&#39;s seventh tpcs[6] etc.</span>
-    <span class="n">tpcs</span> <span class="o">=</span> <span class="n">tpcs</span><span class="p">[</span><span class="n">root</span><span class="p">:]</span> <span class="o">+</span> <span class="n">tpcs</span><span class="p">[:</span><span class="n">root</span><span class="p">]</span>
-    <span class="n">root</span> <span class="o">=</span> <span class="n">tpcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">*</span> <span class="n">root_alteration</span>
-    <span class="n">tpcs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>  <span class="c1"># octave stays diatonic, is not altered</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_degree</span><span class="si">}</span><span class="s2">: The </span><span class="si">{</span><span class="s1">&#39;minor&#39;</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="s1">&#39;major&#39;</span><span class="si">}</span><span class="s2"> scale starting from the root: </span><span class="si">{</span><span class="n">tpcs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">set_iv</span><span class="p">(</span><span class="n">chord_interval</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        chord_interval : :obj:`int`</span>
-<span class="sd">            Pass 0 for the root note, 2 for the third, 8 for the ninth etc.</span>
-<span class="sd">        interval_size : :obj:`int`</span>
-<span class="sd">            Stack-of-fifths interval.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">nonlocal</span> <span class="n">tpcs</span><span class="p">,</span> <span class="n">root</span>
-        <span class="n">iv</span> <span class="o">=</span> <span class="n">root</span> <span class="o">+</span> <span class="n">interval_size</span>
-        <span class="n">tpcs</span><span class="p">[</span><span class="n">chord_interval</span><span class="p">]</span> <span class="o">=</span> <span class="n">iv</span>
-        <span class="n">tpcs</span><span class="p">[</span><span class="n">chord_interval</span> <span class="o">+</span> <span class="mi">7</span><span class="p">]</span> <span class="o">=</span> <span class="n">iv</span>
-
-    <span class="n">is_triad</span> <span class="o">=</span> <span class="n">figbass</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;64&#39;</span><span class="p">]</span>
-    <span class="n">is_seventh_chord</span> <span class="o">=</span> <span class="n">figbass</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;65&#39;</span><span class="p">,</span> <span class="s1">&#39;43&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_triad</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_seventh_chord</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">figbass</span><span class="si">}</span><span class="s2"> is not a valid chord inversion.&quot;</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;o&#39;</span><span class="p">:</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_seventh_chord</span><span class="p">:</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="o">-</span><span class="mi">9</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;%&#39;</span><span class="p">:</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="o">-</span><span class="mi">6</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span><span class="p">:</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">is_seventh_chord</span><span class="p">:</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;+M&#39;</span><span class="p">:</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>  <span class="c1"># triad with or without major or minor seven</span>
-        <span class="n">set_iv</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">num_degree</span><span class="o">.</span><span class="n">isupper</span><span class="p">():</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">3</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">form</span> <span class="o">==</span> <span class="s1">&#39;M&#39;</span><span class="p">:</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">is_seventh_chord</span><span class="p">:</span>
-            <span class="n">set_iv</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="o">-</span><span class="mi">2</span><span class="p">)</span>
-
-    <span class="n">tone_functions</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_seventh_chord</span> <span class="k">else</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-    <span class="n">root_position</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[</span><span class="n">tpcs</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tone_functions</span><span class="p">}</span>
-    <span class="n">replacements</span>  <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">tone_functions</span><span class="p">}</span>
-
-    <span class="k">def</span> <span class="nf">replace_chord_tone</span><span class="p">(</span><span class="n">which</span><span class="p">,</span> <span class="n">by</span><span class="p">):</span>
-        <span class="k">nonlocal</span> <span class="n">root_position</span><span class="p">,</span> <span class="n">replacements</span>
-        <span class="k">if</span> <span class="n">which</span> <span class="ow">in</span> <span class="n">root_position</span><span class="p">:</span>
-            <span class="n">root_position</span><span class="p">[</span><span class="n">which</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="n">replacements</span><span class="p">[</span><span class="n">which</span><span class="p">]</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">by</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only chord tones [0,2,4,(6)] can be replaced, not </span><span class="si">{</span><span class="n">which</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="c1"># apply changes</span>
-    <span class="n">alts</span> <span class="o">=</span> <span class="n">changes2list</span><span class="p">(</span><span class="n">changes</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">added_notes</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">full</span><span class="p">,</span> <span class="n">add_remove</span><span class="p">,</span> <span class="n">acc</span><span class="p">,</span> <span class="n">chord_interval</span> <span class="ow">in</span> <span class="n">alts</span><span class="p">:</span>
-        <span class="n">added</span> <span class="o">=</span> <span class="n">add_remove</span> <span class="o">==</span> <span class="s1">&#39;+&#39;</span>
-        <span class="n">substracted</span> <span class="o">=</span> <span class="n">add_remove</span> <span class="o">==</span> <span class="s1">&#39;-&#39;</span>
-        <span class="n">replacing_upper</span> <span class="o">=</span> <span class="n">add_remove</span> <span class="o">==</span> <span class="s1">&#39;^&#39;</span>
-        <span class="n">replacing_lower</span> <span class="o">=</span> <span class="n">add_remove</span> <span class="o">==</span> <span class="s1">&#39;v&#39;</span>
-        <span class="n">chord_interval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">chord_interval</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="c1">### From here on, `chord_interval` is decremented, i.e. the root is 0, the seventh is 6 etc. (just like in `tpcs`)</span>
-        <span class="k">if</span> <span class="p">(</span><span class="n">chord_interval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">substracted</span><span class="p">)</span> <span class="ow">or</span> <span class="n">chord_interval</span> <span class="o">&gt;</span> <span class="mi">13</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">Change </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2"> is meaningless and ignored because it concerns chord tone </span><span class="si">{</span><span class="n">chord_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">continue</span>
-        <span class="n">next_octave</span> <span class="o">=</span> <span class="n">chord_interval</span> <span class="o">&gt;</span> <span class="mi">7</span>
-        <span class="n">shift</span> <span class="o">=</span> <span class="mi">7</span> <span class="o">*</span> <span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="n">acc</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">))</span>
-        <span class="n">new_val</span> <span class="o">=</span> <span class="n">tpcs</span><span class="p">[</span><span class="n">chord_interval</span><span class="p">]</span> <span class="o">+</span> <span class="n">shift</span>
-        <span class="k">if</span> <span class="n">substracted</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">chord_interval</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tone_functions</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">The change </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2"> has no effect because it concerns an interval which is not implied by </span><span class="si">{</span><span class="n">numeral</span><span class="si">}{</span><span class="n">form</span><span class="si">}{</span><span class="n">figbass</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">root_position</span><span class="p">[</span><span class="n">chord_interval</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">elif</span> <span class="n">added</span><span class="p">:</span>
-            <span class="n">added_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">next_octave</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">any</span><span class="p">((</span><span class="n">replacing_lower</span><span class="p">,</span> <span class="n">replacing_upper</span><span class="p">,</span> <span class="n">substracted</span><span class="p">)):</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">full</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2"> has no effect in </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2">  because the interval is larger than an octave.&quot;</span><span class="p">)</span>
-            <span class="n">added_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">chord_interval</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]:</span>  <span class="c1"># these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^</span>
-            <span class="k">if</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">acc</span> <span class="ow">or</span> <span class="n">replacing_upper</span><span class="p">:</span>
-                <span class="k">if</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">acc</span> <span class="ow">and</span> <span class="n">replacing_upper</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">^ is redundant in </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">chord_interval</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">is_triad</span><span class="p">:</span>  <span class="c1"># leading tone to 7 but not in seventh chord</span>
-                    <span class="n">added_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">replace_chord_tone</span><span class="p">(</span><span class="n">chord_interval</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">replacing_lower</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">v is redundant in </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                <span class="n">replace_chord_tone</span><span class="p">(</span><span class="n">chord_interval</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>  <span class="c1"># chord tone alterations</span>
-            <span class="k">if</span> <span class="n">replacing_lower</span><span class="p">:</span>
-                <span class="c1"># TODO: This must be possible, e.g. V(6v5) where 5 is suspension of 4</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">full</span><span class="si">}</span><span class="s2"> -&gt; chord tones cannot replace neighbours, use + instead.&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">chord_interval</span> <span class="o">==</span> <span class="mi">6</span> <span class="ow">and</span> <span class="n">figbass</span> <span class="o">!=</span> <span class="s1">&#39;7&#39;</span><span class="p">:</span>  <span class="c1"># 7th are a special case:</span>
-                <span class="k">if</span> <span class="n">figbass</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>  <span class="c1"># in root position triads they are added</span>
-                    <span class="c1"># TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced from below!</span>
-                    <span class="n">added_notes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_val</span><span class="p">)</span>
-                <span class="k">elif</span> <span class="n">figbass</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;64&#39;</span><span class="p">]</span> <span class="ow">or</span> <span class="s1">&#39;#&#39;</span> <span class="ow">in</span> <span class="n">acc</span><span class="p">:</span>  <span class="c1"># in inverted triads they replace the root, as does #7</span>
-                    <span class="n">replace_chord_tone</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">new_val</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>  <span class="c1"># otherwise they are unclear</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">In seventh chords, such as </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">, it is not clear whether the </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2"> alters the 7 or replaces the 8 and should not be used.&quot;</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">tpcs</span><span class="p">[</span><span class="n">chord_interval</span><span class="p">]</span> <span class="o">==</span> <span class="n">new_val</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}</span><span class="s2">The change </span><span class="si">{</span><span class="n">full</span><span class="si">}</span><span class="s2"> has no effect in </span><span class="si">{</span><span class="n">numeral</span><span class="si">}{</span><span class="n">form</span><span class="si">}{</span><span class="n">figbass</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">root_position</span><span class="p">[</span><span class="n">chord_interval</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">new_val</span><span class="p">]</span>
-
-    <span class="n">figbass2bass</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s1">&#39;7&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s1">&#39;6&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s1">&#39;65&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="s1">&#39;64&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-        <span class="s1">&#39;43&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-        <span class="s1">&#39;2&#39;</span><span class="p">:</span> <span class="mi">3</span>
-    <span class="p">}</span>
-    <span class="n">bass</span> <span class="o">=</span> <span class="n">figbass2bass</span><span class="p">[</span><span class="n">figbass</span><span class="p">]</span>
-    <span class="n">chord_tones</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">tf</span> <span class="ow">in</span> <span class="n">tone_functions</span><span class="p">[</span><span class="n">bass</span><span class="p">:]</span> <span class="o">+</span> <span class="n">tone_functions</span><span class="p">[:</span><span class="n">bass</span><span class="p">]:</span>
-        <span class="n">chord_tone</span><span class="p">,</span> <span class="n">replacing_tones</span> <span class="o">=</span> <span class="n">root_position</span><span class="p">[</span><span class="n">tf</span><span class="p">],</span> <span class="n">replacements</span><span class="p">[</span><span class="n">tf</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">chord_tone</span> <span class="o">==</span> <span class="n">replacing_tones</span> <span class="o">==</span> <span class="p">[]:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord without </span><span class="si">{</span><span class="n">tf</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">chord_tone</span> <span class="o">!=</span> <span class="p">[]:</span>
-            <span class="n">chord_tones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chord_tone</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">replacing_tones</span> <span class="o">!=</span> <span class="p">[]:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord tone </span><span class="si">{</span><span class="n">tf</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> AND its replacement(s) </span><span class="si">{</span><span class="n">replacing_tones</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="n">chord_tones</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">replacing_tones</span><span class="p">)</span>
-
-    <span class="n">bass_tpc</span> <span class="o">=</span> <span class="n">chord_tones</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">bass_only</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">bass_tpc</span>
-    <span class="k">elif</span> <span class="n">merge_tones</span><span class="p">:</span>
-        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">sort_tpcs</span><span class="p">(</span><span class="n">chord_tones</span> <span class="o">+</span> <span class="n">added_notes</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="n">bass_tpc</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="p">{</span>
-            <span class="s1">&#39;chord_tones&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">chord_tones</span><span class="p">),</span>
-            <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">added_notes</span><span class="p">),</span>
-            <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="n">root</span><span class="p">,</span>
-        <span class="p">}</span></div>
 
 
 <span class="c1">########################################################################################################################</span>
@@ -1177,7 +826,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.expand_dcml</a></li> 

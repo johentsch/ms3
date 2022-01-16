@@ -7,23 +7,23 @@ Version 0.5.0
 =============
 
 * considerable changes to ``Parse`` objects (bugs might still be abundant, please report them)
-  * abolished custom DataFrame indices
-  * behaviour shaped towards ms3's standard corpus structure
-    * automatic detection of corpora and generation of keys
-    * this enables better matching of files that belong together through ``View`` objects (access via ``p['key']``)
-    * new method ``iter()`` for iterating through metadata and files that belong together
-  * all JSON files passed under the ``paths`` argument are now scanned for a contained list of file paths to be extracted
-    (as opposed to before where the JSON file had to be passed as a single path)
-  * new iterator ``p.annotation_objects()``
+    * abolished custom DataFrame indices
+    * behaviour shaped towards ms3's standard corpus structure
+        * automatic detection of corpora and generation of keys
+        * this enables better matching of files that belong together through ``View`` objects (access via ``p['key']``)
+        * new method ``iter()`` for iterating through metadata and files that belong together
+    * all JSON files passed under the ``paths`` argument are now scanned for a contained list of file paths to be extracted
+      (as opposed to before where the JSON file had to be passed as a single path)
+    * new iterator ``p.annotation_objects()``
 * new module ``transformations``
-  * just as ``utils``, members can be imported directly via ``from ms3 import``
-  * includes a couple of functions that were previously part of ``utils`` or ``expand_dcml``
-  * includes a couple of new functions:
-    * get_chord_sequences()
-    * group_annotations_by_features()
-    * make_gantt_data()
-    * transform_annotations()
-    * transform_multiple()
+    * just as ``utils``, members can be imported directly via ``from ms3 import``
+    * includes a couple of functions that were previously part of ``utils`` or ``expand_dcml``
+    * includes a couple of new functions:
+        * get_chord_sequences()
+        * group_annotations_by_features()
+        * make_gantt_data()
+        * transform_annotations()
+        * transform_multiple()
 * handling hierarchical localkeys and pedals (i.e. we can modulate to the key of ``V/III``)
 * Renamed column 'durations_quarterbeats' to 'duration_qb'
 * You can now set ``interval_index = True`` to add quarterbeat columns **and** an index with quarterbeat intervals
@@ -38,14 +38,14 @@ Version 0.4.10
 * Enabled extraction of score labels.
 * Made the use of ``labels_cfg`` more consistent.
 * improved chord lists:
-  * include system and tempo texts
-  * new algorithm for correct spanner IDs (i.e. for Slurs, Pedal, HairPins, Ottava)
-  * lyrics: still extracts only the last verse but now in the corresponding column, e.g. ``lyrics:3`` for verse 3.
+    * include system and tempo texts
+    * new algorithm for correct spanner IDs (i.e. for Slurs, Pedal, HairPins, Ottava)
+    * lyrics: still extracts only the last verse but now in the corresponding column, e.g. ``lyrics:3`` for verse 3.
 * new feature (still in beta): extraction of form labels
-  * ``Score.mscx.form_labels``
-  * ``Parse.form_labels()``
-  * added ``form_labels`` -related parameters to ``Parse.get_lists()`` and ``Parse.store_lists()``
-  * added ``utils.expand_form_labels()`` for hierarchical display of form labels
+    * ``Score.mscx.form_labels``
+    * ``Parse.form_labels()``
+    * added ``form_labels`` -related parameters to ``Parse.get_lists()`` and ``Parse.store_lists()``
+    * added ``utils.expand_form_labels()`` for hierarchical display of form labels
 
 Version 0.4.9
 =============
@@ -55,33 +55,33 @@ Version 0.4.9
 * new command ``ms3 update`` for converting files and moving annotations to the Roman Numeral Analysis layer
 * new command ``ms3 metadata`` for writing manually changed information from ``metadata.tsv`` to the metadata fields of the corresponding MuseScore files
 * improved the ``ms3 extract`` command:
-  * added option ``-D`` for extracting and updating ``metadata.tsv`` and ``README.md``
-  * added option ``-q`` for adding 'quarterbeats' and 'durations_quarterbeats' columns
-  * included default paths for the capital-letter parameters
+    * added option ``-D`` for extracting and updating ``metadata.tsv`` and ``README.md``
+    * added option ``-q`` for adding 'quarterbeats' and 'durations_quarterbeats' columns
+    * included default paths for the capital-letter parameters
 * improved the ``ms3 compare`` command:
-  * now works with 'expanded' TSVs, too (not only with 'labels')
-  * allows 'label' column to include NaN values
+    * now works with 'expanded' TSVs, too (not only with 'labels')
+    * allows 'label' column to include NaN values
 * improvements to Parse() objects:
-  * attempts to parse scores that need file conversion (e.g. XML, MIDI)
-  * ``get_lists()`` method now allows for adding the columns ``quarterbeats`` and ``durations_quarterbeats``, even without unfolding repeats
-  * adding 'quarterbeats' without unfolding repeats excludes voltas
-  * new method ``get_tsvs()`` for retrieving and concatenating parsed TSV files
-  * Parse() now recognizes ``metadata.tsv`` files, expanded TSVs, and TSVs containing cadence labels only
-  * parsed ``metadata.tsv`` files can be retrieved/included via the method ``metadata()``
-  * new method ``update_metadata()`` for the new ``ms3 metadata`` command
-  * decided on standard index levels ``rel_paths`` and ``fnames``
-  * improved matching of corresponding score and TSV files
+    * attempts to parse scores that need file conversion (e.g. XML, MIDI)
+    * ``get_lists()`` method now allows for adding the columns ``quarterbeats`` and ``durations_quarterbeats``, even without unfolding repeats
+    * adding 'quarterbeats' without unfolding repeats excludes voltas
+    * new method ``get_tsvs()`` for retrieving and concatenating parsed TSV files
+    * Parse() now recognizes ``metadata.tsv`` files, expanded TSVs, and TSVs containing cadence labels only
+    * parsed ``metadata.tsv`` files can be retrieved/included via the method ``metadata()``
+    * new method ``update_metadata()`` for the new ``ms3 metadata`` command
+    * decided on standard index levels ``rel_paths`` and ``fnames``
+    * improved matching of corresponding score and TSV files
 * improvements to Score() objects:
-  * new property Score.mscx.volta_structure for retrieving information on first and second endings
+    * new property Score.mscx.volta_structure for retrieving information on first and second endings
 * improvements to Annotations() objects:
-  * correct propagation of ``localkey`` for voltas
+    * correct propagation of ``localkey`` for voltas
 * improvements to commandline interface:
-  * added parameter ``-o`` for specifying output directory
-  * harmonized the interface of the ``ms3 convert`` command
-  * parameter ``exclude_re`` now also filters paths passed via ``-f``
+    * added parameter ``-o`` for specifying output directory
+    * harmonized the interface of the ``ms3 convert`` command
+    * parameter ``exclude_re`` now also filters paths passed via ``-f``
 * changed logging behaviours:
-  * write only WARNINGs to log file
-  * combine loggers for filenames independently of file extensions
+    * write only WARNINGs to log file
+    * combine loggers for filenames independently of file extensions
 * improved extraction of instrument names for metadata
 * improved ``ms3 compare`` functionality
 * restructured code architecture
@@ -101,9 +101,9 @@ Version 0.4.7
 =============
 
 * Labels can be attached to MuseScore's Roman Numeral Analysis (RNA) layer
-  * parameter `label_type=1` in both `Score.attach_labels()` and `Parse.attach_labels()`
-  * `Annotations.remove_initial_dots()` before inserting into the RNA layer
-  * `Annotations.add_initial_dots()` before inserting into the absolute chord layer
+    * parameter `label_type=1` in both `Score.attach_labels()` and `Parse.attach_labels()`
+    * `Annotations.remove_initial_dots()` before inserting into the RNA layer
+    * `Annotations.add_initial_dots()` before inserting into the absolute chord layer
 * interpret all `#vii` in major contexts as `vii` when computing chord tones
 * code cosmetics and bug fixes
 
@@ -191,8 +191,8 @@ At this stage, the library can parse MuseScore 3 files to different types of lis
 
 * measures
 * chords (= groups of notes)
-  * including slurs and spanners such as pedal, 8va or hairpin markings
-  * including lyrics
+    * including slurs and spanners such as pedal, 8va or hairpin markings
+    * including lyrics
 * notes
 * harmonies
 

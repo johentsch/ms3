@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.annotations &#8212; ms3 0.4.9 documentation</title>
+    <title>ms3.annotations &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
     <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
@@ -50,7 +50,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 
@@ -155,7 +155,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Annotations object not aware to which MSCX object it is attached.&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
         <span class="n">df</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">cols</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
         <span class="n">error</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">staff_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">staff_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
@@ -200,6 +200,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Measure counts and corresponding mc_onsets successfully inferred.&quot;</span><span class="p">)</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s1">&#39;mn&#39;</span><span class="p">),</span> <span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">inferred_positions</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">])</span>
                     <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[:,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">inferred_positions</span><span class="p">[</span><span class="s1">&#39;mc_onset&#39;</span><span class="p">]</span>
+                    <span class="n">cols</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">])</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc_onset&#39;</span> <span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No &#39;mc_onset&#39; column found. All labels will be inserted at mc_onset 0.&quot;</span><span class="p">)</span>
@@ -549,7 +550,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.4.9 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 

@@ -1,6 +1,6 @@
 import os, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from fractions import Fraction as frac
 from functools import reduce
@@ -19,7 +19,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg
 
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-                  'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
+                  'harmonies', 'cadences', 'form_labels', 'MS3', 'score', 'scores', 'mscx']
 """:obj:`list`
 Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
 considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
@@ -197,13 +197,14 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=Fals
     df : :obj:`pandas.DataFrame`
         DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
     offset_dict : :obj:`pandas.Series` or :obj:`dict`
-        If unfolded: {mc_playthrough -> offset}
-        Otherwise: {mc -> offset}
-        You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parsed.Parse.get_continuous_offsets>`
+        | If unfolded: {mc_playthrough -> offset}
+        | Otherwise: {mc -> offset}
+        | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
     insert_after : :obj:`str`, optional
         Name of the column after which the new column will be inserted.
     interval_index : :obj:`bool`, optional
-        Defaults to False. Pass True to replace the index with an :obj:`pandas.
+        Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
+        creation of the column ``duration_qb``).
 
     Returns
     -------
@@ -1055,9 +1056,9 @@ def iterable2str(iterable):
 
 
 def iterate_subcorpora(path: str,
-                       prefixes: Iterable = None,
+                       prefixes: Iterable = None, # Iterable[str] would require python>=3.9
                        suffixes: Iterable = None,
-                       ignore_case: bool = True):
+                       ignore_case: bool = True) -> Iterator:
     """ Recursively walk through subdirectory and files but stop and return path as soon as
     at least one file or at least one folder matches at least one prefix or at least one suffix.
 
@@ -1067,12 +1068,11 @@ def iterate_subcorpora(path: str,
         Directory to scan.
     prefixes : :obj:`collections.abc.Iterable`, optional
         Current directory is returned if at least one contained item starts with one of the prefixes.
-        Defaults to ``['metadata']``
     suffixes : :obj:`collections.abc.Iterable`, optional
         Current directory is returned if at least one contained item ends with one of the suffixes.
-        Files are tested against suffixes including file extensions.
+        Files are tested against suffixes including and excluding file extensions.
         Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-                    'harmonies', 'cadences', 'form_labels', 'MS3']``
+        'harmonies', 'cadences', 'form_labels', 'MS3']``
     ignore_case : :obj:`bool`, optional
         Defaults to True, meaning that file and folder names match prefixes and suffixes independent
         of capitalization.
@@ -1102,8 +1102,13 @@ def iterate_subcorpora(path: str,
 
     for d, subdirs, files in os.walk(path):
         subdirs[:] = sorted(subdirs)
+        if files != []:
+            fnames, _ = zip(*[os.path.splitext(f) for f in files])
+        else:
+            fnames = []
         if any(check_fname(f) for f in files) or \
-            any(check_fname(d) for d in subdirs):
+            any(check_fname(d) for d in subdirs) or \
+            any(check_fname(fn) for fn in fnames):
             del(subdirs[:])
             yield d
 
