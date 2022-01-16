@@ -2485,6 +2485,10 @@ Load one of the identically named files with a different key using add_dir(key='
     def __repr__(self):
         return self.info(return_str=True)
 
+
+
+
+
 class View(Parse):
 
     def __init__(self,
@@ -2492,6 +2496,8 @@ class View(Parse):
                  key: str = None):
         self.p = p # parent parse object
         self.key = key
+        self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
+        self._pieces = {}
         logger_cfg = self.p.logger_cfg
         logger_cfg['name'] = self.key
         super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg) # initialize loggers
@@ -2562,6 +2568,11 @@ class View(Parse):
     def pieces(self, parsed_only=False):
         """Based on :py:attr:`fnames`, return a DataFrame that matches the numerical part of IDs of files that
            correspond to each other. """
+        if self._state > (0, 0, 0) and \
+            (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
+            parsed_only in self._pieces:
+            self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
+            return self._pieces[parsed_only]
         pieces = {} # result
         fnames = self.names
         for metadata_i, fname in enumerate(fnames):
@@ -2604,6 +2615,12 @@ class View(Parse):
         except:
             print(pieces)
             raise
+        # caching
+        current_state = (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv))
+        if current_state > self._state and (not parsed_only) in self._pieces:
+            del(self._pieces[not parsed_only])
+        self._state = current_state
+        self._pieces[parsed_only] = res
         return res
 
 
@@ -2647,8 +2664,10 @@ class View(Parse):
 
 
     def iter(self, columns):
+        standard_cols = list(self.p._lists.keys())
         piece_matrix = self.pieces(parsed_only=True)
-        available = '\n'.join(sorted(piece_matrix.columns))
+        available = '\n'.join(sorted(piece_matrix.columns[1:]))
+        parsed_scores_present = 'scores' in piece_matrix.columns
         n, d = piece_matrix.shape
         if n == 0 or d == 1:
             self.logger.error("No files present.")
@@ -2660,45 +2679,64 @@ class View(Parse):
             columns = [columns]
         for c in columns:
             if isinstance(c, str) and c[-1] == '*':
-                resolved = [col for col in piece_matrix.columns if col.startswith(c[:-1])]
+                col_name = c[:-1]
+                resolved = [col for col in piece_matrix.columns if col.startswith(col_name)]
+                if col_name in standard_cols and col_name not in resolved and parsed_scores_present:
+                    resolved = [col_name] + resolved
                 if len(resolved) == 0:
                     self.logger.error(f"Unable to resolve wildcard expression '{c}'. Available columns:\n{available}")
                     return
                 if len(resolved) == 1:
                     resolved = resolved[0]
+                self.logger.debug(f"{c} resolved to {resolved}.")
                 cols.append(resolved)
             else:
                 cols.append(c)
 
-        # check if arguments correspond to existing columns
+        # check if arguments correspond to existing columns or if parsed scores are available
         flattened = list(iter_nested(cols))
-        if any(c not in piece_matrix.columns for c in flattened):
+        if parsed_scores_present:
+            missing = [c for c in flattened if c not in standard_cols and c not in piece_matrix.columns]
+            flattened = [c for c in flattened if c in piece_matrix.columns]
+        else:
             missing = [c for c in flattened if c not in piece_matrix.columns]
-            self.logger.error(f"The following columns were not recognized: {missing}. You could try appending the wildcard *\nCurrently available types among parsed files:\n{available}")
+        if len(missing) > 0:
+            self.logger.error(f"The following columns were not recognized: {missing}. You could try using the wildcard *\nCurrently available types among parsed TSV files:\n{available}")
             return
+
+
+        def get_dataframe(ids, column):
+            if 'scores' in ids and not pd.isnull(ids['scores']) and column in standard_cols:
+                i = int(ids['scores'])
+                score = self.p[(self.key, i)]
+                df = score.mscx.__getattribute__(column)
+                if df.shape[0] > 0:
+                    score.logger.debug(f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
+                    return df, self.p.full_paths[self.key][i]
+                else:
+                    score.logger.debug(f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
+            if column in ids and not pd.isnull(ids[column]):
+                i = int(ids[column])
+                return self.p._parsed_tsv[(self.key, i)], self.p.full_paths[self.key][i]
+            return (None, None)
+
+        
 
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata.to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
-            result, paths = tuple(), tuple()
+            result, paths = [], []
             for c in cols:
-                i = None
                 if isinstance(c, str):
-                    i = ids[c]
+                    df, path = get_dataframe(ids, c)
                 else:
                     for cc in c:
-                        if not pd.isnull(ids[cc]):
-                            i = ids[cc]
+                        df, path = get_dataframe(ids, cc)
+                        if df is not None:
                             break
-                if pd.isnull(i):
-                    result += (None, )
-                    paths += (None, )
-                else:
-                    i = int(i)
-                    id = (self.key, i)
-                    result += (self.p[id], )
-                    paths += (self.p.full_paths[self.key][i], )
-            result = (md, paths) + result
+                result.append(df)
+                paths.append(path)
+            result = (md, paths) + tuple(result)
             yield result
 
 
