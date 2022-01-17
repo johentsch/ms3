@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 import pytest, os
-from ms3 import Parse, resolve_dir
+import pandas as pd
+from ms3 import Parse, assert_dfs_equal, load_tsv, resolve_dir
 
 def test_folder_parse():
     p = Parse(".")
@@ -27,7 +28,9 @@ def test_json_parse():
 
 @pytest.fixture
 def parsed_mscx():
-    p = Parse('.', file_re='mscx$', folder_re='MS3', logger_cfg=dict(level='d'))
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+    ms3_dir = os.path.dirname(test_dir)
+    p = Parse(ms3_dir, file_re='mscx$', folder_re='MS3', logger_cfg=dict(level='d'))
     p.parse()
     return p
 
@@ -35,11 +38,19 @@ def parsed_mscx():
 class TestParse:
 
     test_folder = os.path.dirname(os.path.realpath(__file__))
+    test_results = os.path.join(test_folder, 'test_results')
 
     def test_extract(self, parsed_mscx):
-        target = resolve_dir('test_results')
+        target = self.test_results
         path_dict = parsed_mscx.store_lists(measures_folder=target, measures_suffix="_measures",
                                 notes_folder=target, notes_suffix='_notes',
                                 labels_folder=target, labels_suffix='_labels')
         # for path, what in path_dict.items():
         #     original_path = os.path.join(test_folder, what, )
+
+    def test_metadata_extract(self, parsed_mscx):
+        target_path = os.path.join(self.test_results, 'metadata.tsv')
+        old = load_tsv(target_path, dtype='string')
+        new = parsed_mscx.metadata().reset_index(drop=True).astype('string').replace('', pd.NA)
+        assert_dfs_equal(old, new)
+
