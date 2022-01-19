@@ -331,10 +331,17 @@ class Parse(LoggedClass):
         return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
-    @property
-    def ids(self):
-        d = self._index
-        return pd.DataFrame({'id': d.keys()}, index=d.values()).sort_index()
+    def ids(self, keys=None):
+        data = {}
+        keys = self._treat_key_param(keys)
+        for key in keys:
+            fnames = self.fnames[key]
+            for i, fname in enumerate(fnames):
+                id = (key, i)
+                data[id] = os.path.join(self.rel_paths[key][i], fname)
+        result = pd.Series(data, name='file')
+        result.index = pd.MultiIndex.from_tuples(result.index, names=['key', 'i'])
+        return result
 
 
     @property
@@ -1129,6 +1136,11 @@ Available keys: {available_keys}""")
                         df = add_quarterbeats_col(df, offset_dict)
                     if interval_index:
                         df = replace_index_by_intervals(df)
+                    if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
+                        if df.volta.isna().all():
+                            df = df.drop(columns='volta')
+                        else:
+                            self.logger.error(f"Score @ ID {id} does not include any voltas, yet the volta column in the {param} table is not empty.")
                     if flat:
                         res[id + (param,)] = df
                     else:
@@ -2625,7 +2637,8 @@ class View(Parse):
         self._pieces[parsed_only] = res
         return res
 
-
+    def ids(self):
+        return self.p.ids(self.key)
 
 
     def info(self, return_str=False):
