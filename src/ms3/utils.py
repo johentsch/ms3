@@ -283,10 +283,20 @@ def assert_dfs_equal(old, new, exclude=[]):
 
     def show_diff():
         comp_str = []
+        if 'mc' in old.columns:
+            position_col = 'mc'
+        elif 'last_mc' in old.columns:
+            position_col = 'last_mc'
+        else:
+            position_col = None
         for col, n_diffs in diffs_per_col.items():
             if n_diffs > 0:
-                comparison = pd.concat([old.loc[old_bool[col], ['mc', col]].reset_index(drop=True).iloc[:20],
-                                        new.loc[new_bool[col], ['mc', col]].iloc[:20].reset_index(drop=True)],
+                if position_col is None:
+                    columns = col
+                else:
+                    columns = [position_col, col]
+                comparison = pd.concat([old.loc[old_bool[col], columns].reset_index(drop=True).iloc[:20],
+                                        new.loc[new_bool[col], columns].iloc[:20].reset_index(drop=True)],
                                        axis=1,
                                        keys=['old', 'new'])
                 comp_str.append(
@@ -1193,7 +1203,7 @@ def safe_frac(s):
         return s
 
 
-def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtype=False, **kwargs):
+def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype=False, **kwargs):
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
     Parameters
@@ -1203,7 +1213,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
     index_col : :obj:`list`, optional
         By default, the first two columns are loaded as MultiIndex.
         The first level distinguishes pieces and the second level the elements within.
-    converters, dtypes : :obj:`dict`, optional
+    converters, dtype : :obj:`dict`, optional
         Enhances or overwrites the mapping from column names to types included the constants.
     stringtype : :obj:`bool`, optional
         If you're using pandas >= 1.0.0 you might want to set this to True in order
@@ -1294,11 +1304,13 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtypes={}, stringtyp
         conv = dict(CONVERTERS)
         conv.update(converters)
 
-    if dtypes is None:
+    if dtype is None:
         types = None
+    elif isinstance(dtype, str):
+        types = dtype
     else:
         types = dict(DTYPES)
-        types.update(dtypes)
+        types.update(dtype)
 
     if stringtype:
         types = {col: 'string' if typ == str else typ for col, typ in types.items()}
@@ -2267,32 +2279,37 @@ def update_labels_cfg(labels_cfg):
 
 @function_logger
 def write_metadata(df, path, markdown=True, index=False):
+    path = resolve_dir(path)
     if os.path.isdir(path):
-        path = os.path.join(path, 'metadata.tsv')
-    if not os.path.isfile(path):
+        tsv_path = os.path.join(path, 'metadata.tsv')
+    else:
+        tsv_path = path
+        path = os.path.dirname(tsv_path)
+    if not os.path.isfile(tsv_path):
         write_this = df
         msg = 'Created'
     else:
         try:
             # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
-            previous = pd.read_csv(path, sep='\t', dtype=str, index_col=[0, 1])
-            ix_union = previous.index.union(df.index)
-            col_union = previous.columns.union(df.columns)
+            previous = pd.read_csv(tsv_path, sep='\t', dtype='string', index_col=['rel_paths', 'fnames'])
+            df_tmp = df.set_index(['rel_paths', 'fnames'])
+            ix_union = previous.index.union(df_tmp.index)
+            col_union = previous.columns.union(df_tmp.columns)
             previous = previous.reindex(index=ix_union, columns=col_union)
-            previous.loc[df.index, df.columns] = df
-            write_this = previous
+            previous.loc[df_tmp.index, df_tmp.columns] = df_tmp
+            write_this = previous.reset_index()
             msg = 'Updated'
-        except:
+        except Exception:
             write_this = df
             msg = 'Replaced '
-    first_cols = ['last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',
+    first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',
                   'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                   'movementTitle',
                   'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                   'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
     write_this.sort_index(inplace=True)
-    column_order(write_this, first_cols).to_csv(path, sep='\t', index=index)
-    logger.info(f"{msg} {path}")
+    column_order(write_this, first_cols).to_csv(tsv_path, sep='\t', index=index)
+    logger.info(f"{msg} {tsv_path}")
     if markdown:
         rename4markdown = {
             'fnames': 'file_name',
@@ -2310,8 +2327,7 @@ def write_metadata(df, path, markdown=True, index=False):
         md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
         md_table = str(df2md(md))
 
-        p = os.path.dirname(path)
-        readme = os.path.join(p, 'README.md')
+        readme = os.path.join(path, 'README.md')
         if os.path.isfile(readme):
             msg = 'Updated'
             with open(readme, 'r', encoding='utf-8') as f:
