@@ -1540,37 +1540,45 @@ Available keys: {available_keys}""")
         return self._matches.loc[res_ix, what].sort_index()
 
 
-    def metadata(self, keys=None, from_scores=True, from_tsv=False):
-        df = pd.DataFrame()
+    def metadata(self, keys=None, from_tsv=False):
+        """
+
+        Parameters
+        ----------
+        keys
+        from_tsv
+
+        Returns
+        -------
+
+        """
         first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
                       'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
                       'movementTitle',
                       'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                       'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
-        if from_scores:
-            parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
+        if from_tsv:
+            tsv_dfs = self.metadata_tsv(keys=keys)
+            if len(tsv_dfs) > 0:
+                df = pd.concat(tsv_dfs.values(), keys=tsv_dfs.keys())
+                df.index.names = ['key', 'i', None]
+        else:
+            parsed_ids = list(self._iterids(keys, only_parsed_mscx=True))
             if len(parsed_ids) > 0:
                 ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
                 ix = pd.MultiIndex.from_tuples(ids, names=['key', 'i'])
                 df = pd.DataFrame(meta_series, index=ix)
                 df['rel_paths'] = [self.rel_paths[k][i] for k, i in ids]
                 df['fnames'] = [self.fnames[k][i] for k, i in ids]
+            else:
+                df = pd.DataFrame()
 
-        if from_tsv and len(self._parsed_tsv) > 0:
-            tsv_dfs = self.metadata_tsv(keys=keys)
-            if len(tsv_dfs) > 0:
-                grouped = group_id_tuples(tsv_dfs.keys())
-                if len(grouped) == len(tsv_dfs):
-                    multiindex = grouped.keys()
-                else:
-                    multiindex = tsv_dfs.keys()
-                metadata_df = pd.concat(tsv_dfs.values(), keys=multiindex)
-                df = pd.concat([df, metadata_df])
         if len(df) > 0:
             return column_order(df, first_cols).sort_index()
         else:
-            self.logger.info("No scores or metadata TSVs have been parsed so far.")
-            return pd.DataFrame()
+            what = 'metadata TSVs' if from_tsv else 'scores'
+            self.logger.info(f"No {what} have been parsed so far.")
+            return df
 
     def metadata_tsv(self, keys=None):
         """Returns a {id -> DataFrame} dictionary with all parsed TSVs recognized as metadata."""
