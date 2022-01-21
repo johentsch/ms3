@@ -256,6 +256,33 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+    def _concat_id_df_dict(self, d, id_index=False, third_level_name=None):
+        """Concatenate DataFrames contained in a {ID -> df} dictionary.
+
+        Parameters
+        ----------
+        d : :obj:`dict`
+            {ID -> DataFrame}
+        id_index : :obj:`bool`, optional
+            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
+            'rel_paths', 'fnames', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
+        third_level_name : :obj:`str`, optional
+
+        Returns
+        -------
+
+        """
+        d = {k: v for k, v in d.items() if v.shape[0] > 0}
+        if id_index:
+            result = pd.concat(d.values(), keys=d.keys())
+            result.index.names = ['key', 'i', third_level_name]
+        else:
+            levels = [(self.rel_paths[key][i], self.fnames[key][i]) for key, i in d.keys()]
+            result = pd.concat(d.values(), keys=levels)
+            result.index.names = ['rel_paths', 'fnames', third_level_name]
+        return result
+
+
     def _concat_lists(self, which, id_index=False, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
         """ Boiler plate for concatenating DataFrames with the same type of information.
 
@@ -292,15 +319,7 @@ class Parse(LoggedClass):
             else:
                 self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
             return pd.DataFrame()
-        d = {k: v for k, v in d.items() if v.shape[0] > 0}
-        if id_index:
-            result = pd.concat(d.values(), keys=d.keys())
-            result.index.names = ['key', 'i', f"{which}_id"]
-        else:
-            levels = [(self.rel_paths[key][i], self.fnames[key][i]) for key, i in d.keys()]
-            result = pd.concat(d.values(), keys=levels)
-            result.index.names = ['rel_paths', 'fnames', f"{which}_id"]
-        return result
+        return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
         return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index)
