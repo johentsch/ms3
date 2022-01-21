@@ -87,20 +87,23 @@ def extract(args):
         'positioning': args.positioning,    # default=False
         'decode': args.raw,                 # default=True
     }
-    if sum([True for arg in [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded, args.metadata] if arg is not None]) == 0:
-        print("Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
+    params = [name for name, arg in zip(
+                                ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata'),
+                                (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
+                        if arg is not None]
+    if len(params) == 0:
+        print("Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata)")
         return
-    if args.suffix is not None:
+    if args.suffix is None:
+        suffixes = {}
+    else:
         l_suff = len(args.suffix)
-        params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
         if l_suff == 0:
             suffixes = {f"{p}_suffix": f"_{p}" for p in params}
         elif l_suff == 1:
             suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
         else:
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    else:
-        suffixes = {}
 
     logger_cfg = {
         'level': args.level,
@@ -165,23 +168,24 @@ def repair(args):
 
 
 def transform(args):
-    if sum([True for arg in
-            [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] #, args.metadata]
-            if arg is not None]) == 0:
+    params = [name for name, arg in zip(
+        ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata'),
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
+              if arg is not None]
+    if len(params) == 0:
         print(
-            "Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
+            "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata)")
         return
-    if args.suffix is not None:
+    if args.suffix is None:
+        suffixes = {}
+    else:
         l_suff = len(args.suffix)
-        params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
         if l_suff == 0:
             suffixes = {f"{p}_suffix": f"_{p}" for p in params}
         elif l_suff == 1:
             suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
         else:
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    else:
-        suffixes = {}
 
     logger_cfg = {
         'level': args.level,
