@@ -1297,8 +1297,32 @@ Available keys: {available_keys}""")
         self._quarter_offsets[unfold][id] = offsets
         return offsets
 
+    def ids2idx(self, ids=None, pandas_index=False):
+        """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
 
+        Parameters
+        ----------
+        ids
+        pandas_index
 
+        Returns
+        -------
+        :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
+        """
+        if ids is None:
+            ids = list(self._iterids())
+        elif ids == []:
+            if pandas_index:
+                return pd.Index([])
+            return list(), tuple()
+        idx = ids
+        names = ['key', 'i']
+
+        if pandas_index:
+            idx = pd.MultiIndex.from_tuples(idx, names=names)
+            return idx
+
+        return idx, names
 
 
     def info(self, keys=None, subdirs=False, return_str=False):
