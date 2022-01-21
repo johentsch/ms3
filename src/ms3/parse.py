@@ -468,7 +468,7 @@ class Parse(LoggedClass):
                     self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
 Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             elif score_id not in self._parsed_mscx:
-                self.logger.info(f"{self._index[score_id]} has not been parsed yet.")
+                self.logger.info(f"{score_id} has not been parsed yet.")
             else:
                 self.logger.debug(f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
 
@@ -645,7 +645,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             new_ids.extend(self.add_files(paths, key_param, index_levels[k]))
         self.parse_tsv(ids=new_ids)
         for score_id, tsv_id in zip(ids, new_ids):
-            ix = self._index[score_id]
+            ix = score_id
             tsv_type = self._tsv_types[tsv_id]
             if ix in self._matches.index:
                 self._matches.loc[ix, tsv_type] = tsv_id
@@ -1237,7 +1237,7 @@ Available keys: {available_keys}""")
             res = self._measurelists[id]
         else:
             # trying to find a matched file to retrieve the measure list from
-            ix = self._index[id]
+            ix = id
             if ix not in self._matches.index:
                 self.logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
                 return
@@ -1506,7 +1506,7 @@ Available keys: {available_keys}""")
         #res_ix = set()
         for j, wh in enumerate(what):
             for id, fname in matching_candidates[wh].items():
-                ix = self._index[id]
+                ix = id
                 row = get_row(ix)
                 row[wh] = id
                 for wha in what[j + 1:]:
@@ -1551,7 +1551,7 @@ Available keys: {available_keys}""")
                             match_id = list(longest.keys())[0]
                             msg = "."
                         row[wha] = match_id
-                        match_ix = self._index[match_id]
+                        match_ix = match_id
                         match_row = get_row(match_ix)
                         match_row[wh] = id
                         update_row(match_ix, match_row)
@@ -2758,6 +2758,7 @@ class View(Parse):
             if isinstance(c, str) and c[-1] == '*':
                 col_name = c[:-1]
                 resolved = [col for col in piece_matrix.columns if col.startswith(col_name)]
+                resolved = sorted(resolved, key=lambda s: len(s))
                 if col_name in standard_cols and col_name not in resolved and parsed_scores_present:
                     resolved = [col_name] + resolved
                 if len(resolved) == 0:
