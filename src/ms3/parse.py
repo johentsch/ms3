@@ -290,7 +290,9 @@ class Parse(LoggedClass):
                 self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
             return pd.DataFrame()
         d = {k: v for k, v in d.items() if v.shape[0] > 0}
-        return pd.concat(d.values(), keys=d.keys())
+        result = pd.concat(d.values(), keys=d.keys())
+        result.index.names = ['key', 'i', None]
+        return result
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
         return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index)
