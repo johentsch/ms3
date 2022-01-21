@@ -160,7 +160,38 @@ def metadata(args):
 
 
 def repair(args):
+    print("Sorry, the command has not been implemented yet.")
     print(args.dir)
+
+
+def transform(args):
+    if sum([True for arg in
+            [args.notes, args.labels, args.measures, args.rests, args.events, args.chords, args.expanded] #, args.metadata]
+            if arg is not None]) == 0:
+        print(
+            "Pass at least one of the following arguments: -N (notes), -L (labels), -M (measures), -R (rests), -E (events), -C (chords), -X (expanded)")
+        return
+    if args.suffix is not None:
+        l_suff = len(args.suffix)
+        params = ['notes', 'labels', 'measures', 'rests', 'events', 'chords', 'expanded']
+        if l_suff == 0:
+            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
+        elif l_suff == 1:
+            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
+        else:
+            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
+    else:
+        suffixes = {}
+
+    logger_cfg = {
+        'level': args.level,
+        'file': args.logfile,
+        'path': args.logpath,
+    }
+
+    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
+              logger_cfg=logger_cfg, simulate=args.test)
+    p.parse_tsv(simulate=args.test)
 
 
 def update(args):
@@ -289,7 +320,8 @@ The library offers you the following commands. Add the flag -h to one of them to
     extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
                                 help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
-                        help="Pass -s to use standard suffixes or -s SUFFIX to choose your own.")
+                        help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                             "in which they are listed above (capital letter arguments).")
     extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
 Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
@@ -297,9 +329,9 @@ Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
     extract_parser.add_argument('-u', '--unfold', action='store_true', help="Unfold the repeats for all stored DataFrames.")
     extract_parser.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score as first and second endings, the behaviour depends on"
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous"
-                                     "count. If repetitions are being unfolded, all endings are taken into account.")
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
     extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
 or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
 In the former case, --logpath will be disregarded.""")
@@ -360,6 +392,45 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                           help="Apply automatic repairs to your uncompressed MuseScore files.",
                                           parents=[input_args])
     repair_parser.set_defaults(func=repair)
+
+
+
+    transform_parser = subparsers.add_parser('transform',
+                                          help="Concatenate and transform TSV data from one or several corpora.",
+                                          parents=[input_args])
+    transform_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    transform_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+                                help="Folder where to store TSV files with information on all notes.")
+    transform_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    transform_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations',
+                                help="Folder where to store TSV files with information on all annotation labels.")
+    transform_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    transform_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    transform_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events',
+                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+    # transform_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
+    #                             help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    transform_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
+                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                                     "in which they are listed above (capital letter arguments).")
+    transform_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+    transform_parser.add_argument('-u', '--unfold', action='store_true',
+                                help="Unfold the repeats for all stored DataFrames.")
+    transform_parser.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    transform_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
+    or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
+    In the former case, --logpath will be disregarded.""")
+    transform_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
+    MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
+    subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
+    transform_parser.set_defaults(func=transform)
 
 
 
