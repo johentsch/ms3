@@ -28,7 +28,7 @@ class Parse(LoggedClass):
         Parameters
         ----------
         directory, key, index, file_re, folder_re, exclude_re, recursive : optional
-            Arguments for the method :py:meth:`~ms3.parse.add_folder`.
+            Arguments for the method :py:meth:`~ms3.parse.add_dir`.
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
             List of file paths you want to add. If ``directory`` is also passed, all files will be combined in the same object.
@@ -470,7 +470,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ are excluded.
+            whose file names include '_reviewed' or start with . or _ or 'concatenated_' are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
@@ -480,7 +480,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             convertible = self.ms is not None
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if exclude_re is None:
-            exclude_re = r'(^(\.|_)|_reviewed)'
+            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
         if key is None:
             directories = sorted(iterate_subcorpora(directory))
             n_subcorpora = len(directories)
@@ -1297,6 +1297,7 @@ Available keys: {available_keys}""")
         self._quarter_offsets[unfold][id] = offsets
         return offsets
 
+
     def ids2idx(self, ids=None, pandas_index=False):
         """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
 
@@ -1550,7 +1551,7 @@ Available keys: {available_keys}""")
             parsed_ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
             if len(parsed_ids) > 0:
                 ids, meta_series = zip(*[(id, metadata2series(self._parsed_mscx[id].mscx.metadata)) for id in parsed_ids])
-                ix = pd.MultiIndex.from_tuples(ids)
+                ix = pd.MultiIndex.from_tuples(ids, names=['key', 'i'])
                 df = pd.DataFrame(meta_series, index=ix)
                 df['rel_paths'] = [self.rel_paths[k][i] for k, i in ids]
                 df['fnames'] = [self.fnames[k][i] for k, i in ids]
