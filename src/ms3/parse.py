@@ -256,12 +256,15 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
-    def _concat_lists(self, which, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
+    def _concat_lists(self, which, id_index=False, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
         """ Boiler plate for concatenating DataFrames with the same type of information.
 
         Parameters
         ----------
         which : {'cadences', 'chords', 'events', 'expanded', 'labels', 'measures', 'notes_and_rests', 'notes', 'rests', 'form_labels'}
+        id_index : :obj:`bool`, optional
+            By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
+            'rel_paths', 'fnames', and '{which}_id'. Pass True if instead you want the first two levels to correspond to the file's IDs.
         keys
         ids
 
@@ -290,8 +293,13 @@ class Parse(LoggedClass):
                 self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
             return pd.DataFrame()
         d = {k: v for k, v in d.items() if v.shape[0] > 0}
-        result = pd.concat(d.values(), keys=d.keys())
-        result.index.names = ['key', 'i', None]
+        if id_index:
+            result = pd.concat(d.values(), keys=d.keys())
+            result.index.names = ['key', 'i', f"{which}_id"]
+        else:
+            levels = [(self.rel_paths[key][i], self.fnames[key][i]) for key, i in d.keys()]
+            result = pd.concat(d.values(), keys=levels)
+            result.index.names = ['rel_paths', 'fnames', f"{which}_id"]
         return result
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
@@ -1563,7 +1571,7 @@ Available keys: {available_keys}""")
             tsv_dfs = self.metadata_tsv(keys=keys)
             if len(tsv_dfs) > 0:
                 df = pd.concat(tsv_dfs.values(), keys=tsv_dfs.keys())
-                df.index.names = ['key', 'i', None]
+                df.index.names = ['key', 'i', 'metadata_id']
         else:
             parsed_ids = list(self._iterids(keys, only_parsed_mscx=True))
             if len(parsed_ids) > 0:
