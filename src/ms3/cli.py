@@ -7,7 +7,7 @@ Command line interface for ms3.
 import argparse, os, sys
 
 from ms3 import Score, Parse
-from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory
+from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, no_collections_no_booleans, resolve_dir, scan_directory
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -168,16 +168,18 @@ def repair(args):
 
 
 def transform(args):
+    if args.out is None:
+        args.out = os.getcwd()
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
-              if arg is not None]
+              if arg]
     if len(params) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata)")
         return
     if args.suffix is None:
-        suffixes = {}
+        suffixes = {f"{p}_suffix": '' for p in params}
     else:
         l_suff = len(args.suffix)
         if l_suff == 0:
@@ -195,7 +197,20 @@ def transform(args):
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
               logger_cfg=logger_cfg, simulate=args.test)
-    p.parse_tsv(simulate=args.test)
+    p.parse_tsv()
+    for param in params:
+        if param == 'metadata':
+            continue
+        sfx = suffixes[f"{param}_suffix"]
+        tsv_name = f"concatenated_{param}{sfx}.tsv"
+        path = os.path.join(args.out, tsv_name)
+        if args.test:
+            print(f"Would have written {path}.")
+        else:
+            df = p.__getattribute__(param)(quarterbeats=args.quarterbeats, unfold=args.unfold)
+            df = df.reset_index(drop=False)
+            no_collections_no_booleans(df).to_csv(path, sep='\t', index=False)
+            print(f"{path} written.")
 
 
 def update(args):
@@ -293,9 +308,9 @@ def get_arg_parser():
                                 help="""Output directory. Subfolder trees are retained.""")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
                                 help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
-    input_args.add_argument('-e', '--exclude', metavar="regex", default=r'(^(\.|_)|_reviewed)',
+    input_args.add_argument('-e', '--exclude', metavar="regex",
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded."
-                                     "By default, files including '_reviewed' or starting with . or _ are excluded.")
+                                     "By default, files including '_reviewed' or starting with . or _ or 'concatenated' are excluded.")
     input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
 
@@ -402,22 +417,22 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     transform_parser = subparsers.add_parser('transform',
                                           help="Concatenate and transform TSV data from one or several corpora.",
                                           parents=[input_args])
-    transform_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures',
+    transform_parser.add_argument('-M', '--measures', action='store_true',
                                 help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
-    transform_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+    transform_parser.add_argument('-N', '--notes', action='store_true',
                                 help="Folder where to store TSV files with information on all notes.")
-    transform_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+    transform_parser.add_argument('-R', '--rests', action='store_true',
                                 help="Folder where to store TSV files with information on all rests.")
-    transform_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations',
+    transform_parser.add_argument('-L', '--labels', action='store_true',
                                 help="Folder where to store TSV files with information on all annotation labels.")
-    transform_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
+    transform_parser.add_argument('-X', '--expanded', action='store_true',
                                 help="Folder where to store TSV files with expanded DCML labels.")
-    transform_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+    transform_parser.add_argument('-E', '--events', action='store_true',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
-    transform_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events',
+    transform_parser.add_argument('-C', '--chords', action='store_true',
                                 help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
-    # transform_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
-    #                             help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    transform_parser.add_argument('-D', '--metadata', action='store_true',
+                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     transform_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
