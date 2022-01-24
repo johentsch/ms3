@@ -1155,7 +1155,7 @@ Available keys: {available_keys}""")
                             df = unfold_repeats(df, mc_sequences[id])
                             if quarterbeats:
                                 offset_dict = self.get_continuous_offsets(key, i, unfold=True)
-                                df = add_quarterbeats_col(df, offset_dict, insert_after='mc_playthrough')
+                                df = add_quarterbeats_col(df, offset_dict, insert_before='mc_playthrough')
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:

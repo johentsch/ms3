@@ -188,7 +188,7 @@ class map_dict(dict):
         return key
 
 @function_logger
-def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=False):
+def add_quarterbeats_col(df, offset_dict, insert_before='mc', interval_index=False):
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the ``insert_after`` column's measure counts.
 
@@ -200,7 +200,7 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=Fals
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
         | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
-    insert_after : :obj:`str`, optional
+    insert_before : :obj:`str`, optional
         Name of the column after which the new column will be inserted.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
@@ -215,10 +215,10 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=Fals
         return df
     if 'quarterbeats' not in df.columns:
         df = df.copy()
-        quarterbeats = df[insert_after].map(offset_dict)
+        quarterbeats = df[insert_before].map(offset_dict)
         if 'mc_onset' in df.columns:
             quarterbeats += df.mc_onset * 4
-        insert_here = df.columns.get_loc(insert_after) + 1
+        insert_here = df.columns.get_loc(insert_before)
         df.insert(insert_here, 'quarterbeats', quarterbeats)
         if 'duration_qb' not in df.columns:
             if 'duration' in df.columns:
@@ -231,7 +231,7 @@ def add_quarterbeats_col(df, offset_dict, insert_after='mc', interval_index=Fals
                                               end_value=float(offset_dict['end']))
                     df.insert(insert_here + 1, 'duration_qb', pd.NA)
                     df.loc[present_qb, 'duration_qb'] = ivs.length
-                except:
+                except Exception:
                     logger.warning("Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
             else:
                 logger.warning("Column 'duration_qb' could not be created.")
