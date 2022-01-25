@@ -1424,10 +1424,10 @@ Available keys: {available_keys}""")
         print(info)
 
 
-    def iter(self, columns, keys=None):
+    def iter(self, columns, keys=None, skip_missing=False):
         keys = self._treat_key_param(keys)
         for key in keys:
-            for tup in self[key].iter(columns=columns):
+            for tup in self[key].iter(columns=columns, skip_missing=skip_missing):
                 if tup is not None:
                     yield tup
 
@@ -2740,7 +2740,7 @@ class View(Parse):
         print(info)
 
 
-    def iter(self, columns):
+    def iter(self, columns, skip_missing=False):
         standard_cols = list(self.p._lists.keys())
         piece_matrix = self.pieces(parsed_only=True)
         available = '\n'.join(sorted(piece_matrix.columns[1:]))
@@ -2803,6 +2803,7 @@ class View(Parse):
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata.to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+            skip_flat = False
             result, paths = [], []
             for c in cols:
                 if isinstance(c, str):
@@ -2812,8 +2813,13 @@ class View(Parse):
                         df, path = get_dataframe(ids, cc)
                         if df is not None:
                             break
+                if df is None and skip_missing:
+                    skip_flat = True
+                    break
                 result.append(df)
                 paths.append(path)
+            if skip_flat:
+                continue
             result = (md, paths) + tuple(result)
             yield result
 

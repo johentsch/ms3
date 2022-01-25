@@ -19,7 +19,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg
 
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-                  'harmonies', 'cadences', 'form_labels', 'MS3', 'score', 'scores', 'mscx']
+                  'harmonies', 'cadences', 'form_labels', 'MS3', 'score', 'scores']
 """:obj:`list`
 Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
 considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
@@ -1733,7 +1733,7 @@ def path2type(path):
         return typ
     else:
         shortened_path = path
-        while shortened_path > 0:
+        while len(shortened_path) > 0:
             shortened_path, base = os.path.split(shortened_path)
             for comp in comp2type.keys():
                 if comp in base:
