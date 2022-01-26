@@ -257,7 +257,7 @@ def assert_all_lines_equal(before, after, original, tmp_file):
 
 
 def assert_dfs_equal(old, new, exclude=[]):
-    """ Compares the common columns of two DataFrames to test equality."""
+    """ Compares the common columns of two DataFrames to test equality. Uses: nan_eq()"""
     old_l, new_l = len(old), len(new)
     greater_length = max(old_l, new_l)
     if old_l != new_l:
@@ -275,7 +275,6 @@ def assert_dfs_equal(old, new, exclude=[]):
     old.index.rename('old_ix', inplace=True)
     new.index.rename('new_ix', inplace=True)
     cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
-    nan_eq = lambda a, b: (a == b) | pd.isnull(a) & pd.isnull(b)
     diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
     old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
     new_bool = pd.DataFrame.from_dict({ix: bool_series for _, ix, bool_series in diff}, orient='index')
@@ -1615,6 +1614,11 @@ def name2pc(nn):
     return (step_pc + accidentals) % 12
 
 
+def nan_eq(a, b):
+    """Returns True if a and b are equal or both null. Works on two Series or two elements."""
+    return (a == b) | (pd.isnull(a) & pd.isnull(b))
+
+
 
 def next2sequence(nxt):
     """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
@@ -2220,6 +2224,54 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
     res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
+
+
+def unchanged_groups(S, na_values=None, prevent_merge=False):
+    """
+
+    Parameters
+    ----------
+    S : :obj:`pandas.Series`
+
+    na_values
+    prevent_merge
+
+    Returns
+    -------
+
+    """
+    reindex_flag = False
+    if prevent_merge:
+        forced_beginnings = S.notna() & ~S.notna().shift().fillna(False)
+    if na_values is None and S.isna().any():
+        s = S[S.notna()]
+        reindex_flag = True
+    elif na_values == 'group':
+        s = S
+    elif na_values in ('backfill', 'bfill', 'pad', 'ffill'):
+        s = S.fillna(method=na_values)
+    else:
+        s = S.fillna(value=na_values)
+
+    if s.isna().any():
+        if na_values == 'group':
+            shifted = s.shift()
+            if pd.isnull(S[0]):
+                shifted.loc[0] = True
+            beginnings = ~nan_eq(s, shifted)
+        else:
+            s = s[s.notna()]
+            beginnings = (s != s.shift().fillna(False))
+            reindex_flag = True
+    else:
+        beginnings = (s != s.shift().fillna(False))
+    if prevent_merge:
+        beginnings |= forced_beginnings
+    groups = beginnings.cumsum()
+    names = dict(enumerate(s[beginnings], 1))
+    if reindex_flag:
+        groups = groups.reindex(S.index)
+    return groups.astype('Int64'), names
 
 
 def unfold_repeats(df, mc_sequence):

@@ -186,6 +186,7 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
     For example, pass ``features = ['numeral', 'form', 'figbass']`` to drop rows where all three features are identical
     with the previous row _and_ the localkey stays the same. If the column ``duration_qb`` is present, it is updated
     with the new durations, as would be the IntervalIndex if there is one.
+    Uses: nan_eq()
 
     Parameters
     ----------
@@ -256,7 +257,7 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
         return at
 
     def column_shift_mask(a, b):
-        """Sets those values of Series a to True where a value in the Serie b is different from its predecessor."""
+        """Sets those values of Series a to True where a value in the Series b is different from its predecessor."""
         nan_eq = lambda b, b_previous: (b == b_previous).fillna(False) | pd.isnull(b) & pd.isnull(b_previous)
         return a | ~nan_eq(b, b.shift())
 
