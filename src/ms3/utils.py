@@ -4,7 +4,7 @@ from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from fractions import Fraction as frac
 from functools import reduce
-from itertools import repeat, takewhile
+from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
 from zipfile import ZipFile as Zip
@@ -514,14 +514,18 @@ def convert(old, new, MS='mscore'):
         logger.warning("Error while converting " + old)
 
 @function_logger
-def convert_folder(directory, new_folder, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
     Parameters
     ----------
-    directory, new_folder : str
-        Directories
+    directory : :obj:`str`
+        Directory in which to look for files to convert.
+    paths : :obj:`list` of `dir`
+        List of file paths to convert. These are not filtered by any means.
+    target_dir : :obj:`str`
+        Directory where to store converted files. Defaults to ``directory``
     extensions : list, optional
         If you want to convert only certain formats, give those, e.g. ['mscz', 'xml']
     recursive : bool, optional
@@ -532,6 +536,9 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
     """
     MS = get_musescore(ms)
     assert MS is not None, f"MuseScore not found: {ms}"
+    assert any(arg is not None for arg in (directory, paths)), "Pass at least a directory or one path."
+    if isinstance(paths, str):
+        paths = [paths]
     if target_extension[0] == '.':
         target_extension = target_extension[1:]
     conversion_params = []
@@ -540,35 +547,42 @@ def convert_folder(directory, new_folder, extensions=[], target_extension='mscx'
         exclude_re = f"^(?:(?!({'|'.join(extensions)})).)*$"
     else:
         exclude_re = ''
-    if new_folder is None:
-        new_folder = directory
+    if target_dir is None:
+        target_dir = directory
     new_dirs = {}
-    try:
-        for subdir, file in scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive, subdirs=True, exclude_files_only=True):
-            if subdir in new_dirs:
-                new_subdir = new_dirs[subdir]
+    subdir_file_tuples = iter([])
+    if directory is not None:
+        subdir_file_tuples = chain(subdir_file_tuples,
+                                   scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive,
+                                                  subdirs=True, exclude_files_only=True))
+    if paths is not None:
+        subdir_file_tuples = chain(subdir_file_tuples,
+                                   (os.path.split(resolve_dir(path)) for path in paths))
+    for subdir, file in subdir_file_tuples:
+        if subdir in new_dirs:
+            new_subdir = new_dirs[subdir]
+        else:
+            if target_dir is None:
+                new_subdir = subdir
             else:
                 old_subdir = os.path.relpath(subdir, directory)
-                new_subdir = os.path.join(new_folder, old_subdir) if old_subdir != '.' else new_folder
-                os.makedirs(new_subdir, exist_ok=True)
-                new_dirs[subdir] = new_subdir
-            name, _ = os.path.splitext(file)
-            if suffix is not None:
-                fname = f"{name}{suffix}.{target_extension}"
-            else:
-                fname = f"{name}.{target_extension}"
-            old = os.path.join(subdir, file)
-            new = os.path.join(new_subdir, fname)
-            if overwrite or not os.path.isfile(new):
-                conversion_params.append((old, new, MS))
-            else:
-                logger.debug(new, 'exists already. Pass -o to overwrite.')
+                new_subdir = os.path.join(target_dir, old_subdir) if old_subdir != '.' else target_dir
+            os.makedirs(new_subdir, exist_ok=True)
+            new_dirs[subdir] = new_subdir
+        name, _ = os.path.splitext(file)
+        if suffix is not None:
+            fname = f"{name}{suffix}.{target_extension}"
+        else:
+            fname = f"{name}.{target_extension}"
+        old = os.path.join(subdir, file)
+        new = os.path.join(new_subdir, fname)
+        if overwrite or not os.path.isfile(new):
+            conversion_params.append((old, new, MS))
+        else:
+            logger.debug(new, 'exists already. Pass -o to overwrite.')
 
-        if len(conversion_params) == 0:
-            logger.info(f"No files to convert.")
-    except:
-        logger.error(f"Failed to scan directory {directory} because of the following error:")
-        raise
+    if len(conversion_params) == 0:
+        logger.info(f"No files to convert.")
 
 
     # TODO: pass filenames as 'logger' argument to convert()
@@ -2344,7 +2358,7 @@ def write_metadata(df, path, markdown=True, index=False):
         try:
             # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
             previous = pd.read_csv(tsv_path, sep='\t', dtype='string', index_col=['rel_paths', 'fnames'])
-            df_tmp = df.set_index(['rel_paths', 'fnames'])
+            df_tmp = df.reset_index(drop=True).set_index(['rel_paths', 'fnames']).astype('string')
             ix_union = previous.index.union(df_tmp.index)
             col_union = previous.columns.union(df_tmp.columns)
             previous = previous.reindex(index=ix_union, columns=col_union)
@@ -2352,6 +2366,7 @@ def write_metadata(df, path, markdown=True, index=False):
             write_this = previous.reset_index()
             msg = 'Updated'
         except Exception:
+            logger.warning(f"Updating existing metadata at {tsv_path} failed with the following error:\n{sys.exc_info()[1]}")
             write_this = df
             msg = 'Replaced '
     first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',

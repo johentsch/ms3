@@ -71,7 +71,9 @@ def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
-    convert_folder(resolve_dir(args.dir), out_dir,
+    convert_folder(directory=resolve_dir(args.dir),
+                   paths=args.file,
+                   target_dir=out_dir,
                    # extensions=args.extensions,
                    target_extension=args.target_format,
                    regex=args.regex,
@@ -474,8 +476,11 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
 def run():
     parser = get_arg_parser()
     args = parser.parse_args()
-    if args.file is None and args.dir is None:
-        args.dir = os.getcwd()
+    if args.file is None:
+        if args.dir is None:
+            args.dir = os.getcwd()
+    else:
+        args.file = [resolve_dir(path) for path in args.file]
     if 'func' in args:
         args.func(args)
     else:
