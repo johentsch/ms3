@@ -1,4 +1,4 @@
-import os, platform, re, shutil, subprocess
+import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
@@ -2358,7 +2358,14 @@ def write_metadata(df, path, markdown=True, index=False):
         try:
             # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
             previous = pd.read_csv(tsv_path, sep='\t', dtype='string', index_col=['rel_paths', 'fnames'])
-            df_tmp = df.reset_index(drop=True).set_index(['rel_paths', 'fnames']).astype('string')
+            df_tmp = df.reset_index(drop=True).astype('string')
+            df_tmp = df_tmp.set_index(['rel_paths', 'fnames'])
+            for ix, what in zip((previous.index, previous.columns, df_tmp.index, df_tmp.columns),
+                          ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
+                if not ix.is_unique:
+                    duplicated = ix[ix.duplicated()].to_list()
+                    logger.error(f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}")
+                    return
             ix_union = previous.index.union(df_tmp.index)
             col_union = previous.columns.union(df_tmp.columns)
             previous = previous.reindex(index=ix_union, columns=col_union)
