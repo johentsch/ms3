@@ -11,8 +11,9 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
-    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, metadata2series, \
-    next2sequence, no_collections_no_booleans, path2type, pretty_dict, replace_index_by_intervals, resolve_dir, \
+    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
+    make_playthrough2mc, metadata2series, \
+    no_collections_no_booleans, path2type, pretty_dict, replace_index_by_intervals, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata
 
 
@@ -183,7 +184,7 @@ class Parse(LoggedClass):
         ``None, 'notes', 'events', 'chords', 'rests', 'measures', 'labels'}``
         """
 
-        self._unfolded_mcs = {}
+        self._playthrough2mc = {}
         """:obj:`dict`
         {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
         """
@@ -1138,7 +1139,7 @@ Available keys: {available_keys}""")
         self.collect_lists(ids=ids, only_new=True, **params)
         res = {}
         if unfold:
-            mc_sequences = self.get_unfolded_mcs(ids=ids)
+            mc_sequences = self.get_playthrough2mc(ids=ids)
         if interval_index:
             quarterbeats = True
         if unfold or quarterbeats:
@@ -1200,13 +1201,13 @@ Available keys: {available_keys}""")
         return res
 
 
-    def get_unfolded_mcs(self, keys=None, ids=None):
+    def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
             ids = list(self._iterids(keys))
         _ = self.match_files(ids=ids)
         res = {}
         for key, i in ids:
-            unf_mcs = self._get_unfolded_mcs(key, i)
+            unf_mcs = self._get_playthrough2mc(key, i)
             if unf_mcs is not None:
                 res[(key, i)] = unf_mcs
         return res
@@ -1262,7 +1263,7 @@ Available keys: {available_keys}""")
             if unfold == 'raw':
                 return res
             if unfold:
-                mc_sequence = self._get_unfolded_mcs(key, i)
+                mc_sequence = self._get_playthrough2mc(key, i)
                 res = unfold_repeats(res, mc_sequence)
             elif 'volta' in res.columns:
                 if 3 in res.volta.values:
@@ -1272,28 +1273,19 @@ Available keys: {available_keys}""")
 
 
 
-    def _get_unfolded_mcs(self, key, i):
+    def _get_playthrough2mc(self, key, i):
         id = (key, i)
-        if id in self._unfolded_mcs:
-            return self._unfolded_mcs[id]
+        if id in self._playthrough2mc:
+            return self._playthrough2mc[id]
         if not id in self._measurelists:
             self.collect_lists(ids=[id], measures=True)
         ml = self._get_measure_list(key, i, unfold='raw')
         if ml is None:
             return
-        ml = ml.set_index('mc')
-        seq = next2sequence(ml.next)
-        ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
-        # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
-        mc_playthrough = pd.Series(seq, name='mc_playthrough')
-        if seq[0] == 1:
-            mc_playthrough.index += 1
-        else:
-            assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
+        mc_playthrough = make_playthrough2mc(ml)
         # res = pd.Series(seq, index=playthrough)
-        self._unfolded_mcs[id] = mc_playthrough
+        self._playthrough2mc[id] = mc_playthrough
         return mc_playthrough
-
 
     def get_continuous_offsets(self, key, i, unfold):
         """ Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,
@@ -1664,9 +1656,10 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
-        if parallel and not read_only:
+        if parallel not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
+        self.logger.debug(f"Parsing scores with parameters read_only={read_only}, parallel={parallel}, only_new={only_new}")
 
         if ids is not None:
             pass

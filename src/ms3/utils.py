@@ -2919,3 +2919,16 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             'added_tones': tuple(added_notes),
             'root': root,
         }
+
+
+def make_playthrough2mc(measures):
+    ml = measures.set_index('mc')
+    seq = next2sequence(ml.next)
+    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
+    # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+    mc_playthrough = pd.Series(seq, name='mc_playthrough')
+    if seq[0] == 1:
+        mc_playthrough.index += 1
+    else:
+        assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
+    return mc_playthrough
