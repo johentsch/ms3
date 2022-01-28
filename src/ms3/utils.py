@@ -1058,6 +1058,17 @@ def html_color2rgba(h):
     return html_color2format(h, 'rgba')
 
 
+def interval_overlap_size(a, b, decimals=3):
+    """Pass the size of the overlap of two pd.Intervals."""
+    if not a.overlaps(b):
+        return 0.0
+    if b.left < a.left:
+        # making a the leftmost interval
+        a, b = b, a
+    right = a.right if a.right < b.right else b.right
+    result = right - b.left
+    return round(result, decimals)
+
 @function_logger
 def is_any_row_equal(df1, df2):
     """ Returns True if any two rows of the two DataFrames contain the same value tuples. """
