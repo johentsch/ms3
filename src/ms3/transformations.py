@@ -605,6 +605,46 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
         return at
 
 
+def slice_df(df, quarters_per_slice=None):
+    """ Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event's
+    durations within the slice are shown in the column 'duration_qb'.
+    Uses:
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
+    quarters_per_slice : :obj:`float`, optional
+        By default, the slices have variable size, from onset to onset. If you pass a value, the slices will
+        have that constant size, measured in quarter notes. For example, pass 1.0 for all slices to have size 1 quarter.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+
+    """
+    end = max(df.index.right)
+    if quarters_per_slice is None:
+        lefts = sorted(set(df.index.left))
+        rights = lefts[1:] + [end]
+    else:
+        start = min(df.index.left)
+        lefts = np.arange(start, end, quarters_per_slice)
+        rights = np.arange(start + quarters_per_slice, end + quarters_per_slice, quarters_per_slice)
+    slices = []
+    for i, j in zip(lefts, rights):
+        iv = pd.Interval(i, j, closed='left')
+        overlapping = df.index.overlaps(iv)
+        overlapping_elements = df[overlapping].copy()
+        overlapping_elements.loc[:, 'duration_qb'] = [interval_overlap_size(ix, iv) for ix in
+                                                      overlapping_elements.index]
+        N = overlapping.sum()
+        new_index = pd.IntervalIndex([iv] * N)
+        overlapping_elements.index = new_index
+        slices.append(overlapping_elements)
+    return pd.concat(slices)
+
+
 @function_logger
 def transform_multiple(df, func, level=-1, **kwargs):
     """ Applying transformation(s) separately to concatenated pieces that can be differentiated by index level(s).
@@ -706,41 +746,3 @@ def _treat_level_parameter(level, nlevels):
     return levels
 
 
-def slice_df(df, quarters_per_slice=None):
-    """ Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event's
-    durations within the slice are shown in the column 'duration_qb'.
-    Uses:
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
-    quarters_per_slice : :obj:`float`, optional
-        By default, the slices have variable size, from onset to onset. If you pass a value, the slices will
-        have that constant size, measured in quarter notes. For example, pass 1.0 for all slices to have size 1 quarter.
-
-    Returns
-    -------
-    :obj:`pandas.DataFrame`
-
-    """
-    end = max(df.index.right)
-    if quarters_per_slice is None:
-        lefts = sorted(set(df.index.left))
-        rights = lefts[1:] + [end]
-    else:
-        start = min(df.index.left)
-        lefts = np.arange(start, end, quarters_per_slice)
-        rights = np.arange(start + quarters_per_slice, end + quarters_per_slice, quarters_per_slice)
-    slices = []
-    for i, j in zip(lefts, rights):
-        iv = pd.Interval(i, j, closed='left')
-        overlapping = df.index.overlaps(iv)
-        overlapping_elements = df[overlapping].copy()
-        overlapping_elements.loc[:, 'duration_qb'] = [interval_overlap_size(ix, iv) for ix in
-                                                      overlapping_elements.index]
-        N = overlapping.sum()
-        new_index = pd.IntervalIndex([iv] * N)
-        overlapping_elements.index = new_index
-        slices.append(overlapping_elements)
-    return pd.concat(slices)
