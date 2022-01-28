@@ -1415,7 +1415,21 @@ Available keys: {available_keys}""")
         for key in keys:
             for tup in self[key].iter(columns=columns, skip_missing=skip_missing):
                 if tup is not None:
-                    yield tup
+                    yield (key, ) + tup
+
+    def iter_transformed(self, columns, keys=None, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+        keys = self._treat_key_param(keys)
+        for key in keys:
+            for tup in self[key].iter_transformed(columns=columns, skip_missing=skip_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+                if tup is not None:
+                    yield (key,) + tup
+
+    def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False):
+        keys = self._treat_key_param(keys)
+        for key in keys:
+            for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing):
+                if tup is not None:
+                    yield (key,) + tup
 
 
     def join(self, keys=None, ids=None, what=None, use_index=True):
@@ -2822,6 +2836,17 @@ class View(Parse):
                 dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
                 yield (md, paths[:-1], *dfs)
 
+
+    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True):
+        for md, paths, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+            if notes is None:
+                msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
+                if warn_missing:
+                    self.logger.warning(msg)
+                else:
+                    self.logger.debug(msg)
+                continue
+            yield md, paths, notes
 
 
 
