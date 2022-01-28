@@ -614,6 +614,8 @@ def slice_df(df, quarters_per_slice=None):
     ----------
     df : :obj:`pandas.DataFrame`
         The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
+        Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
+        ``Parse.iter_transformed(interval_index=True)``.
     quarters_per_slice : :obj:`float`, optional
         By default, the slices have variable size, from onset to onset. If you pass a value, the slices will
         have that constant size, measured in quarter notes. For example, pass 1.0 for all slices to have size 1 quarter.

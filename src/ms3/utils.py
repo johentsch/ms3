@@ -864,7 +864,7 @@ def fifths2name(fifths, midi=None, ms=False):
     if ms:
         fifths -= 14
     note_names = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
-    name = fifths2str(fifths, note_names, inverted=True)
+    name = _fifths2str(fifths, note_names, inverted=True)
     if midi is not None:
         octave = midi2octave(midi, fifths)
         return f"{name}{octave}"
@@ -904,7 +904,7 @@ def fifths2rn(fifths, minor=False, auto_key=False):
         return fifths
     rn = ['VI', 'III', 'VII', 'IV', 'I', 'V', 'II'] if minor else ['IV', 'I', 'V', 'II', 'VI', 'III', 'VII']
     sel = fifths + 3 if minor else fifths
-    res = fifths2str(sel, rn)
+    res = _fifths2str(sel, rn)
     if auto_key and is_minor_mode(fifths, minor):
         return res.lower()
     return res
@@ -923,11 +923,11 @@ def fifths2sd(fifths, minor=False):
     sd = ['6', '3', '7', '4', '1', '5', '2'] if minor else ['4', '1', '5', '2', '6', '3', '7']
     if minor:
         fifths += 3
-    return fifths2str(fifths, sd)
+    return _fifths2str(fifths, sd)
 
 
 
-def fifths2str(fifths, steps, inverted=False):
+def _fifths2str(fifths, steps, inverted=False):
     """ Boiler plate used by fifths2-functions.
     """
     fifths += 1
