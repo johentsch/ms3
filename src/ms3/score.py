@@ -5,8 +5,7 @@ from tempfile import NamedTemporaryFile as Temp
 import pandas as pd
 
 from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies,\
-    get_ms_version, get_musescore, no_collections_no_booleans,\
-    resolve_dir, rgba2params, unpack_mscz, update_labels_cfg
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass
@@ -1357,7 +1356,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         return self.parsed.store_mscx(filepath=filepath)
 
-    def store_list(self, what='all', folder=None, suffix=None, **kwargs):
+    def store_list(self, what='all', folder=None, suffix=None):
         """
         Store one or several several lists as TSV files(s).
         
@@ -1371,9 +1370,6 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             Suffix appended to the file name of the parsed MSCX file to create a new file name.
             Defaults to None, meaning that standard suffixes based on ``what`` are attached.
             Number of suffixes needs to be equal to the number of ``what``.
-        **kwargs:
-            Keyword arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\\t', 'index': False}``.
-            If 'sep' is changed to a different separator, the file extension(s) will be changed to '.csv' rather than '.tsv'.
 
         Returns
         -------
@@ -1395,19 +1391,13 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if what is None:
             self.logger.error("Tell me 'what' to store.")
             return
-        if 'sep' not in kwargs:
-            kwargs['sep'] = '\t'
-        if 'index' not in kwargs:
-            kwargs['index'] = False
-        ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
 
         for w, s in zip(what, suffix):
             df = self.__getattribute__(w)
             if len(df.index) > 0:
                 new_name = f"{fname}{s}{ext}"
                 full_path = os.path.join(folder, new_name)
-                no_collections_no_booleans(df, logger=self.logger).to_csv(full_path, **kwargs)
-                self.logger.info(f"{w} written to {full_path}")
+                write_tsv(df, full_path, logger=self.logger)
             else:
                 self.logger.debug(f"{w} empty, no file written.")
 

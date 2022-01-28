@@ -12,9 +12,8 @@ from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, dfs2quarterbeats, get_musescore, get_path_component, group_id_tuples,\
     iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
-    make_playthrough2mc, metadata2series, \
-    no_collections_no_booleans, path2type, pretty_dict, resolve_dir, \
-    scan_directory, unfold_repeats, update_labels_cfg, write_metadata
+    make_playthrough2mc, metadata2series, path2type, pretty_dict, resolve_dir, \
+    scan_directory, unfold_repeats, update_labels_cfg, write_metadata, write_tsv
 
 
 class Parse(LoggedClass):
@@ -1954,7 +1953,8 @@ Available keys: {available_keys}""")
         prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
             self.update_logger_cfg(name=self.logger_names[(key, i)])
-            new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
+            new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
+                                       root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
             else:
@@ -2338,7 +2338,7 @@ Load one of the identically named files with a different key using add_dir(key='
         return file_path
 
 
-    def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False, **kwargs):
+    def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
         """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
 
         Parameters
@@ -2355,8 +2355,6 @@ Load one of the identically named files with a different key using add_dir(key='
             Descriptor, what the DataFrame contains for more informative log message.
         simulate : :obj:`bool`, optional
             Set to True if no files are to be written.
-        **kwargs: Arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``.
-            If 'sep' is changed to a different separator, the file extension(s) will be changed to '.csv' rather than '.tsv'.
 
         Returns
         -------
@@ -2370,7 +2368,6 @@ Load one of the identically named files with a different key using add_dir(key='
             return val
 
         prev_logger = self.logger
-        fname = self.fnames[key][i]
         # make sure all subloggers store their information into Parse.log if it is being used
         # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
         # self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
@@ -2381,22 +2378,13 @@ Load one of the identically named files with a different key using add_dir(key='
         if path is None:
             return restore_logger(None)
 
-        if 'sep' not in kwargs:
-            kwargs['sep'] = '\t'
-        if 'index' not in kwargs:
-            kwargs['index'] = False
-        ext = '.tsv' if kwargs['sep'] == '\t' else '.csv'
-
-        fname = fname + suffix + ext
+        fname = self.fnames[key][i] + suffix + ".tsv"
         file_path = os.path.join(path, fname)
         if simulate:
             self.logger.debug(f"Would have written {what} to {file_path}.")
         else:
-            os.makedirs(path, exist_ok=True)
-
-            no_collections_no_booleans(df, logger=self.logger).to_csv(file_path, **kwargs)
-            self.logger.debug(f"{what} written to {file_path}.")
-
+            self.logger.debug(f"Writing {what} to {file_path}.")
+            write_tsv(df, file_path, logger=self.logger)
         return restore_logger(file_path)
 
 

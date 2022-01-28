@@ -2484,6 +2484,48 @@ def write_metadata(df, path, markdown=True, index=False):
         logger.info(f"{msg} {readme}")
 
 
+@function_logger
+def write_tsv(df, file_path, pre_process=True, **kwargs):
+    """ Write a DataFrame to a TSV or CSV file based on the extension of 'file_path'.
+    Uses: :py:func:`no_collections_no_booleans`
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame to write.
+    file_path : :obj:`str`
+        File to create or overwrite. If the extension is .tsv, the argument 'sep' will be set to '\t', otherwise the
+        extension is expected to be .csv and the default separator ',' will be used.
+    pre_process : :obj:`bool`, optional
+        By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be
+        converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.
+    kwargs :
+        Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.
+        Defaults arguments are ``index=False`` and ``sep='\t'`` (assuming extension '.tsv', see above).
+
+    Returns
+    -------
+    None
+    """
+    path, fname = os.path.split(file_path)
+    path = resolve_dir(path)
+    os.path.join(path, fname)
+    name, ext = os.path.splitext(fname)
+    if ext.lower() not in ('.tsv', '.csv'):
+        logger.error(f"This function expects file_path to include the file name ending on .csv or tsv, not '{ext}'.")
+        return
+    os.makedirs(path, exist_ok=True)
+    if ext.lower() == '.tsv':
+        kwargs.update(dict(sep='\t'))
+    if 'index' not in kwargs:
+        kwargs['index'] = False
+    if pre_process:
+        df = no_collections_no_booleans(df, logger=logger)
+    df.to_csv(file_path, **kwargs)
+    logger.debug(f"{file_path} written with parameters {kwargs}.")
+    return
+
+
 def abs2rel_key(absolute, localkey, global_minor=False):
     """
     Expresses a Roman numeral as scale degree relative to a given localkey.

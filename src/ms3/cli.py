@@ -7,7 +7,7 @@ Command line interface for ms3.
 import argparse, os, sys
 
 from ms3 import Score, Parse
-from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, no_collections_no_booleans, resolve_dir, scan_directory
+from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -211,7 +211,7 @@ def transform(args):
         else:
             df = p.__getattribute__(param)(quarterbeats=args.quarterbeats, unfold=args.unfold)
             df = df.reset_index(drop=False)
-            no_collections_no_booleans(df).to_csv(path, sep='\t', index=False)
+            write_tsv(df, path)
             print(f"{path} written.")
 
 
