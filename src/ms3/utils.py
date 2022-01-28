@@ -188,7 +188,7 @@ class map_dict(dict):
         return key
 
 @function_logger
-def add_quarterbeats_col(df, offset_dict, insert_before='mc', interval_index=False):
+def add_quarterbeats_col(df, offset_dict, interval_index=False):
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the ``insert_after`` column's measure counts.
 
@@ -200,8 +200,6 @@ def add_quarterbeats_col(df, offset_dict, insert_before='mc', interval_index=Fal
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
         | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
-    insert_before : :obj:`str`, optional
-        Name of the column after which the new column will be inserted.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
         creation of the column ``duration_qb``).
@@ -214,6 +212,13 @@ def add_quarterbeats_col(df, offset_dict, insert_before='mc', interval_index=Fal
         logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
         return df
     if 'quarterbeats' not in df.columns:
+        if 'mc_playthrough' in df.columns:
+            insert_before = 'mc_playthrough'
+        elif 'mc' in df.columns:
+            insert_before = 'mc'
+        else:
+            logger.error("Expected to have at least one column called 'mc' or 'mc_playthrough'.")
+            return df
         df = df.copy()
         quarterbeats = df[insert_before].map(offset_dict)
         if 'mc_onset' in df.columns:
@@ -228,7 +233,7 @@ def add_quarterbeats_col(df, offset_dict, insert_before='mc', interval_index=Fal
                 present_qb = df.quarterbeats.notna()
                 try:
                     ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
-                                              end_value=float(offset_dict['end']))
+                                              end_value=float(offset_dict['end']), logger=logger)
                     df.insert(insert_here + 1, 'duration_qb', pd.NA)
                     df.loc[present_qb, 'duration_qb'] = ivs.length
                 except Exception:
@@ -683,6 +688,31 @@ def df2md(df, name="Overview"):
     writer.header_list = list(df.columns.values)
     writer.value_matrix = df.values.tolist()
     return writer
+
+
+@function_logger
+def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
+    """Pass a DataFrame and a measures table to unfold repeats and/or add quarterbeats columns and/or index."""
+    if isinstance(dfs, pd.DataFrame):
+        dfs = [dfs]
+    if interval_index:
+        quarterbeats=True
+    if unfold:
+        playthrough2mc = make_playthrough2mc(measures, logger=logger)
+        dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
+        if quarterbeats:
+            unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
+            continuous_offset = make_continuous_offset(unfolded_measures, logger=logger)
+            dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
+                   if df is not None else df for df in dfs]
+    elif quarterbeats:
+        # deal with voltas here
+        continuous_offset = make_continuous_offset(measures, logger=logger)
+        dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
+               if df is not None else df for df in dfs]
+    else:
+        logger.info("At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True.")
+    return dfs
 
 
 
@@ -1340,15 +1370,15 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
     return df
 
 
-
-def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
+@function_logger
+def make_continuous_offset(measures, quarters=True, negative_anacrusis=None):
     """ In order to compute continuous offset, this function is required to compute each MC's offset from the
     piece's beginning.
 
     Parameters
     ----------
-    act_durs : :obj:`pandas.Series`
-        A series of actual measures durations as fractions of whole notes (might differ from time signature).
+    measures : :obj:`pandas.DataFrame`
+        A measures table containing the column 'act_durs' and one of 'mc' or 'mc_playthrough' (if repeats were unfolded).
     quarters : :obj:`bool`, optional
         By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
         of a whole note.
@@ -1359,9 +1389,16 @@ def make_continuous_offset(act_durs, quarters=True, negative_anacrusis=None):
     Returns
     -------
     :obj:`pandas.Series`
-        Cumulative sum of the values, shifted down by 1.
+        Cumulative sum of the actual durations, shifted down by 1.
 
     """
+    if 'mc_playthrough' in measures.columns:
+        act_durs = measures.set_index('mc_playthrough').act_dur
+    elif 'mc' in measures.columns:
+        act_durs = measures.set_index('mc').act_dur
+    else:
+        logger.error("Expected to have at least one column called 'mc' or 'mc_playthrough'.")
+        return pd.Series()
     if quarters:
         act_durs = act_durs * 4
     res = act_durs.cumsum()
@@ -1388,6 +1425,7 @@ def make_id_tuples(key, n):
     return list(zip(repeat(key), range(n)))
 
 
+@function_logger
 def make_interval_index(S, end_value=None, closed='left', **kwargs):
     """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
 
@@ -1415,7 +1453,7 @@ def make_interval_index(S, end_value=None, closed='left', **kwargs):
     try:
         iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, **kwargs)
     except:
-        print(breaks)
+        logger.warning(f"Cannot create IntervalIndex from these breaks:\n{breaks}")
         raise
     return iix
 
@@ -1430,6 +1468,19 @@ def make_name_columns(df):
             new_cols[f"{col}_name"] = transform(df, scale_degree2name, [col, 'localkey', 'globalkey'])
     return pd.DataFrame(new_cols)
 
+
+@function_logger
+def make_playthrough2mc(measures):
+    ml = measures.set_index('mc')
+    seq = next2sequence(ml.next)
+    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
+    # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+    mc_playthrough = pd.Series(seq, name='mc_playthrough')
+    if seq[0] == 1:
+        mc_playthrough.index += 1
+    else:
+        assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
+    return mc_playthrough
 
 
 def map2elements(e, f, *args, **kwargs):
@@ -2288,21 +2339,22 @@ def unchanged_groups(S, na_values=None, prevent_merge=False):
     return groups.astype('Int64'), names
 
 
-def unfold_repeats(df, mc_sequence):
+@function_logger
+def unfold_repeats(df, playthrough2mc):
     """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
     Parameters
     ----------
     df : :obj:`pandas.DataFrame`
         DataFrame needs to have the columns 'mc' and 'mn'.
-    mc_sequence : :obj:`pandas.Series`
+    playthrough2mc : :obj:`pandas.Series`
         A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
         to continuous MC
     """
     ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     vc = df.mc.value_counts()
     res = df.set_index('mc')
-    seq = mc_sequence[mc_sequence.isin(res.index)]
+    seq = playthrough2mc[playthrough2mc.isin(res.index)]
     playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
     res = res.loc[seq.values].reset_index()
     res.insert(res.columns.get_loc('mc') + 1, 'mc_playthrough', playthrough_col)
@@ -2920,15 +2972,3 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             'root': root,
         }
 
-
-def make_playthrough2mc(measures):
-    ml = measures.set_index('mc')
-    seq = next2sequence(ml.next)
-    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
-    # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
-    mc_playthrough = pd.Series(seq, name='mc_playthrough')
-    if seq[0] == 1:
-        mc_playthrough.index += 1
-    else:
-        assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
-    return mc_playthrough

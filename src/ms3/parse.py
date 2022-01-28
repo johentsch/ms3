@@ -10,10 +10,10 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
+from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, dfs2quarterbeats, get_musescore, get_path_component, group_id_tuples,\
     iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
     make_playthrough2mc, metadata2series, \
-    no_collections_no_booleans, path2type, pretty_dict, replace_index_by_intervals, resolve_dir, \
+    no_collections_no_booleans, path2type, pretty_dict, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata
 
 
@@ -1139,7 +1139,7 @@ Available keys: {available_keys}""")
         self.collect_lists(ids=ids, only_new=True, **params)
         res = {}
         if unfold:
-            mc_sequences = self.get_playthrough2mc(ids=ids)
+            playthrough2mcs = self.get_playthrough2mc(ids=ids)
         if interval_index:
             quarterbeats = True
         if unfold or quarterbeats:
@@ -1152,20 +1152,18 @@ Available keys: {available_keys}""")
                     key, i = id
                     df = li[id]
                     if unfold:
-                        if id in mc_sequences:
-                            df = unfold_repeats(df, mc_sequences[id])
+                        if id in playthrough2mcs:
+                            df = unfold_repeats(df, playthrough2mcs[id])
                             if quarterbeats:
                                 offset_dict = self.get_continuous_offsets(key, i, unfold=True)
-                                df = add_quarterbeats_col(df, offset_dict, insert_before='mc_playthrough')
+                                df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index)
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:
                         if 'volta' in df.columns:
                             self.logger.debug("Only second voltas were included when computing quarterbeats.")
                         offset_dict = self.get_continuous_offsets(key, i, unfold=False)
-                        df = add_quarterbeats_col(df, offset_dict)
-                    if interval_index:
-                        df = replace_index_by_intervals(df)
+                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index)
                     if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
                         if df.volta.isna().all():
                             df = df.drop(columns='volta')
@@ -1263,7 +1261,7 @@ Available keys: {available_keys}""")
             if unfold == 'raw':
                 return res
             if unfold:
-                mc_sequence = self._get_playthrough2mc(key, i)
+                mc_sequence = self._get_playthrough2mc(key, i) # with caching
                 res = unfold_repeats(res, mc_sequence)
             elif 'volta' in res.columns:
                 if 3 in res.volta.values:
@@ -1309,11 +1307,7 @@ Available keys: {available_keys}""")
         if ml is None:
             self.logger.warning(f"Could not find measure list for key {id}.")
             return None
-        if unfold:
-            act_durs = ml.set_index('mc_playthrough').act_dur
-        else:
-            act_durs = ml.set_index('mc').act_dur
-        offset_col = make_continuous_offset(act_durs, quarters=True)
+        offset_col = make_continuous_offset(ml, quarters=True)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
@@ -1656,7 +1650,7 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
-        if parallel not read_only:
+        if parallel and not read_only:
             read_only = True
             self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
         self.logger.debug(f"Parsing scores with parameters read_only={read_only}, parallel={parallel}, only_new={only_new}")
@@ -2815,6 +2809,18 @@ class View(Parse):
                 continue
             result = (md, paths) + tuple(result)
             yield result
+
+    def iter_transformed(self, columns, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+        if not any((unfold, quarterbeats, interval_index)):
+            for tup in self.iter(columns, skip_missing=skip_missing):
+                yield tup
+        else:
+            if isinstance(columns, str):
+                columns = [columns]
+            columns.append('measures*')
+            for md, paths, *dfs, measures in self.iter(columns, skip_missing=skip_missing):
+                dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
+                yield (md, paths[:-1], *dfs)
 
 
 
