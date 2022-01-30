@@ -1,4 +1,5 @@
 import os,sys, platform, re, shutil, subprocess
+from typing import Any
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
@@ -1821,7 +1822,7 @@ def path2type(path):
                     logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
-        return 'unknown'
+        return 'other'
 
 
 def pretty_dict(d, heading=None):
@@ -2308,20 +2309,35 @@ def unchanged_groups(S, na_values=None, prevent_merge=False):
     Parameters
     ----------
     S : :obj:`pandas.Series`
+        Series in which to group identical adjacent values with each other.
+    na_values : :obj:`str` or :obj:`Any`,
+        | How to treat (groups of) NA values. By default, NA values are being ignored.
+        | 'group' creates individual groups for NA values
+        | 'backfill' or 'bfill' groups NA values with the subsequent group
+        | 'pad', 'ffill' groups NA values with the preceding group
+        | Any other value works like 'group', with the difference that the created groups will be named with this value.
+    prevent_merge : :obj:`bool`, optional
+        By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
+        Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,
+        it will be merged to one single group ``[1, 1, 1], {1: 'a'}``. However, passing ``prevent_merge=True`` will
+        result in ``[1, 1, 2], {1: 'a', 2: 'a'}``.
 
-    na_values
-    prevent_merge
 
     Returns
     -------
-
+    (:obj:`pandas.Series`, :obj:`dict`)
+    A series with increasing integers that can be used for grouping; and a dictionary mapping the integers to the
+    grouped values.
     """
     reindex_flag = False
     if prevent_merge:
         forced_beginnings = S.notna() & ~S.notna().shift().fillna(False)
-    if na_values is None and S.isna().any():
-        s = S[S.notna()]
-        reindex_flag = True
+    if na_values is None:
+        if S.isna().any():
+            s = S.dropna()
+            reindex_flag = True
+        else:
+            s = S
     elif na_values == 'group':
         s = S
     elif na_values in ('backfill', 'bfill', 'pad', 'ffill'):
@@ -2336,7 +2352,9 @@ def unchanged_groups(S, na_values=None, prevent_merge=False):
                 shifted.loc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
-            s = s[s.notna()]
+            logger.warning(f"After treating the Series {S.name} with na_values='{na_values}', "
+                           f"there were still {s.isna().sum()} NA values left.")
+            s = s.dropna()
             beginnings = (s != s.shift().fillna(False))
             reindex_flag = True
     else:

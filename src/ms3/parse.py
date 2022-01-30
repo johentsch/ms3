@@ -1839,7 +1839,7 @@ Available keys: {available_keys}""")
             path = self.full_paths[key][i]
             try:
                 df = load_tsv(path, **kwargs)
-            except:
+            except Exception:
                 self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
                                  f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
@@ -1853,7 +1853,7 @@ Available keys: {available_keys}""")
                     tsv_type = self._infer_tsv_type(df)
 
                 if tsv_type is None:
-                    self.logger.warning(
+                    self.logger.debug(
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                     self._tsv_types[id] = 'other'
                 else:

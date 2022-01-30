@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import features2tpcs, interval_overlap_size, make_interval_index, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
+from .utils import features2tpcs, interval_overlap_size, make_interval_index, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, series_is_minor, transform, transpose_changes
 
 
@@ -237,7 +237,7 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
     if isinstance(features, str):
         features = [features]
     qb_cols = ['quarterbeats', 'duration_qb']
-    safety_cols = ['globalkey', 'localkey', 'pedal']
+    safety_cols = ['globalkey', 'localkey', 'pedal'] # if present, these prevent grouping because they change meaning
     keep_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice',
                  'volta', 'label', 'globalkey', 'localkey', 'globalkey_is_minor', 'localkey_is_minor', 'special',
                  'pedal']
@@ -257,7 +257,6 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
 
     def column_shift_mask(a, b):
         """Sets those values of Series a to True where a value in the Series b is different from its predecessor."""
-        nan_eq = lambda b, b_previous: (b == b_previous).fillna(False) | pd.isnull(b) & pd.isnull(b_previous)
         return a | ~nan_eq(b, b.shift())
 
     # The change mask is True for every row where either of the feature or safety columns is different from its previous value.
@@ -293,7 +292,7 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
     if 'numeral' in res.columns:
         try:
             res = pd.concat([res, compute_chord_tones(res, expand=True)], axis=1)
-        except:
+        except Exception:
             pass
     return res
 
