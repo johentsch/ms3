@@ -1855,6 +1855,7 @@ Available keys: {available_keys}""")
                 if tsv_type is None:
                     self.logger.warning(
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                    self._tsv_types[id] = 'other'
                 else:
                     self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
@@ -1876,7 +1877,7 @@ Available keys: {available_keys}""")
                         else:
                             self.logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
 
-            except:
+            except Exception:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
 
 
