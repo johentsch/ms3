@@ -2303,14 +2303,14 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     return res
 
 
-def unchanged_groups(S, na_values=None, prevent_merge=False):
+def adjacency_groups(S, na_values=None, prevent_merge=False):
     """
 
     Parameters
     ----------
     S : :obj:`pandas.Series`
         Series in which to group identical adjacent values with each other.
-    na_values : :obj:`str` or :obj:`Any`,
+    na_values : :obj:`str` or :obj:`Any`, optional
         | How to treat (groups of) NA values. By default, NA values are being ignored.
         | 'group' creates individual groups for NA values
         | 'backfill' or 'bfill' groups NA values with the subsequent group
@@ -2352,7 +2352,7 @@ def unchanged_groups(S, na_values=None, prevent_merge=False):
                 shifted.loc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
-            logger.warning(f"After treating the Series {S.name} with na_values='{na_values}', "
+            logger.warning(f"After treating the Series '{S.name}' with na_values='{na_values}', "
                            f"there were still {s.isna().sum()} NA values left.")
             s = s.dropna()
             beginnings = (s != s.shift().fillna(False))
@@ -2366,6 +2366,78 @@ def unchanged_groups(S, na_values=None, prevent_merge=False):
     if reindex_flag:
         groups = groups.reindex(S.index)
     return groups.astype('Int64'), names
+
+
+@function_logger
+def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
+    """ Drop exact repetitions of one or several feature columns and adapt the IntervalIndex and the column
+    'duration_qb' accordingly.
+    Uses: :py:func:`adjacency_groups`
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame to be reduced, expected to contain the column ``duration_qb``. In order to use the result as a
+        segmentation, it should have a :obj:`pandas.IntervalIndex`.
+    cols : :obj:`list`
+        Feature columns which exact, adjacent repetitions should be grouped to a segment, keeping only the first row.
+    na_values : (:obj:`list` of) :obj:`str` or :obj:`Any`, optional
+        | Either pass a list of equal length as ``cols`` or a single value that is passed to :py:func:`adjacency_groups`
+        | for each. Not dealing with NA values will lead to wrongly grouped segments. The default option is the safest.
+        | 'group' creates individual groups for NA values
+        | 'backfill' or 'bfill' groups NA values with the subsequent group
+        | 'pad', 'ffill' groups NA values with the preceding group
+        | Any other value works like 'group', with the difference that the created groups will be named with this value.
+    group_keys : :obj:`bool`, optional
+        By default, the grouped values will not be returned as a prepended MultiIndex because they would duplicate
+        the values from the grouped columns. If you need the MultiIndex anyway (e.g. because you used a custom
+        filling value for ``na_values``, pass True.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+        Reduced DataFrame with updated :obj:`pandas.IntervalIndex` (if present) and 'duration_qb' column.
+
+    """
+    N = len(cols)
+    if not isinstance(na_values, list):
+        na_values = [na_values] * N
+    else:
+        while len(na_values) < N:
+            na_values.append('group')
+    groups, names = zip(*(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
+
+    def sum_durations(df):
+        if len(df) == 1:
+            return df
+        ix = df.index[0]
+        row = df.iloc[[0]]
+        # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
+        if isinstance(df.index, pd.IntervalIndex):
+            start = min(df.index.left)
+            end = max(df.index.right)
+            iv = pd.Interval(start, end, closed=df.index.closed)
+            row.index = pd.IntervalIndex([iv])
+            row.loc[iv, 'duration_qb'] = iv.length
+        else:
+            new_duration = df.duration_qb.sum()
+            row.loc[ix, 'duration_qb'] = new_duration
+        return row
+
+    grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
+    if any(gr.isna().any() for gr in groups):
+        logger.warning(f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")
+    level = list(range(N))
+    if group_keys:
+        try:
+            new_levels = [index_level.map(d) for index_level, d in zip(grouped.index.levels[:N], names)]
+            grouped.index = grouped.index.set_levels(new_levels, level=level, verify_integrity=False)
+        except AttributeError:
+            logger.info("Groupby-apply did not generate MultiIndex.")
+            return grouped
+    else:
+        grouped = grouped.reset_index(level=level, drop=True)
+    return grouped
 
 
 @function_logger

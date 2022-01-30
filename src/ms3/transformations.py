@@ -8,7 +8,7 @@ import pandas as pd
 
 from .logger import function_logger
 from .utils import features2tpcs, interval_overlap_size, make_interval_index, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose_changes
+    roman_numeral2semitones, segment_by_adjacency_groups, series_is_minor, transform, transpose_changes
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -179,8 +179,8 @@ def get_chord_sequences(at, major_minor=True, level=None, column='chord'):
         return sequences
 
 
-
-def group_annotations_by_features(at, features='numeral', dropna=True):
+@function_logger
+def group_annotations_by_features(at, features='numeral'):
     """ Drop exact repetitions of one or several feature columns when occurring under the same localkey (and pedal point).
     For example, pass ``features = ['numeral', 'form', 'figbass']`` to drop rows where all three features are identical
     with the previous row _and_ the localkey stays the same. If the column ``duration_qb`` is present, it is updated
@@ -255,30 +255,20 @@ def group_annotations_by_features(at, features='numeral', dropna=True):
     if len(features) == 0:
         return at
 
-    def column_shift_mask(a, b):
-        """Sets those values of Series a to True where a value in the Series b is different from its predecessor."""
-        return a | ~nan_eq(b, b.shift())
-
-    # The change mask is True for every row where either of the feature or safety columns is different from its previous value.
-    change_mask = reduce(column_shift_mask, (col for _, col in at[cols].iteritems()), pd.Series(False, index=at.index))
-    if dropna:
-        change_mask &= at[features].notna().any(axis=1)
-
-    def sum_durations(df):
-        if len(df) == 1:
-            return df
-        ix = df.index[0]
-        row = df.iloc[[0]]
-        new_duration = df.duration_qb.sum()
-        row.loc[ix, 'duration_qb'] = new_duration
-        if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
-            row.index = pd.IntervalIndex.from_tuples([(ix.left, ix.left + new_duration)], closed=ix.closed)
-        return row
 
     if all(c in at.columns for c in qb_cols):
-        res = at.groupby(change_mask.cumsum(), group_keys=False).apply(sum_durations)
-        keep_cols = ['mc'] + qb_cols + keep_cols[1:]
+        na_values = ['ffill' if c == 'numeral' else 'group' for c in cols]
+        logger.info(f"Grouping with the following na_values settings: {dict(zip(cols, na_values))}")
+        res = segment_by_adjacency_groups(at, cols, na_values=na_values, logger=logger)
+        keep_cols = qb_cols + keep_cols
     else:
+        def column_shift_mask(a, b):
+            """Sets those values of Series a to True where a value in the Series b is different from its predecessor."""
+            return a | ~nan_eq(b, b.shift())
+        # The change mask is True for every row where either of the feature or safety columns is different from its previous value.
+        change_mask = reduce(column_shift_mask,
+                             (col for _, col in at[cols].iteritems()),
+                             pd.Series(False, index=at.index))
         res = at[change_mask]
     keep_cols = [c for c in keep_cols if c in at.columns] + features
     res = res[keep_cols]
