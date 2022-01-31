@@ -1059,8 +1059,55 @@ def html_color2rgba(h):
     return html_color2format(h, 'rgba')
 
 
+def interval_overlap(a, b, closed=None):
+    """ Returns the overlap of two pd.Intervals as a new pd.Interval.
+
+    Parameters
+    ----------
+    a, b : :obj:`pandas.Interval`
+        Intervals for which to compute the overlap.
+    closed : {'left', 'right', 'both', 'neither'}, optional
+        If no value is passed, the closure of the returned interval is inferred from ``a`` and ``b``.
+
+    Returns
+    -------
+    :obj:`pandas.Interval`
+    """
+    if not a.overlaps(b):
+        return None
+    if b.left < a.left:
+        # making a the leftmost interval
+        a, b = b, a
+    if closed is None:
+        if a.right < b.right:
+            right = a.right
+            right_closed = a.closed in ('right', 'both')
+            other_iv = b
+        else:
+            right = b.right
+            right_closed = b.closed in ('right', 'both')
+            other_iv = a
+        if right_closed and right == other_iv.right and other_iv.closed not in ('right', 'both'):
+            right_closed = False
+        left_closed = b.closed in ('left', 'both')
+        if left_closed and a.left == b.left and a.closed not in ('left', 'both'):
+            left_closed = False
+
+        if left_closed and right_closed:
+            closed = 'both'
+        elif left_closed:
+            closed = 'left'
+        elif right_closed:
+            closed = 'right'
+        else:
+            closed = 'neither'
+    else:
+        right = a.right if a.right < b.right else b.right
+    return pd.Interval(b.left, right, closed=closed)
+
+
 def interval_overlap_size(a, b, decimals=3):
-    """Pass the size of the overlap of two pd.Intervals."""
+    """Returns the size of the overlap of two pd.Intervals."""
     if not a.overlaps(b):
         return 0.0
     if b.left < a.left:
@@ -1438,21 +1485,23 @@ def make_id_tuples(key, n):
 
 
 @function_logger
-def make_interval_index(S, end_value=None, closed='left', **kwargs):
+def make_interval_index(S, end_value=None, closed='left', name='iv'):
     """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
 
     Parameters
     ----------
     S : :obj:`pandas.Series`
         Interval breaks. It is assumed that the breaks are sorted.
-    end_value : numeric
+    end_value : numeric, optional
         Often you want to pass the right border of the last interval.
-    closed : :obj:`str`
+    closed : :obj:`str`, optional
         Defaults to 'left'. This and the kwargs are fed to :py:meth:`pandas.IntervalIndex.from_breaks`.
-    kwargs
+    name : :obj:`str`, optional
+        Name of the created index. Defaults to 'iv'.
 
     Returns
     -------
+    :obj:`pandas.IntervalIndex`
 
     """
     breaks = S.to_list()
@@ -1463,8 +1512,8 @@ def make_interval_index(S, end_value=None, closed='left', **kwargs):
         else:
             breaks += [last]
     try:
-        iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, **kwargs)
-    except:
+        iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, name=name)
+    except Exception:
         logger.warning(f"Cannot create IntervalIndex from these breaks:\n{breaks}")
         raise
     return iix
@@ -2389,16 +2438,21 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         | 'pad', 'ffill' groups NA values with the preceding group
         | Any other value works like 'group', with the difference that the created groups will be named with this value.
     group_keys : :obj:`bool`, optional
-        By default, the grouped values will not be returned as a prepended MultiIndex because they would duplicate
-        the values from the grouped columns. If you need the MultiIndex anyway (e.g. because you used a custom
-        filling value for ``na_values``, pass True.
+        By default, the grouped values will be returned as an appended MultiIndex, differentiation groups via ascending
+        integers. If you want to duplicate the columns' value, e.g. to account for a custom filling value for
+        ``na_values``, pass True. Beware that this most often results in non-unique index levels.
 
     Returns
     -------
     :obj:`pandas.DataFrame`
-        Reduced DataFrame with updated :obj:`pandas.IntervalIndex` (if present) and 'duration_qb' column.
+        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level
+        (if present).
 
     """
+    if isinstance(cols, str):
+        cols = [cols]
+    elif isinstance(cols, tuple):
+        cols = list(cols)
     N = len(cols)
     if not isinstance(na_values, list):
         na_values = [na_values] * N
@@ -2410,33 +2464,33 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     def sum_durations(df):
         if len(df) == 1:
             return df
-        ix = df.index[0]
+        idx = df.index
+        first_loc = idx[0]
         row = df.iloc[[0]]
         # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
-        if isinstance(df.index, pd.IntervalIndex):
-            start = min(df.index.left)
-            end = max(df.index.right)
-            iv = pd.Interval(start, end, closed=df.index.closed)
-            row.index = pd.IntervalIndex([iv])
+        if isinstance(idx, pd.IntervalIndex):
+            start = min(idx.left)
+            end = max(idx.right)
+            iv = pd.Interval(start, end, closed=idx.closed)
+            row.index = pd.IntervalIndex([iv], name='segment')
             row.loc[iv, 'duration_qb'] = iv.length
         else:
             new_duration = df.duration_qb.sum()
-            row.loc[ix, 'duration_qb'] = new_duration
+            row.loc[first_loc, 'duration_qb'] = new_duration
         return row
 
     grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
     if any(gr.isna().any() for gr in groups):
         logger.warning(f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")
-    level = list(range(N))
-    if group_keys:
-        try:
-            new_levels = [index_level.map(d) for index_level, d in zip(grouped.index.levels[:N], names)]
-            grouped.index = grouped.index.set_levels(new_levels, level=level, verify_integrity=False)
-        except AttributeError:
-            logger.info("Groupby-apply did not generate MultiIndex.")
-            return grouped
+    if isinstance(grouped.index, pd.MultiIndex):
+        grouped.index = grouped.index.reorder_levels([-1] + list(range(N)))
     else:
-        grouped = grouped.reset_index(level=level, drop=True)
+        logger.debug("Groupby-apply did not generate MultiIndex.")
+        grouped = grouped.set_index(list(groups), append=True)
+    if group_keys:
+        no_tuples = lambda coll: not any(isinstance(e, tuple) for e in coll)
+        new_levels = [index_level.map(d) if no_tuples(d.values()) else index_level for index_level, d in zip(grouped.index.levels[1:], names)]
+        grouped.index = grouped.index.set_levels(new_levels, level=list(range(1, N+1)), verify_integrity=False)
     return grouped
 
 
@@ -2747,7 +2801,7 @@ def rel2abs_key(rel, localkey, global_minor=False):
 
 @function_logger
 def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
-                               filter_zero_duration=False, round=3):
+                               filter_zero_duration=False, round=3, name='iv'):
     """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex <pandas.IntervalIndex>`.
     Underspecified rows are removed.
 
@@ -2766,6 +2820,8 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
         Defaults to False, meaning that rows with zero durations are maintained. Pass True to remove them.
     round : :obj:`int`, optional
         To how many decimal places to round the intervals' boundary values.
+    name : :obj:`str`, optional
+        Name of the created index. Defaults to 'iv'.
 
     Returns
     -------
@@ -2784,7 +2840,7 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     left = df[position_col].astype(float)
     right = left + df[duration_col].astype(float)
     index_tuples = zip(left.round(round), right.round(round))
-    df.index = pd.IntervalIndex.from_arrays(left=left.round(round), right=right.round(round), closed=closed)
+    df.index = pd.IntervalIndex.from_arrays(left=left.round(round), right=right.round(round), closed=closed, name=name)
     return df
 
 
