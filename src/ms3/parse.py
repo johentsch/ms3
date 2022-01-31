@@ -1416,10 +1416,10 @@ Available keys: {available_keys}""")
                 if tup is not None:
                     yield (key, ) + tup
 
-    def iter_transformed(self, columns, keys=None, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+    def iter_transformed(self, columns, keys=None, warn_missing=False, unfold=False, quarterbeats=False, interval_index=False):
         keys = self._treat_key_param(keys)
         for key in keys:
-            for tup in self[key].iter_transformed(columns=columns, skip_missing=skip_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+            for tup in self[key].iter_transformed(columns=columns, warn_missing=warn_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
                 if tup is not None:
                     yield (key,) + tup
 
@@ -2813,17 +2813,23 @@ class View(Parse):
             result = (md, paths) + tuple(result)
             yield result
 
-    def iter_transformed(self, columns, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+    def iter_transformed(self, columns, warn_missing=False, unfold=False, quarterbeats=False, interval_index=False):
         if not any((unfold, quarterbeats, interval_index)):
-            for tup in self.iter(columns, skip_missing=skip_missing):
-                yield tup
+            for md, paths, *dfs in self.iter(columns, skip_missing=warn_missing):
+                if warn_missing and any(df is None for df in dfs):
+                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
+                else:
+                    yield tup
         else:
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
-            for md, paths, *dfs, measures in self.iter(columns, skip_missing=skip_missing):
-                dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
-                yield (md, paths[:-1], *dfs)
+            for md, paths, *dfs, measures in self.iter(columns, skip_missing=warn_missing):
+                if warn_missing and any(df is None for df in dfs + [measures]):
+                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
+                else:
+                    dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
+                    yield (md, paths[:-1], *dfs)
 
 
     def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True):
