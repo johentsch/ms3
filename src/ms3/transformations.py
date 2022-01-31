@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import features2tpcs, interval_overlap_size, make_interval_index, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
+from .utils import features2tpcs, interval_overlap, interval_overlap_size, make_interval_index, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, segment_by_adjacency_groups, series_is_minor, transform, transpose_changes
 
 
@@ -244,7 +244,7 @@ def group_annotations_by_features(at, features='numeral'):
     if 'numeral' in features:
         safety_cols.append('relativeroot')
         keep_cols.append('relativeroot')
-    safety = [f for f in safety_cols if f not in features and f in at.columns]
+    safety = [f for f in safety_cols if f not in features and f in at.columns and len(at[f].unique()) > 1]
     cols = []
     for f in features + safety:
         if f in at.columns:
@@ -594,6 +594,48 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
         return at
 
 
+def segment_by_interval_index(df, idx, truncate=True):
+    """ Segment a DataFrame into chunks based on a given IntervalIndex.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame that has a :obj:`pandas.IntervalIndex` to allow for its segmentation.
+    idx : :obj:`pandas.IntervalIndex` or :obj:`pandas.MultiIndex`
+        Intervals by which to segment ``df``. The index will be prepended to differentiate between segments. If ``idx``
+        is a :obj:`pandas.MultiIndex`, the first level is expected to be a :obj:`pandas.IntervalIndex`.
+    truncate : :obj:`bool`, optional
+        By default, the intervals of the segmented DataFrame will be cut off at segment boundaries and the event's
+        'duration_qb' will be adapted accordingly. Pass False to prevent that and duplicate overlapping events without
+        adapting their Intervals and 'duration_qb'.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+        A copy of ``df`` where the index levels ``idx`` have been prepended and only rows of ``df`` with overlapping
+        intervals are included.
+
+    """
+    iv_idx = idx.copy()
+    if isinstance(iv_idx, pd.MultiIndex):
+        iv_idx = iv_idx.get_level_values(0)
+    assert isinstance(iv_idx, pd.IntervalIndex), f"idx needs to IntervalIndex, not {type(iv_idx)}"
+    chunks = []
+    for iv in iv_idx:
+        overlapping = df.index.overlaps(iv)
+        chunk = df[overlapping].copy()
+        if truncate:
+            start, end = iv.left, iv.right
+            chunk_index = chunk.index
+            left_overlap = chunk_index.left < start
+            right_overlap = chunk_index.right > end
+            if left_overlap.sum() > 0 or right_overlap.sum() > 0:
+                chunk.index = chunk_index.map(lambda i: interval_overlap(i, iv))
+                chunk.loc[:, 'duration_qb'] = chunk.index.length
+        chunks.append(chunk)
+    return pd.concat(chunks, keys=idx)
+
+
 def slice_df(df, quarters_per_slice=None):
     """ Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event's
     durations within the slice are shown in the column 'duration_qb'.
@@ -630,7 +672,7 @@ def slice_df(df, quarters_per_slice=None):
         overlapping_elements.loc[:, 'duration_qb'] = [interval_overlap_size(ix, iv) for ix in
                                                       overlapping_elements.index]
         N = overlapping.sum()
-        new_index = pd.IntervalIndex([iv] * N)
+        new_index = pd.IntervalIndex([iv] * N, name='slice')
         overlapping_elements.index = new_index
         slices.append(overlapping_elements)
     return pd.concat(slices)
