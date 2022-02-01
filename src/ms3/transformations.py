@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import features2tpcs, interval_overlap, interval_overlap_size, make_interval_index, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
+from .utils import features2tpcs, fifths2name, fifths2pc, interval_overlap, interval_overlap_size, make_interval_index, name2fifths, nan_eq, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, segment_by_adjacency_groups, series_is_minor, transform, transpose_changes
 
 
@@ -15,6 +15,32 @@ def add_localkey_change_column(at, key_column='localkey'):
     key_segment = at[key_column] != at[key_column].shift()
     return pd.concat([at, key_segment.rename('key_segment')], axis=1)
 
+
+def add_weighted_grace_duration(notes, weight=1/2):
+    """ For a given notes table, change the 'duration' value of all grace notes, weighting it by ``weight``.
+
+    Parameters
+    ----------
+    notes : :obj:`pandas.DataFrame`
+        Notes table containing the columns 'duration', 'nominal_duration', 'scalar'
+    weight : :obj:`Fraction` or :obj:`float`
+        Value by which to weight duration of all grace notes. Defaults to a half.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+        Copy of ``notes`` with altered duration values.
+    """
+    notes = notes.copy()
+    grace = notes.gracenote.notna()
+    if grace.sum() == 0:
+        return notes
+    assert all(col in notes.columns for col in ('duration', 'nominal_duration', 'scalar')),\
+        "Needs to contain columns 'duration', 'nominal_duration', 'scalar'"
+    gracenotes = notes[grace]
+    new_durations = gracenotes.scalar * gracenotes.nominal_duration * frac(weight)
+    notes.loc[grace, 'duration'] = new_durations
+    return notes
 
 
 @function_logger
@@ -550,6 +576,73 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
                          ('<br>Tonicized local scale degree: ' + res.relativeroot).fillna('')
     return res
 
+@function_logger
+def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, additional_group_cols=None):
+    """
+
+    Parameters
+    ----------
+    notes : :obj:`pandas.DataFrame`
+        Note table to be transformed into a wide or long table of Pitch Class Vectors by grouping via the first (or only)
+        index level. The DataFrame needs containing at least the columns 'duration_qb' and 'tpc' or 'midi', depending
+        on ``pitch_class_format``.
+    pitch_class_format : :obj:`str`, optional
+        | Defines the type of pitch classes to use for the vectors.
+        | 'tpc' (default): tonal pitch class, such that -1=F, 0=C, 1=G etc.
+        | 'name': tonal pitch class as spelled pitch, e.g. 'C', 'F#', 'Abb' etc.
+        | 'pc': chromatic pitch classes where 0=C, 1=C#/Db, ... 11=B/Cb.
+        | 'midi': original MIDI numbers; the result are pitch vectors, not pitch class vectors.
+    normalize : :obj:`bool`, optional
+        By default, the PCVs contain absolute durations in quarter notes. Pass True to normalize
+        the PCV for each group.
+    long : :obj:`bool`, optional
+        By default, the resulting DataFrames have wide format, i.e. each row contains the PCV
+        for one slice. Pass True if you need long format instead, i.e. with a non-unique
+        :obj:`pandas.IntervalIndex` and two columns, ``[('tpc'|'midi'), 'duration_qb']``
+        where the first column's name depends on ``pitch_class_format``.
+    additional_group_cols : (:obj:`list` of) :obj:`str`
+        If you would like to maintain some information from other columns of ``notes`` in additional index levels,
+        pass their names.
+
+    Returns
+    -------
+
+    """
+    if pitch_class_format in ("tpc", "name"):
+        pitch_class_grouper = notes.tpc
+    elif pitch_class_format == "pc":
+        pitch_class_grouper = notes.midi % 12
+    elif pitch_class_format == "midi":
+        pitch_class_grouper = notes.midi
+    else:
+        logger.warning("pitch_class_format needs to be one of 'tpc', 'name', 'pc', 'midi', not "+ str(pitch_class_format))
+        return pd.DataFrame()
+    idx = notes.index
+    if isinstance(idx, pd.MultiIndex):
+        idx = idx.get_level_values(0)
+    grouper = [idx]
+    group_levels = 1
+    if additional_group_cols is not None:
+        if isinstance(additional_group_cols, str):
+            additional_group_cols = [additional_group_cols]
+        for col in additional_group_cols:
+            grouper.append(notes[col])
+            group_levels += 1
+    grouper.append(pitch_class_grouper)
+    pcvs = notes.groupby(grouper).duration_qb.sum()
+    if long:
+        if normalize:
+            pcvs = pcvs.groupby(level=list(range(group_levels))).apply(lambda S: S / S.sum())
+        pcvs = pcvs.reset_index(level=-1)
+        if pitch_class_format == "name":
+            pcvs.loc[:, "tpc"] = transform(pcvs.tpc, fifths2name)
+    else:
+        pcvs = pcvs.unstack()
+        if pitch_class_format == "name":
+            pcvs.columns = fifths2name(pcvs.columns)
+        if normalize:
+            pcvs = pcvs.div(pcvs.sum(axis=1), axis=0)
+    return pcvs
 
 
 def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
@@ -633,7 +726,7 @@ def segment_by_interval_index(df, idx, truncate=True):
                 chunk.index = chunk_index.map(lambda i: interval_overlap(i, iv))
                 chunk.loc[:, 'duration_qb'] = chunk.index.length
         chunks.append(chunk)
-    return pd.concat(chunks, keys=idx)
+    return pd.concat(chunks, keys=idx, levels=idx.levels)
 
 
 def slice_df(df, quarters_per_slice=None):
@@ -751,6 +844,44 @@ def transform_annotations(at, groupby_features=None, resolve_relative=False):
     return at
 
 
+def transpose_notes_to_localkey(notes):
+    """ Transpose the columns 'tpc' and 'midi' such that they reflect the local key as if it was C major/minor. This
+    operation is typically required for creating pitch class profiles.
+    Uses: :py:func:`transform`, :py:func:`name2fifths`, :py:func:`roman_numeral2fifths`
+
+    Parameters
+    ----------
+    notes : :obj:`pandas.DataFrame`
+        DataFrame that has at least the columns ['globalkey', 'localkey', 'tpc', 'midi'].
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+         A copy of ``notes`` where the columns 'tpc' and 'midi' are shifted in such a way that tpc=0 and midi=60
+         match the local tonic (e.g. for the local key A major/minor, each pitch A will have tpc=0 and midi % 12 = 0).
+    """
+    notes = notes.copy()
+    new_cols = []
+    if 'globalkey_is_minor' not in notes.columns:
+        gkim = notes.globalkey.str.islower().rename('globalkey_is_minor')
+        new_cols.append(gkim)
+    if 'localkey_is_minor' not in notes.columns:
+        lkim = notes.localkey.str.islower().rename('localkey_is_minor')
+        new_cols.append(lkim)
+    if len(new_cols) > 0:
+        notes = pd.concat([notes] + new_cols, axis=1)
+    transpose_by = transform(notes.globalkey, name2fifths) + transform(notes, roman_numeral2fifths, ['localkey', 'globalkey_is_minor'])
+    notes.tpc -= transpose_by
+    midi_transposition = transform(transpose_by, fifths2pc)
+    # For transpositions up to a diminished fifth, move pitches up,
+    # for larger intervals, move pitches down.
+    midi_transposition.where(midi_transposition <= 6, midi_transposition % -12, inplace=True)
+    notes.midi -= midi_transposition
+    notes = pd.concat([notes, transpose_by.rename('local_tonic')], axis=1)
+    notes.local_tonic = transform(notes, fifths2name, dict(fifths='local_tonic', minor='localkey_is_minor'))
+    return notes
+
+@function_logger
 def _treat_level_parameter(level, nlevels):
     """ Given a number of index levels, turn an int such as -1 into a list of all levels except the last.
 
@@ -766,16 +897,20 @@ def _treat_level_parameter(level, nlevels):
     -------
 
     """
-    if isinstance(level, int):
+    if not isinstance(level, int):
+        return level
+    if level == 0:
+        level = nlevels
+    if level < 0:
+        level += nlevels
         if level < 0:
-            level += nlevels
-            if level < 0:
-                return []
-        elif level > nlevels:
-            level = nlevels
-        levels = list(range(level))
-    else:
-        levels = level
+            logger.warning(f"Cannot group by the {level} first levels. nlevels={nlevels}")
+            return []
+    elif level > nlevels:
+        logger.warning(f"Supposed to group by {level} first levels but nlevels={nlevels}")
+        return []
+    levels = list(range(level))
     return levels
+
 
 
