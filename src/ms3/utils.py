@@ -840,7 +840,7 @@ def fifths2iv(fifths, smallest=False):
 
 
 
-def fifths2name(fifths, midi=None, ms=False):
+def fifths2name(fifths, midi=None, ms=False, minor=False):
     """ Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc.
        Uses: map2elements(), fifths2str()
@@ -854,6 +854,8 @@ def fifths2name(fifths, midi=None, ms=False):
         pass the corresponding MIDI pitch.
     ms : :obj:`bool`, optional
         Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
+    minor : :obj:`bool`, optional
+        Pass True if the string is to be returned as lowercase.
     """
     try:
         fifths = int(float(fifths))
@@ -869,6 +871,8 @@ def fifths2name(fifths, midi=None, ms=False):
     if midi is not None:
         octave = midi2octave(midi, fifths)
         return f"{name}{octave}"
+    if minor:
+        return name.lower()
     return name
 
 
@@ -2398,16 +2402,18 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
         if na_values == 'group':
             shifted = s.shift()
             if pd.isnull(S[0]):
-                shifted.loc[0] = True
+                shifted.iloc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
             logger.warning(f"After treating the Series '{S.name}' with na_values='{na_values}', "
                            f"there were still {s.isna().sum()} NA values left.")
             s = s.dropna()
             beginnings = (s != s.shift().fillna(False))
+            beginnings.iloc[0] = True
             reindex_flag = True
     else:
         beginnings = (s != s.shift().fillna(False))
+        beginnings.iloc[0] = True
     if prevent_merge:
         beginnings |= forced_beginnings
     groups = beginnings.cumsum()
@@ -2451,8 +2457,6 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     """
     if isinstance(cols, str):
         cols = [cols]
-    elif isinstance(cols, tuple):
-        cols = list(cols)
     N = len(cols)
     if not isinstance(na_values, list):
         na_values = [na_values] * N
