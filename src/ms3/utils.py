@@ -1,5 +1,4 @@
 import os,sys, platform, re, shutil, subprocess
-from typing import Any
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
@@ -188,64 +187,6 @@ class map_dict(dict):
     def __missing__(self, key):
         return key
 
-@function_logger
-def add_quarterbeats_col(df, offset_dict, interval_index=False):
-    """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
-        the column corresponds to the ``insert_after`` column's measure counts.
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
-    offset_dict : :obj:`pandas.Series` or :obj:`dict`
-        | If unfolded: {mc_playthrough -> offset}
-        | Otherwise: {mc -> offset}
-        | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
-    interval_index : :obj:`bool`, optional
-        Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
-        creation of the column ``duration_qb``).
-
-    Returns
-    -------
-
-    """
-    if offset_dict is None:
-        logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
-        return df
-    if 'quarterbeats' not in df.columns:
-        if 'mc_playthrough' in df.columns:
-            insert_before = 'mc_playthrough'
-        elif 'mc' in df.columns:
-            insert_before = 'mc'
-        else:
-            logger.error("Expected to have at least one column called 'mc' or 'mc_playthrough'.")
-            return df
-        df = df.copy()
-        quarterbeats = df[insert_before].map(offset_dict)
-        if 'mc_onset' in df.columns:
-            quarterbeats += df.mc_onset * 4
-        insert_here = df.columns.get_loc(insert_before)
-        df.insert(insert_here, 'quarterbeats', quarterbeats)
-        if 'duration_qb' not in df.columns:
-            if 'duration' in df.columns:
-                dur = (df.duration * 4).astype(float).round(3)
-                df.insert(insert_here + 1, 'duration_qb', dur)
-            elif 'end' in offset_dict:
-                present_qb = df.quarterbeats.notna()
-                try:
-                    ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
-                                              end_value=float(offset_dict['end']), logger=logger)
-                    df.insert(insert_here + 1, 'duration_qb', pd.NA)
-                    df.loc[present_qb, 'duration_qb'] = ivs.length
-                except Exception:
-                    logger.warning("Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
-            else:
-                logger.warning("Column 'duration_qb' could not be created.")
-    else:
-        logger.debug("quarterbeats column was already present.")
-    if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
-        df = replace_index_by_intervals(df)
-    return df
 
 def assert_all_lines_equal(before, after, original, tmp_file):
     """ Compares two multiline strings to test equality."""
@@ -689,32 +630,6 @@ def df2md(df, name="Overview"):
     writer.header_list = list(df.columns.values)
     writer.value_matrix = df.values.tolist()
     return writer
-
-
-@function_logger
-def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
-    """Pass a DataFrame and a measures table to unfold repeats and/or add quarterbeats columns and/or index."""
-    if isinstance(dfs, pd.DataFrame):
-        dfs = [dfs]
-    if interval_index:
-        quarterbeats=True
-    if unfold:
-        playthrough2mc = make_playthrough2mc(measures, logger=logger)
-        dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
-        if quarterbeats:
-            unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
-            continuous_offset = make_continuous_offset(unfolded_measures, logger=logger)
-            dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
-                   if df is not None else df for df in dfs]
-    elif quarterbeats:
-        # deal with voltas here
-        continuous_offset = make_continuous_offset(measures, logger=logger)
-        dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
-               if df is not None else df for df in dfs]
-    else:
-        logger.info("At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True.")
-    return dfs
-
 
 
 def dict2oneliner(d):
@@ -2363,12 +2278,12 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
     ----------
     S : :obj:`pandas.Series`
         Series in which to group identical adjacent values with each other.
-    na_values : :obj:`str` or :obj:`Any`, optional
+    na_values : :obj:`str`, optional
         | How to treat (groups of) NA values. By default, NA values are being ignored.
         | 'group' creates individual groups for NA values
         | 'backfill' or 'bfill' groups NA values with the subsequent group
         | 'pad', 'ffill' groups NA values with the preceding group
-        | Any other value works like 'group', with the difference that the created groups will be named with this value.
+        | Any other string works like 'group', with the difference that the groups will be named with this value.
     prevent_merge : :obj:`bool`, optional
         By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
         Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,

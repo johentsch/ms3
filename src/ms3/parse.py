@@ -10,10 +10,11 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import add_quarterbeats_col, column_order, DCML_DOUBLE_REGEX, dfs2quarterbeats, get_musescore, get_path_component, group_id_tuples,\
+from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
     iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
     make_playthrough2mc, metadata2series, path2type, pretty_dict, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata, write_tsv
+from .transformations import add_quarterbeats_col, dfs2quarterbeats
 
 
 class Parse(LoggedClass):
