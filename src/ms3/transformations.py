@@ -7,14 +7,14 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import features2tpcs, fifths2name, fifths2pc, interval_overlap, interval_overlap_size, make_interval_index,\
+from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2pc, interval_overlap, interval_overlap_size, make_interval_index,\
     make_continuous_offset, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key,\
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, segment_by_adjacency_groups, series_is_minor, transform, transpose_changes, unfold_repeats
 
 
 def add_localkey_change_column(at, key_column='localkey'):
-    key_segment = at[key_column] != at[key_column].shift()
+    key_segment, _ = adjacency_groups(at[key_column], na_values='ffill')
     return pd.concat([at, key_segment.rename('key_segment')], axis=1)
 
 
@@ -272,7 +272,6 @@ def get_chord_sequences(at, major_minor=True, level=None, column='chord'):
                 at = transform_multiple(at, 'key_segment', level=level)
             else:
                 at = add_localkey_change_column(at)
-                at.key_segment = at.key_segment.cumsum()
         res = {}
         for i, df in at.groupby('key_segment'):
             row = df.iloc[0]
@@ -901,10 +900,6 @@ def transform_multiple(df, func, level=-1, **kwargs):
         logger.info(f"Index had too few levels ({list(df.index.names)}) to group by parameter level={levels}. Applied"
                     f"{func} to the entire DataFrame instead.")
         res = func(df, **kwargs)
-
-    # post-processing
-    if func == add_localkey_change_column:
-        res.key_segment = res.key_segment.cumsum()
     return res
 
 
