@@ -14,7 +14,7 @@ from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_comp
     iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
     make_playthrough2mc, metadata2series, path2type, pretty_dict, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata, write_tsv
-from .transformations import add_quarterbeats_col, dfs2quarterbeats
+from .transformations import add_quarterbeats_col, add_weighted_grace_durations, dfs2quarterbeats
 
 
 class Parse(LoggedClass):
@@ -2833,7 +2833,7 @@ class View(Parse):
                     yield (md, paths[:-1], *dfs)
 
 
-    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True):
+    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0):
         for md, paths, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
             if notes is None:
                 msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
@@ -2842,6 +2842,8 @@ class View(Parse):
                 else:
                     self.logger.debug(msg)
                 continue
+                if weight_grace_durations > 0:
+                    notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
             yield md, paths, notes
 
 

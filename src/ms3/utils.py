@@ -1414,7 +1414,7 @@ def make_interval_index(S, end_value=None, closed='left', name='iv'):
     end_value : numeric, optional
         Often you want to pass the right border of the last interval.
     closed : :obj:`str`, optional
-        Defaults to 'left'. This and the kwargs are fed to :py:meth:`pandas.IntervalIndex.from_breaks`.
+        Defaults to 'left'. Argument passed to to :py:meth:`pandas.IntervalIndex.from_breaks`.
     name : :obj:`str`, optional
         Name of the created index. Defaults to 'iv'.
 
@@ -2339,81 +2339,6 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
 
 
 @function_logger
-def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
-    """ Drop exact repetitions of one or several feature columns and adapt the IntervalIndex and the column
-    'duration_qb' accordingly.
-    Uses: :py:func:`adjacency_groups`
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame to be reduced, expected to contain the column ``duration_qb``. In order to use the result as a
-        segmentation, it should have a :obj:`pandas.IntervalIndex`.
-    cols : :obj:`list`
-        Feature columns which exact, adjacent repetitions should be grouped to a segment, keeping only the first row.
-    na_values : (:obj:`list` of) :obj:`str` or :obj:`Any`, optional
-        | Either pass a list of equal length as ``cols`` or a single value that is passed to :py:func:`adjacency_groups`
-        | for each. Not dealing with NA values will lead to wrongly grouped segments. The default option is the safest.
-        | 'group' creates individual groups for NA values
-        | 'backfill' or 'bfill' groups NA values with the subsequent group
-        | 'pad', 'ffill' groups NA values with the preceding group
-        | Any other value works like 'group', with the difference that the created groups will be named with this value.
-    group_keys : :obj:`bool`, optional
-        By default, the grouped values will be returned as an appended MultiIndex, differentiation groups via ascending
-        integers. If you want to duplicate the columns' value, e.g. to account for a custom filling value for
-        ``na_values``, pass True. Beware that this most often results in non-unique index levels.
-
-    Returns
-    -------
-    :obj:`pandas.DataFrame`
-        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level
-        (if present).
-
-    """
-    if isinstance(cols, str):
-        cols = [cols]
-    N = len(cols)
-    if not isinstance(na_values, list):
-        na_values = [na_values] * N
-    else:
-        while len(na_values) < N:
-            na_values.append('group')
-    groups, names = zip(*(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
-
-    def sum_durations(df):
-        if len(df) == 1:
-            return df
-        idx = df.index
-        first_loc = idx[0]
-        row = df.iloc[[0]]
-        # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
-        if isinstance(idx, pd.IntervalIndex):
-            start = min(idx.left)
-            end = max(idx.right)
-            iv = pd.Interval(start, end, closed=idx.closed)
-            row.index = pd.IntervalIndex([iv], name='segment')
-            row.loc[iv, 'duration_qb'] = iv.length
-        else:
-            new_duration = df.duration_qb.sum()
-            row.loc[first_loc, 'duration_qb'] = new_duration
-        return row
-
-    grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
-    if any(gr.isna().any() for gr in groups):
-        logger.warning(f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")
-    if isinstance(grouped.index, pd.MultiIndex):
-        grouped.index = grouped.index.reorder_levels([-1] + list(range(N)))
-    else:
-        logger.debug("Groupby-apply did not generate MultiIndex.")
-        grouped = grouped.set_index(list(groups), append=True)
-    if group_keys:
-        no_tuples = lambda coll: not any(isinstance(e, tuple) for e in coll)
-        new_levels = [index_level.map(d) if no_tuples(d.values()) else index_level for index_level, d in zip(grouped.index.levels[1:], names)]
-        grouped.index = grouped.index.set_levels(new_levels, level=list(range(1, N+1)), verify_integrity=False)
-    return grouped
-
-
-@function_logger
 def unfold_repeats(df, playthrough2mc):
     """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
@@ -2721,7 +2646,7 @@ def rel2abs_key(rel, localkey, global_minor=False):
 @function_logger
 def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
                                filter_zero_duration=False, round=3, name='iv'):
-    """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex <pandas.IntervalIndex>`.
+    """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.
     Underspecified rows are removed.
 
     Parameters
@@ -2745,7 +2670,8 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     Returns
     -------
     :obj:`pandas.DataFrame`
-
+        A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
+        could be coputed).
     """
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
@@ -2755,10 +2681,9 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     mask = df[position_col].notna()
     if filter_zero_duration:
         mask &= (df[duration_col] > 0)
-    df = df[mask]
+    df = df[mask].copy()
     left = df[position_col].astype(float)
     right = left + df[duration_col].astype(float)
-    index_tuples = zip(left.round(round), right.round(round))
     df.index = pd.IntervalIndex.from_arrays(left=left.round(round), right=right.round(round), closed=closed, name=name)
     return df
 

@@ -10,7 +10,7 @@ from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2pc, interval_overlap, interval_overlap_size, make_interval_index,\
     make_continuous_offset, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key,\
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, segment_by_adjacency_groups, series_is_minor, transform, transpose_changes, unfold_repeats
+    roman_numeral2semitones, series_is_minor, transform, transpose_changes, unfold_repeats
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -79,7 +79,7 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     return df
 
 
-def add_weighted_grace_duration(notes, weight=1/2):
+def add_weighted_grace_durations(notes, weight=1/2):
     """ For a given notes table, change the 'duration' value of all grace notes, weighting it by ``weight``.
 
     Parameters
@@ -94,15 +94,21 @@ def add_weighted_grace_duration(notes, weight=1/2):
     :obj:`pandas.DataFrame`
         Copy of ``notes`` with altered duration values.
     """
-    notes = notes.copy()
+    if 'gracenote' not in notes.columns:
+        return notes
     grace = notes.gracenote.notna()
     if grace.sum() == 0:
         return notes
+    notes = notes.copy()
     assert all(col in notes.columns for col in ('duration', 'nominal_duration', 'scalar')),\
         "Needs to contain columns 'duration', 'nominal_duration', 'scalar'"
     gracenotes = notes[grace]
     new_durations = gracenotes.scalar * gracenotes.nominal_duration * frac(weight)
     notes.loc[grace, 'duration'] = new_durations
+    if 'duration_qb' in notes.columns:
+        notes.loc[grace, 'duration_qb'] = (new_durations * 4).astype(float)
+        if isinstance(notes.index, pd.IntervalIndex):
+            notes = replace_index_by_intervals(notes)
     return notes
 
 
@@ -663,7 +669,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     return res
 
 @function_logger
-def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, additional_group_cols=None):
+def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, fillna=True, additional_group_cols=None):
     """
 
     Parameters
@@ -697,7 +703,7 @@ def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, add
     if pitch_class_format in ("tpc", "name"):
         pitch_class_grouper = notes.tpc
     elif pitch_class_format == "pc":
-        pitch_class_grouper = notes.midi % 12
+        pitch_class_grouper = (notes.midi % 12).rename('pc')
     elif pitch_class_format == "midi":
         pitch_class_grouper = notes.midi
     else:
@@ -728,6 +734,8 @@ def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, add
             pcvs.columns = fifths2name(pcvs.columns)
         if normalize:
             pcvs = pcvs.div(pcvs.sum(axis=1), axis=0)
+    if fillna:
+        return pcvs.fillna(0.0)
     return pcvs
 
 
@@ -771,6 +779,86 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
     at.loc[:, 'chord'] = make_chord_col(at)
     if not inplace:
         return at
+
+
+@function_logger
+def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
+    """ Drop exact repetitions of one or several feature columns and adapt the IntervalIndex and the column
+    'duration_qb' accordingly.
+    Uses: :py:func:`adjacency_groups`
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        DataFrame to be reduced, expected to contain the column ``duration_qb``. In order to use the result as a
+        segmentation, it should have a :obj:`pandas.IntervalIndex`.
+    cols : :obj:`list`
+        Feature columns which exact, adjacent repetitions should be grouped to a segment, keeping only the first row.
+    na_values : (:obj:`list` of) :obj:`str` or :obj:`Any`, optional
+        | Either pass a list of equal length as ``cols`` or a single value that is passed to :py:func:`adjacency_groups`
+        | for each. Not dealing with NA values will lead to wrongly grouped segments. The default option is the safest.
+        | 'group' creates individual groups for NA values
+        | 'backfill' or 'bfill' groups NA values with the subsequent group
+        | 'pad', 'ffill' groups NA values with the preceding group
+        | Any other value works like 'group', with the difference that the created groups will be named with this value.
+    group_keys : :obj:`bool`, optional
+        By default, the grouped values will be returned as an appended MultiIndex, differentiation groups via ascending
+        integers. If you want to duplicate the columns' value, e.g. to account for a custom filling value for
+        ``na_values``, pass True. Beware that this most often results in non-unique index levels.
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level
+        (if present).
+
+    """
+    if isinstance(cols, str):
+        cols = [cols]
+    N = len(cols)
+    if not isinstance(na_values, list):
+        na_values = [na_values] * N
+    else:
+        while len(na_values) < N:
+            na_values.append('group')
+    groups, names = zip(
+        *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
+
+    def sum_durations(df):
+        if len(df) == 1:
+            return df
+        idx = df.index
+        first_loc = idx[0]
+        row = df.iloc[[0]]
+        # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
+        if isinstance(idx, pd.IntervalIndex):
+            start = min(idx.left)
+            end = max(idx.right)
+            iv = pd.Interval(start, end, closed=idx.closed)
+            row.index = pd.IntervalIndex([iv], name='segment')
+            row.loc[iv, 'duration_qb'] = iv.length
+        else:
+            new_duration = df.duration_qb.sum()
+            row.loc[first_loc, 'duration_qb'] = new_duration
+        return row
+
+    grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
+    if any(gr.isna().any() for gr in groups):
+        logger.warning(
+            f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")
+    if isinstance(grouped.index, pd.MultiIndex):
+        grouped.index = grouped.index.reorder_levels([-1] + list(range(N)))
+    else:
+        logger.debug("Groupby-apply did not generate MultiIndex.")
+        grouped = grouped.set_index(list(groups), append=True)
+    if group_keys:
+        no_tuples = lambda coll: not any(isinstance(e, tuple) for e in coll)
+        new_levels = [index_level.map(d) if no_tuples(d.values()) else index_level for
+                      index_level, d in zip(grouped.index.levels[1:], names)]
+        grouped.index = grouped.index.set_levels(new_levels, level=list(range(1, N + 1)),
+                                                 verify_integrity=False)
+    print(grouped.index.names)
+    return grouped
 
 
 def segment_by_interval_index(df, idx, truncate=True):
@@ -835,6 +923,7 @@ def slice_df(df, quarters_per_slice=None):
     :obj:`pandas.DataFrame`
 
     """
+    assert isinstance(df.index, pd.IntervalIndex), f"DataFrame is expected to have an IntervalIndex, not {type(df.index)}."
     end = max(df.index.right)
     if quarters_per_slice is None:
         lefts = sorted(set(df.index.left))
