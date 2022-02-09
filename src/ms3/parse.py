@@ -1424,7 +1424,7 @@ Available keys: {available_keys}""")
                 if tup is not None:
                     yield (key,) + tup
 
-    def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False):
+    def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False, weight_grace_durations=0):
         keys = self._treat_key_param(keys)
         for key in keys:
             for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing):
