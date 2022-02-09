@@ -835,7 +835,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
             start = min(idx.left)
             end = max(idx.right)
             iv = pd.Interval(start, end, closed=idx.closed)
-            row.index = pd.IntervalIndex([iv], name='segment')
+            row.index = pd.IntervalIndex([iv])
             row.loc[iv, 'duration_qb'] = iv.length
         else:
             new_duration = df.duration_qb.sum()
@@ -857,7 +857,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
                       index_level, d in zip(grouped.index.levels[1:], names)]
         grouped.index = grouped.index.set_levels(new_levels, level=list(range(1, N + 1)),
                                                  verify_integrity=False)
-    print(grouped.index.names)
+    grouped.index.rename('segment', level=0, inplace=True)
     return grouped
 
 
