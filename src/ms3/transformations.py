@@ -1,5 +1,6 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
+from collections.abc import Iterable
 from fractions import Fraction as frac
 from functools import reduce
 
@@ -669,7 +670,13 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     return res
 
 @function_logger
-def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, fillna=True, additional_group_cols=None):
+def notes2pcvs(notes,
+               pitch_class_format='tpc',
+               normalize=False,
+               long=False,
+               fillna=True,
+               additional_group_cols=None,
+               ensure_columns=None):
     """
 
     Parameters
@@ -692,9 +699,17 @@ def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, fil
         for one slice. Pass True if you need long format instead, i.e. with a non-unique
         :obj:`pandas.IntervalIndex` and two columns, ``[('tpc'|'midi'), 'duration_qb']``
         where the first column's name depends on ``pitch_class_format``.
+    fillna : :obj:`bool`, optional
+        By default, if a Pitch class does not appear in a PCV, its value will be 0. Pass False if
+        you want NA instead.
     additional_group_cols : (:obj:`list` of) :obj:`str`
         If you would like to maintain some information from other columns of ``notes`` in additional index levels,
         pass their names.
+    ensure_columns : :obj:`Iterable`, optional
+        By default, pitch classes that don't appear don't get a column. Pass a value if you want to
+        ensure the presence of particular columns, even if empty. For example, if ``pitch_class_format='pc'``
+        you could pass ``ensure_columns=range(12).
+
 
     Returns
     -------
@@ -734,8 +749,13 @@ def notes2pcvs(notes, pitch_class_format='tpc', normalize=False, long=False, fil
             pcvs.columns = fifths2name(pcvs.columns)
         if normalize:
             pcvs = pcvs.div(pcvs.sum(axis=1), axis=0)
+    if ensure_columns is not None:
+        missing = [c for c in ensure_columns if c not in pcvs.columns]
+        if len(missing) > 0:
+            new_cols = pd.DataFrame(index=pcvs.index, columns=missing)
+            pcvs = pd.concat([pcvs, new_cols], axis=1).sort_index(axis=1)
     if fillna:
-        return pcvs.fillna(0.0)
+        return pcvs.fillna(0.)
     return pcvs
 
 
