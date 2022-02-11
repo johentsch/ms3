@@ -9,8 +9,8 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, ordinal_suffix, pretty_dict,\
-    resolve_dir, rgba2attrs, rgba2params, sort_note_list
+from .utils import color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
+    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, sort_note_list
 
 
 
@@ -660,6 +660,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
         data['last_mn'] = int(last_measure.mn)
+        lqb, lqbu = get_quarterbeats_length(self.ml)
+        data['length_qb'] = lqb
+        data['length_qb_unfolded'] = lqbu
         data['label_count'] = len(self.get_raw_labels())
         data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
         data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
@@ -674,7 +677,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         if annotated_key is not None:
             data['annotated_key'] = annotated_key
         if len(self.nl.index) == 0:
+            data['all_notes_qb'] = 0.
             return data
+        data['all_notes_qb'] = round((self.nl.duration * 4.).sum(), 2)
         staff_groups = self.nl.groupby('staff').midi
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
                         for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}

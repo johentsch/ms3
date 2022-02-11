@@ -1307,7 +1307,7 @@ Available keys: {available_keys}""")
         if ml is None:
             self.logger.warning(f"Could not find measure list for key {id}.")
             return None
-        offset_col = make_continuous_offset(ml, quarters=True)
+        offset_col = make_continuous_offset(ml)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
@@ -1427,7 +1427,8 @@ Available keys: {available_keys}""")
     def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False, weight_grace_durations=0):
         keys = self._treat_key_param(keys)
         for key in keys:
-            for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing):
+            for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing,
+                                            weight_grace_durations=weight_grace_durations):
                 if tup is not None:
                     yield (key,) + tup
 
@@ -1581,9 +1582,9 @@ Available keys: {available_keys}""")
         -------
 
         """
-        first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count',
-                      'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
-                      'movementTitle',
+        first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb', 'length_qb_unfolded',
+                      'all_notes_qb', 'KeySig', 'TimeSig', 'label_count', 'annotated_key', 'annotators',
+                      'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
                       'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                       'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
         if from_tsv:
@@ -2814,23 +2815,24 @@ class View(Parse):
             result = (md, paths) + tuple(result)
             yield result
 
-    def iter_transformed(self, columns, warn_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+    def iter_transformed(self, columns, warn_missing=True, unfold=False, quarterbeats=False, interval_index=False):
         if not any((unfold, quarterbeats, interval_index)):
             for md, paths, *dfs in self.iter(columns, skip_missing=warn_missing):
-                if warn_missing and any(df is None for df in dfs):
+                if not any(df is None for df in dfs):
+                    yield (md, paths) + tuple(dfs)
+                elif warn_missing:
                     self.logger.warning(f"Not all requested data available for {md['fnames']}.")
-                else:
-                    yield tup
+
         else:
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
             for md, paths, *dfs, measures in self.iter(columns, skip_missing=warn_missing):
-                if warn_missing and any(df is None for df in dfs + [measures]):
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
-                else:
+                if not any(df is None for df in dfs + [measures]):
                     dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
                     yield (md, paths[:-1], *dfs)
+                elif warn_missing:
+                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
 
 
     def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0):
@@ -2842,8 +2844,8 @@ class View(Parse):
                 else:
                     self.logger.debug(msg)
                 continue
-                if weight_grace_durations > 0:
-                    notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
+            if weight_grace_durations > 0:
+                notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
             yield md, paths, notes
 
 

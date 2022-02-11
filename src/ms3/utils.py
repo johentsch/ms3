@@ -923,6 +923,29 @@ def get_path_component(path, after):
     return os.path.join(higher_levels, base1)
 
 
+def get_quarterbeats_length(measures, decimals=2):
+    """ Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.
+
+    Parameters
+    ----------
+    measures : :obj:`pandas.DataFrame`
+
+    Returns
+    -------
+    float, float
+        Length and unfolded length, both measuresd in quarter notes.
+    """
+    mc_durations = measures.set_index('mc').act_dur * 4.
+    length_qb = round(mc_durations.sum(), decimals)
+    try:
+        playthrough2mc = make_playthrough2mc(measures, logger=logger)
+        length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
+    except Exception as e:
+        print(f"Failed to unfold measures: {e}")
+        length_qb_unfolded = np.nan
+    return length_qb, length_qb_unfolded
+
+
 def group_id_tuples(l):
     """ Turns a list of (key, ix) into a {key: [ix]}
 
@@ -1356,7 +1379,8 @@ def make_continuous_offset(measures, quarters=True, negative_anacrusis=None):
     Parameters
     ----------
     measures : :obj:`pandas.DataFrame`
-        A measures table containing the column 'act_durs' and one of 'mc' or 'mc_playthrough' (if repeats were unfolded).
+        A measures table with 'normal' RangeIndex containing the column 'act_durs' and one of
+        'mc' or 'mc_playthrough' (if repeats were unfolded).
     quarters : :obj:`bool`, optional
         By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions
         of a whole note.
