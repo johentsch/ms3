@@ -222,7 +222,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 @function_logger
 def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
-    """Pass a DataFrame and a measures table to unfold repeats and/or add quarterbeats columns and/or index."""
+    """Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index."""
     if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
     if interval_index:
@@ -236,7 +236,14 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
             dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
                    if df is not None else df for df in dfs]
     elif quarterbeats:
-        # deal with voltas here
+        if 'volta' in measures.columns:
+            if 3 in measures.volta.values:
+                logger.warning(
+                    f"Piece contains third endings, note that only second endings are taken into account.")
+            else:
+                logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
+                             f"compute quarterbeats for a full playthrough.")
+            measures = measures.drop(index=measures[measures.volta.fillna(2) != 2].index, columns='volta')
         continuous_offset = make_continuous_offset(measures, logger=logger)
         dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
                if df is not None else df for df in dfs]
