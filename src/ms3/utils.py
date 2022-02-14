@@ -18,12 +18,25 @@ from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg
 
+METADATA_COLUMN_ORDER = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb',
+                         'length_qb_unfolded', 'all_notes_qb', 'TimeSig', 'KeySig', 'label_count',
+                         'annotated_key', 'annotators',
+                         'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
+                         'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
+                         'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+
+STANDARD_COLUMN_ORDER = [
+    'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',
+    'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
+    'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
+
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
                   'harmonies', 'cadences', 'form_labels', 'MS3', 'score', 'scores']
 """:obj:`list`
 Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
 considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
 """
+
 
 DCML_REGEX = re.compile(r"""
 ^(\.?
@@ -1177,8 +1190,8 @@ def join_tsvs(dfs, sort_cols=False):
     dfs : :obj:`Collection`
         Collection of DataFrames to join.
     sort_cols : :obj:`bool`, optional
-        If you pass True, the remaining columns (those that are not defined in the standard column order in the function
-        sort_cols) will be sorted.
+        If you pass True, the columns after those defined in :py:attr:`STANDARD_COLUMN_ORDER`
+        will be sorted alphabetically.
 
     Returns
     -------
@@ -2040,9 +2053,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
 def column_order(df, first_cols=None, sort=True):
     """Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. """
     if first_cols is None:
-        first_cols = [
-            'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat', 'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
-            'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
+        first_cols = STANDARD_COLUMN_ORDER
     cols = df.columns
     remaining = [col for col in cols if col not in first_cols]
     if sort:
@@ -2451,13 +2462,11 @@ def write_metadata(df, path, markdown=True, index=False):
             logger.warning(f"Updating existing metadata at {tsv_path} failed with the following error:\n{sys.exc_info()[1]}")
             write_this = df
             msg = 'Replaced '
-    first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'KeySig', 'TimeSig', 'label_count', 'harmony_version',
-                  'annotated_key', 'annotators', 'reviewers', 'composer', 'workTitle', 'movementNumber',
-                  'movementTitle',
-                  'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                  'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+    convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in df}
+    if len(convert_to_str) > 0:
+        write_this = write_this.astype(convert_to_str, errors='ignore')
     write_this.sort_index(inplace=True)
-    column_order(write_this, first_cols).to_csv(tsv_path, sep='\t', index=index)
+    column_order(write_this, METADATA_COLUMN_ORDER).to_csv(tsv_path, sep='\t', index=index)
     logger.info(f"{msg} {tsv_path}")
     if markdown:
         rename4markdown = {

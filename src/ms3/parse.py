@@ -10,9 +10,10 @@ import numpy as np
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .score import Score
-from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples,\
-    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, make_id_tuples, \
-    make_playthrough2mc, metadata2series, path2type, pretty_dict, resolve_dir, \
+from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
+    group_id_tuples, \
+    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, \
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, pretty_dict, resolve_dir, \
     scan_directory, unfold_repeats, update_labels_cfg, write_metadata, write_tsv
 from .transformations import add_quarterbeats_col, add_weighted_grace_durations, dfs2quarterbeats
 
@@ -1034,7 +1035,7 @@ Available keys: {available_keys}""")
 
 
 
-    def fname2ids(self, fname, key=None, allow_suffix=True):
+    def fname2ids(self, fname, key=None, rel_path=None, allow_suffix=True):
         """For a given filename, return corresponding IDs.
 
         Parameters
@@ -1043,6 +1044,9 @@ Available keys: {available_keys}""")
             Filename (without extension) to get IDs for.
         key : :obj:`str` or :obj:`~collections.abc.Collection`, optional
             If you want to scan through IDs of one or several particular keys, specify.
+        rel_path : :obj:`str`, optional
+            Passing a rel_path is useful for associating a row from metadata.tsv with a parsed
+            MuseScore file.
         allow_suffix : :obj:`bool`, optional
             By default, filenames are matched even if they continue with a suffix. Pass False to return only exact matches.
 
@@ -1056,6 +1060,8 @@ Available keys: {available_keys}""")
             ids = {(k, i): self.fnames[k][i]  for k, i in self._iterids(key) if self.fnames[k][i][:l] == fname}
         else:
             ids = {(k, i): self.fnames[k][i] for k, i in self._iterids(key) if self.fnames[k][i] == fname}
+        if rel_path is not None:
+            ids = {(k, i): fname for (k, i), fname in ids.items() if self.rel_paths[k][i] == rel_path}
         return ids
 
 
@@ -1091,7 +1097,8 @@ Available keys: {available_keys}""")
     def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False,
                   events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False,
                   simulate=False, flat=False, unfold=False, quarterbeats=False, interval_index=False):
-        """ Retrieve a dictionary with the selected feature matrices.
+        """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
+        If you want to retrieve parse TSV files, use :py:meth:`get_tsvs`.
 
         Parameters
         ----------
@@ -1126,7 +1133,7 @@ Available keys: {available_keys}""")
 
         Returns
         -------
-
+        {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
         """
         if ids is None:
             ids = list(self._iterids(keys))
@@ -1178,9 +1185,37 @@ Available keys: {available_keys}""")
 
     def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
                  events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False, flat=False):
+        """Retrieve a dictionary with the selected feature matrices from the parsed TSV files.
+        If you want to retrieve matrices from parsed scores, use :py:meth:`get_lists`.
+
+        Parameters
+        ----------
+        keys
+        ids
+        metadata
+        notes
+        rests
+        notes_and_rests
+        measures
+        events
+        labels
+        chords
+        expanded
+        cadences
+        form_labels
+        flat : :obj:`bool`, optional
+            By default, you get a nested dictionary {list_type -> {index -> list}}.
+            By passing True you get a dictionary {(id, list_type) -> list}
+
+        Returns
+        -------
+        {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
+        """
+
+
         if ids is None:
             ids = list(self._iterids(keys, only_parsed_tsv=True))
-        if len(self._tsv_types) == 0:
+        if len(self._parsed_tsv) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
             return {}
         bool_params = ['metadata'] + list(self._lists.keys())
@@ -1576,22 +1611,23 @@ Available keys: {available_keys}""")
         Parameters
         ----------
         keys
-        from_tsv
+        from_tsv : :obj:`bool`, optional
+            If set to True, you'll get a concatenation of all parsed TSV files that have been
+            recognized as containing metadata. If you want to specifically retrieve files called
+            'metadata.tsv' only, use :py:meth:`metadata_tsv`.
 
         Returns
         -------
 
         """
-        first_cols = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb', 'length_qb_unfolded',
-                      'all_notes_qb', 'KeySig', 'TimeSig', 'label_count', 'annotated_key', 'annotators',
-                      'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
-                      'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                      'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
         if from_tsv:
-            tsv_dfs = self.metadata_tsv(keys=keys)
+            tsv_dfs = self.get_tsvs(keys=keys, metadata=True)['metadata']
             if len(tsv_dfs) > 0:
                 df = pd.concat(tsv_dfs.values(), keys=tsv_dfs.keys())
                 df.index.names = ['key', 'i', 'metadata_id']
+
+            # this option does not give control over keys:
+            tsv_dfs = self._metadata
         else:
             parsed_ids = list(self._iterids(keys, only_parsed_mscx=True))
             if len(parsed_ids) > 0:
@@ -1604,22 +1640,40 @@ Available keys: {available_keys}""")
                 df = pd.DataFrame()
 
         if len(df) > 0:
-            return column_order(df, first_cols).sort_index()
+            return column_order(df, METADATA_COLUMN_ORDER).sort_index()
         else:
             what = 'metadata TSVs' if from_tsv else 'scores'
             self.logger.info(f"No {what} have been parsed so far.")
             return df
 
-    def metadata_tsv(self, keys=None):
-        """Returns a {id -> DataFrame} dictionary with all parsed TSVs recognized as metadata."""
+    def metadata_tsv(self, keys=None, parse_if_necessary=True):
+        """Returns a {id -> DataFrame} dictionary with all metadata.tsv files. To retrieve parsed
+        files recognized as containing metadata independent of their names, use :py:meth:`get_tsvs`."""
         keys = self._treat_key_param(keys)
         if len(self._parsed_tsv) == 0:
-            self.logger.debug(f"No TSV files have been parsed so far. Use Parse.parse_tsv().")
-            return pd.DataFrame()
-        metadata_dfs = self.get_tsvs(keys, metadata=True)['metadata']
+            if not parse_if_necessary:
+                self.logger.debug(f"No TSV files have been parsed so far. Use Parse.parse_tsv().")
+                return pd.DataFrame()
+        metadata_dfs = {}
+        for k in keys:
+            try:
+                i = self.files[k].index('metadata.tsv')
+            except ValueError:
+                self.logger.info(f"Key '{k}' does not include a file names 'metadata.tsv'.")
+            id = (k, i)
+            if id not in self._parsed_tsv:
+                if parse_if_necessary:
+                    self.parse_tsv(ids=[id])
+                else:
+                    self.logger.debug(
+                        f"Found unparsed metadata for key '{k}' but parse_if_necessary is set to False.")
+            if id in self._parsed_tsv:
+                metadata_dfs[id] = self._parsed_tsv[id]
+            elif parse_if_necessary:
+                self.logger.info(f"Could not find the DataFrame for the freshly parsed {self.full_paths[k][i]}.")
         n_found = len(metadata_dfs)
         if n_found == 0:
-            self.logger.info(f"No TSV file has been recognized as metadata for {', '.join(keys)}")
+            self.logger.info(f"No metadata.tsv files have been found for they keys {', '.join(keys)}")
             return {}
         return metadata_dfs
 
@@ -2420,16 +2474,40 @@ Load one of the identically named files with a different key using add_dir(key='
                 f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
-    def update_metadata(self):
+    def update_metadata(self, allow_suffix=False):
         """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
-        the IDs of those that have been changed."""
-        if len(self._metadata) == 0:
+        the IDs of those that have been changed.
+
+        Parameters
+        ----------
+        allow_suffix : :obj:`bool`, optional
+            If set to True, this would also update the metadata for currently parsed MuseScore files
+            corresponding to the columns 'rel_paths' and 'fnames' + [ANY SUFFIX]. For example,
+            the row ('MS3', 'bwv846') would also update the metadata of 'MS3/bwv846_reviewed.mscx'.
+
+        Returns
+        -------
+        :obj:`list`
+            IDs of the parsed MuseScore files whose metadata has been updated.
+        """
+        metadata_dfs = self.metadata_tsv()
+        if len(metadata_dfs) > 0:
+            metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys())
+        else:
+            metadata = self._metadata
+        if len(metadata) == 0:
             self.logger.debug("No parsed metadata found.")
             return
-        old = self._metadata.set_index(['rel_paths', 'fnames'])
-        new = self.metadata()
+        old = metadata
+        if old.index.names != ['rel_paths', 'fnames']:
+            try:
+                old = old.set_index(['rel_paths', 'fnames'])
+            except KeyError:
+                self.logger.warning(f"Parsed metadata do not contain the columns 'rel_paths' and 'fnames' "
+                                    f"needed to match information on identical files.")
+        new = self.metadata(from_tsv=False).set_index(['rel_paths', 'fnames'])
         excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
-                         'TimeSig']
+                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb']
         old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
 
         parsed = old.index.map(lambda i: i in new.index)
@@ -2446,15 +2524,19 @@ Load one of the identically named files with a different key using add_dir(key='
         ids = []
         if l > 0:
             for (rel_path, fname), new_dict in updates.items():
-                id = self.idx2id(rel_path=rel_path, fname=fname)
-                if id not in self._parsed_mscx:
+                matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)
+                match_ids = [id for id in matches.keys() if id in self._parsed_mscx]
+                n_files_to_update = len(match_ids)
+                if n_files_to_update == 0:
+                    self.logger.debug(
+                        f"rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.")
                     continue
-                tags = self._parsed_mscx[id].mscx.parsed.metatags
-                for name, val in new_dict.items():
-                    tags[name] = val
-                self._parsed_mscx[id].mscx.parsed.update_metadata()
-                get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
-                ids.append(id)
+                for id in match_ids:
+                    for name, val in new_dict.items():
+                        self._parsed_mscx[id].mscx.parsed.metatags[name] = val
+                    self._parsed_mscx[id].mscx.parsed.update_metadata()
+                    get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
+                    ids.append(id)
 
             self.logger.info(f"{l} files updated.")
         else:
@@ -2577,10 +2659,11 @@ class View(Parse):
         """
 
 
-    @property
+
     def metadata(self):
         if self.metadata_id is None:
-            # always give preference to parsed metadata files because they might contain additional information
+            # always give preference to parsed metadata files because they might contain additional
+            # information and may exclude unwanted files
             metadata_tsv = self.p.metadata_tsv(self.key)
             if len(metadata_tsv) > 0:
                 id = list(metadata_tsv.keys())[0]
@@ -2622,7 +2705,7 @@ class View(Parse):
     def names(self):
         """A list of the View's filenames used for matching corresponding files in different folders.
            If metadata.tsv was parsed, the column ``fnames`` is used as authoritative list for this corpus."""
-        md = self.metadata
+        md = self.metadata()
         if 'fnames' in md.columns:
             fnames = md.fnames.to_list()
             if len(fnames) > md.fnames.nunique():
@@ -2698,7 +2781,7 @@ class View(Parse):
     def info(self, return_str=False):
         info = f"View on key {self.key}"
         info += '\n' + '_' * len(info) + '\n\n'
-        md = self.metadata
+        md = self.metadata()
         if self.metadata_id is None:
             score_ids = self.score_ids
             if len(score_ids) > 0:

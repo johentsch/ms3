@@ -152,7 +152,7 @@ def metadata(args):
         return
     ids = p.update_metadata() # Writes info to parsed MuseScore files
     if len(ids) == 0:
-        p.logger.info("Nothing to update.")
+        p.logger.debug("Nothing to update.")
         return
     if args.out is not None:
         p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
