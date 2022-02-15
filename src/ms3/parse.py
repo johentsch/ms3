@@ -2877,7 +2877,7 @@ class View(Parse):
 
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
-        for md, ids in zip(self.metadata.to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+        for md, ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
             skip_flat = False
             result, paths = [], []
             for c in cols:

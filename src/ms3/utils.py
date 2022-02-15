@@ -2045,7 +2045,8 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
     directory = resolve_dir(directory)
     counter = 0
     if not os.path.isdir(directory):
-        logger.warning("Not an existing directory: " + directory)
+        logger.error("Not an existing directory: " + directory)
+        return iter([])
     pbar = tqdm(desc='Scanning files', unit=' files') if progress else None
     return traverse(directory)
 

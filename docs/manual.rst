@@ -1278,7 +1278,7 @@ please refer to :ref:`onsets`.
 
 This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
 quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
-last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
+second ending is counted in order to give authentic values to such a score, as if played without repetitions (third endings and more are also ignored). If
 repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
 account correctly.
 
