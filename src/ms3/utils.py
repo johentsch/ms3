@@ -1504,7 +1504,12 @@ def map2elements(e, f, *args, **kwargs):
     """ If `e` is an iterable, `f` is applied to all elements.
     """
     if isinstance(e, Iterable) and not isinstance(e, str):
-        return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
+        try:
+            return e.__class__(map2elements(x, f, *args, **kwargs) for x in e)
+        except TypeError:
+            if isinstance(e, pd.Index):
+                ### e.g., if a numerical index is transformed to strings
+                return pd.Index(map2elements(x, f, *args, **kwargs) for x in e)
     return f(e, *args, **kwargs)
 
 

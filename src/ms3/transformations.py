@@ -744,23 +744,25 @@ def notes2pcvs(notes,
             group_levels += 1
     grouper.append(pitch_class_grouper)
     pcvs = notes.groupby(grouper).duration_qb.sum()
-    if long:
-        if normalize:
-            pcvs = pcvs.groupby(level=list(range(group_levels))).apply(lambda S: S / S.sum())
-        pcvs = pcvs.reset_index(level=-1)
-        if pitch_class_format == "name":
-            pcvs.loc[:, "tpc"] = transform(pcvs.tpc, fifths2name)
-    else:
-        pcvs = pcvs.unstack()
-        if pitch_class_format == "name":
-            pcvs.columns = fifths2name(pcvs.columns)
-        if normalize:
-            pcvs = pcvs.div(pcvs.sum(axis=1), axis=0)
+    # if long:
+    #     if normalize:
+    #         pcvs = pcvs.groupby(level=list(range(group_levels))).apply(lambda S: S / S.sum())
+    #     pcvs = pcvs.reset_index(level=-1)
+    #     if pitch_class_format == "name":
+    #         pcvs.loc[:, "tpc"] = transform(pcvs.tpc, fifths2name)
+    # else:
+    pcvs = pcvs.unstack()
+    if pitch_class_format == "name":
+        pcvs.columns = fifths2name(pcvs.columns)
+    if normalize:
+        pcvs = pcvs.div(pcvs.sum(axis=1), axis=0)
     if ensure_columns is not None:
         missing = [c for c in ensure_columns if c not in pcvs.columns]
         if len(missing) > 0:
             new_cols = pd.DataFrame(index=pcvs.index, columns=missing)
             pcvs = pd.concat([pcvs, new_cols], axis=1).sort_index(axis=1)
+    if long:
+        pcvs = pcvs.stack()
     if fillna:
         return pcvs.fillna(0.)
     return pcvs
