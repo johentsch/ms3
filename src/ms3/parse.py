@@ -1450,14 +1450,14 @@ Available keys: {available_keys}""")
         for key in keys:
             for tup in self[key].iter(columns=columns, skip_missing=skip_missing):
                 if tup is not None:
-                    yield (key, ) + tup
+                    yield (key, *tup)
 
     def iter_transformed(self, columns, keys=None, warn_missing=False, unfold=False, quarterbeats=False, interval_index=False):
         keys = self._treat_key_param(keys)
         for key in keys:
             for tup in self[key].iter_transformed(columns=columns, warn_missing=warn_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
                 if tup is not None:
-                    yield (key,) + tup
+                    yield (key, *tup)
 
     def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False, weight_grace_durations=0):
         keys = self._treat_key_param(keys)
@@ -1465,7 +1465,7 @@ Available keys: {available_keys}""")
             for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing,
                                             weight_grace_durations=weight_grace_durations):
                 if tup is not None:
-                    yield (key,) + tup
+                    yield (key, *tup)
 
 
     def join(self, keys=None, ids=None, what=None, use_index=True):
@@ -1483,7 +1483,7 @@ Available keys: {available_keys}""")
 
 
     def keys(self):
-        return list(self.files.keys())
+        return tuple(self.files.keys())
 
     def match_files(self, keys=None, ids=None, what=None, only_new=True):
         """ Match files based on their file names and return the matches for the requested keys or ids.
@@ -2878,7 +2878,7 @@ class View(Parse):
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
-            skip_flat = False
+            skip_flat = False # flag that serves the inner loop to make this loop skip yielding
             result, paths = [], []
             for c in cols:
                 if isinstance(c, str):
@@ -2887,22 +2887,23 @@ class View(Parse):
                     for cc in c:
                         df, path = get_dataframe(ids, cc)
                         if df is not None:
+                            c = cc
                             break
                 if df is None and skip_missing:
                     skip_flat = True
                     break
                 result.append(df)
-                paths.append(path)
+                paths.append((c, path))
             if skip_flat:
                 continue
-            result = (md, paths) + tuple(result)
-            yield result
+            md['paths'] = paths
+            yield (md, *result)
 
     def iter_transformed(self, columns, warn_missing=True, unfold=False, quarterbeats=False, interval_index=False):
         if not any((unfold, quarterbeats, interval_index)):
-            for md, paths, *dfs in self.iter(columns, skip_missing=warn_missing):
+            for md, *dfs in self.iter(columns, skip_missing=warn_missing):
                 if not any(df is None for df in dfs):
-                    yield (md, paths) + tuple(dfs)
+                    yield (md, *dfs)
                 elif warn_missing:
                     self.logger.warning(f"Not all requested data available for {md['fnames']}.")
 
@@ -2910,16 +2911,17 @@ class View(Parse):
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
-            for md, paths, *dfs, measures in self.iter(columns, skip_missing=warn_missing):
+            for md, *dfs, measures in self.iter(columns, skip_missing=warn_missing):
                 if not any(df is None for df in dfs + [measures]):
                     dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
-                    yield (md, paths[:-1], *dfs)
+                    md['paths'] = md['paths'][:-1]
+                    yield (md, *dfs)
                 elif warn_missing:
                     self.logger.warning(f"Not all requested data available for {md['fnames']}.")
 
 
     def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0):
-        for md, paths, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+        for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
             if notes is None:
                 msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
                 if warn_missing:
@@ -2929,7 +2931,7 @@ class View(Parse):
                 continue
             if weight_grace_durations > 0:
                 notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
-            yield md, paths, notes
+            yield md, notes
 
 
 
