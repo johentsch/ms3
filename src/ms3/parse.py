@@ -1316,7 +1316,8 @@ Available keys: {available_keys}""")
         if ml is None:
             return
         mc_playthrough = make_playthrough2mc(ml)
-        # res = pd.Series(seq, index=playthrough)
+        if len(mc_playthrough) == 0:
+            mc_playthrough = None
         self._playthrough2mc[id] = mc_playthrough
         return mc_playthrough
 

@@ -477,7 +477,11 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
         rows = voltas[voltas[volta_length].isna()]
         logger.debug(f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed.")
         voltas[volta_length] = voltas[volta_length].fillna(0)
-    voltas = voltas.astype(int)
+    try:
+        voltas = voltas.astype(int)
+    except ValueError:
+        logger.error(f"Could not compute volta structure because at least one MC contains several of them: {voltas}")
+        return {}
     if len(voltas) == 0:
         return {}
     if frac_col is not None:

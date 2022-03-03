@@ -229,6 +229,10 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         quarterbeats = True
     if unfold:
         playthrough2mc = make_playthrough2mc(measures, logger=logger)
+        if len(playthrough2mc) == 0:
+            logger.warning("Added quarterbeats without unfolding because of incorrect repeat structure.")
+            unfold = False
+    if unfold:
         dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
             unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)

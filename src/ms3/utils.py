@@ -952,7 +952,10 @@ def get_quarterbeats_length(measures, decimals=2):
     length_qb = round(mc_durations.sum(), decimals)
     try:
         playthrough2mc = make_playthrough2mc(measures, logger=logger)
-        length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
+        if len(playthrough2mc) == 0:
+            length_qb_unfolded = pd.NA
+        else:
+            length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
     except Exception as e:
         print(f"Failed to unfold measures: {e}")
         length_qb_unfolded = np.nan
@@ -1501,7 +1504,9 @@ def make_playthrough2mc(measures):
     ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
     mc_playthrough = pd.Series(seq, name='mc_playthrough')
-    if seq[0] == 1:
+    if len(mc_playthrough) == 0:
+        pass
+    elif seq[0] == 1:
         mc_playthrough.index += 1
     else:
         assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
@@ -1720,14 +1725,20 @@ def next2sequence(nxt):
     Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
     """
     mc = nxt.index[0]
+    last_mc = nxt.index[-1]
+    max_iter = 10 * last_mc
+    i = 0
     result = []
     nxt = nxt.to_dict()
-    while mc != -1:
+    while mc != -1 and i < max_iter:
         result.append(mc)
         new_mc, *rest = nxt[mc]
         if len(rest) > 0:
             nxt[mc] = rest
         mc = new_mc
+        i += 1
+    if i == max_iter:
+        return []
     return result
 
 
