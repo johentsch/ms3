@@ -31,7 +31,7 @@ STANDARD_COLUMN_ORDER = [
     'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
 
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-                  'harmonies', 'cadences', 'form_labels', 'MS3', 'score', 'scores']
+                  'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
 """:obj:`list`
 Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
 considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
@@ -1121,7 +1121,7 @@ def iterable2str(iterable):
     except:
         return iterable
 
-
+@function_logger
 def iterate_subcorpora(path: str,
                        prefixes: Iterable = None, # Iterable[str] would require python>=3.9
                        suffixes: Iterable = None,
@@ -1173,11 +1173,19 @@ def iterate_subcorpora(path: str,
             fnames, _ = zip(*[os.path.splitext(f) for f in files])
         else:
             fnames = []
-        if any(check_fname(f) for f in files) or \
-            any(check_fname(d) for d in subdirs) or \
-            any(check_fname(fn) for fn in fnames):
-            del(subdirs[:])
-            yield d
+        for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
+            if any(check_fname(i) for i in items_to_check):
+                match = next(i for i in items_to_check if check_fname(i))
+                logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
+                del (subdirs[:])
+                yield d
+                break
+        ### The inner for loop is equivalent to the following code but includes logging:
+        # if any(check_fname(f) for f in files) or \
+        #     any(check_fname(d) for d in subdirs) or \
+        #     any(check_fname(fn) for fn in fnames):
+        #     del(subdirs[:])
+        #     yield d
 
 
 @function_logger

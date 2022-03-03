@@ -513,7 +513,7 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
         if key is None:
-            directories = sorted(iterate_subcorpora(directory))
+            directories = sorted(iterate_subcorpora(directory, logger=self.logger))
             n_subcorpora = len(directories)
             if n_subcorpora == 0:
                 key = os.path.basename(directory)
