@@ -52,5 +52,5 @@ class TestParse:
         target_path = os.path.join(self.test_results, 'metadata.tsv')
         old = load_tsv(target_path, dtype='string')
         new = parsed_mscx.metadata().reset_index(drop=True).astype('string').replace('', pd.NA)
-        assert_dfs_equal(old, new)
+        assert_dfs_equal(old, new, exclude=['rel_paths'])
 
