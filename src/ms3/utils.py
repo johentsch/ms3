@@ -1397,8 +1397,8 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
 
 @function_logger
 def make_continuous_offset(measures, quarters=True, negative_anacrusis=None):
-    """ In order to compute continuous offset, this function is required to compute each MC's offset from the
-    piece's beginning.
+    """ Takes a measures table and compute each MC's offset from the piece's beginning. Deal with
+    voltas before passing the table.
 
     Parameters
     ----------

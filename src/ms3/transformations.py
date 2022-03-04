@@ -223,6 +223,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 @function_logger
 def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
     """Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index."""
+    assert sum((unfold, quarterbeats, interval_index)) >= 1, "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
     if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
     if interval_index:
@@ -251,8 +252,6 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         continuous_offset = make_continuous_offset(measures, logger=logger)
         dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
                if df is not None else df for df in dfs]
-    else:
-        logger.info("At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True.")
     return dfs
 
 
