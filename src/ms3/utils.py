@@ -19,7 +19,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg
 
 METADATA_COLUMN_ORDER = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb',
-                         'length_qb_unfolded', 'all_notes_qb', 'TimeSig', 'KeySig', 'label_count',
+                         'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'TimeSig', 'KeySig', 'label_count',
                          'annotated_key', 'annotators',
                          'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
