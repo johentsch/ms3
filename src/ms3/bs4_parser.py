@@ -61,7 +61,11 @@ class _MSCX_bs4(LoggedClass):
         self.read_only = read_only
         self.first_mc = 1
         self.measure_nodes = {}
-        self.tags = {} # only used if not self.read_only
+        """{staff -> {MC -> tag} }"""
+
+        self.tags = {}  # only used if not self.read_only
+        """{MC -> {staff -> {voice -> tag} } }"""
+
         self.has_annotations = False
         self.n_form_labels = 0
         self._ml = None
@@ -1655,7 +1659,7 @@ def format_node(node, indent):
     node_name = node.name
     # The following tags are exceptionally not abbreviated when empty,
     # so for instance you get <metaTag></metaTag> and not <metaTag/>
-    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'metaTag', 'trackName']:
+    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'programRevision', 'metaTag', 'trackName']:
         return f"{space}{make_oneliner(node)}\n"
     children = node.find_all(recursive=False)
     if len(children) > 0:

@@ -640,6 +640,11 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
         If you pass the name of a column, the string 'section' is taken into account
         as ending a section and therefore potentially ending a repeated part even when
         the repeat sign is missing.
+
+    Returns
+    -------
+    :obj:`pandas.Series`
+
     """
     nom_dur = df[timesig].map(frac)
     sel = df['act_dur'] < nom_dur
@@ -706,7 +711,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
             add_offset(mc)
     mc2ix = {m: ix for ix, m in df.mc.iteritems()}
     result = {mc2ix[m]: offset for m, offset in offsets.items()}
-    return pd.Series(result, name=name).reindex(df.index, fill_value=0)
+    return pd.Series(result, name=name, dtype='object').reindex(df.index, fill_value=0)
 
 
 def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
@@ -729,12 +734,24 @@ def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
 @function_logger
 def make_timesig_col(df, sigN_col, sigD_col, name='timesig'):
     if pd.isnull(df[sigN_col].iloc[0]):
-        logger.warning("No time signature defined in MC 1: Wild-guessing it's 4/4")
-        sigN_pos, sigD_pos = df.columns.get_loc(sigN_col), df.columns.get_loc(sigD_col)
-        df.iloc[0, [sigN_pos, sigD_pos]] = '4'
-    n = pd.to_numeric(df[sigN_col].fillna(method='ffill')).astype(str)
-    d = pd.to_numeric(df[sigD_col].fillna(method='ffill')).astype(str)
-    return (n + '/' + d).rename(name)
+        logger.info("No time signature defined in MC 1 (maybe an incipit?).")
+        ## old behaviour where missing time signature is set to 4/4
+        # sigN_pos, sigD_pos = df.columns.get_loc(sigN_col), df.columns.get_loc(sigD_col)
+        # df.iloc[0, [sigN_pos, sigD_pos]] = '4'
+    n = pd.to_numeric(df[sigN_col]).astype('Int64').fillna(method='ffill').astype('string')
+    d = pd.to_numeric(df[sigD_col]).astype('Int64').fillna(method='ffill').astype('string')
+    result = (n + '/' + d).rename(name)
+    if result.isna().any():
+        missing = result.isna()
+        result.fillna(method='bfill', inplace=True)
+        if result.isna().any():
+            logger.warning("No time signature specified. Wild-guessing it's the default 4/4.")
+            result = result.fillna('4/4')
+        else:
+            inferred = result[missing].to_dict()
+            logger.info(f"The following measures have received the first timesig of the piece although "
+                             f"it occurred only later:\n{inferred}")
+    return result
 
 
 def make_volta_col(df, volta_structure, mc='mc', name='volta'):
