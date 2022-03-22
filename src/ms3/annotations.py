@@ -122,7 +122,7 @@ Possible values are {{1, 2, 3, 4}}.""")
         if self.cols['mc'] not in cols:
             mn_col = self.cols['mn'] if 'mn' in self.cols else 'mn'
             if mn_col not in cols:
-                self.logger.warning(f"Annotations are lacking 'mn' and 'mc' columns.")
+                self.logger.error(f"Annotations need to have at least one column named 'mn' or 'mc'.")
                 error = True
             else:
                 inferred_positions = self.infer_mc_from_mn()
@@ -130,7 +130,11 @@ Possible values are {{1, 2, 3, 4}}.""")
                     self.logger.error(f"Measure counts and corresponding mc_onsets could not be successfully inferred.")
                     error = True
                 else:
-                    self.logger.info(f"Measure counts and corresponding mc_onsets successfully inferred.")
+                    if 'mn_onset' not in self.cols:
+                        self.logger.info(f"Measure counts successfully inferred. Since there is no 'mn_onset' column, all "
+                                         f"mc_onsets have been set to 0.")
+                    else:
+                        self.logger.info(f"Measure counts and corresponding mc_onsets successfully inferred.")
                     df.insert(df.columns.get_loc('mn'), 'mc', inferred_positions['mc'])
                     df.loc[:, 'mc_onset'] = inferred_positions['mc_onset']
                     cols.extend(['mc', 'mc_onset'])

@@ -1254,6 +1254,7 @@ def str2inttuple(l):
             res.append(int(s))
         except:
             print(f"String value '{s}' could not be converted to a tuple.")
+            raise
     return tuple(res)
 
 

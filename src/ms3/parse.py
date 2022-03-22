@@ -457,7 +457,11 @@ class Parse(LoggedClass):
                     f"Instead, you could pass the match_dict argument with a mapping of Score IDs to Annotations IDs.")
             return
         for score_id, labels_id in match_dict.items():
-            if score_id in self._parsed_mscx and not pd.isnull(labels_id):
+            if pd.isnull(score_id):
+                self.logger.info(f"No score found for labels ('{tsv_key}', {labels_id})")
+            elif pd.isnull(labels_id):
+                self.logger.info(f"No labels found for score ('{tsv_key}', {score_id})")
+            elif score_id in self._parsed_mscx:
                 if labels_id in self._annotations:
                     k = labels_id[0] if pd.isnull(new_key) else new_key
                     try:
@@ -1536,7 +1540,7 @@ Available keys: {available_keys}""")
             if ix in self._matches.index:
                 self._matches.loc[ix, :] = row
             else:
-                self._matches = self._matches.append(row)
+                self._matches = pd.concat([self._matches, pd.DataFrame(row).T])
                 if len(self._matches) == 1:
                     self._matches.index = pd.MultiIndex.from_tuples(self._matches.index)
 
