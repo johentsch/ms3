@@ -83,6 +83,21 @@ def convert_cmd(args):
                    overwrite=args.safe,
                    parallel=args.nonparallel)
 
+def empty(args):
+    logger_cfg = {
+        'level': args.level,
+    }
+    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
+              recursive=args.nonrecursive, logger_cfg=logger_cfg)
+    p.parse_mscx(parallel=False)
+    p.detach_labels()
+    p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
+    ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
+    if args.out is not None:
+        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+    else:
+        p.store_mscx(ids=ids, overwrite=True)
+
 
 def extract(args):
     labels_cfg = {
@@ -326,41 +341,6 @@ The library offers you the following commands. Add the flag -h to one of them to
 ''')
     subparsers = parser.add_subparsers(help='The action that you want to perform.', dest='action')
 
-    extract_parser = subparsers.add_parser('extract', help="Extract selected information from MuseScore files and store it in TSV files.",
-                                           parents=[input_args])
-    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?', const='../measures',
-                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
-    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes', help="Folder where to store TSV files with information on all notes.")
-    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
-                                help="Folder where to store TSV files with information on all rests.")
-    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../annotations', help="Folder where to store TSV files with information on all annotation labels.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
-                                help="Folder where to store TSV files with expanded DCML labels.")
-    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events', help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
-    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chord_events', help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
-    extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
-                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
-    extract_parser.add_argument('-s', '--suffix', nargs='*',  metavar='SUFFIX',
-                        help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
-                             "in which they are listed above (capital letter arguments).")
-    extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
-Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
-    extract_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
-    extract_parser.add_argument('-p', '--positioning', action='store_true', help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
-    extract_parser.add_argument('--raw', action='store_false', help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
-    extract_parser.add_argument('-u', '--unfold', action='store_true', help="Unfold the repeats for all stored DataFrames.")
-    extract_parser.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
-                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
-    extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
-or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
-In the former case, --logpath will be disregarded.""")
-    extract_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
-MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
-subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
-    extract_parser.set_defaults(func=extract)
-
 
 
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
@@ -401,6 +381,68 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser.add_argument('--safe', action='store_false',
                                 help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
+
+
+
+    empty_parser = subparsers.add_parser('empty',
+                                         help="Remove harmony annotations and store the MuseScore files without them.",
+                                         parents=[input_args])
+    # TODO: staff parameter needs to accept one to several integers including negative
+    # empty_parser.add_argument('-s', '--staff',
+    #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
+    # empty_parser.add_argument('--type', default=1,
+    #                            help="Only remove particular types of harmony labels.")
+    empty_parser.set_defaults(func=empty)
+
+
+
+    extract_parser = subparsers.add_parser('extract',
+                                           help="Extract selected information from MuseScore files and store it in TSV files.",
+                                           parents=[input_args])
+    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
+                                const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+                                help="Folder where to store TSV files with information on all notes.")
+    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
+                                const='../annotations',
+                                help="Folder where to store TSV files with information on all annotation labels.")
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
+                                const='../harmonies',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?',
+                                const='../chord_events',
+                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+    extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
+                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
+                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                                     "in which they are listed above (capital letter arguments).")
+    extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
+    Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
+    extract_parser.add_argument('-t', '--test', action='store_true',
+                                help="No data is written to disk.")
+    extract_parser.add_argument('-p', '--positioning', action='store_true',
+                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
+    extract_parser.add_argument('--raw', action='store_false',
+                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
+    extract_parser.add_argument('-u', '--unfold', action='store_true',
+                                help="Unfold the repeats for all stored DataFrames.")
+    extract_parser.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
+    or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
+    In the former case, --logpath will be disregarded.""")
+    extract_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
+    MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
+    subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
+    extract_parser.set_defaults(func=extract)
 
 
 
