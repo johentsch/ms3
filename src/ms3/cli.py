@@ -476,15 +476,15 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
 def run():
     parser = get_arg_parser()
     args = parser.parse_args()
+    if 'func' not in args:
+        parser.print_help()
+        return
     if args.file is None:
         if args.dir is None:
             args.dir = os.getcwd()
     else:
         args.file = [resolve_dir(path) for path in args.file]
-    if 'func' in args:
-        args.func(args)
-    else:
-        parser.print_help()
+    args.func(args)
 
 
 
