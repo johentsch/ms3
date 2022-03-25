@@ -2677,6 +2677,21 @@ Load one of the identically named files with a different key using add_dir(key='
         self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
 
 
+    def __iter__(self):
+        """
+
+        Yields
+        ------
+        (str, ms3.parse.View)
+            For iterating through the keys and associated View objects.
+        """
+        keys = self.keys()
+        if len(keys) == 0:
+            self.logger.info("No files have been added to this Parse object.")
+        for k in keys:
+            yield k, self._get_view(k)
+
+
     def __repr__(self):
         return self.info(return_str=True)
 
