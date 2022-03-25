@@ -247,21 +247,25 @@ class Score(LoggedClass):
         return self._label_types
 
 
-    def attach_labels(self, key, staff=None, voice=None, label_type=None, check_for_clashes=True, remove_detached=True):
+    def attach_labels(self, key, staff=None, voice=None, label_type=1, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
         ----------
         key : :obj:`str`
             Key of the detached labels you want to insert into the score.
-        staff, voice : :obj:`int`, optional
-            Pass one or both of these arguments to change the original annotation layer or if there was none.
+        staff : :obj:`int`, optional
+            By default, labels are added to staves as specified in the TSV or to -1 (lowest).
+            Pass an integer to specify a staff.
+        voice : :obj:`int`, optional
+            By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
+            Pass an integer to specify a voice.
         label_type : :obj:`int`, optional
-            By default, the labels are written into the staff's layer for absolute ('guitar') chords, meaning that when
-            opened next time, MuseScore will split and encode those beginning with a note name (internal label_type 3).
-            In order to influence how MuseScore treats the labels pass one of these values:
-            1: Roman Numeral Analysis
-            2: Nashville Numbers
+            | By default, the labels are written into the staff's layer for Roman Numeral Analysis.
+            | To change the behaviour pass
+            | * None to instead attach them as absolute ('guitar') chords, meaning that when opened next time,
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.

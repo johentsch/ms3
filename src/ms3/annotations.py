@@ -83,42 +83,38 @@ class Annotations(LoggedClass):
         self.df[label_col] = self.df[label_col].map(add_dots)
 
 
-    def prepare_for_attaching(self, staff=None, voice=None, label_type=None, check_for_clashes=True):
+    def prepare_for_attaching(self, staff=None, voice=None, label_type=1, check_for_clashes=True):
         if self.mscx_obj is None:
             self.logger.warning(f"Annotations object not aware to which MSCX object it is attached.")
             return pd.DataFrame()
         df = self.df.copy()
         cols = list(df.columns)
-        error = False
         staff_col = self.cols['staff']
         if staff_col not in cols:
             if staff is None:
-                self.logger.warning(f"""Annotations don't have staff information. Pass the argument staff to decide where to attach them.
-Available staves are {self.mscx_obj.staff_ids}""")
-                error = True
-        if staff is not None:
+                self.logger.info("Annotations don't have staff information. Using the default -1 (lowest staff).")
+                staff = -1
             df[staff_col] = staff
-        if staff_col in cols and df[staff_col].isna().any():
-            self.logger.warning(f"The following labels don't have staff information: {df[df.staff.isna()]}")
-            error = True
+        if df[staff_col].isna().any():
+            if staff is None:
+                self.logger.info("Some labels don't have staff information. Using the default -1 (lowest staff) for those.")
+                staff = -1
+            df[staff_col].fillna(staff)
 
         voice_col = self.cols['voice']
         if voice_col not in cols:
             if voice is None:
-                self.logger.warning(f"""Annotations don't have voice information. Pass the argument voice to decide where to attach them.
-Possible values are {{1, 2, 3, 4}}.""")
-                error = True
-        if voice is not None:
+                self.logger.info("Annotations don't have voice information. Attaching to the default, voice 1.")
+                voice = 1
             df[voice_col] = voice
-        if voice_col in cols and df[voice_col].isna().any():
-            self.logger.warning(f"The following labels don't have voice information: {df[df.voice.isna()]}")
-            error = True
-        if error:
-            return pd.DataFrame()
+        if df[voice_col].isna().any():
+            if voice is None:
+                self.logger.info("Some labels don't have voice information. Attaching to the default, voice 1.")
 
         if label_type is not None:
             df[self.cols['label_type']] = label_type
 
+        error = False
         if self.cols['mc'] not in cols:
             mn_col = self.cols['mn'] if 'mn' in self.cols else 'mn'
             if mn_col not in cols:
