@@ -258,6 +258,37 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+    def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, label_type=1,
+                                check_for_clashes=False):
+        """ For each pair, adds the labels at tsv_id to the score at score_id.
+
+        Parameters
+        ----------
+        list_of_pairs : list of (score_id, tsv_id)
+            IDs of parsed files.
+        staff : :obj:`int`, optional
+            By default, labels are added to staves as specified in the TSV or to -1 (lowest).
+            Pass an integer to specify a staff.
+        voice : :obj:`int`, optional
+            By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
+            Pass an integer to specify a voice.
+        label_type : :obj:`int`, optional
+            | By default, the labels are written into the staff's layer for Roman Numeral Analysis.
+            | To change the behaviour pass
+            | * None to instead attach them as absolute ('guitar') chords, meaning that when opened next time,
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            | * 2 to have MuseScore interpret them as Nashville Numbers
+        check_for_clashes : :obj:`bool`, optional
+            Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
+            labels.
+        """
+        for score_id, tsv_id in list_of_pairs:
+            score = self[score_id]
+            labels = Annotations(df=self[tsv_id])
+            score.load_annotations(anno_obj=labels, key='labels_to_attach')
+            score.attach_labels('labels_to_attach', staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes,
+                                remove_detached=True)
+
     def _concat_id_df_dict(self, d, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
 
@@ -419,7 +450,6 @@ class Parse(LoggedClass):
         types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
         res = pd.concat([paths, types], axis=1)
         return res.sort_index()
-
 
 
 
@@ -1664,7 +1694,8 @@ Available keys: {available_keys}""")
             try:
                 i = self.files[k].index('metadata.tsv')
             except ValueError:
-                self.logger.info(f"Key '{k}' does not include a file names 'metadata.tsv'.")
+                self.logger.info(f"Key '{k}' does not include a file named 'metadata.tsv'.")
+                return metadata_dfs
             id = (k, i)
             if id not in self._parsed_tsv:
                 if parse_if_necessary:
@@ -2512,7 +2543,7 @@ Load one of the identically named files with a different key using add_dir(key='
                                     f"needed to match information on identical files.")
         new = self.metadata(from_tsv=False).set_index(['rel_paths', 'fnames'])
         excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
-                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb']
+                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets']
         old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
 
         parsed = old.index.map(lambda i: i in new.index)
@@ -2621,11 +2652,20 @@ Load one of the identically named files with a different key using add_dir(key='
             return self._get_view(item)
         elif isinstance(item, tuple):
             key, i, *_ = item
-            if key in self.files and i < len(self.files[key]):
-                id = (key, i)
-            else:
-                self.logger.info(f"{item} is an invalid ID.")
-                return None
+            try:
+                i = int(i)
+            except TypeError:
+                self.logger.error(f"Got invalid ID: {item}")
+                raise
+            try:
+                if key in self.files and i < len(self.files[key]):
+                    id = (key, i)
+                else:
+                    self.logger.info(f"{item} is an invalid ID.")
+                    return None
+            except TypeError:
+                self.logger.error(f"Got invalid ID: {item}")
+                raise
         else:
             self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
         if id in self._parsed_tsv:
@@ -2938,6 +2978,56 @@ class View(Parse):
                 notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
             yield md, notes
 
+
+    def add_labels(self):
+        piece_matrix = self.pieces(parsed_only=True)
+        if 'scores' not in piece_matrix.columns:
+            self.logger.warning(f"View '{self.key}' does not contain any parsed scores.")
+            return
+        piece_matrix = piece_matrix[piece_matrix.scores.notna()]
+        labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
+        display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
+        display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
+        n_cols = len(labels_cols)
+        if n_cols > 1:
+            print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
+            print(f"Please select the order in which the columns are to be used by passing one or several integers (0-{n_cols-1}):")
+            permitted = list(range(n_cols))
+            ask_user = True
+            while ask_user:
+                selection = input("> ")
+                column_order = []
+                for i in selection.split():
+                    try:
+                        int_i = int(i)
+                    except:
+                        print(f"Value '{i}' could not be converted to an integer.")
+                        ask_user=True
+                        break
+                    if int_i not in permitted:
+                        print(f"Value '{i}' is not between 0-{n_cols-1}.")
+                        ask_user=True
+                        break
+                    column_order.append(int_i)
+                    ask_user=False
+        else:
+            column_order = [0]
+        id_pairs = []
+        for meta_id, row in piece_matrix[labels_cols + ['fnames', 'scores']].iterrows():
+            score_id = (self.key, int(row.scores))
+            tsv_i = None
+            for iloc in column_order:
+                i = row.iloc[iloc]
+                if not pd.isnull(i):
+                    tsv_i = i
+                    break
+            if tsv_i is None:
+                self.logger.info(f"No annotation available for score '{row.fnames}'")
+                continue
+            self.logger.debug(f"{row.fnames}: score {row.scores} matched with {row.index[iloc]} {tsv_i}")
+            tsv_id = (self.key, int(tsv_i))
+            id_pairs.append((score_id, tsv_id))
+        self.p._add_annotations_by_ids(id_pairs)
 
 
 
