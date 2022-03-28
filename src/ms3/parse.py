@@ -258,6 +258,7 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
+
     def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, label_type=1,
                                 check_for_clashes=False):
         """ For each pair, adds the labels at tsv_id to the score at score_id.
@@ -282,12 +283,49 @@ class Parse(LoggedClass):
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
             labels.
         """
+        self._add_detached_annotations_by_ids(list_of_pairs, new_key='labels_to_attach')
         for score_id, tsv_id in list_of_pairs:
             score = self[score_id]
-            labels = Annotations(df=self[tsv_id])
-            score.load_annotations(anno_obj=labels, key='labels_to_attach')
-            score.attach_labels('labels_to_attach', staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes,
+            score.attach_labels('labels_to_attach', staff=staff, voice=voice, label_type=label_type,
+                                check_for_clashes=check_for_clashes,
                                 remove_detached=True)
+
+
+
+    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key):
+        """ For each pair, adds the labels at tsv_id to the score at score_id as a detached
+        :py:class:`~ms3.annotations.Annotations` object.
+
+        Parameters
+        ----------
+        list_of_pairs : list of (score_id, tsv_id)
+            IDs of parsed files.
+        """
+        assert list_of_pairs is not None, "list_of_pairs cannot be None"
+        for score_id, tsv_id in list_of_pairs:
+            if pd.isnull(score_id):
+                self.logger.info(f"No score found for labels {tsv_id}")
+            elif pd.isnull(tsv_id):
+                self.logger.info(f"No labels found for score {score_id}")
+            elif score_id in self._parsed_mscx:
+                if tsv_id in self._annotations:
+                    k = tsv_id[0] if pd.isnull(new_key) else new_key
+                    try:
+                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
+                    except:
+                        print(f"score_id: {score_id}, labels_id: {tsv_id}")
+                        raise
+                elif tsv_id in self._parsed_tsv:
+                    k, i = tsv_id
+                    self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object.
+        Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
+                else:
+                    self.logger.debug(
+                        f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
+            else:
+                self.logger.info(f"{score_id} has not been parsed yet.")
+
+
 
     def _concat_id_df_dict(self, d, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
@@ -458,60 +496,42 @@ class Parse(LoggedClass):
 
 
 
-    def add_detached_annotations(self, score_key=None, tsv_key=None, new_key=None, match_dict=None):
+    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old'):
         """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
         Parameters
         ----------
-        score_key : :obj:`str`, optional
-            A key under which parsed MuseScore files are stored.
-            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
-        tsv_key : :obj:`str`, optional
-            A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
-            If one of ``score_key`` and ``tsv_key`` is None, no matching is performed and already matched files are used.
+        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+            Key(s) under which score files are stored. By default, all keys are selected.
+        use : :obj:`str`, optional
+            By default, if several sets of annotation files are found, the user is asked to input
+            in which order to pick them. Instead, they can specify the name of a column of
+            _.pieces(), especially 'expanded' or 'labels' to be using only these.
         new_key : :obj:`str`, optional
             The key under which the :py:attr:`~.annotations.Annotations` objects will be available after attaching
-            them to the :py:attr:`~.score.Score` objects (``Parsed.parsed_mscx[ID].key``). By default, ``tsv_key``
-            is used.
-        match_dict : :obj:`dict`, optional
-            Dictionary mapping IDs of parsed :py:attr:`~.score.Score` objects to IDs of parsed :py:attr:`~.annotations.Annotations`
-            objects.
+            them to the :py:attr:`~.score.Score` objects (``Parsed.parsed_mscx[ID].new_key``).
+        tsv_key : :obj:`str`, optional
+            A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
+            Note that passing ``tsv_key`` results in the deprecated use of Parse.match_files(). The preferred way
+            is to parse the labels to be attached under the same key as the scores and use
+            View.add_detached_labels().
         """
-        if new_key is None:
-            new_key = tsv_key
-        if match_dict is None:
-            if score_key is not None and tsv_key is not None:
-                matches = self.match_files(keys=[score_key, tsv_key])
-            else:
-                matches = self._matches[self._matches.labels.notna() | self._matches.expanded.notna()]
-                matches.labels.fillna(matches.expanded, inplace=True)
-            match_dict = dict(matches[['scores', 'labels']].values)
-        if len(match_dict) == 0:
-            self.logger.info(f"No files could be matched based on file names, have you added the folder containing annotation tables?"
-                    f"Instead, you could pass the match_dict argument with a mapping of Score IDs to Annotations IDs.")
+        keys = self._treat_key_param(keys)
+        if tsv_key is None:
+            for key in keys:
+                view = self._get_view(key)
+                view.add_detached_annotations(use=use, new_key=new_key)
             return
-        for score_id, labels_id in match_dict.items():
-            if pd.isnull(score_id):
-                self.logger.info(f"No score found for labels ('{tsv_key}', {labels_id})")
-            elif pd.isnull(labels_id):
-                self.logger.info(f"No labels found for score ('{tsv_key}', {score_id})")
-            elif score_id in self._parsed_mscx:
-                if labels_id in self._annotations:
-                    k = labels_id[0] if pd.isnull(new_key) else new_key
-                    try:
-                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[labels_id], key=k)
-                    except:
-                        print(f"score_id: {score_id}, labels_id: {labels_id}")
-                        raise
-                else:
-                    k, i = labels_id
-                    self.logger.warning(f"""The TSV {labels_id} has not yet been parsed as Annotations object.
-Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
-            elif score_id not in self._parsed_mscx:
-                self.logger.info(f"{score_id} has not been parsed yet.")
-            else:
-                self.logger.debug(f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
+        matches = self.match_files(keys=keys + [tsv_key])
+        matches = matches[matches.labels.notna() | matches.expanded.notna()]
+        matches.labels.fillna(matches.expanded, inplace=True)
+        list_of_pairs = list(matches[['scores', 'labels']].itertuples(name=None, index=False))
+        if len(list_of_pairs) == 0:
+            self.logger.error(f"No files could be matched based on file names, probably a bug due to the deprecated use of the tsv_key parameter."
+                    f"The preferred way of adding labels is parsing them under the same key as the scores and use Parse[key].add_detached_annotations()")
+            return
+        self._add_detached_annotations_by_ids(list_of_pairs, new_key=new_key)
 
 
 
@@ -629,78 +649,11 @@ Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             return []
 
 
-    def add_rel_dir(self, rel_dir, suffix='', score_extensions=None, keys=None, new_key=None, index=None):
-        """
-        This method can be used for adding particular TSV files belonging to already loaded score files. This is useful,
-        for example, to add annotation tables for comparison.
-
-        Parameters
-        ----------
-        rel_dir : :obj:`str`
-            Path where the files to be added can be found, relative to each loaded MSCX file. They are expected to have
-            the same file name, maybe with an added ``suffix``.
-        suffix : :obj:`str`. optional
-            If the files to be loaded can be identified by adding a suffix to the filename, pass this suffix, e.g. '_labels'.
-        score_extensions : :obj:`~collections.abc.Collection`, optional
-            If you want to match only scores with particular extensions, pass a Collection of these extensions.
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which score files are stored. By default, all keys are selected.
-        new_key : :obj:`str`, optional
-            Pass a string to identify the loaded files. By default, the keys of the score files are being used.
-        index : element or :obj:`~collections.abc.Collection` of {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
-            | Change this parameter if you want to create particular indices for output DataFrames.
-            | The resulting index must be unique (for identification) and have as many elements as added files.
-            | Every single element or Collection of elements ∈
-              {'key', 'i', :obj:`~collections.abc.Collection`, 'full_paths', 'rel_paths', 'scan_paths', 'paths', 'files', 'fnames', 'fexts'}
-              stands for an index level in the :obj:`~pandas.core.indexes.multi.MultiIndex`.
-            | If you pass a Collection that does not start with one of the defined keywords, it is interpreted as an
-              index level itself and needs to have at least as many elements as the number of added files.
-            | The default ``None`` is equivalent to passing ``(key, i)``, i.e. a MultiIndex of IDs which is always unique.
-            | The keywords correspond to the dictionaries of Parse object that contain the constituents of the file paths.
-        """
-        ids = self._score_ids(keys, score_extensions)
-        grouped_ids = group_id_tuples(ids)
-        self.logger.debug(f"{len(ids)} scores match the criteria.")
-        expected_paths = {(k, i): os.path.join(self.paths[k][i], rel_dir, self.fnames[k][i] + suffix + '.tsv') for k, i in ids}
-        existing = {k: [] for k in grouped_ids.keys()}
-        for (k, i), path in expected_paths.items():
-            if os.path.isfile(path):
-                existing[k].append(path)
-            else:
-                ids.remove((k, i))
-        existing = {k: v for k, v in existing.items() if len(v) > 0}
-        self.logger.debug(f"{sum(len(paths) for paths in existing.values())} paths found for rel_dir {rel_dir}.")
-        if index is None:
-            if any(any(n is None for n in self._levelnames[k]) for k in existing.keys()):
-                if new_key is None:
-                    raise ValueError(f"There are custom index levels and this function cannot extend them. Pass the 'new_key' argument.")
-                else:
-                    index_levels = {k: None for k in existing.keys()}
-            else:
-                index_levels = {k: self._levelnames[k] for k in existing.keys()}
-        else:
-            index_levels = {k: index for k in existing.keys()}
-        new_ids = []
-        for k, paths in existing.items():
-            key_param = k if new_key is None else new_key
-            new_ids.extend(self.add_files(paths, key_param, index_levels[k]))
-        self.parse_tsv(ids=new_ids)
-        for score_id, tsv_id in zip(ids, new_ids):
-            ix = score_id
-            tsv_type = self._tsv_types[tsv_id]
-            if ix in self._matches.index:
-                self._matches.loc[ix, tsv_type] = tsv_id
-            else:
-                row = pd.DataFrame.from_dict({ix: {'scores': score_id, tsv_type: tsv_id}}, orient='index')
-                self._matches = pd.concat([self._matches, row])
-
 
 
     def annotation_objects(self):
+        """Iterator through all annotation objects."""
         yield from self._annotations.items()
-
-
-
 
 
 
@@ -876,8 +829,8 @@ Available keys: {available_keys}""")
         for id in ids:
             res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
                                                  detached_is_newer=detached_is_newer)
-        if res and store_with_suffix is not None:
-            self.store_mscx(ids=ids, suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+            if res and store_with_suffix is not None:
+                self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
@@ -933,12 +886,7 @@ Available keys: {available_keys}""")
             ks = list(counts.keys())
             #levels = len(ks[0])
             names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
-            try:
-                ix = pd.MultiIndex.from_tuples(ks, names=names)
-            except:
-                cs = {k: v for k, v in counts.items() if len(k) != levels}
-                print(f"names: {names}, counts:\n{cs}")
-                raise
+            ix = pd.MultiIndex.from_tuples(ks, names=names)
             return pd.Series(data, ix)
 
         if per_key:
@@ -3017,35 +2965,64 @@ class View(Parse):
         piece_matrix = self.pieces(parsed_only=True)
         if 'scores' not in piece_matrix.columns:
             self.logger.warning(f"View '{self.key}' does not contain any parsed scores.")
-            return
+            return []
         piece_matrix = piece_matrix[piece_matrix.scores.notna()]
-        labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
+        if use is None:
+            labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
+        else:
+            labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
         display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
         display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
         n_cols = len(labels_cols)
-        if n_cols > 1:
-            print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
-            print(f"Please select the order in which the columns are to be used by passing one or several integers (0-{n_cols-1}):")
-            permitted = list(range(n_cols))
-            ask_user = True
-            while ask_user:
-                selection = input("> ")
-                column_order = []
-                for i in selection.split():
-                    try:
-                        int_i = int(i)
-                    except:
-                        print(f"Value '{i}' could not be converted to an integer.")
-                        ask_user=True
-                        break
-                    if int_i not in permitted:
-                        print(f"Value '{i}' is not between 0-{n_cols-1}.")
-                        ask_user=True
-                        break
-                    column_order.append(int_i)
-                    ask_user=False
-        elif n_cols == 1:
+        if n_cols == 1:
             column_order = [0]
+        elif n_cols > 1:
+            if use is None:
+                range_str = f"0-{n_cols - 1}"
+                accept_several = display_matrix.isna().any().any()
+                print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
+                query = "Please enter one "
+                if accept_several:
+                    print(f"Please pass an integer to select a column or, if you need to define fallback columns, several integers ({range_str}):")
+                    query += "or several "
+                else:
+                    print(f"Please select one of the columns by passing an integer between {range_str}:")
+                options = dict(enumerate(labels_cols))
+                query += f"integers: {options}"
+                permitted = list(options.keys())
+
+                def test_integer(s):
+                    nonlocal permitted, range_str
+                    try:
+                        int_i = int(s)
+                    except:
+                        print(f"Value '{s}' could not be converted to an integer.")
+                        return None
+                    if int_i not in permitted:
+                        print(f"Value '{s}' is not between {range_str}.")
+                        return None
+                    return int_i
+
+                ask_user = True
+                while ask_user:
+                    selection = input(query)
+                    if accept_several:
+                        column_order = []
+                        for i in selection.split():
+                            int_i = test_integer(i)
+                            if int_i is None:
+                                ask_user=True
+                                break
+                            column_order.append(int_i)
+                            ask_user=False
+                    else:
+                        int_i = test_integer(selection)
+                        if int_i is not None:
+                            column_order = [int_i]
+                            ask_user = False
+            else:
+                column_order = list(range(n_cols))
+                self.logger.debug(f"Using this column order:\n{display_matrix.columns}")
         else:
             self.logger.error(f"No parsed annotations found for this view:\n{self.info(return_str=True)}")
             return []
@@ -3065,6 +3042,11 @@ class View(Parse):
             tsv_id = (self.key, int(tsv_i))
             id_pairs.append((score_id, tsv_id))
         return id_pairs
+
+    def add_detached_annotations(self, use=None, new_key='old'):
+        id_pairs = self.match_scores_with_annotations(use=use)
+        if len(id_pairs) > 0:
+            self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
 
     def add_labels(self, use=None):
         id_pairs = self.match_scores_with_annotations(use=use)

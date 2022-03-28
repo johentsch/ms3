@@ -76,14 +76,13 @@ def compare(args):
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-                  key='compare', logger_cfg=logger_cfg)
+                  logger_cfg=logger_cfg)
     if len(p._score_ids()) == 0:
         p.logger.warning(f"Your selection does not include any scores.")
         return
-    p.add_rel_dir(args.annotations, suffix=args.suffix, score_extensions=args.extensions, new_key='old')
-    p.parse_mscx()
-    p.add_detached_annotations()
-    p.compare_labels('old', store_with_suffix='_reviewed')
+    p.parse()
+    p.add_detached_annotations(use='expanded')
+    p.compare_labels('old', store_with_suffix=args.suffix)
 
 
 def convert_cmd(args):
@@ -395,8 +394,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
         parents = [input_args])
     compare_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
                                 help='Path relative to the score file(s) where to look for existing annotation tables. Defaults to ../harmonies')
-    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='',
-                                help='If existing annotation tables have a particular suffix, pass this suffix.')
+    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
+                                help='Suffix of the newly created comparison files. Defaults to _reviewed')
     compare_parser.add_argument('-x', '--extensions', metavar='EXT', nargs='+',
                                 help='If you only want to compare scores with particular extensions, pass these extensions.')
     compare_parser.set_defaults(func=compare)

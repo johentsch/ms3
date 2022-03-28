@@ -1,4 +1,4 @@
-import re
+import re, sys
 import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
@@ -230,7 +230,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         try:
             mscx_string = bs4_to_mscx(self.soup)
         except:
-            logging.error(f"BeautifulSoup object is None.")
+            self.logger.error(f"Couldn't output MSCX because of the following error:\n{sys.exc_info()[1]}")
             return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
             file.write(mscx_string)
@@ -928,6 +928,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         -------
 
         """
+        if pd.isnull(label):
+            self.logger.error(f"Label cannot be '{label}'")
+            return False
         assert mc_onset >= 0, f"Cannot attach label {label} to negative onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}"
         self.make_writeable()
         if mc not in self.tags:
