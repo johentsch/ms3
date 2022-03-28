@@ -2994,7 +2994,21 @@ class View(Parse):
             yield md, notes
 
 
-    def add_labels(self):
+    def match_scores_with_annotations(self, use=None):
+        """ Go through View.pieces() and match parsed scores with parsed annotation files.
+
+        Parameters
+        ----------
+        use : :obj:`str`, optional
+            By default, if several sets of annotation files are found, the user is asked to input
+            in which order to pick them. Instead, they can specify the name of a column of
+            _.pieces(), especially 'expanded' or 'labels' to be using only these.
+
+        Returns
+        -------
+        list of (score_id, tsv_id)
+            IDs of parsed files.
+        """
         piece_matrix = self.pieces(parsed_only=True)
         if 'scores' not in piece_matrix.columns:
             self.logger.warning(f"View '{self.key}' does not contain any parsed scores.")
@@ -3025,8 +3039,11 @@ class View(Parse):
                         break
                     column_order.append(int_i)
                     ask_user=False
-        else:
+        elif n_cols == 1:
             column_order = [0]
+        else:
+            self.logger.error(f"No parsed annotations found for this view:\n{self.info(return_str=True)}")
+            return []
         id_pairs = []
         for meta_id, row in piece_matrix[labels_cols + ['fnames', 'scores']].iterrows():
             score_id = (self.key, int(row.scores))
@@ -3042,6 +3059,10 @@ class View(Parse):
             self.logger.debug(f"{row.fnames}: score {row.scores} matched with {row.index[iloc]} {tsv_i}")
             tsv_id = (self.key, int(tsv_i))
             id_pairs.append((score_id, tsv_id))
+        return id_pairs
+
+    def add_labels(self, use=None):
+        id_pairs = self.match_scores_with_annotations(use=use)
         self.p._add_annotations_by_ids(id_pairs)
 
 
