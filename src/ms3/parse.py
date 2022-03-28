@@ -452,6 +452,11 @@ class Parse(LoggedClass):
         return res.sort_index()
 
 
+    def add_labels(self, use=None):
+        for _, view in self:
+            view.add_labels(use=use)
+
+
 
     def add_detached_annotations(self, score_key=None, tsv_key=None, new_key=None, match_dict=None):
         """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
