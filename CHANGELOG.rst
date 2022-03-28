@@ -6,6 +6,7 @@ Version 0.5.2
 =============
 
 * adds command ``ms3 empty`` to remove harmony annotations from scores
+* adds command ``ms3 add`` to add harmony annotations from TSV files to scores
 * while adding labels, use fallback values ``staff=-1`` and ``voice=1`` if not specified
 
 Version 0.5.1

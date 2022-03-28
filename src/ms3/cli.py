@@ -15,6 +15,25 @@ __license__ = "gpl3"
 
 
 
+def add(args):
+    logger_cfg = {
+        'level': args.level,
+    }
+    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
+              recursive=args.nonrecursive, logger_cfg=logger_cfg)
+    p.parse(parallel=False)
+    if args.replace:
+        p.detach_labels()
+        p.logger.info(
+            f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
+    p.add_labels(use=args.use)
+    ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
+    if args.out is not None:
+        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+    else:
+        p.store_mscx(ids=ids, overwrite=True)
+
+
 def check(args):
     labels_cfg = {'decode': True}
     log = args.log
@@ -340,6 +359,24 @@ def get_arg_parser():
 The library offers you the following commands. Add the flag -h to one of them to learn about its parameters. 
 ''')
     subparsers = parser.add_subparsers(help='The action that you want to perform.', dest='action')
+
+
+
+    add_parser = subparsers.add_parser('add',
+                                         help="Add labels from annotation tables to scores.",
+                                         parents=[input_args])
+    # TODO: staff parameter needs to accept one to several integers including negative
+    # add_parser.add_argument('-s', '--staff',
+    #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
+    # add_parser.add_argument('--type', default=1,
+    #                            help="Only remove particular types of harmony labels.")
+    add_parser.add_argument('--replace', action='store_true',
+                               help="Remove existing labels from the scores prior to adding. Like calling ms3 empty first.")
+    add_parser.add_argument('--use',
+                            help="""In case there are several annotation labels present, set this value to expanded or to labels. 
+If you don't, you will be asked for every ambiguous corpus to specify in which order the columns that 
+show detected files are to be used.""")
+    add_parser.set_defaults(func=add)
 
 
 
