@@ -2953,9 +2953,15 @@ class View(Parse):
         Parameters
         ----------
         use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked to input
-            in which order to pick them. Instead, they can specify the name of a column of
-            _.pieces(), especially 'expanded' or 'labels' to be using only these.
+            By default, if several sets of annotation files are found, the user is asked which one(s) to use.
+            To prevent the interaction, pass a string to subselect a column of ``_.pieces(parsed_only=True)``
+            that has been recognized to contain labels or expanded labels. The values 'labels', 'expanded' and
+            'any' subselect all columns of the respective type(s) and, for each piece, uses the leftmost that is
+            not empty, i.e. that represents a parsed annotation table. This can be useful if there are several
+            annotation tables present for the same piece. To subselect one particular set of annotation tables
+            that can be distinguished through their subdirectory and/or suffix, use the respective column name
+            from ``_.pieces()``. Generally speaking, the value of ``use`` is used to select all columns that
+            start with this exact string.
 
         Returns
         -------
@@ -2963,20 +2969,29 @@ class View(Parse):
             IDs of parsed files.
         """
         piece_matrix = self.pieces(parsed_only=True)
-        if 'scores' not in piece_matrix.columns:
-            self.logger.warning(f"View '{self.key}' does not contain any parsed scores.")
+        score_cols = [c for c in piece_matrix.columns if c.startswith('scores')]
+        if len(score_cols) == 0:
+            self.logger.warning(f"View '{self.key}' does not include any parsed scores.")
             return []
-        piece_matrix = piece_matrix[piece_matrix.scores.notna()]
-        if use is None:
+        has_score = piece_matrix[score_cols].notna().any(axis=1)
+        if not has_score.all():
+            self.logger.info(f"For {(~has_score).sum()} pieces listed in the metadata, no parsed score was found.")
+        piece_matrix = piece_matrix[has_score]
+        if use is None or use.lower() == 'any':
+            use_str = ''
             labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
         else:
+            use_str = f" (use={use})"
             labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
+        n_cols = len(labels_cols)
+        if n_cols == 0:
+            self.logger.error(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
+            return []
         display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
         display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
-        n_cols = len(labels_cols)
         if n_cols == 1:
             column_order = [0]
-        elif n_cols > 1:
+        else:
             if use is None:
                 range_str = f"0-{n_cols - 1}"
                 accept_several = display_matrix.isna().any().any()
@@ -3023,24 +3038,24 @@ class View(Parse):
             else:
                 column_order = list(range(n_cols))
                 self.logger.debug(f"Using this column order:\n{display_matrix.columns}")
-        else:
-            self.logger.error(f"No parsed annotations found for this view:\n{self.info(return_str=True)}")
-            return []
-        id_pairs = []
-        for meta_id, row in piece_matrix[labels_cols + ['fnames', 'scores']].iterrows():
-            score_id = (self.key, int(row.scores))
-            tsv_i = None
-            for iloc in column_order:
-                i = row.iloc[iloc]
-                if not pd.isnull(i):
-                    tsv_i = i
+
+        def merge_cols(df):
+            result = df.iloc[:, 0].copy()
+            for _, col in df.iloc[:, 1:].iteritems():
+                if result.notna().all():
                     break
-            if tsv_i is None:
-                self.logger.info(f"No annotation available for score '{row.fnames}'")
-                continue
-            self.logger.debug(f"{row.fnames}: score {row.scores} matched with {row.index[iloc]} {tsv_i}")
-            tsv_id = (self.key, int(tsv_i))
-            id_pairs.append((score_id, tsv_id))
+                result.fillna(col, inplace=True)
+            return result
+
+        pairing = pd.concat([
+            merge_cols(piece_matrix[score_cols]).rename('score_ids'),
+            merge_cols(piece_matrix[labels_cols]).rename('labels_ids')
+        ], axis=1)
+        has_annotations = pairing.labels_ids.notna()
+        if not has_annotations.all():
+            self.logger.info(f"Found no annotations for the following sores:\n{display_matrix[~has_annotations].to_string()}")
+        id_pairs = list(pairing[has_annotations].itertuples(name=None, index=False))
+        id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
     def add_detached_annotations(self, use=None, new_key='old'):
