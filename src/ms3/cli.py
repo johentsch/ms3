@@ -81,8 +81,8 @@ def compare(args):
         p.logger.warning(f"Your selection does not include any scores.")
         return
     p.parse()
-    p.add_detached_annotations(use='expanded')
-    p.compare_labels('old', store_with_suffix=args.suffix)
+    p.add_detached_annotations(use=args.use)
+    p.compare_labels('old', detached_is_newer=args.flip, store_with_suffix=args.suffix)
 
 
 def convert_cmd(args):
@@ -343,7 +343,7 @@ def get_arg_parser():
                                 help="""Output directory. Subfolder trees are retained.""")
     input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
                                 help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
-    input_args.add_argument('-e', '--exclude', metavar="regex",
+    input_args.add_argument('-e', '--exclude', metavar="REGEX",
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded."
                                      "By default, files including '_reviewed' or starting with . or _ or 'concatenated' are excluded.")
     input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
@@ -392,12 +392,16 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     compare_parser = subparsers.add_parser('compare',
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.",
         parents = [input_args])
-    compare_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
-                                help='Path relative to the score file(s) where to look for existing annotation tables. Defaults to ../harmonies')
+    compare_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
+                                help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
+To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
+'expanded' or 'labels' to use only annotation tables that have the respective type.""")
+
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
                                 help='Suffix of the newly created comparison files. Defaults to _reviewed')
-    compare_parser.add_argument('-x', '--extensions', metavar='EXT', nargs='+',
-                                help='If you only want to compare scores with particular extensions, pass these extensions.')
+    compare_parser.add_argument('--flip', action='store_true',
+                                help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
+                                     "effectively resulting in a swap of the colors in the output files.")
     compare_parser.set_defaults(func=compare)
 
 
