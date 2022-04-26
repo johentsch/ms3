@@ -2989,6 +2989,7 @@ class View(Parse):
             return []
         display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
         display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
+        display_matrix.index.name = None
         if n_cols == 1:
             column_order = [0]
         else:
@@ -2998,12 +2999,14 @@ class View(Parse):
                 print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
                 query = "Please enter one "
                 if accept_several:
-                    print(f"Please pass an integer to select a column or, if you need to define fallback columns, several integers ({range_str}):")
+                    print(f"Please pass an integer to select a column or, if you need to define fallback columns, several ({range_str}):")
                     query += "or several "
+                    plural = 's'
                 else:
                     print(f"Please select one of the columns by passing an integer between {range_str}:")
+                    plural = ''
                 options = dict(enumerate(labels_cols))
-                query += f"integers: {options}"
+                query += f"integer{plural} {options}> "
                 permitted = list(options.keys())
 
                 def test_integer(s):
@@ -3047,13 +3050,14 @@ class View(Parse):
                 result.fillna(col, inplace=True)
             return result
 
+        selected_cols = [labels_cols[i] for i in column_order]
         pairing = pd.concat([
             merge_cols(piece_matrix[score_cols]).rename('score_ids'),
-            merge_cols(piece_matrix[labels_cols]).rename('labels_ids')
+            merge_cols(piece_matrix[selected_cols]).rename('labels_ids')
         ], axis=1)
         has_annotations = pairing.labels_ids.notna()
         if not has_annotations.all():
-            self.logger.info(f"Found no annotations for the following sores:\n{display_matrix[~has_annotations].to_string()}")
+            self.logger.info(f"Found no annotations for the following sores:\n{piece_matrix.loc[~has_annotations, ['fnames'] + score_cols + labels_cols].to_string()}")
         id_pairs = list(pairing[has_annotations].itertuples(name=None, index=False))
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs

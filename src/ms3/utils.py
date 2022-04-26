@@ -2573,6 +2573,7 @@ def write_tsv(df, file_path, pre_process=True, **kwargs):
     return
 
 
+@function_logger
 def abs2rel_key(absolute, localkey, global_minor=False):
     """
     Expresses a Roman numeral as scale degree relative to a given localkey.
@@ -2660,7 +2661,7 @@ def rel2abs_key(rel, localkey, global_minor=False):
     Examples
     --------
     If the label viio6/VI appears in the context of the local key VI or vi,
-    viio6 the absolute key to which viio6 applies depends on the global key.
+    the absolute key to which viio6 applies depends on the global key.
     The comments express the examples in relation to global C major or C minor.
 
         >>> rel2abs_key('vi', 'VI', global_minor=False)
