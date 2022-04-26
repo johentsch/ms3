@@ -1927,6 +1927,11 @@ Available keys: {available_keys}""")
 
 
 
+    def pieces(self, parsed_only=False):
+        pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]
+        result = pd.concat(pieces_dfs, keys=self.keys())
+        result.index.names = ['key', 'metadata_row']
+
     def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
                                                     rests_folder=None, rests_suffix='',
                                                     notes_and_rests_folder=None, notes_and_rests_suffix='',
@@ -2730,7 +2735,7 @@ class View(Parse):
 
 
     def pieces(self, parsed_only=False):
-        """Based on :py:attr:`fnames`, return a DataFrame that matches the numerical part of IDs of files that
+        """Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
            correspond to each other. """
         if self._state > (0, 0, 0) and \
             (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
@@ -2801,7 +2806,7 @@ class View(Parse):
                 _, indices = zip(*score_ids)
                 info += f"No metadata.tsv found. Constructed metadata from parsed scores at indices {indices}.\n"
             else:
-                info += f"No metadata present. Parse scores and/or metadata TSV files.\n"
+                info += f"No metadata present. Parse scores and/or metadata.tsv files.\n"
         else:
             k, i = self.metadata_id
             info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
@@ -2891,9 +2896,11 @@ class View(Parse):
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+            """md = {key->value} metadata; ids = {tsv_type->id}"""
             skip_flat = False # flag that serves the inner loop to make this loop skip yielding
             result, paths = [], []
             for c in cols:
+                """c can be a column name or a list of column names from which the first non-empty one will be used"""
                 if isinstance(c, str):
                     df, path = get_dataframe(ids, c)
                 else:
