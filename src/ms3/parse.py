@@ -2613,7 +2613,7 @@ Load one of the identically named files with a different key using add_dir(key='
             try:
                 i = int(i)
             except TypeError:
-                self.logger.error(f"Got invalid ID: {item}")
+
                 raise
             try:
                 if key in self.files and i < len(self.files[key]):
@@ -2833,7 +2833,23 @@ class View(Parse):
         print(info)
 
 
-    def iter(self, columns, skip_missing=False):
+    def iter(self, columns, skip_missing=False, fnames=None):
+        """ Iterate through combinations of metadata dicts and DataFrames pertaining to the same piece.
+
+        Parameters
+        ----------
+        columns : list of str
+            One or several columns contained in self.pieces(). If there is a choice between several columns
+            for the same type of DataFrame, either pass a nested list or use wildcard notation.
+        skip_missing : :obj:`bool`, optional
+            If one of the requested aspects has no DataFrame available, skip the piece.
+        fnames : :obj:`list`, optional
+            If you want to iterate only through a subset of pieces, pass their file names.
+
+        Returns
+        -------
+
+        """
         standard_cols = list(self.p._lists.keys())
         piece_matrix = self.pieces(parsed_only=True)
         available = '\n'.join(sorted(piece_matrix.columns[1:]))
@@ -2897,6 +2913,8 @@ class View(Parse):
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
         for md, ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
             """md = {key->value} metadata; ids = {tsv_type->id}"""
+            if fnames is not None and ids['fnames'] not in fnames:
+                continue
             skip_flat = False # flag that serves the inner loop to make this loop skip yielding
             result, paths = [], []
             for c in cols:
@@ -2919,9 +2937,9 @@ class View(Parse):
             md['paths'] = paths
             yield (md, *result)
 
-    def iter_transformed(self, columns, warn_missing=True, unfold=False, quarterbeats=False, interval_index=False):
+    def iter_transformed(self, columns, warn_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
         if not any((unfold, quarterbeats, interval_index)):
-            for md, *dfs in self.iter(columns, skip_missing=warn_missing):
+            for md, *dfs in self.iter(columns, skip_missing=warn_missing, fnames=fnames):
                 if not any(df is None for df in dfs):
                     yield (md, *dfs)
                 elif warn_missing:
@@ -2931,7 +2949,7 @@ class View(Parse):
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
-            for md, *dfs, measures in self.iter(columns, skip_missing=warn_missing):
+            for md, *dfs, measures in self.iter(columns, skip_missing=warn_missing, fnames=fnames):
                 if not any(df is None for df in dfs + [measures]):
                     dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
                     md['paths'] = md['paths'][:-1]
@@ -2940,8 +2958,8 @@ class View(Parse):
                     self.logger.warning(f"Not all requested data available for {md['fnames']}.")
 
 
-    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0):
-        for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0, fnames=None):
+        for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
             if notes is None:
                 msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
                 if warn_missing:
