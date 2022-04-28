@@ -5,8 +5,13 @@ Changelog
 Version 0.5.2
 =============
 
+* the ``View`` on a ``Parse`` object can now be subscripted with a filename to obtain a ``Piece`` object, allowing
+  for better access to the various files belonging to the same piece (based on their file names). These new objects
+  facilitate access to the information which previously was available in one row of tge ``View.pieces()`` DataFrame.
 * adds command ``ms3 empty`` to remove harmony annotations from scores
 * adds command ``ms3 add`` to add harmony annotations from TSV files to scores
+* re-factored ``ms3 compare`` to use new methods added to ``View`` objects
+* methods based on ``View.iter()`` now accept the parameter ``fnames`` to filter out file names not included in the list
 * while adding labels, use fallback values ``staff=-1`` and ``voice=1`` if not specified
 
 Version 0.5.1
