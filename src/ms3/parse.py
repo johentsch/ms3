@@ -2780,19 +2780,7 @@ class View(Parse):
                 if n == 1:
                     pieces[metadata_i][typ] = matched_files[0].i_str
                 else:
-                    # several matches for the same type: construct disambiguating column names
-                    subdirs = [match.subdir for match in matched_files]
-                    if len(set(subdirs)) > 1:
-                        distinguish = subdirs
-                    else:
-                        distinguish = [""] * n # subdirs do not help with distinction
-                    for ix, match in enumerate(matched_files):
-                        if match.suffix != "":
-                            distinguish[ix] += f"[{match.suffix}]"
-                    if len(distinguish) > len(set(distinguish)):
-                        # subdirs and suffixes do not distinguish all matches: add file extensions
-                        for ix, match in enumerate(matched_files):
-                            distinguish[ix] += match.fext
+                    distinguish = make_distinguishing_strings(matched_files)
                     for match, dist in zip(matched_files, distinguish):
                         column = typ if dist == "" else f"{typ}:{dist}"
                         pieces[metadata_i][column] = match.i_str
@@ -3122,6 +3110,22 @@ class View(Parse):
     #     return self.p.__getattribute__(item)
 
 
+def make_distinguishing_strings(matched_files):
+    """Takes a list of namedtuples as created by View.detect_ids_by_fname() and returns a list
+    of distinct strings to distinguish files pertaining to the same type."""
+    subdirs = [match.subdir for match in matched_files]
+    if len(set(subdirs)) > 1:
+        distinguish = subdirs
+    else:
+        distinguish = [""] * len(matched_files)  # subdirs do not help with distinction
+    for ix, match in enumerate(matched_files):
+        if match.suffix != "":
+            distinguish[ix] += f"[{match.suffix}]"
+    if len(distinguish) > len(set(distinguish)):
+        # subdirs and suffixes do not distinguish all matches: add file extensions
+        for ix, match in enumerate(matched_files):
+            distinguish[ix] += match.fext
+    return distinguish
 
 
 
