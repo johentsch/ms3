@@ -1,4 +1,5 @@
 import sys, os, re
+from functools import lru_cache
 import json
 import traceback
 import pathos.multiprocessing as mp
@@ -2613,8 +2614,8 @@ Load one of the identically named files with a different key using add_dir(key='
             key, i, *_ = item
             try:
                 i = int(i)
-            except TypeError:
-
+            except ValueError:
+                self.logger.error(f"Got invalid ID: {item}")
                 raise
             try:
                 if key in self.files and i < len(self.files[key]):
@@ -2849,7 +2850,8 @@ class View(Parse):
         ----------
         columns : list of str
             One or several columns contained in self.pieces(). If there is a choice between several columns
-            for the same type of DataFrame, either pass a nested list or use wildcard notation.
+            for the same type of DataFrame, either pass a nested list with desired column order
+            or use wildcard notation.
         skip_missing : :obj:`bool`, optional
             If one of the requested aspects has no DataFrame available, skip the piece.
         fnames : :obj:`list`, optional
@@ -3153,6 +3155,23 @@ def make_distinguishing_strings(matched_files):
     return distinguish
 
 
+def disambiguate(matched_files, disambiguation='auto'):
+    n = len(matched_files)
+    if n == 0:
+        raise ValueError("First argument should not be empty.")
+    if n == 1:
+        return matched_files[0]
+    distinguish = make_distinguishing_strings(matched_files)
+    matches = dict(zip(distinguish, matched_files))
+    if disambiguation is None:
+        raise NotImplementedError(f"Ask for user input for choosing one of {list(matches.keys())}.")
+    if disambiguation == 'auto':
+        shortest_key = sorted(matches, key=lambda s: len(s))[0]
+        return matches[shortest_key]
+    if disambiguation not in matches:
+        raise ValueError(f"Cannot distinguish using '{disambiguation}'. Use one of {list(matches.keys())}.")
+
+
 class Piece(View):
 
     def __init__(self,
@@ -3170,6 +3189,7 @@ class Piece(View):
             raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
         self.matches = matches[fname]
         self.score_available = 'scores' in self.matches
+        self.measures_available = self.score_available or 'measures' in self.matches
 
 
     def info(self, return_str=False):
@@ -3194,3 +3214,26 @@ class Piece(View):
         if return_str:
             return info
         print(info)
+
+
+    @lru_cache()
+    def get_dataframe(self, what, unfold=False, quarterbeats=False, interval_index=False, disambiguation='auto', prefer_score=True, return_file_info=False):
+        available = list(self.p._lists.keys())
+        if what not in available:
+            raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
+        if self.score_available and (prefer_score or what not in self.matches):
+            file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
+            score = self.p[file_info.id]
+            df = score.mscx.__getattribute__(what)
+        elif what in self.matches:
+            file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
+            df = self.p[file_info.id]
+        else:
+            raise FileNotFoundError(f"No {what} available for {self.key} -> {self.fname}")
+        if any((unfold, quarterbeats, interval_index)):
+            measures = self.get_dataframe('measures', prefer_score=prefer_score)
+            df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,
+                                   interval_index=interval_index, logger=self.logger)[0]
+        if return_file_info:
+            return df, file_info
+        return df
