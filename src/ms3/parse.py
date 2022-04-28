@@ -2666,6 +2666,7 @@ class View(Parse):
         self.p = p # parent parse object
         self.key = key
         self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
+        self._cached_piece_matrices = {}
         self._pieces = {}
         logger_cfg = self.p.logger_cfg
         logger_cfg['name'] = self.key
@@ -2676,7 +2677,6 @@ class View(Parse):
         ID of the detected metadata TSV file if any. None means that none has been detected, meaning that :attr:`.metadata`
         corresponds to the metadata included in the parsed scores.
         """
-
 
 
     def metadata(self):
@@ -2735,27 +2735,30 @@ class View(Parse):
         return []
 
 
-    def detect_ids_by_fname(self, parsed_only=False):
+    def detect_ids_by_fname(self, parsed_only=False, names=None):
         """Returns a {fname -> {type -> [MatchedFile]}} dict."""
-        MatchedFile = namedtuple("MatchedFile", ["id", "suffix", "fext", "subdir", "i_str"])
+        MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
         result = {}
-        for fname in self.names:
+        if names is None:
+            names = self.names
+        for fname in names:
             ids = self.p.fname2ids(fname, self.key)
             detected = defaultdict(list)
             for id, fn in ids.items():
                 k, i = id
+                suffix = fn[len(fname):]
+                full_path = self.p.full_paths[k][i]
                 fext = self.p.fexts[k][i]
                 subdir = self.p.subdirs[k][i]
-                suffix = fn[len(fname):]
                 if id in self.p._parsed_mscx:
-                    match = MatchedFile(id, suffix, fext, subdir, str(i))
+                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
                     detected['scores'].append(match)
                 elif id in self.p._tsv_types:
-                    match = MatchedFile(id, suffix, fext, subdir, str(i))
+                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
                     detected[self.p._tsv_types[id]].append(match)
                 elif not parsed_only:
-                    match = MatchedFile(id, suffix, fext, subdir, str(i)+'*')
-                    typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
+                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i)+'*')
+                    typ = path2type(full_path, logger=self.p.logger_names[id])
                     detected[typ].append(match)
             result[fname] = dict(detected)
         return result
@@ -2766,9 +2769,9 @@ class View(Parse):
            correspond to each other. """
         if self._state > (0, 0, 0) and \
             (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
-            parsed_only in self._pieces:
+            parsed_only in self._cached_piece_matrices:
             self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
-            return self._pieces[parsed_only]
+            return self._cached_piece_matrices[parsed_only]
         pieces = {} # result
         detected_ids = self.detect_ids_by_fname(parsed_only=parsed_only)
         for metadata_i, (fname, detected) in enumerate(detected_ids.items()):
@@ -2792,10 +2795,10 @@ class View(Parse):
             raise
         # caching
         current_state = (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv))
-        if current_state > self._state and (not parsed_only) in self._pieces:
-            del(self._pieces[not parsed_only])
+        if current_state > self._state and (not parsed_only) in self._cached_piece_matrices:
+            del(self._cached_piece_matrices[not parsed_only])
         self._state = current_state
-        self._pieces[parsed_only] = res
+        self._cached_piece_matrices[parsed_only] = res
         return res
 
     def ids(self):
@@ -3102,6 +3105,28 @@ class View(Parse):
         id_pairs = self.match_scores_with_annotations(use=use)
         self.p._add_annotations_by_ids(id_pairs)
 
+    def _get_piece(self, fname):
+        if fname in self._pieces:
+            return self._pieces[fname]
+        if fname in self.names:
+            self._pieces[fname] = Piece(self, fname)
+            return self._pieces[fname]
+        self.logger.info(f"File name '{fname}' not found in the metadata.")
+        return
+
+    def __getitem__(self, item):
+        piece_matrix = self.pieces(parsed_only=True)
+        matches = piece_matrix.fnames == item
+        found = matches.sum()
+        if found == 0:
+            logger.error(f"No files correspond to '{item}' in key {self.key}.")
+            return
+        if found > 1:
+            logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
+            return
+        return self._get_piece(item)
+
+
 
 
 
@@ -3128,6 +3153,44 @@ def make_distinguishing_strings(matched_files):
     return distinguish
 
 
+class Piece(View):
+
+    def __init__(self,
+                 view: View,
+                 fname: str):
+        self.view = view  # parent View object
+        self.p = view.p
+        self.key = view.key
+        self.fname = fname
+        logger_cfg = self.p.logger_cfg
+        logger_cfg['name'] = f"{self.key}_{self.fname}"
+        super(Parse, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
+        matches = self.detect_ids_by_fname(parsed_only=True, names=[fname])
+        if len(matches) != 1:
+            raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
+        self.matches = matches[fname]
+        self.score_available = 'scores' in self.matches
 
 
-
+    def info(self, return_str=False):
+        info = f"View on {self.key} -> {self.fname}\n"
+        info += "-" * len(info) + "\n\n"
+        if self.score_available:
+            plural = "s" if len(self.matches['scores']) > 1 else ""
+            info += f"Parsed score{plural} available."
+        else:
+            info += "No parsed scores available."
+        info += "\n\n"
+        for typ, matched_files in self.matches.items():
+            info += f"{typ}\n{'-' * len(typ)}\n"
+            if len(matched_files) > 1:
+                distinguish = make_distinguishing_strings(matched_files)
+                matches = dict(zip(distinguish, matched_files))
+                paths = {k: matches[k].full_path for k in sorted(matches, key=lambda s: len(s))}
+                info += pretty_dict(paths)
+            else:
+                info += matched_files[0].full_path
+            info += "\n\n"
+        if return_str:
+            return info
+        print(info)
