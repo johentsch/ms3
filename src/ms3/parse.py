@@ -2,7 +2,7 @@ import sys, os, re
 import json
 import traceback
 import pathos.multiprocessing as mp
-from collections import Counter, defaultdict
+from collections import Counter, defaultdict, namedtuple
 
 import pandas as pd
 import numpy as np
@@ -1931,6 +1931,7 @@ Available keys: {available_keys}""")
         pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]
         result = pd.concat(pieces_dfs, keys=self.keys())
         result.index.names = ['key', 'metadata_row']
+        return result
 
     def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
                                                     rests_folder=None, rests_suffix='',
@@ -2734,6 +2735,32 @@ class View(Parse):
         return []
 
 
+    def detect_ids_by_fname(self, parsed_only=False):
+        """Returns a {fname -> {type -> [MatchedFile]}} dict."""
+        MatchedFile = namedtuple("MatchedFile", ["id", "suffix", "fext", "subdir", "i_str"])
+        result = {}
+        for fname in self.names:
+            ids = self.p.fname2ids(fname, self.key)
+            detected = defaultdict(list)
+            for id, fn in ids.items():
+                k, i = id
+                fext = self.p.fexts[k][i]
+                subdir = self.p.subdirs[k][i]
+                suffix = fn[len(fname):]
+                if id in self.p._parsed_mscx:
+                    match = MatchedFile(id, suffix, fext, subdir, str(i))
+                    detected['scores'].append(match)
+                elif id in self.p._tsv_types:
+                    match = MatchedFile(id, suffix, fext, subdir, str(i))
+                    detected[self.p._tsv_types[id]].append(match)
+                elif not parsed_only:
+                    match = MatchedFile(id, suffix, fext, subdir, str(i)+'*')
+                    typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
+                    detected[typ].append(match)
+            result[fname] = dict(detected)
+        return result
+
+
     def pieces(self, parsed_only=False):
         """Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
            correspond to each other. """
@@ -2743,41 +2770,32 @@ class View(Parse):
             self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
             return self._pieces[parsed_only]
         pieces = {} # result
-        fnames = self.names
-        for metadata_i, fname in enumerate(fnames):
-            ids = self.p.fname2ids(fname, self.key)
-            detected = defaultdict(list)
-            suffixes = {}
-            for id, fn in ids.items():
-                if fn != fname:
-                    suffixes[id] = fn[len(fname):]
-                k, i = id
-                if id in self.p._parsed_mscx:
-                    detected['scores'].append(str(i))
-                elif id in self.p._tsv_types:
-                    detected[self.p._tsv_types[id]].append(str(i))
-                elif not parsed_only:
-                    typ = path2type(self.p.full_paths[k][i], logger=self.p.logger_names[id])
-                    detected[typ].append(f"{i}*")
+        detected_ids = self.detect_ids_by_fname(parsed_only=parsed_only)
+        for metadata_i, (fname, detected) in enumerate(detected_ids.items()):
             pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
-            for typ, indices in detected.items():
-                n = len(indices)
+            for typ, matched_files in detected.items():
+                n = len(matched_files)
+                if n == 0:
+                    continue
                 if n == 1:
-                    pieces[metadata_i][typ] = indices[0]
-                elif n > 1:
-                    ixs = [int(re.match(r"(\d+)\*?", ix).group(1)) for ix in indices]
-                    k = self.key
-                    distinguish = [self.p.subdirs[k][ix] for ix in ixs]
-                    for j, ix in enumerate(ixs):
-                        id = (k, ix)
-                        if id in suffixes:
-                            distinguish[j] += f"[{suffixes[id]}]"
+                    pieces[metadata_i][typ] = matched_files[0].i_str
+                else:
+                    # several matches for the same type: construct disambiguating column names
+                    subdirs = [match.subdir for match in matched_files]
+                    if len(set(subdirs)) > 1:
+                        distinguish = subdirs
+                    else:
+                        distinguish = [""] * n # subdirs do not help with distinction
+                    for ix, match in enumerate(matched_files):
+                        if match.suffix != "":
+                            distinguish[ix] += f"[{match.suffix}]"
                     if len(distinguish) > len(set(distinguish)):
-                        for j, ix in enumerate(ixs):
-                            distinguish[j] += self.p.fexts[k][ix]
-                    for ix, dist in zip(indices, distinguish):
-                        pieces[metadata_i][f"{typ}:{dist}"] = ix
-                # else: leave empty
+                        # subdirs and suffixes do not distinguish all matches: add file extensions
+                        for ix, match in enumerate(matched_files):
+                            distinguish[ix] += match.fext
+                    for match, dist in zip(matched_files, distinguish):
+                        column = typ if dist == "" else f"{typ}:{dist}"
+                        pieces[metadata_i][column] = match.i_str
         try:
             res = pd.DataFrame.from_dict(pieces, orient='index', dtype='string')
             res.index.name = 'metadata_row'
