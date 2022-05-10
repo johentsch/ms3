@@ -1453,7 +1453,7 @@ def make_id_tuples(key, n):
 
 
 @function_logger
-def make_interval_index(S, end_value=None, closed='left', name='iv'):
+def make_interval_index(S, end_value=None, closed='left', name='interval'):
     """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
 
     Parameters
@@ -1465,7 +1465,7 @@ def make_interval_index(S, end_value=None, closed='left', name='iv'):
     closed : :obj:`str`, optional
         Defaults to 'left'. Argument passed to to :py:meth:`pandas.IntervalIndex.from_breaks`.
     name : :obj:`str`, optional
-        Name of the created index. Defaults to 'iv'.
+        Name of the created index. Defaults to 'interval'.
 
     Returns
     -------
@@ -2705,7 +2705,7 @@ def rel2abs_key(rel, localkey, global_minor=False):
 
 @function_logger
 def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
-                               filter_zero_duration=False, round=3, name='iv'):
+                               filter_zero_duration=False, round=3, name='interval'):
     """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.
     Underspecified rows are removed.
 
