@@ -1432,8 +1432,8 @@ def make_continuous_offset(measures, quarters=True, negative_anacrusis=None):
     last_val = res.iloc[-1]
     last_ix = res.index[-1] + 1
     res = res.shift(fill_value=0)
-    res = res.append(pd.Series([last_val], index=[last_ix]))
-    res = res.append(pd.Series([last_val], index=['end']))
+    ending = pd.Series([last_val, last_val], index=[last_ix, 'end'])
+    res = pd.concat([res, ending])
     if negative_anacrusis is not None:
         res -= abs(frac(negative_anacrusis))
     return res
@@ -2377,7 +2377,7 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
     if s.isna().any():
         if na_values == 'group':
             shifted = s.shift()
-            if pd.isnull(S[0]):
+            if pd.isnull(S.iloc[0]):
                 shifted.iloc[0] = True
             beginnings = ~nan_eq(s, shifted)
         else:
