@@ -253,19 +253,18 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         if quarterbeats:
             unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
             continuous_offset = make_continuous_offset(unfolded_measures, logger=logger)
-            dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
+            dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                    if df is not None else df for df in dfs]
     elif quarterbeats:
         if 'volta' in measures.columns:
+            logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
+                         f"compute quarterbeats for a full playthrough.")
             if 3 in measures.volta.values:
-                logger.warning(
+                logger.debug(
                     f"Piece contains third endings, note that only second endings are taken into account.")
-            else:
-                logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
-                             f"compute quarterbeats for a full playthrough.")
             measures = measures.drop(index=measures[measures.volta.fillna(2) != 2].index, columns='volta')
         continuous_offset = make_continuous_offset(measures, logger=logger)
-        dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index)
+        dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                if df is not None else df for df in dfs]
     return dfs
 
@@ -741,11 +740,11 @@ def notes2pcvs(notes,
 
     """
     if pitch_class_format in ("tpc", "name"):
-        pitch_class_grouper = notes.tpc
+        pitch_class_grouper = notes.tpc.values
     elif pitch_class_format == "pc":
-        pitch_class_grouper = (notes.midi % 12).rename('pc')
+        pitch_class_grouper = (notes.midi % 12).values
     elif pitch_class_format == "midi":
-        pitch_class_grouper = notes.midi
+        pitch_class_grouper = notes.midi.values
     else:
         logger.warning("pitch_class_format needs to be one of 'tpc', 'name', 'pc', 'midi', not "+ str(pitch_class_format))
         return pd.DataFrame()
@@ -758,10 +757,10 @@ def notes2pcvs(notes,
         if isinstance(additional_group_cols, str):
             additional_group_cols = [additional_group_cols]
         for col in additional_group_cols:
-            grouper.append(notes[col])
+            grouper.append(notes[col].values)
             group_levels += 1
     grouper.append(pitch_class_grouper)
-    pcvs = notes.groupby(grouper).duration_qb.sum()
+    pcvs = notes.groupby(grouper, dropna=False).duration_qb.sum()
     # if long:
     #     if normalize:
     #         pcvs = pcvs.groupby(level=list(range(group_levels))).apply(lambda S: S / S.sum())
@@ -830,8 +829,8 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
 
 @function_logger
 def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
-    """ Drop exact repetitions of one or several feature columns and adapt the IntervalIndex and the column
-    'duration_qb' accordingly.
+    """ Drop exact adjacent repetitions within one or a combination of several feature columns and adapt the
+    IntervalIndex and the column 'duration_qb' accordingly.
     Uses: :py:func:`adjacency_groups`
 
     Parameters
@@ -860,6 +859,8 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         (if present).
 
     """
+    if 'duration_qb' not in df.columns:
+        logger.error("DataFrame is missing the column 'duration_qb'")
     if isinstance(cols, str):
         cols = [cols]
     N = len(cols)

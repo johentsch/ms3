@@ -1482,7 +1482,11 @@ def make_interval_index(S, end_value=None, closed='left', name='interval'):
     try:
         iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, name=name)
     except Exception:
-        logger.warning(f"Cannot create IntervalIndex from these breaks:\n{breaks}")
+        unsorted = [(a, b) for a, b in zip(breaks, breaks[1:]) if b < a]
+        if len(unsorted) > 0:
+            logger.error(f"Breaks are not sorted: {unsorted}")
+        else:
+            logger.error(f"Cannot create IntervalIndex from these breaks:\n{breaks}")
         raise
     return iix
 
@@ -1504,7 +1508,7 @@ def make_playthrough2mc(measures):
     seq = next2sequence(ml.next)
     ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
-    mc_playthrough = pd.Series(seq, name='mc_playthrough')
+    mc_playthrough = pd.Series(seq, name='mc_playthrough', dtype='Int64')
     if len(mc_playthrough) == 0:
         pass
     elif seq[0] == 1:

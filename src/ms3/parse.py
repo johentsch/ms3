@@ -1151,14 +1151,14 @@ Available keys: {available_keys}""")
                             df = unfold_repeats(df, playthrough2mcs[id])
                             if quarterbeats:
                                 offset_dict = self.get_continuous_offsets(key, i, unfold=True)
-                                df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index)
+                                df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=self.logger)
                         else:
                             self.logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:
                         if 'volta' in df.columns:
                             self.logger.debug("Only second voltas were included when computing quarterbeats.")
                         offset_dict = self.get_continuous_offsets(key, i, unfold=False)
-                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index)
+                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=self.logger)
                     if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
                         if df.volta.isna().all():
                             df = df.drop(columns='volta')
