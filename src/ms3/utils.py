@@ -2354,9 +2354,10 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
 
     Returns
     -------
-    (:obj:`pandas.Series`, :obj:`dict`)
-    A series with increasing integers that can be used for grouping; and a dictionary mapping the integers to the
-    grouped values.
+    :obj:`pandas.Series
+        A series with increasing integers that can be used for grouping.
+    :obj:`dict`
+        A dictionary mapping the integers to the grouped values.
     """
     reindex_flag = False
     if prevent_merge:
@@ -2384,11 +2385,11 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
             logger.warning(f"After treating the Series '{S.name}' with na_values='{na_values}', "
                            f"there were still {s.isna().sum()} NA values left.")
             s = s.dropna()
-            beginnings = (s != s.shift().fillna(False))
+            beginnings = (s != s.shift()).fillna(False)
             beginnings.iloc[0] = True
             reindex_flag = True
     else:
-        beginnings = (s != s.shift().fillna(False))
+        beginnings = s != s.shift()
         beginnings.iloc[0] = True
     if prevent_merge:
         beginnings |= forced_beginnings

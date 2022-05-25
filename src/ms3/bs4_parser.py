@@ -9,7 +9,7 @@ import numpy as np
 
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
-from .utils import color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
+from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
     get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, sort_note_list
 
 
@@ -668,8 +668,14 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['length_qb'] = lqb
         data['length_qb_unfolded'] = lqbu
         data['label_count'] = len(self.get_raw_labels())
-        data['TimeSig'] = dict(self.ml.loc[self.ml.timesig != self.ml.timesig.shift(), ['mc', 'timesig']].itertuples(index=False, name=None))
-        data['KeySig']  = dict(self.ml.loc[self.ml.keysig != self.ml.keysig.shift(), ['mc', 'keysig']].itertuples(index=False, name=None))
+        ts_groups, _ = adjacency_groups(self.ml.timesig)
+        mc_ts = self.ml.groupby(ts_groups)[['mc', 'timesig']].head(1)
+        timesigs = dict(mc_ts.values)
+        data['TimeSig'] = timesigs
+        ks_groups, _ = adjacency_groups(self.ml.keysig)
+        mc_ks = self.ml.groupby(ks_groups)[['mc', 'keysig']].head(1)
+        keysigs = dict(mc_ks.values)
+        data['KeySig']  = keysigs
         annotated_key = None
         for harmony_tag in self.soup.find_all('Harmony'):
             label = harmony_tag.find('name')
