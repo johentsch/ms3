@@ -660,6 +660,24 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
+        if 'reviewer' in data:
+            if 'reviewers' in data:
+                logger.warning("Score properties contain a superfluous key called 'reviewer'. "
+                               "Please merge with the value for 'reviewers' and delete.")
+            else:
+                logger.info("The key 'reviewer' contained in the Score properties was automatically "
+                            "renamed to 'reviewers' when extracting metadata.")
+                data['reviewers'] = data['reviewer']
+                del(data['reviewer'])
+        if 'annotator' in data:
+            if 'annotators' in data:
+                logger.warning("Score properties contain a superfluous key called 'annotator'. "
+                               "Please merge with the value for 'annotators' and delete.")
+            else:
+                logger.info("The key 'annotator' contained in the Score properties was automatically "
+                            "renamed to 'annotators' when extracting metadata.")
+                data['annotators'] = data['annotator']
+                del(data['annotator'])
         data['musescore'] = self.version
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
