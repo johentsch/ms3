@@ -2503,7 +2503,7 @@ Load one of the identically named files with a different key using add_dir(key='
                                     f"needed to match information on identical files.")
         new = self.metadata(from_tsv=False).set_index(['rel_paths', 'fnames'])
         excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
-                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets']
+                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
         old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
 
         parsed = old.index.map(lambda i: i in new.index)

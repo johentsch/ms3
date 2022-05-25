@@ -691,7 +691,9 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             data['n_onsets'] = 0
             return data
         data['all_notes_qb'] = round((self.nl.duration * 4.).sum(), 2)
-        data['n_onsets'] = sum(~self.nl.tied.isin((0, -1)))
+        not_tied = ~self.nl.tied.isin((0, -1))
+        data['n_onsets'] = sum(not_tied)
+        data['n_onset_positions'] = self.nl[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
         staff_groups = self.nl.groupby('staff').midi
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
                         for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
