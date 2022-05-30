@@ -95,10 +95,14 @@ class Annotations(LoggedClass):
                 self.logger.info("Annotations don't have staff information. Using the default -1 (lowest staff).")
                 staff = -1
             df[staff_col] = staff
-        if df[staff_col].isna().any():
+        else:
             if staff is None:
-                self.logger.info("Some labels don't have staff information. Using the default -1 (lowest staff) for those.")
+                self.logger.info(
+                    "Some labels don't have staff information. Using the default -1 (lowest staff) for those.")
                 staff = -1
+            else:
+                df[staff_col] = staff
+        if df[staff_col].isna().any():
             df[staff_col].fillna(staff)
 
         voice_col = self.cols['voice']
