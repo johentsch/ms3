@@ -41,15 +41,11 @@ class LoggedClass:
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
-    def __init__(self, subclass='root', logger_cfg={}):
+    def __init__(self, subclass='ms3', logger_cfg={}):
         self.logger_cfg = {'name': subclass}
-        if 'name' in logger_cfg:
-            name = logger_cfg['name']
-        else:
-            name = subclass
-        # if name in logging.root.manager.loggerDict:
-        #     del(logging.root.manager.loggerDict[name])
-        self.logger_names = {'root': subclass}
+        if 'name' not in logger_cfg or logger_cfg['name'] is None:
+            logger_cfg['name'] = 'ms3.' + subclass
+        self.logger_names = {'ms3': subclass}
         self.update_logger_cfg(logger_cfg=logger_cfg)
 
     def update_logger_cfg(self, name=None, level=None, path=None, file=None, logger_cfg={}):
@@ -66,7 +62,7 @@ class LoggedClass:
                 tested_cfg[o] = None
         self.logger_cfg.update(tested_cfg)
         self.logger = get_logger(logger_cfg=self.logger_cfg)
-        self.logger_names['root'] = self.logger.name
+        self.logger_names['ms3'] = self.logger.name
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
@@ -76,7 +72,7 @@ class LoggedClass:
     def __setstate__(self, state):
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
-        self.logger = get_logger(self.logger_names['root'])
+        self.logger = get_logger(self.logger_names['ms3'])
 
 
 
@@ -102,24 +98,26 @@ def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapt
         if params['name'] not in logging.root.manager.loggerDict:
             config_logger(params['name'], level=params['level'], path=params['path'],
             file=params['file'])
-    except:
+    except Exception:
         print(f"params: {params}")
         raise
     logger = logging.getLogger(params['name'])
     logger.setLevel(CURRENT_LEVEL)
-    for h in logger.handlers:
-        if h.__class__ != logging.FileHandler:
-            h.setLevel(CURRENT_LEVEL)
+    # for h in logger.handlers:
+    #     if h.__class__ != logging.FileHandler:
+    #         h.setLevel(CURRENT_LEVEL)
 
     if adapter is not None:
-        return adapter(logger, {})
-
+        logger = adapter(logger, {})
+    if params['name'] is None:
+        logging.critical("The root logger has been altered.")
     return logger
 
 
 
 def config_logger(name, level=None, path=None, file=None):
     """Configs the logger with name `name`. Overwrites existing config."""
+    assert name is not None, "I don't want to change the root logger."
     logger = logging.getLogger(name)
     logger.propagate = False
     format = '%(levelname)-8s %(name)s -- %(message)s'
@@ -200,7 +198,9 @@ def function_logger(f):
     @wraps(f)
     def logger(*args, **kwargs):
         l = kwargs.pop('logger', None)
-        if l is None or l.__class__ == str:
+        if l is None:
+            l = 'ms3'
+        if l.__class__ == str:
             logg = get_logger(l)
         else:
             logg = l

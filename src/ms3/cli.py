@@ -279,7 +279,7 @@ def update(args):
         if s.mscx.has_annotations:
             s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
             before = s.annotations.df
-            label_types = before.label_type.str[0].unique()
+            label_types = before.label_type.astype(str).str[0].unique()
             if len(label_types) > 1 or label_types[0] != str(args.type):
                 # If all labels have the target type already, nothing is changed, even if the staves don't meet the
                 # target staff: For that one would have to transform the default target -1 into the last staff number
