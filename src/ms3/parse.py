@@ -100,11 +100,6 @@ class Parse(LoggedClass):
         ``{key: [fext]}`` dictionary of file extensions of all detected files.
         """
 
-        self.logger_names = {'root': 'Parse'}
-        """:obj:`dict`
-        ``{(key, i): :obj:`str`}`` dictionary of logger names.
-        """
-
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
