@@ -247,7 +247,7 @@ class Score(LoggedClass):
         return self._label_types
 
 
-    def attach_labels(self, key, staff=None, voice=None, label_type=1, check_for_clashes=True, remove_detached=True):
+    def attach_labels(self, key, staff=None, voice=None, label_type=None, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
@@ -261,10 +261,11 @@ class Score(LoggedClass):
             By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
             Pass an integer to specify a voice.
         label_type : :obj:`int`, optional
-            | By default, the labels are written into the staff's layer for Roman Numeral Analysis.
-            | To change the behaviour pass
-            | * None to instead attach them as absolute ('guitar') chords, meaning that when opened next time,
+            | By default, the labels are written to the layer specified as an integer in the column ``label_type``.
+            | Pass an integer to select a particular layer:
+            | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
             |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
             | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing

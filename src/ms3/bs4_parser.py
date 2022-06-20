@@ -954,7 +954,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
         -------
 
         """
-        if pd.isnull(label):
+        if pd.isnull(label) and len(kwargs) == 0:
             self.logger.error(f"Label cannot be '{label}'")
             return False
         assert mc_onset >= 0, f"Cannot attach label {label} to negative onset {mc_onset} at MC {mc}, staff {staff}, voice {voice}"
