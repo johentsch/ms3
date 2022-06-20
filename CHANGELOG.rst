@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 0.5.3
+=============
+
+* recognizes metadata fields ``reviewers`` and ``annotators`` also in their singular forms
+* adds column ``n_onset_positions`` to metadata.tsv
+* interval index levels renamed from 'iv' => 'interval'
+* gets rid of pandas deprecation warnings
+* bug fixes & log messages
+
 Version 0.5.2
 =============
 
