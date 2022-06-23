@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 0.5.4
+=============
+
+* automatically corrects wrong capitalization in metadata fields harmony_version, annotators, and reviewers
+
 Version 0.5.3
 =============
 

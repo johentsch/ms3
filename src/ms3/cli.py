@@ -142,7 +142,6 @@ def extract(args):
 
     logger_cfg = {
         'level': args.level,
-        'file': args.logfile,
         'path': args.logpath,
     }
 
@@ -226,7 +225,6 @@ def transform(args):
 
     logger_cfg = {
         'level': args.level,
-        'file': args.logfile,
         'path': args.logpath,
     }
 
@@ -476,9 +474,6 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
-    extract_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
-    or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
-    In the former case, --logpath will be disregarded.""")
     extract_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
     MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
     subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
@@ -527,9 +522,6 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
-    transform_parser.add_argument('--logfile', metavar='file path or file name', help="""Either pass an absolute file path to store all logging data in that particular file
-    or pass just a file name and the argument --logpath to create several log files of the same name in a replicated folder structure.
-    In the former case, --logpath will be disregarded.""")
     transform_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
     MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
     subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")

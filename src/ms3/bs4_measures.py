@@ -89,7 +89,7 @@ class MeasureList(LoggedClass):
 
     def make_ml(self, section_breaks=True, secure=True, reset_index=True, logger_cfg={}):
         if logger_cfg != {}:
-            self.update_logger_cfg(logger_cfg=logger_cfg)
+            self.update_logger_cfg(**logger_cfg)
         self.sections = section_breaks
         self.secure = secure
         self.reset_index = reset_index

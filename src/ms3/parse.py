@@ -1737,54 +1737,54 @@ Available keys: {available_keys}""")
         cfg = {'level': level}
 
         ### If log files are going to be created, compute their paths and configure loggers for individual parses
-        if self.logger_cfg['file'] is not None or self.logger_cfg['path'] is not None:
-            file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
-            path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
-            if file is not None:
-                file_path, file_name = os.path.split(file)
-                if file_path == '':
-                    if file_name in ['.', '..']:
-                        file_path = file_name
-                        file_name = None
-                    else:
-                        file_path = None
-            else:
-                file_path, file_name = None, None
-
-            if file_path is not None and os.path.isabs(file_path):
-                if os.path.isdir(file):
-                    self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
-                    configs = [cfg for i in range(len(ids))]
-                else:
-                    cfg['file'] = file
-                    configs = [cfg for i in range(len(ids))]
-            elif not (file_path is None and file_name is None):
-                root_dir = None if path is None else path
-                if file_name is None:
-                    log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                              f"{self.logger_names[(k, i)]}.log")) for k, i in ids]
-                else:
-                    log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-                                                             file_name)) for k, i in ids}
-                    are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
-                    if len(are_dirs) > 0:
-                        NL = '\n'
-                        self.logger.info(
-                        f"""The following file paths are actually existing directories, individual log files are created:
-                        {NL.join(are_dirs)}""")
-                        log_paths = {id: os.path.join(p, self.logger_names[id]) if os.path.isdir(p) else p for id, p in log_paths.items()}
-                    log_paths = list(log_paths.values())
-                configs = [dict(cfg, file=p) for p in log_paths]
-            elif path is not None:
-                configs = [dict(cfg, file=os.path.abspath(
-                                            os.path.join(path, f"{self.logger_names[(k, i)]}.log")
-                                          )) for k, i in ids]
-            else:
-                configs = [cfg for i in range(len(ids))]
-        else:
-            if self.logger.logger.file_handler is not None:
-                cfg['file'] = self.logger.logger.file_handler.baseFilename
-            configs = [cfg for i in range(len(ids))]
+        # if self.logger_cfg['path'] is not None:
+        #     file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
+        #     path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
+        #     if file is not None:
+        #         file_path, file_name = os.path.split(file)
+        #         if file_path == '':
+        #             if file_name in ['.', '..']:
+        #                 file_path = file_name
+        #                 file_name = None
+        #             else:
+        #                 file_path = None
+        #     else:
+        #         file_path, file_name = None, None
+        #
+        #     if file_path is not None and os.path.isabs(file_path):
+        #         if os.path.isdir(file):
+        #             self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
+        #             configs = [cfg for i in range(len(ids))]
+        #         else:
+        #             cfg['file'] = file
+        #             configs = [cfg for i in range(len(ids))]
+        #     elif not (file_path is None and file_name is None):
+        #         root_dir = None if path is None else path
+        #         if file_name is None:
+        #             log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+        #                                                       f"{self.logger_names[(k, i)]}.log")) for k, i in ids]
+        #         else:
+        #             log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
+        #                                                      file_name)) for k, i in ids}
+        #             are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
+        #             if len(are_dirs) > 0:
+        #                 NL = '\n'
+        #                 self.logger.info(
+        #                 f"""The following file paths are actually existing directories, individual log files are created:
+        #                 {NL.join(are_dirs)}""")
+        #                 log_paths = {id: os.path.join(p, self.logger_names[id]) if os.path.isdir(p) else p for id, p in log_paths.items()}
+        #             log_paths = list(log_paths.values())
+        #         configs = [dict(cfg, file=p) for p in log_paths]
+        #     elif path is not None:
+        #         configs = [dict(cfg, file=os.path.abspath(
+        #                                     os.path.join(path, f"{self.logger_names[(k, i)]}.log")
+        #                                   )) for k, i in ids]
+        #     else:
+        #         configs = [cfg for i in range(len(ids))]
+        # else:
+        #     if self.logger.logger.file_handler is not None:
+        #         cfg['file'] = self.logger.logger.file_handler.baseFilename
+        configs = [cfg for i in range(len(ids))]
 
         ### collect argument tuples for calling self._parse
         parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(ids, configs)]
@@ -2174,7 +2174,7 @@ Load one of the identically named files with a different key using add_dir(key='
             self.subdirs[key].append(subdir)
             self.paths[key].append(file_path)
             self.files[key].append(file)
-            self.logger_names[(key, i)] = file_name.replace('.', '')
+            self.logger_names[(key, i)] = f"{self.logger.logger.name}.{key}.{file_name.replace('.', '')}"
             self.fnames[key].append(file_name)
             self.fexts[key].append(file_ext)
             return key, len(self.paths[key]) - 1

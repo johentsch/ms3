@@ -41,28 +41,30 @@ class LoggedClass:
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
-    def __init__(self, subclass='ms3', logger_cfg={}):
-        self.logger_cfg = {'name': subclass}
+    def __init__(self, subclass, logger_cfg={}):
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
-            logger_cfg['name'] = 'ms3.' + subclass
-        self.logger_names = {'ms3': subclass}
-        self.update_logger_cfg(logger_cfg=logger_cfg)
+            name = subclass if subclass == 'ms3' else 'ms3.' + subclass
+            logger_cfg['name'] = name
+        if 'propagate' not in logger_cfg:
+            logger_cfg['propagate'] = True
+        self.logger_cfg = logger_cfg
+        self.logger = None
+        self.logger_names = {}
+        self.update_logger_cfg(**logger_cfg)
 
-    def update_logger_cfg(self, name=None, level=None, path=None, file=None, logger_cfg={}):
+    def update_logger_cfg(self, name=None, level=None, path=None, propagate=False):
         if name is not None and not isinstance(name, str):
             raise ValueError(f"name needs to be a string, not a {name.__class__}")
-        config_options = ['name', 'level', 'path', 'file']
+        config_options = ['name', 'level', 'path', 'propagate']
         params = locals()
-        for param in config_options:
-            if params[param] is not None:
-                logger_cfg[param] = params[param]
+        logger_cfg = {param: value for param, value in params.items() if param in config_options}
         tested_cfg = update_cfg(logger_cfg, config_options)
         for o in config_options:
             if o not in tested_cfg and o not in self.logger_cfg:
                 tested_cfg[o] = None
         self.logger_cfg.update(tested_cfg)
-        self.logger = get_logger(logger_cfg=self.logger_cfg)
-        self.logger_names['ms3'] = self.logger.name
+        self.logger = get_logger(**self.logger_cfg)
+        self.logger_names['class'] = self.logger.name
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
@@ -72,36 +74,26 @@ class LoggedClass:
     def __setstate__(self, state):
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
-        self.logger = get_logger(self.logger_names['ms3'])
+        self.logger = get_logger(self.logger_names['class'])
 
 
 
-def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapter=ContextAdapter):
+def get_logger(name=None, level=None, path=None, propagate=False, adapter=ContextAdapter):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     global CURRENT_LEVEL
-    params = locals()
-    for param in ['name', 'level', 'path', 'file']:
-        if param in logger_cfg:
-            params[param] = logger_cfg[param]
-
-    if isinstance(params['name'], logging.LoggerAdapter):
-        params['name'] = params['name'].logger
-    if isinstance(params['name'], logging.Logger):
-        if params['level'] is None:
-            params['level'] = params['name'].level
-        params['name'] = params['name'].name
-    if params['level'] is None:
-        params['level'] = CURRENT_LEVEL
+    if isinstance(name, logging.LoggerAdapter):
+        name = name.logger
+    if isinstance(name, logging.Logger):
+        if level is None:
+            level = level.level
+        name = name.name
+    if level is None:
+        level = CURRENT_LEVEL
     else:
-        CURRENT_LEVEL = LEVELS[params['level'].upper()] if params['level'].__class__ == str else params['level']
-    try:
-        if params['name'] not in logging.root.manager.loggerDict:
-            config_logger(params['name'], level=params['level'], path=params['path'],
-            file=params['file'])
-    except Exception:
-        print(f"params: {params}")
-        raise
-    logger = logging.getLogger(params['name'])
+        CURRENT_LEVEL = LEVELS[level.upper()] if level.__class__ == str else level
+    if name not in logging.root.manager.loggerDict:
+        config_logger(name, level=level, path=path, propagate=propagate)
+    logger = logging.getLogger(name)
     logger.setLevel(CURRENT_LEVEL)
     # for h in logger.handlers:
     #     if h.__class__ != logging.FileHandler:
@@ -109,55 +101,64 @@ def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapt
 
     if adapter is not None:
         logger = adapter(logger, {})
-    if params['name'] is None:
+    if name is None:
         logging.critical("The root logger has been altered.")
     return logger
 
 
 
-def config_logger(name, level=None, path=None, file=None):
+def config_logger(name, level=None, path=None, propagate=False):
     """Configs the logger with name `name`. Overwrites existing config."""
+    global CURRENT_LEVEL
     assert name is not None, "I don't want to change the root logger."
     logger = logging.getLogger(name)
-    logger.propagate = False
+    logger.propagate = propagate
     format = '%(levelname)-8s %(name)s -- %(message)s'
     formatter = logging.Formatter(format)
     if level is not None:
         if level.__class__ == str:
             level = LEVELS[level.upper()]
         logger.setLevel(level)
+    else:
+        level = CURRENT_LEVEL
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
     if stream_handlers == 0:
         streamHandler = logging.StreamHandler(sys.stdout)
         streamHandler.setFormatter(formatter)
+        streamHandler.setLevel(level)
         logger.addHandler(streamHandler)
     elif stream_handlers > 1:
         logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
 
     log_file = None
-    if file is not None:
-        file = os.path.expanduser(file)
-        if os.path.isabs(file):
-            log_file = os.path.abspath(file)
-        elif path is None:
-            logger.warning(f"""Log file output cannot be configured for '{name}' because 'file' is relative ({file})
-but no 'path' has been configured.""")
-    if log_file is None and path is not None:
-        path = os.path.expanduser(path)
-        log_file = os.path.abspath(os.path.join(path, f"{name}.log"))
+    if path is not None:
+        path = resolve_dir(path)
+        if not os.path.isdir(path):
+            fname = name + ".log"
+            log_file = os.path.join(path, fname)
+        else:
+            path_component, fname = os.path.split(path)
+            if os.path.isdir(path_component):
+                log_file = path
+            else:
+                logger.error(f"Log file output cannot be configured for '{name}' because '{path_component}' is "
+                             f"not an existing directory.")
 
-    if log_file is not None and not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
-        log_dir, _ = os.path.split(log_file)
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir, exist_ok=True)
-        logger.debug(f"Storing logs as {log_file}")
-        fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
-        fileHandler.setLevel(LEVELS['W'])
-        file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
-        fileHandler.setFormatter(file_formatter)
-        logger.addHandler(fileHandler)
-        logger.file_handler = fileHandler
+    if log_file is not None:
+        if any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
+            logger.error(f"Logger '{name}' already has a FileHandler attached.")
+        else:
+            # log_dir, _ = os.path.split(log_file)
+            # if not os.path.isdir(log_dir):
+            #     os.makedirs(log_dir, exist_ok=True)
+            logger.debug(f"Storing logs as {log_file}")
+            fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
+            fileHandler.setLevel(level)
+            # file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
+            # fileHandler.setFormatter(file_formatter)
+            logger.addHandler(fileHandler)
+            logger.file_handler = fileHandler
     else:
         logger.file_handler = None
 
@@ -199,7 +200,7 @@ def function_logger(f):
     def logger(*args, **kwargs):
         l = kwargs.pop('logger', None)
         if l is None:
-            l = 'ms3'
+            l = 'class'
         if l.__class__ == str:
             logg = get_logger(l)
         else:
