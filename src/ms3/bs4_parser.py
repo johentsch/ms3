@@ -678,6 +678,17 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                             "renamed to 'annotators' when extracting metadata.")
                 data['annotators'] = data['annotator']
                 del(data['annotator'])
+        for name, value in data.items():
+            # check for columns with same name but different capitalization
+            name_lwr = name.lower()
+            if name == name_lwr:
+                continue
+            if name_lwr in data:
+                logger.warning(f"Metadata contain the fields {name} and {name_lwr}. Please merge.")
+            elif name_lwr in ('harmony_version', 'annotators', 'reviewers'):
+                data[name_lwr] = value
+                del(data[name])
+                logger.warning(f"Wrongly spelled metadata field {name} read as {name_lwr}.")
         data['musescore'] = self.version
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
