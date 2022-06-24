@@ -17,6 +17,12 @@ LEVELS = {
 
 CURRENT_LEVEL = logging.INFO
 
+DEFAULT_LOG_FORMAT = '%(levelname)-8s %(name)s -- %(message)s'
+
+def get_default_formatter():
+    format = DEFAULT_LOG_FORMAT
+    return logging.Formatter(format)
+
 class ContextAdapter(logging.LoggerAdapter):
     """ This LoggerAdapter is designed to include the module and function that called the logger."""
     def process(self, msg, overwrite={}, stack_info=False, **kwargs):
@@ -42,6 +48,7 @@ class LoggedClass:
         Dictionaries for keeping track of file information handled by .
     """
     def __init__(self, subclass, logger_cfg={}):
+        logger_cfg = dict(logger_cfg)
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
             logger_cfg['name'] = name
@@ -105,7 +112,11 @@ def get_logger(name=None, level=None, path=None, propagate=True, adapter=Context
         logging.critical("The root logger has been altered.")
     return logger
 
-
+def resolve_level_param(level):
+    if level.__class__ == str:
+        level = LEVELS[level.upper()]
+    assert isinstance(level, int), f"Logging level needs to be an integer, not {level.__class__}"
+    return level
 
 def config_logger(name, level=None, path=None, propagate=True):
     """Configs the logger with name `name`. Overwrites existing config."""
@@ -113,17 +124,15 @@ def config_logger(name, level=None, path=None, propagate=True):
     assert name is not None, "I don't want to change the root logger."
     logger = logging.getLogger(name)
     logger.propagate = propagate
-    format = '%(levelname)-8s %(name)s -- %(message)s'
-    formatter = logging.Formatter(format)
     if level is not None:
-        if level.__class__ == str:
-            level = LEVELS[level.upper()]
+        level = resolve_level_param(level)
         logger.setLevel(level)
     else:
         level = CURRENT_LEVEL
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
         return
+    formatter = get_default_formatter()
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
     if stream_handlers == 0:
@@ -239,3 +248,35 @@ def update_cfg(cfg_dict, admitted_keys):
         corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
         logger.warning(f"Unknown config options: {incorrect}{corr}")
     return correct
+
+
+class LogCaptureHandler(logging.Handler):
+
+    def __init__(self, log_queue):
+        logging.Handler.__init__(self)
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        self.log_queue.append(self.format(record))
+
+
+class LogCapturer(object):
+    """Adapted from https://stackoverflow.com/a/37967421"""
+    def __init__(self, level="W"):
+        self._log_queue = list() # original example was using collections.deque() to set maxlength
+        self._log_handler = LogCaptureHandler(self._log_queue)
+        formatter = get_default_formatter()
+        self._log_handler.setFormatter(formatter)
+        self._log_handler.setLevel(resolve_level_param(level))
+
+    @property
+    def content_string(self):
+        return '\n'.join(self._log_queue)
+
+    @property
+    def content_list(self):
+        return self._log_queue
+
+    @property
+    def log_handler(self):
+        return self._log_handler

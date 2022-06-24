@@ -51,10 +51,6 @@ class Parse(LoggedClass):
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
         """
-        if 'file' in logger_cfg and logger_cfg['file'] is not None and not os.path.isabs(logger_cfg['file']) and ('path' not in logger_cfg or logger_cfg['path'] is None):
-            # if the log 'file' is relative but 'path' is not defined, Parse.log will be stored under `dir`;
-            # if `dir` is also None, Parse.log will not be created and a warning will be shown.
-            logger_cfg['path'] = directory
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )

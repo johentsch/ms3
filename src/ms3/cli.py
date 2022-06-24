@@ -8,6 +8,7 @@ import argparse, os, sys
 
 from ms3 import Score, Parse
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
+from ms3.logger import LogCapturer, get_logger
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -35,6 +36,7 @@ def add(args):
         p.store_mscx(ids=ids, overwrite=True)
 
 
+
 def check(args):
     labels_cfg = {'decode': True}
     logger_cfg = {
@@ -45,22 +47,26 @@ def check(args):
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
               labels_cfg=labels_cfg, logger_cfg=logger_cfg)
-
+    logger_object = p.logger.logger
+    captured_warnings = LogCapturer()
+    logger_object.addHandler(captured_warnings.log_handler)
     p.parse_mscx()
-    res = True
     if not args.scores_only:
-        wrong = p.check_labels()
-        if wrong is None:
-            res = None
-        if len(wrong) == 0:
-            p.logger.info("No syntactical errors.")
-        else:
-            if not args.assertion:
-                p.logger.warning(f"The following labels don't match the regular expression:\n{wrong.to_string()}")
-            res = False
+        expanded = p.get_lists(expanded=True)
+        if len(expanded) == 0:
+            p.logger.info(f"No DCML labels could be detected.")
+            return
+    logger_object.removeHandler(captured_warnings.log_handler)
+    warnings = captured_warnings.content_list
     if args.assertion:
-        assert res, "Contains syntactical errors:\n" + wrong.to_string()
-    return res
+        assert len(warnings) == 0, "Warnings found."
+    check_logger = get_logger("ms3 check", **logger_cfg)
+    if len(warnings) == 0:
+        check_logger.info(f"All good.")
+        return True
+    else:
+        check_logger.warning(f"Warnings detected.")
+        return False
 
 
 def compare(args):
