@@ -243,7 +243,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def _make_measure_list(self, sections=True, secure=True, reset_index=True):
         """ Regenerate the measure list from the parsed score with advanced options."""
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += ':MeasureList'
+        logger_cfg['name'] += '.MeasureList'
         return MeasureList(self._measures, sections=sections, secure=secure, reset_index=reset_index, logger_cfg=logger_cfg)
 
 

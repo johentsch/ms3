@@ -1734,7 +1734,7 @@ Available keys: {available_keys}""")
             return
         if level is None:
             level = self.logger.logger.level
-        cfg = {'level': level}
+        # cfg = {'level': level}
 
         ### If log files are going to be created, compute their paths and configure loggers for individual parses
         # if self.logger_cfg['path'] is not None:
@@ -1784,23 +1784,23 @@ Available keys: {available_keys}""")
         # else:
         #     if self.logger.logger.file_handler is not None:
         #         cfg['file'] = self.logger.logger.file_handler.baseFilename
-        configs = [cfg for i in range(len(ids))]
+        configs = [dict(
+            level=level,
+            name=self.logger_names[id]
+        ) for id in ids]
 
         ### collect argument tuples for calling self._parse
-        parse_this = [t + (c, self.labels_cfg, read_only) for t, c in zip(ids, configs)]
+        parse_this = [id + (conf, self.labels_cfg, read_only) for id, conf in zip(ids, configs)]
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''
         try:
-            ids = [t[:2] for t in parse_this]
             if self.simulate:
-                logger_cfg = {'level': level}
-                for key, i, _, _, read_only in parse_this:
-                    logger_cfg['name'] = self.logger_names[(key, i)]
+                for key, i, logger_cfg, _, read_only in parse_this:
                     path = self.full_paths[key][i]
                     try:
                         score_object = Score(path, read_only=read_only, logger_cfg=logger_cfg)
-                    except:
+                    except Exception:
                         self.logger.exception(traceback.format_exc())
                         score_object = None
                     if score_object is not None:

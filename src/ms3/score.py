@@ -633,7 +633,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         return self.mscx.store_mscx(filepath)
 
-    def _handle_path(self, path, key=None, logger_name=None):
+    def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
 
         Parameters
@@ -642,9 +642,6 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Full file path.
         key : :obj:`str`, optional
             The key chosen by the user. By default, the key is automatically assigend to be the file's extension.
-        logger_name : :obj:`str`, optional
-            By default, a logger name is generated for the file from its file name with extension, stripped of all dots.
-            To designate a different logger to go with this file, pass its name.
         """
         full_path = resolve_dir(path)
         if os.path.isfile(full_path):
@@ -659,10 +656,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
-            if logger_name is None:
-                self.logger_names[key] = file_name.replace('.', '')
-            else:
-                self.logger_names[key] = logger_name
+            self.logger_names[key] = f"{self.logger.logger.name}.{key}"
             return key
         else:
             raise ValueError(f"Path not found: {path}.")
@@ -1449,7 +1443,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._parsed.has_annotations:
             self.has_annotations = True
             logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] += ':annotations'
+            logger_cfg['name'] += '.annotations'
             self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
                                             logger_cfg=logger_cfg)
         else:

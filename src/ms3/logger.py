@@ -52,7 +52,7 @@ class LoggedClass:
         self.logger_names = {}
         self.update_logger_cfg(**logger_cfg)
 
-    def update_logger_cfg(self, name=None, level=None, path=None, propagate=False):
+    def update_logger_cfg(self, name=None, level=None, path=None, propagate=True):
         if name is not None and not isinstance(name, str):
             raise ValueError(f"name needs to be a string, not a {name.__class__}")
         config_options = ['name', 'level', 'path', 'propagate']
@@ -78,7 +78,7 @@ class LoggedClass:
 
 
 
-def get_logger(name=None, level=None, path=None, propagate=False, adapter=ContextAdapter):
+def get_logger(name=None, level=None, path=None, propagate=True, adapter=ContextAdapter):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     global CURRENT_LEVEL
     if isinstance(name, logging.LoggerAdapter):
@@ -107,7 +107,7 @@ def get_logger(name=None, level=None, path=None, propagate=False, adapter=Contex
 
 
 
-def config_logger(name, level=None, path=None, propagate=False):
+def config_logger(name, level=None, path=None, propagate=True):
     """Configs the logger with name `name`. Overwrites existing config."""
     global CURRENT_LEVEL
     assert name is not None, "I don't want to change the root logger."
@@ -121,6 +121,9 @@ def config_logger(name, level=None, path=None, propagate=False):
         logger.setLevel(level)
     else:
         level = CURRENT_LEVEL
+    if logger.parent.name != 'root':
+        # go to the following setup of handlers only for the top level logger
+        return
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
     if stream_handlers == 0:
@@ -134,7 +137,7 @@ def config_logger(name, level=None, path=None, propagate=False):
     log_file = None
     if path is not None:
         path = resolve_dir(path)
-        if not os.path.isdir(path):
+        if os.path.isdir(path):
             fname = name + ".log"
             log_file = os.path.join(path, fname)
         else:
@@ -155,8 +158,8 @@ def config_logger(name, level=None, path=None, propagate=False):
             logger.debug(f"Storing logs as {log_file}")
             fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
             fileHandler.setLevel(level)
-            # file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
-            # fileHandler.setFormatter(file_formatter)
+            #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
+            fileHandler.setFormatter(formatter)
             logger.addHandler(fileHandler)
             logger.file_handler = fileHandler
     else:
