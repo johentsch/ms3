@@ -18,6 +18,7 @@ __license__ = "gpl3"
 def add(args):
     logger_cfg = {
         'level': args.level,
+        'path': args.log,
     }
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
               recursive=args.nonrecursive, logger_cfg=logger_cfg)
@@ -36,22 +37,15 @@ def add(args):
 
 def check(args):
     labels_cfg = {'decode': True}
-    log = args.log
-    if log is not None:
-        log = os.path.expanduser(log)
-        if not os.path.isabs(log):
-            log = os.path.join(os.getcwd(), log)
     logger_cfg = {
         'level': args.level,
-        'file': log,
+        'path': args.log,
     }
     if args.regex is None:
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
               labels_cfg=labels_cfg, logger_cfg=logger_cfg)
-    if '.mscx' not in p.count_extensions():
-        p.logger.warning("No MSCX files to check.")
-        return
+
     p.parse_mscx()
     res = True
     if not args.scores_only:
@@ -72,6 +66,7 @@ def check(args):
 def compare(args):
     logger_cfg = {
         'level': args.level,
+        'path': args.log,
     }
     if args.regex is None:
         args.regex = r'\.mscx$'
@@ -104,6 +99,7 @@ def convert_cmd(args):
 def empty(args):
     logger_cfg = {
         'level': args.level,
+        'path': args.log,
     }
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
               recursive=args.nonrecursive, logger_cfg=logger_cfg)
@@ -142,7 +138,7 @@ def extract(args):
 
     logger_cfg = {
         'level': args.level,
-        'path': args.logpath,
+        'path': args.log,
     }
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
@@ -169,6 +165,7 @@ def metadata(args):
     """
     logger_cfg = {
         'level': args.level,
+        'path': args.log,
     }
 
     regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
@@ -225,7 +222,7 @@ def transform(args):
 
     logger_cfg = {
         'level': args.level,
-        'path': args.logpath,
+        'path': args.log,
     }
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
@@ -251,6 +248,7 @@ def update(args):
     assert MS is not None, f"MuseScore not found: {ms}"
     logger_cfg = {
         'level': args.level,
+        'path': args.log,
     }
     if args.dir is None:
         paths = args.file
@@ -346,6 +344,7 @@ def get_arg_parser():
                                      "By default, files including '_reviewed' or starting with . or _ or 'concatenated' are excluded.")
     input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
+    input_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
 
     # main argument parser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='''\
@@ -382,7 +381,6 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     check_parser.add_argument('-s', '--scores_only', action='store_true',
                               help="Don't check DCML labels for syntactic correctness.")
     check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
-    check_parser.add_argument('--log', metavar='NAME', help='Can be a an absolute file path or relative to the current directory.')
     check_parser.set_defaults(func=check)
 
 
@@ -474,9 +472,6 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
-    extract_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
-    MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
-    subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
     extract_parser.set_defaults(func=extract)
 
 
@@ -522,9 +517,6 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
-    transform_parser.add_argument('--logpath', type=check_and_create, nargs='?', const='.', help="""If you define a path for storing log files, the original folder structure of the parsed
-    MuseScore files is recreated there. Additionally, you can pass a filename to --logfile to combine logging data for each 
-    subdirectory; otherwise, an individual log file is automatically created for each MuseScore file. Pass without value to use current working directory.""")
     transform_parser.set_defaults(func=transform)
 
 
