@@ -241,12 +241,12 @@ def transform(args):
         tsv_name = f"concatenated_{param}{sfx}.tsv"
         path = os.path.join(args.out, tsv_name)
         if args.test:
-            print(f"Would have written {path}.")
+            p.logger.info(f"Would have written {path}.")
         else:
             df = p.__getattribute__(param)(quarterbeats=args.quarterbeats, unfold=args.unfold)
             df = df.reset_index(drop=False)
             write_tsv(df, path)
-            print(f"{path} written.")
+            p.logger.info(f"{path} written.")
 
 
 def update(args):
@@ -449,10 +449,10 @@ To prevent the interaction, set this flag to use the first annotation table that
     extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
                                 help="Folder where to store TSV files with information on all rests.")
     extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
-                                const='../annotations',
+                                const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
     extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
-                                const='../harmonies',
+                                const='../expanded',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")

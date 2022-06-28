@@ -1326,6 +1326,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'color_b': 'Int64',
         'color_a': 'Int64',
         'dont_count': 'Int64',
+        'expanded_id': 'Int64',
         'figbass': str,
         'form': str,
         'globalkey': str,
