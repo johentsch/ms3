@@ -1131,26 +1131,26 @@ Available keys: {available_keys}""")
                 if not flat:
                     res[param] = {}
                 for id in (i for i in ids if i in li):
-                    key, i = id
+                    logger = self.id_logger(id)
                     df = li[id]
                     if unfold:
-                        if id in playthrough2mcs:
-                            df = unfold_repeats(df, playthrough2mcs[id])
-                            if quarterbeats:
-                                offset_dict = self.get_continuous_offsets(key, i, unfold=True)
-                                df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=self.logger)
-                        else:
-                            self.logger.info(f"Cannot unfold {id} without measure information.")
+                        # if id in playthrough2mcs:
+                        df = unfold_repeats(df, playthrough2mcs[id])
+                        if quarterbeats:
+                            offset_dict = self.get_continuous_offsets(id, unfold=True)
+                            df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
+                        # else:
+                        #     logger.info(f"Cannot unfold {id} without measure information.")
                     elif quarterbeats:
                         if 'volta' in df.columns:
-                            self.logger.debug("Only second voltas were included when computing quarterbeats.")
-                        offset_dict = self.get_continuous_offsets(key, i, unfold=False)
-                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=self.logger)
+                            logger.debug("Only second voltas were included when computing quarterbeats.")
+                        offset_dict = self.get_continuous_offsets(id, unfold=False)
+                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
                     if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
                         if df.volta.isna().all():
                             df = df.drop(columns='volta')
                         else:
-                            self.logger.error(f"Score @ ID {id} does not include any voltas, yet the volta column in the {param} table is not empty.")
+                            logger.error(f"Score @ ID {id} does not include any voltas, yet the volta column in the {param} table is not empty.")
                     if flat:
                         res[id + (param,)] = df
                     else:
@@ -1214,13 +1214,15 @@ Available keys: {available_keys}""")
             ids = list(self._iterids(keys))
         _ = self.match_files(ids=ids)
         res = {}
-        for key, i in ids:
-            unf_mcs = self._get_playthrough2mc(key, i)
+        for id in ids:
+            unf_mcs = self._get_playthrough2mc(id)
             if unf_mcs is not None:
-                res[(key, i)] = unf_mcs
+                res[id] = unf_mcs
+            else:
+                self.id_logger(id).warning(f"Unable to unfold.")
         return res
 
-    def _get_measure_list(self, key, i, unfold=False):
+    def _get_measure_list(self, id, unfold=False):
         """ Tries to retrieve the corresponding measure list, e.g. for unfolding repeats. Preference is given to
         parsed MSCX files, then checks for parsed TSVs.
 
@@ -1237,7 +1239,7 @@ Available keys: {available_keys}""")
         -------
 
         """
-        id = (key, i)
+        logger = self.id_logger(id)
         res = None
         if id in self._measurelists:
             res = self._measurelists[id]
@@ -1248,7 +1250,7 @@ Available keys: {available_keys}""")
             # trying to find a matched file to retrieve the measure list from
             ix = id
             if ix not in self._matches.index:
-                self.logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
+                logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
                 return
             matched_row = self._matches.loc[ix]
             if not pd.isnull(matched_row['measures']):
@@ -1263,40 +1265,43 @@ Available keys: {available_keys}""")
                     res = self._measurelists[matched_id]
             else:
                 if matched_row.notna().sum() > 1:
-                    self.logger.info(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
+                    logger.info(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
                 else:
-                    self.logger.info(f"No matches found for ID {id} and therefore no measure list.")
+                    logger.info(f"No matches found for ID {id} and therefore no measure list.")
         if res is not None:
             res = res.copy()
             if unfold == 'raw':
                 return res
             if unfold:
-                mc_sequence = self._get_playthrough2mc(key, i) # with caching
+                mc_sequence = self._get_playthrough2mc(id) # with caching
                 res = unfold_repeats(res, mc_sequence)
             elif 'volta' in res.columns:
                 if 3 in res.volta.values:
-                    self.logger.warning(f"Piece contains third endings, note that only second endings are taken into account.")
+                    logger.warning(f"Piece contains third endings, note that only second endings are taken into account.")
                 res = res.drop(index=res[res.volta.fillna(2) != 2].index, columns='volta')
             return res
 
 
 
-    def _get_playthrough2mc(self, key, i):
-        id = (key, i)
+    def _get_playthrough2mc(self, id):
+        logger = self.id_logger(id)
         if id in self._playthrough2mc:
             return self._playthrough2mc[id]
-        if not id in self._measurelists:
-            self.collect_lists(ids=[id], measures=True)
-        ml = self._get_measure_list(key, i, unfold='raw')
+        ml = self._get_measure_list(id, unfold='raw')
         if ml is None:
+            logger.warning("No measures table available.")
+            self._playthrough2mc[id] = None
             return
-        mc_playthrough = make_playthrough2mc(ml)
+        mc_playthrough = make_playthrough2mc(ml, logger=logger)
         if len(mc_playthrough) == 0:
+            logger.warning(f"Error in the repeat structure: Did not get to -1 in measures.next:\n{ml.set_index('mc').next}")
             mc_playthrough = None
+        else:
+            logger.debug("Measures successfully unfolded.")
         self._playthrough2mc[id] = mc_playthrough
         return mc_playthrough
 
-    def get_continuous_offsets(self, key, i, unfold):
+    def get_continuous_offsets(self, id, unfold):
         """ Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,
             measured in quarter notes.
 
@@ -1311,17 +1316,20 @@ Available keys: {available_keys}""")
         -------
 
         """
-        id = (key, i)
+        logger = self.id_logger(id)
         if id in self._quarter_offsets[unfold]:
             return self._quarter_offsets[unfold][id]
-        ml = self._get_measure_list(key, i, unfold=unfold)
+        ml = self._get_measure_list(id, unfold=unfold)
         if ml is None:
-            self.logger.warning(f"Could not find measure list for key {id}.")
+            logger.warning(f"Could not find measure list for id {id}.")
             return None
         offset_col = make_continuous_offset(ml)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
+
+    def id_logger(self, id):
+        return get_logger(self.logger_names[id])
 
 
     def ids2idx(self, ids=None, pandas_index=False):
@@ -1810,17 +1818,17 @@ Available keys: {available_keys}""")
         if ids is not None:
             pass
         elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
+            ids = [id for id in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
         else:
             if isinstance(fexts, str):
                 fexts = [fexts]
             fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
+            ids = [id for id in self._iterids(keys) if self.fexts[key][i] in fexts]
 
-        for key, i in ids:
-            #rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
+        for id in ids:
+            key, i = id
             path = self.full_paths[key][i]
-            logger = get_logger(self.logger_names[(key, i)])
+            logger = self.id_logger(id)
             try:
                 df = load_tsv(path, **kwargs)
             except Exception:
@@ -1828,7 +1836,6 @@ Available keys: {available_keys}""")
                                  f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
             label_col = cols['label'] if 'label' in cols else 'label'
-            id = (key, i)
             try:
                 self._parsed_tsv[id] = df
                 if 'label' in cols and label_col in df.columns:
@@ -1941,9 +1948,7 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         paths = {}
         warnings, infos = [], []
-        prev_logger = self.logger.name
         for (key, i, what), li in lists.items():
-            self.update_logger_cfg(name=self.logger_names[(key, i)])
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
                                        root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
@@ -1951,7 +1956,6 @@ Available keys: {available_keys}""")
             else:
                 infos.append(f"{what} {modus}have been stored as {new_path}.")
             paths[new_path] = what
-        self.update_logger_cfg(name=prev_logger)
         if len(warnings) > 0:
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
@@ -2219,7 +2223,6 @@ Load one of the identically named files with a different key using add_dir(key='
                 self.logger.debug(f"Encountered errors when parsing {file}")
             else:
                 self.logger.debug(f"Successfully parsed {file}")
-                # self._parsed_mscx[(key, i)] = score
             return score
         except (KeyboardInterrupt, SystemExit):
             self.logger.info("Process aborted.")
@@ -2297,7 +2300,7 @@ Load one of the identically named files with a different key using add_dir(key='
         """
 
         id = (key, i)
-        logger = get_logger(self.logger_names[id])
+        logger = self.id_logger(id)
         fname = self.fnames[key][i]
 
         if id not in self._parsed_mscx:
@@ -2353,7 +2356,7 @@ Load one of the identically named files with a different key using add_dir(key='
             Path of the stored file.
 
         """
-        tsv_logger = get_logger(self.logger_names[(key, i)])
+        tsv_logger = self.id_logger((key, i))
 
         if df is None:
             tsv_logger.debug(f"No DataFrame for {what}.")
@@ -2462,7 +2465,7 @@ Load one of the identically named files with a different key using add_dir(key='
                     for name, val in new_dict.items():
                         self._parsed_mscx[id].mscx.parsed.metatags[name] = val
                     self._parsed_mscx[id].mscx.parsed.update_metadata()
-                    get_logger(self.logger_names[id]).debug(f"Updated with {new_dict}")
+                    self.id_logger(id).debug(f"Updated with {new_dict}")
                     ids.append(id)
 
             self.logger.info(f"{l} files updated.")

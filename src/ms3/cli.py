@@ -141,6 +141,8 @@ def extract(args):
             suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
         else:
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
+    if "metadata_suffix" in suffixes:
+        del(suffixes["metadata_suffix"])
 
     logger_cfg = {
         'level': args.level,

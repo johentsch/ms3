@@ -1506,7 +1506,7 @@ def make_name_columns(df):
 @function_logger
 def make_playthrough2mc(measures):
     ml = measures.set_index('mc')
-    seq = next2sequence(ml.next)
+    seq = next2sequence(ml.next, logger=logger)
     ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
     mc_playthrough = pd.Series(seq, name='mc_playthrough', dtype='Int64')
@@ -1725,17 +1725,17 @@ def nan_eq(a, b):
     return (a == b) | (pd.isnull(a) & pd.isnull(b))
 
 
-
-def next2sequence(nxt):
+@function_logger
+def next2sequence(next_col):
     """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
     Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
     """
-    mc = nxt.index[0]
-    last_mc = nxt.index[-1]
+    mc = next_col.index[0]
+    last_mc = next_col.index[-1]
     max_iter = 10 * last_mc
     i = 0
     result = []
-    nxt = nxt.to_dict()
+    nxt = next_col.to_dict()
     while mc != -1 and i < max_iter:
         result.append(mc)
         new_mc, *rest = nxt[mc]

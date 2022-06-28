@@ -15,8 +15,6 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-CURRENT_LEVEL = logging.INFO
-
 DEFAULT_LOG_FORMAT = '%(levelname)-8s %(name)s -- %(message)s'
 
 def get_default_formatter():
@@ -37,7 +35,7 @@ class ContextAdapter(logging.LoggerAdapter):
         return message, kwargs
 
 
-class LoggedClass:
+class LoggedClass():
     """
 
     logger : :obj:`logging.Logger` or :obj:`logging.LoggerAdapter`
@@ -55,23 +53,11 @@ class LoggedClass:
         if 'propagate' not in logger_cfg:
             logger_cfg['propagate'] = True
         self.logger_cfg = logger_cfg
-        self.logger = None
         self.logger_names = {}
-        self.update_logger_cfg(**logger_cfg)
-
-    def update_logger_cfg(self, name=None, level=None, path=None, propagate=True):
-        if name is not None and not isinstance(name, str):
-            raise ValueError(f"name needs to be a string, not a {name.__class__}")
-        config_options = ['name', 'level', 'path', 'propagate']
-        params = locals()
-        logger_cfg = {param: value for param, value in params.items() if param in config_options}
-        tested_cfg = update_cfg(logger_cfg, config_options, logger=name)
-        for o in config_options:
-            if o not in tested_cfg and o not in self.logger_cfg:
-                tested_cfg[o] = None
-        self.logger_cfg.update(tested_cfg)
         self.logger = get_logger(**self.logger_cfg)
         self.logger_names['class'] = self.logger.name
+
+
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
@@ -87,24 +73,14 @@ class LoggedClass:
 
 def get_logger(name=None, level=None, path=None, propagate=True, adapter=ContextAdapter):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
-    global CURRENT_LEVEL
+    assert name != 'ms3'
     if isinstance(name, logging.LoggerAdapter):
         name = name.logger
     if isinstance(name, logging.Logger):
         if level is None:
             level = level.level
         name = name.name
-    if level is None:
-        level = CURRENT_LEVEL
-    else:
-        CURRENT_LEVEL = LEVELS[level.upper()] if level.__class__ == str else level
-    if name not in logging.root.manager.loggerDict:
-        config_logger(name, level=level, path=path, propagate=propagate)
-    logger = logging.getLogger(name)
-    logger.setLevel(CURRENT_LEVEL)
-    # for h in logger.handlers:
-    #     if h.__class__ != logging.FileHandler:
-    #         h.setLevel(CURRENT_LEVEL)
+    logger = config_logger(name, level=level, path=path, propagate=propagate)
 
     if adapter is not None:
         logger = adapter(logger, {})
@@ -118,29 +94,52 @@ def resolve_level_param(level):
     assert isinstance(level, int), f"Logging level needs to be an integer, not {level.__class__}"
     return level
 
+
+def get_parent_level(logger):
+    if logger.parent is None:
+        return None
+    parent = logger.parent
+    if parent.level == 0:
+        return get_parent_level(parent)
+    return parent
+
 def config_logger(name, level=None, path=None, propagate=True):
     """Configs the logger with name `name`. Overwrites existing config."""
-    global CURRENT_LEVEL
     assert name is not None, "I don't want to change the root logger."
+    new_logger = name not in logging.root.manager.loggerDict
     logger = logging.getLogger(name)
     logger.propagate = propagate
     if level is not None:
         level = resolve_level_param(level)
         logger.setLevel(level)
+    elif new_logger:
+        parent = get_parent_level(logger)
+        if parent is None:
+            level = 20
+            logger.setLevel(level)
+            logger.info(f"New logger '{name}' has no parent with level > 0. Using default level INFO.")
+        else:
+            level = parent.level
+            logger.setLevel(level)
+            logger.debug(f"New logger '{name}' initialized with level {level}, inherited from parent {parent.name}.")
     else:
-        level = CURRENT_LEVEL
+        level = logger.level
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
-        return
+        return logger
     formatter = get_default_formatter()
     existing_handlers = [h for h in logger.handlers]
-    stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
-    if stream_handlers == 0:
+    stream_handlers = [h for h in existing_handlers if h.__class__ == logging.StreamHandler]
+    n_stream_handlers = len(stream_handlers)
+    if n_stream_handlers == 0:
         streamHandler = logging.StreamHandler(sys.stdout)
         streamHandler.setFormatter(formatter)
         streamHandler.setLevel(level)
         logger.addHandler(streamHandler)
-    elif stream_handlers > 1:
+    elif n_stream_handlers == 1:
+        streamHandler = stream_handlers[0]
+        streamHandler.setLevel(level)
+    else:
         logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
 
     log_file = None
@@ -158,8 +157,10 @@ def config_logger(name, level=None, path=None, propagate=True):
                              f"not an existing directory.")
 
     if log_file is not None:
-        if any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
-            logger.error(f"Logger '{name}' already has a FileHandler attached.")
+        file_handlers = [h for h in existing_handlers if h.__class__ == logging.FileHandler]
+        n_file_handlers = len(file_handlers)
+        if n_file_handlers > 0:
+            logger.error(f"Logger '{name}' already has {n_file_handlers} FileHandlers attached.")
         else:
             # log_dir, _ = os.path.split(log_file)
             # if not os.path.isdir(log_dir):
@@ -170,9 +171,7 @@ def config_logger(name, level=None, path=None, propagate=True):
             #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
             fileHandler.setFormatter(formatter)
             logger.addHandler(fileHandler)
-            logger.file_handler = fileHandler
-    else:
-        logger.file_handler = None
+    return logger
 
 
 def function_logger(f):
