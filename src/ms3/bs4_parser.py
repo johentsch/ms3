@@ -662,19 +662,19 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
         if 'reviewer' in data:
             if 'reviewers' in data:
-                logger.warning("Score properties contain a superfluous key called 'reviewer'. "
+                self.logger.warning("Score properties contain a superfluous key called 'reviewer'. "
                                "Please merge with the value for 'reviewers' and delete.")
             else:
-                logger.info("The key 'reviewer' contained in the Score properties was automatically "
+                self.logger.info("The key 'reviewer' contained in the Score properties was automatically "
                             "renamed to 'reviewers' when extracting metadata.")
                 data['reviewers'] = data['reviewer']
                 del(data['reviewer'])
         if 'annotator' in data:
             if 'annotators' in data:
-                logger.warning("Score properties contain a superfluous key called 'annotator'. "
+                self.logger.warning("Score properties contain a superfluous key called 'annotator'. "
                                "Please merge with the value for 'annotators' and delete.")
             else:
-                logger.info("The key 'annotator' contained in the Score properties was automatically "
+                self.logger.info("The key 'annotator' contained in the Score properties was automatically "
                             "renamed to 'annotators' when extracting metadata.")
                 data['annotators'] = data['annotator']
                 del(data['annotator'])
@@ -684,11 +684,11 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             if name == name_lwr:
                 continue
             if name_lwr in data:
-                logger.warning(f"Metadata contain the fields {name} and {name_lwr}. Please merge.")
+                self.logger.warning(f"Metadata contain the fields {name} and {name_lwr}. Please merge.")
             elif name_lwr in ('harmony_version', 'annotators', 'reviewers'):
                 data[name_lwr] = value
                 del(data[name])
-                logger.warning(f"Wrongly spelled metadata field {name} read as {name_lwr}.")
+                self.logger.warning(f"Wrongly spelled metadata field {name} read as {name_lwr}.")
         data['musescore'] = self.version
         last_measure = self.ml.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
@@ -724,11 +724,11 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['n_onsets'] = sum(not_tied)
         data['n_onset_positions'] = self.nl[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
         staff_groups = self.nl.groupby('staff').midi
-        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi)}
+        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
                         for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
             ambitus[t.staff]['max_midi'] = t.midi
-            ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi)
+            ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:

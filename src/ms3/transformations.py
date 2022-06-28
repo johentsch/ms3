@@ -202,8 +202,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
         }
     for t in set(param_tuples):
         try:
-            result_dict[t] = features2tpcs(**{a: b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only,
-                                           merge_tones=not expand, logger=logger)
+            result_dict[t] = features2tpcs(**{a: b for a, b in zip(param_cols.keys(), t)}, bass_only=bass_only, merge_tones=not expand, logger=logger)
         except:
             result_dict[t] = default
             logger.warning(str(sys.exc_info()[1]))

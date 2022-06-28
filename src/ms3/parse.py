@@ -1000,16 +1000,12 @@ Available keys: {available_keys}""")
         ids = list(self._iterids(keys, only_attached_annotations=True))
         if len(ids) == 0:
             self.logger.info(f"Selection did not contain scores with labels: keys = '{keys}'")
-        prev_logger = self.logger
         for id in ids:
             score = self._parsed_mscx[id]
-            self.logger = score.logger
             try:
                 score.detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
             except:
-                self.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
-            finally:
-                self.logger = prev_logger
+                score.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
         self._collect_annotations_objects_references(ids=ids)
 
 
@@ -1730,56 +1726,6 @@ Available keys: {available_keys}""")
             return
         if level is None:
             level = self.logger.logger.level
-        # cfg = {'level': level}
-
-        ### If log files are going to be created, compute their paths and configure loggers for individual parses
-        # if self.logger_cfg['path'] is not None:
-        #     file = None if self.logger_cfg['file'] is None else os.path.expanduser(self.logger_cfg['file'])
-        #     path = None if self.logger_cfg['path'] is None else os.path.expanduser(self.logger_cfg['path'])
-        #     if file is not None:
-        #         file_path, file_name = os.path.split(file)
-        #         if file_path == '':
-        #             if file_name in ['.', '..']:
-        #                 file_path = file_name
-        #                 file_name = None
-        #             else:
-        #                 file_path = None
-        #     else:
-        #         file_path, file_name = None, None
-        #
-        #     if file_path is not None and os.path.isabs(file_path):
-        #         if os.path.isdir(file):
-        #             self.logger.error(f"You have passed the directory {file} as parameter 'file' which needs to be a relative dir or a (relative or absolute) file path.")
-        #             configs = [cfg for i in range(len(ids))]
-        #         else:
-        #             cfg['file'] = file
-        #             configs = [cfg for i in range(len(ids))]
-        #     elif not (file_path is None and file_name is None):
-        #         root_dir = None if path is None else path
-        #         if file_name is None:
-        #             log_paths = [os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-        #                                                       f"{self.logger_names[(k, i)]}.log")) for k, i in ids]
-        #         else:
-        #             log_paths = {(k, i): os.path.abspath(os.path.join(self._calculate_path(k, i, root_dir, file_path),
-        #                                                      file_name)) for k, i in ids}
-        #             are_dirs = [p for p in set(log_paths.values()) if os.path.isdir(p)]
-        #             if len(are_dirs) > 0:
-        #                 NL = '\n'
-        #                 self.logger.info(
-        #                 f"""The following file paths are actually existing directories, individual log files are created:
-        #                 {NL.join(are_dirs)}""")
-        #                 log_paths = {id: os.path.join(p, self.logger_names[id]) if os.path.isdir(p) else p for id, p in log_paths.items()}
-        #             log_paths = list(log_paths.values())
-        #         configs = [dict(cfg, file=p) for p in log_paths]
-        #     elif path is not None:
-        #         configs = [dict(cfg, file=os.path.abspath(
-        #                                     os.path.join(path, f"{self.logger_names[(k, i)]}.log")
-        #                                   )) for k, i in ids]
-        #     else:
-        #         configs = [cfg for i in range(len(ids))]
-        # else:
-        #     if self.logger.logger.file_handler is not None:
-        #         cfg['file'] = self.logger.logger.file_handler.baseFilename
         configs = [dict(
             level=level,
             name=self.logger_names[id]
@@ -1874,10 +1820,11 @@ Available keys: {available_keys}""")
         for key, i in ids:
             #rel_path = os.path.join(self.rel_paths[key][i], self.files[key][i])
             path = self.full_paths[key][i]
+            logger = get_logger(self.logger_names[(key, i)])
             try:
                 df = load_tsv(path, **kwargs)
             except Exception:
-                self.logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
+                logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
                                  f"\n{path}\nError: {sys.exc_info()[1]}")
                 continue
             label_col = cols['label'] if 'label' in cols else 'label'
@@ -1890,14 +1837,14 @@ Available keys: {available_keys}""")
                     tsv_type = self._infer_tsv_type(df)
 
                 if tsv_type is None:
-                    self.logger.debug(
+                    logger.debug(
                         f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                     self._tsv_types[id] = 'other'
                 else:
                     self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                        self.logger.debug(f"{self.files[key][i]} parsed as metadata.")
+                        logger.debug(f"{self.files[key][i]} parsed as metadata.")
                     else:
                         self._lists[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
@@ -1905,14 +1852,14 @@ Available keys: {available_keys}""")
                                 logger_name = self.files[key][i]
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg={'name': logger_name}, level=level)
-                                self.logger.debug(
+                                logger.debug(
                                     f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
                             else:
-                                self.logger.info(
+                                logger.info(
     f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
     Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                         else:
-                            self.logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
+                            logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
 
             except Exception:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
@@ -2406,30 +2353,23 @@ Load one of the identically named files with a different key using add_dir(key='
             Path of the stored file.
 
         """
-        def restore_logger(val):
-            nonlocal prev_logger
-            self.logger = prev_logger
-            return val
+        tsv_logger = get_logger(self.logger_names[(key, i)])
 
-        prev_logger = self.logger
-        # make sure all subloggers store their information into Parse.log if it is being used
-        # file = None if self.logger.logger.file_handler is None else self.logger.logger.file_handler.baseFilename
-        # self.update_logger_cfg(name=self.logger_names[(key, i)] + f":{what}", file=file)
         if df is None:
-            self.logger.debug(f"No DataFrame for {what}.")
-            return restore_logger(None)
+            tsv_logger.debug(f"No DataFrame for {what}.")
+            return
         path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
         if path is None:
-            return restore_logger(None)
+            return
 
         fname = self.fnames[key][i] + suffix + ".tsv"
         file_path = os.path.join(path, fname)
         if simulate:
-            self.logger.debug(f"Would have written {what} to {file_path}.")
+            tsv_logger.debug(f"Would have written {what} to {file_path}.")
         else:
-            self.logger.debug(f"Writing {what} to {file_path}.")
-            write_tsv(df, file_path, logger=self.logger)
-        return restore_logger(file_path)
+            tsv_logger.debug(f"Writing {what} to {file_path}.")
+            write_tsv(df, file_path, logger=tsv_logger)
+        return file_path
 
 
 

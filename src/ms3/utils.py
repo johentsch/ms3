@@ -767,7 +767,7 @@ def fifths2iv(fifths, smallest=False):
     return int_qual + str(int_num)
 
 
-
+@function_logger
 def fifths2name(fifths, midi=None, ms=False, minor=False):
     """ Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc.
@@ -797,7 +797,7 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
     note_names = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
     name = _fifths2str(fifths, note_names, inverted=True)
     if midi is not None:
-        octave = midi2octave(midi, fifths)
+        octave = midi2octave(midi, fifths, logger=logger)
         return f"{name}{octave}"
     if minor:
         return name.lower()
@@ -1940,7 +1940,7 @@ def rgba2params(named_tuple):
     attrs = rgba2attrs(named_tuple)
     return {'color_'+k: v for k, v in attrs.items()}
 
-
+@function_logger
 def roman_numeral2fifths(rn, global_minor=False):
     """ Turn a Roman numeral into a TPC interval (e.g. for transposition purposes).
         Uses: split_scale_degree()
@@ -1949,7 +1949,7 @@ def roman_numeral2fifths(rn, global_minor=False):
         return rn
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
-    accidentals, rn_step = split_scale_degree(rn, count=True)
+    accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
     if any(v is None for v in (accidentals, rn_step)):
         return None
     rn_step = rn_step.upper()
@@ -2753,6 +2753,7 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     return df
 
 
+@function_logger
 def resolve_relative_keys(relativeroot, minor=False):
     """ Resolve nested relative keys, e.g. 'V/V/V' => 'VI'.
 
@@ -2770,7 +2771,7 @@ def resolve_relative_keys(relativeroot, minor=False):
         return relativeroot
     if len(spl) == 2:
         applied, to = spl
-        return rel2abs_key(applied, to, minor)
+        return rel2abs_key(applied, to, minor, logger=logger)
     previous, last = '/'.join(spl[:-1]), spl[-1]
     return rel2abs_key(resolve_relative_keys(previous, str_is_minor(last, is_name=False)), last, minor)
 
@@ -2893,16 +2894,16 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         except:
             raise ValueError(f"If parameter 'minor' is not specified, 'key' needs to be a string, not {key}")
 
-    key = name2fifths(key)
+    key = name2fifths(key, logger=logger)
 
     if form in ['%', 'M', '+M']:
         assert figbass in ['7', '65', '43',
                            '2'], f"{MC}{label}: {form} requires figbass (7, 65, 43, or 2) since it specifies a chord's seventh."
 
     if relativeroot != '':
-        resolved = resolve_relative_keys(relativeroot, minor)
+        resolved = resolve_relative_keys(relativeroot, minor, logger=logger)
         rel_minor = str_is_minor(resolved, is_name=False)
-        transp = roman_numeral2fifths(resolved, minor)
+        transp = roman_numeral2fifths(resolved, minor, logger=logger)
         logger.debug(
             f"{MC}Chord applied to {relativeroot}. Therefore transposing it by {transp} fifths.")
         return features2tpcs(numeral=numeral, form=form, figbass=figbass, relativeroot=None, changes=changes,
@@ -2910,8 +2911,6 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                              logger=logger)
 
     if numeral.lower() == '#vii' and not minor:
-        # logger.warning(
-        #     f"{MC}{label} in a major context is most probably an annotation error.")
         logger.warning(f"{MC}{numeral} in major context corrected to {numeral[1:]}.")
         numeral = numeral[1:]
 

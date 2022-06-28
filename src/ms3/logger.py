@@ -65,7 +65,7 @@ class LoggedClass:
         config_options = ['name', 'level', 'path', 'propagate']
         params = locals()
         logger_cfg = {param: value for param, value in params.items() if param in config_options}
-        tested_cfg = update_cfg(logger_cfg, config_options)
+        tested_cfg = update_cfg(logger_cfg, config_options, logger=name)
         for o in config_options:
             if o not in tested_cfg and o not in self.logger_cfg:
                 tested_cfg[o] = None
@@ -212,7 +212,7 @@ def function_logger(f):
     def logger(*args, **kwargs):
         l = kwargs.pop('logger', None)
         if l is None:
-            l = 'class'
+            l = 'ms3'
         if l.__class__ == str:
             logg = get_logger(l)
         else:

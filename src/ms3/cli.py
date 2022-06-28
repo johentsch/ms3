@@ -60,7 +60,7 @@ def check(args):
     warnings = captured_warnings.content_list
     if args.assertion:
         assert len(warnings) == 0, "Warnings found."
-    check_logger = get_logger("ms3 check", **logger_cfg)
+    check_logger = get_logger("ms3 check", level=args.level)
     if len(warnings) == 0:
         check_logger.info(f"All good.")
         return True
