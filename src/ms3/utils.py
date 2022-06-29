@@ -957,7 +957,6 @@ def get_quarterbeats_length(measures, decimals=2):
         else:
             length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
     except Exception as e:
-        print(f"Failed to unfold measures: {e}")
         length_qb_unfolded = np.nan
     return length_qb, length_qb_unfolded
 
@@ -1315,6 +1314,8 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'bass_note': 'Int64',
         'cadence': str,
         'cadences_id': 'Int64',
+        'composed_end': 'Int64',
+        'composed_start': 'Int64',
         'changes': str,
         'chord': str,
         'chord_id': 'Int64',
@@ -1339,6 +1340,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'localkey': str,
         'mc': 'Int64',
         'mc_playthrough': 'Int64',
+        'movementNumber': 'Int64',
         'midi': 'Int64',
         'mn': str,
         'offset:x': str,
