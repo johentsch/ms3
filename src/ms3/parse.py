@@ -1110,52 +1110,67 @@ Available keys: {available_keys}""")
         -------
         {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
         """
-        if ids is None:
-            ids = list(self._iterids(keys))
-        if len(self._parsed_mscx) == 0 and len(self._parsed_tsv) == 0:
-            self.logger.error("No scores or TSV files have been parsed so far.")
+
+        if len(self._parsed_mscx) == 0:
+            self.logger.error("No scores have been parsed so far.")
             return {}
+        if ids is not None:
+            grouped_ids = group_id_tuples(ids)
+            grouped_ids = {key: [self.fnames[key][i] for i in ints] for key, ints in grouped_ids.items()}
+        else:
+            keys = self._treat_key_param(keys)
+            grouped_ids = {k: None for k in keys}
         bool_params = list(self._lists.keys())
         l = locals()
-        params = {p: l[p] for p in bool_params}
-        self.collect_lists(ids=ids, only_new=True, **params)
-        res = {}
-        if unfold:
-            playthrough2mcs = self.get_playthrough2mc(ids=ids)
+        columns = [tsv_type for tsv_type in self._lists.keys() if l[tsv_type]]
+        #self.collect_lists(ids=ids, only_new=True, **params)
+        res = {} if flat else defaultdict(dict)
+        # if unfold:
+        #     playthrough2mcs = self.get_playthrough2mc(ids=ids)
         if interval_index:
             quarterbeats = True
-        if unfold or quarterbeats:
-            _ = self.match_files(ids=ids)
-        for param, li in self._lists.items():
-            if params[param]:
-                if not flat:
-                    res[param] = {}
-                for id in (i for i in ids if i in li):
-                    logger = self.id_logger(id)
-                    df = li[id]
-                    if unfold:
-                        # if id in playthrough2mcs:
-                        df = unfold_repeats(df, playthrough2mcs[id])
-                        if quarterbeats:
-                            offset_dict = self.get_continuous_offsets(id, unfold=True)
-                            df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
-                        # else:
-                        #     logger.info(f"Cannot unfold {id} without measure information.")
-                    elif quarterbeats:
-                        if 'volta' in df.columns:
-                            logger.debug("Only second voltas were included when computing quarterbeats.")
-                        offset_dict = self.get_continuous_offsets(id, unfold=False)
-                        df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
-                    if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
-                        if df.volta.isna().all():
-                            df = df.drop(columns='volta')
+        for key, fnames in grouped_ids.items():
+            for md, *dfs in self[key].iter_transformed(columns, skip_missing=True, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
+                for tsv_type, id, df in zip(columns, md['ids'], dfs):
+                    if df is not None:
+                        if flat:
+                            res[id + (tsv_type,)] = df
                         else:
-                            logger.error(f"Score @ ID {id} does not include any voltas, yet the volta column in the {param} table is not empty.")
-                    if flat:
-                        res[id + (param,)] = df
-                    else:
-                        res[param][id] = df
-        return res
+                            res[id][tsv_type] = df
+        return dict(res)
+        # if unfold or quarterbeats:
+        #     _ = self.match_files(ids=ids)
+        # for param, li in self._lists.items():
+        #     if params[param]:
+        #         if not flat:
+        #             res[param] = {}
+        #         for id in (i for i in ids if i in li):
+        #             logger = self.id_logger(id)
+        #             df = li[id]
+        #             if unfold:
+        #                 if id in playthrough2mcs:
+        #                     df = unfold_repeats(df, playthrough2mcs[id], logger=logger)
+        #                     if quarterbeats:
+        #                         offset_dict = self.get_continuous_offsets(id, unfold=True)
+        #                         df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
+        #                 else:
+        #                     logger.error(f"Skipped {param} for {id} because of unfolding error.")
+        #                     continue
+        #             elif quarterbeats:
+        #                 if 'volta' in df.columns:
+        #                     logger.debug("Only second voltas were included when computing quarterbeats.")
+        #                 offset_dict = self.get_continuous_offsets(id, unfold=False)
+        #                 df = add_quarterbeats_col(df, offset_dict, interval_index=interval_index, logger=logger)
+        #             if id in self._parsed_mscx and len(self._parsed_mscx[id].mscx.volta_structure) == 0 and 'volta' in df.columns:
+        #                 if df.volta.isna().all():
+        #                     df = df.drop(columns='volta')
+        #                 else:
+        #                     logger.error(f"Score @ ID {id} does not include any voltas, yet the volta column in the {param} table is not empty.")
+        #             if flat:
+        #                 res[id + (param,)] = df
+        #             else:
+        #                 res[param][id] = df
+        # return res
 
 
     def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
@@ -1209,6 +1224,11 @@ Available keys: {available_keys}""")
         return res
 
 
+    def get_piece(self, id):
+        key, i = id
+        return self[key].get_piece(id)
+
+
     def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
             ids = list(self._iterids(keys))
@@ -1218,8 +1238,8 @@ Available keys: {available_keys}""")
             unf_mcs = self._get_playthrough2mc(id)
             if unf_mcs is not None:
                 res[id] = unf_mcs
-            else:
-                self.id_logger(id).warning(f"Unable to unfold.")
+            # else:
+            #     self.id_logger(id).warning(f"Unable to unfold.")
         return res
 
     def _get_measure_list(self, id, unfold=False):
@@ -1240,46 +1260,11 @@ Available keys: {available_keys}""")
 
         """
         logger = self.id_logger(id)
-        res = None
-        if id in self._measurelists:
-            res = self._measurelists[id]
-        elif id in self._parsed_mscx:
-            self.collect_lists(ids=[id], measures=True)
-            res = self._measurelists[id]
-        else:
-            # trying to find a matched file to retrieve the measure list from
-            ix = id
-            if ix not in self._matches.index:
-                logger.debug(f"The index {ix} corresponding to ID {id} was not found in self._matches.")
-                return
-            matched_row = self._matches.loc[ix]
-            if not pd.isnull(matched_row['measures']):
-                matched_id = matched_row['measures']
-                res = self._measurelists[matched_id]
-            elif not pd.isnull(matched_row['scores']):
-                matched_id = matched_row['scores']
-                if matched_id in self._measurelists:
-                    res = self._measurelists[matched_id]
-                else:
-                    self.collect_lists(ids=[matched_id], measures=True)
-                    res = self._measurelists[matched_id]
-            else:
-                if matched_row.notna().sum() > 1:
-                    logger.info(f"No measure list found for ID {id}. The matched IDs are:\n{matched_row}.")
-                else:
-                    logger.info(f"No matches found for ID {id} and therefore no measure list.")
-        if res is not None:
-            res = res.copy()
-            if unfold == 'raw':
-                return res
-            if unfold:
-                mc_sequence = self._get_playthrough2mc(id) # with caching
-                res = unfold_repeats(res, mc_sequence)
-            elif 'volta' in res.columns:
-                if 3 in res.volta.values:
-                    logger.warning(f"Piece contains third endings, note that only second endings are taken into account.")
-                res = res.drop(index=res[res.volta.fillna(2) != 2].index, columns='volta')
-            return res
+        piece = self.get_piece(id)
+        if piece is None:
+            logger.warning(f"Could not associate ID {id} with a Piece object.")
+            return
+        return piece.get_dataframe('measures', unfold=unfold)
 
 
 
@@ -1287,14 +1272,14 @@ Available keys: {available_keys}""")
         logger = self.id_logger(id)
         if id in self._playthrough2mc:
             return self._playthrough2mc[id]
-        ml = self._get_measure_list(id, unfold='raw')
+        ml = self._get_measure_list(id)
         if ml is None:
             logger.warning("No measures table available.")
             self._playthrough2mc[id] = None
             return
         mc_playthrough = make_playthrough2mc(ml, logger=logger)
         if len(mc_playthrough) == 0:
-            logger.warning(f"Error in the repeat structure: Did not get to -1 in measures.next:\n{ml.set_index('mc').next}")
+            logger.warning(f"Error in the repeat structure for ID {id}: Did not reach the stopping value -1 in measures.next:\n{ml.set_index('mc').next}")
             mc_playthrough = None
         else:
             logger.debug("Measures successfully unfolded.")
@@ -1323,7 +1308,7 @@ Available keys: {available_keys}""")
         if ml is None:
             logger.warning(f"Could not find measure list for id {id}.")
             return None
-        offset_col = make_continuous_offset(ml)
+        offset_col = make_continuous_offset(ml, logger=logger)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
@@ -1436,17 +1421,17 @@ Available keys: {available_keys}""")
                 if tup is not None:
                     yield (key, *tup)
 
-    def iter_transformed(self, columns, keys=None, warn_missing=False, unfold=False, quarterbeats=False, interval_index=False):
+    def iter_transformed(self, columns, keys=None, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):
         keys = self._treat_key_param(keys)
         for key in keys:
-            for tup in self[key].iter_transformed(columns=columns, warn_missing=warn_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
+            for tup in self[key].iter_transformed(columns=columns, skip_missing=skip_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):
                 if tup is not None:
                     yield (key, *tup)
 
-    def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, warn_missing=False, weight_grace_durations=0):
+    def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, skip_missing=False, weight_grace_durations=0):
         keys = self._treat_key_param(keys)
         for key in keys:
-            for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, warn_missing=warn_missing,
+            for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, skip_missing=skip_missing,
                                             weight_grace_durations=weight_grace_durations):
                 if tup is not None:
                     yield (key, *tup)
@@ -1818,12 +1803,12 @@ Available keys: {available_keys}""")
         if ids is not None:
             pass
         elif fexts is None:
-            ids = [id for id in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
         else:
             if isinstance(fexts, str):
                 fexts = [fexts]
             fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
-            ids = [id for id in self._iterids(keys) if self.fexts[key][i] in fexts]
+            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
 
         for id in ids:
             key, i = id
@@ -1948,13 +1933,14 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         paths = {}
         warnings, infos = [], []
+        unf = 'Unfolded ' if unfold else ''
         for (key, i, what), li in lists.items():
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
                                        root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
                 warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
             else:
-                infos.append(f"{what} {modus}have been stored as {new_path}.")
+                infos.append(f"{unf}{what} {modus}have been stored as {new_path}.")
             paths[new_path] = what
         if len(warnings) > 0:
             self.logger.warning('\n'.join(warnings))
@@ -2435,6 +2421,7 @@ Load one of the identically named files with a different key using add_dir(key='
             except KeyError:
                 self.logger.warning(f"Parsed metadata do not contain the columns 'rel_paths' and 'fnames' "
                                     f"needed to match information on identical files.")
+                return []
         new = self.metadata(from_tsv=False).set_index(['rel_paths', 'fnames'])
         excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
                          'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
@@ -2603,8 +2590,11 @@ class View(Parse):
         self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
         self._cached_piece_matrices = {}
         self._pieces = {}
+        """:obj:`dict` of :obj:`Piece`
+        References to the Piece objects belonging to each fname listed in the metadata.
+        """
         logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = self.key
+        logger_cfg['name'] = f"{self.p.logger.name}.{self.key}"
         super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg) # initialize loggers
         self._metadata = pd.DataFrame()
         self.metadata_id = None
@@ -2612,6 +2602,11 @@ class View(Parse):
         ID of the detected metadata TSV file if any. None means that none has been detected, meaning that :attr:`.metadata`
         corresponds to the metadata included in the parsed scores.
         """
+        self._id2fname = {}
+        """:obj:`dict`
+        Stores the mapping from IDs to fnames found in the metadata.
+        """
+        _ = self.pieces()
 
 
     def metadata(self):
@@ -2685,6 +2680,7 @@ class View(Parse):
                 full_path = self.p.full_paths[k][i]
                 fext = self.p.fexts[k][i]
                 subdir = self.p.subdirs[k][i]
+                match = None
                 if id in self.p._parsed_mscx:
                     match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
                     detected['scores'].append(match)
@@ -2695,8 +2691,14 @@ class View(Parse):
                     match = MatchedFile(id, full_path, suffix, fext, subdir, str(i)+'*')
                     typ = path2type(full_path, logger=self.p.logger_names[id])
                     detected[typ].append(match)
+                if match is not None:
+                    if id in self._id2fname and fname != self._id2fname[id]:
+                        self.logger.warning(f"ID {id}, to be matched with '{fname}' had previously been matched to {self._id2fname[id]}")
+                    self._id2fname[id] = fname
             result[fname] = dict(detected)
         return result
+
+
 
 
     def pieces(self, parsed_only=False):
@@ -2739,6 +2741,17 @@ class View(Parse):
     def ids(self):
         return self.p.ids(self.key)
 
+    def get_piece(self, id):
+        fname = self.id2fname(id)
+        if fname is not None:
+            return self[fname]
+        return None
+
+    def id2fname(self, id):
+        if id in self._id2fname:
+            return self._id2fname[id]
+        self.logger.info(f"ID {id} has not been linked to any of the fnames.")
+        return None
 
     def info(self, return_str=False):
         info = f"View on key {self.key}"
@@ -2789,7 +2802,8 @@ class View(Parse):
         skip_missing : :obj:`bool`, optional
             If one of the requested aspects has no DataFrame available, skip the piece.
         fnames : :obj:`list`, optional
-            If you want to iterate only through a subset of pieces, pass their file names.
+            If you want to iterate only through a subset of pieces, pass their fnames as they appear
+            in the metadata.tsv column 'fnames'.
 
         Returns
         -------
@@ -2797,8 +2811,13 @@ class View(Parse):
         """
         standard_cols = list(self.p._lists.keys())
         piece_matrix = self.pieces(parsed_only=True)
+        if fnames is not None:
+            missing = [fn for fn in fnames if fn not in piece_matrix.fnames.values]
+            if len(missing) > 0:
+                fnames = [fn for fn in fnames if fn in piece_matrix.fnames.values]
+                self.logger.warning(f"The following fnames are not listed in the metadata: [{', '.join(missing)}].\nChoose among: [{', '.join(piece_matrix.fnames.values)}")
         available = '\n'.join(sorted(piece_matrix.columns[1:]))
-        parsed_scores_present = 'scores' in piece_matrix.columns
+        parsed_scores_present = piece_matrix.columns.str.contains('scores').any()
         n, d = piece_matrix.shape
         if n == 0 or d == 1:
             self.logger.error("No files present.")
@@ -2844,75 +2863,86 @@ class View(Parse):
                 df = score.mscx.__getattribute__(column)
                 if df.shape[0] > 0:
                     score.logger.debug(f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
-                    return df, self.p.full_paths[self.key][i]
+                    return df, i
                 else:
                     score.logger.debug(f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
             if column in ids and not pd.isnull(ids[column]):
                 i = int(ids[column])
-                return self.p._parsed_tsv[(self.key, i)], self.p.full_paths[self.key][i]
+                return self.p._parsed_tsv[(self.key, i)], i
             return (None, None)
 
         
 
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
-        for md, ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+        for md, matched_ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
             """md = {key->value} metadata; ids = {tsv_type->id}"""
-            if fnames is not None and ids['fnames'] not in fnames:
+            if fnames is not None and matched_ids['fnames'] not in fnames:
                 continue
             skip_flat = False # flag that serves the inner loop to make this loop skip yielding
-            result, paths = [], []
+            result, used_ids, paths = [], [], []
             for c in cols:
                 """c can be a column name or a list of column names from which the first non-empty one will be used"""
                 if isinstance(c, str):
-                    df, path = get_dataframe(ids, c)
+                    df, i = get_dataframe(matched_ids, c)
                 else:
                     for cc in c:
-                        df, path = get_dataframe(ids, cc)
+                        df, i = get_dataframe(matched_ids, cc)
                         if df is not None:
                             c = cc
                             break
-                if df is None and skip_missing:
-                    skip_flat = True
-                    break
+                if df is None:
+                    if skip_missing:
+                        skip_flat = True
+                        break
+                    used_ids.append(None)
+                    paths.append(None)
+                else:
+                    used_ids.append((self.key, i))
+                    paths.append((c, self.p.full_paths[self.key][i]))
                 result.append(df)
-                paths.append((c, path))
             if skip_flat:
+                self.logger.info(f"{md['fnames']} skipped.")
                 continue
+            md['ids'] = used_ids
             md['paths'] = paths
             yield (md, *result)
 
-    def iter_transformed(self, columns, warn_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
+    def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
         if not any((unfold, quarterbeats, interval_index)):
-            for md, *dfs in self.iter(columns, skip_missing=warn_missing, fnames=fnames):
-                if not any(df is None for df in dfs):
-                    yield (md, *dfs)
-                elif warn_missing:
+            for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
+                if any(df is None for df in dfs) and skip_missing:
                     self.logger.warning(f"Not all requested data available for {md['fnames']}.")
-
+                    continue
+                yield (md, *dfs)
         else:
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
-            for md, *dfs, measures in self.iter(columns, skip_missing=warn_missing, fnames=fnames):
-                if not any(df is None for df in dfs + [measures]):
-                    dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=md['fnames'])
-                    md['paths'] = md['paths'][:-1]
-                    yield (md, *dfs)
-                elif warn_missing:
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
+            for md, *dfs, measures in self.iter(columns, skip_missing=False, fnames=fnames):
+                if any(df is None for df in dfs + [measures]) and skip_missing:
+                    if any(s.contains('measures') for s in columns):
+                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                    else:
+                        missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
+                    self.logger.warning(f"No [{','.join(missing)}] available for {md['fnames']}.")
+                    continue
+                dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=self.logger)
+                md['paths'] = md['paths'][:-1]
+                yield (md, *dfs)
 
 
-    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, warn_missing=True, weight_grace_durations=0, fnames=None):
+
+    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, skip_missing=True, weight_grace_durations=0, fnames=None):
         for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
             if notes is None:
                 msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
-                if warn_missing:
+                if skip_missing:
                     self.logger.warning(msg)
+                    continue
                 else:
                     self.logger.debug(msg)
-                continue
-            if weight_grace_durations > 0:
+            if weight_grace_durations > 0 and notes is not None:
                 notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
             yield md, notes
 
@@ -3116,9 +3146,9 @@ class Piece(View):
         self.key = view.key
         self.fname = fname
         logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = f"{self.key}_{self.fname}"
+        logger_cfg['name'] = f"{self.view.logger.name}.{self.fname}"
         super(Parse, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
-        matches = self.detect_ids_by_fname(parsed_only=True, names=[fname])
+        matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])
         if len(matches) != 1:
             raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
         self.matches = matches[fname]

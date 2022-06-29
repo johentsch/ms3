@@ -238,6 +238,7 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         Altered copies of `dfs`.
     """
     assert sum((unfold, quarterbeats, interval_index)) >= 1, "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
+    assert measures is not None, "measures cannot be None"
     if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
     if interval_index:
@@ -245,8 +246,8 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
     if unfold:
         playthrough2mc = make_playthrough2mc(measures, logger=logger)
         if len(playthrough2mc) == 0:
-            logger.warning("Added quarterbeats without unfolding because of incorrect repeat structure.")
-            unfold = False
+            logger.warning("Unfolding not possible because of incorrect repeat structure.")
+            return []
     if unfold:
         dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
