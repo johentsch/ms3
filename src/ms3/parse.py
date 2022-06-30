@@ -2871,7 +2871,7 @@ class View(Parse):
                 return self.p._parsed_tsv[(self.key, i)], i
             return (None, None)
 
-        
+
 
         plural = 's' if len(cols) > 1 else ''
         self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
@@ -3091,6 +3091,21 @@ class View(Parse):
             logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
             return
         return self._get_piece(item)
+
+
+    def __iter__(self):
+        """
+
+        Yields
+        ------
+        (str, ms3.parse.Piece)
+            For iterating through the keys and associated View objects.
+        """
+        names = self.names()
+        if len(keys) == 0:
+            self.logger.info("This View does not contain any Pieces.")
+        for n in names:
+            yield n, self._get_piece(n)
 
 
 
