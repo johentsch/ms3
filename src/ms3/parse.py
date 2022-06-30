@@ -2085,39 +2085,43 @@ Available keys: {available_keys}""")
 
     def _handle_path(self, full_path, key=None):
         full_path = resolve_dir(full_path)
-        if os.path.isfile(full_path):
-            file_path, file = os.path.split(full_path)
-            file_name, file_ext = os.path.splitext(file)
-            rel_path = os.path.relpath(file_path, self.last_scanned_dir)
-            if key is None:
-                key = rel_path
-                subdir = rel_path
-            else:
-                subdir = get_path_component(rel_path, key)
-            if file in self.files[key]:
-                same_name = [i for i, f in enumerate(self.files[key]) if f == file]
-                if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
-                    self.logger.error(
-                        f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
-Load one of the identically named files with a different key using add_dir(key='KEY').""")
-                    return (None, None)
-                self.logger.debug(
-                    f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path {rel_path}.")
-
-            i = len(self.full_paths[key])
-            self.full_paths[key].append(full_path)
-            self.scan_paths[key].append(self.last_scanned_dir)
-            self.rel_paths[key].append(rel_path)
-            self.subdirs[key].append(subdir)
-            self.paths[key].append(file_path)
-            self.files[key].append(file)
-            self.logger_names[(key, i)] = f"{self.logger.logger.name}.{key}.{file_name.replace('.', '')}"
-            self.fnames[key].append(file_name)
-            self.fexts[key].append(file_ext)
-            return key, len(self.paths[key]) - 1
-        else:
+        if not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
             return (None, None)
+        file_path, file = os.path.split(full_path)
+        file_name, file_ext = os.path.splitext(file)
+        if file_ext[1:] not in Score.parseable_formats + ('tsv',):
+            ext_string = "without extension" if file_ext == '' else f"with extension {file_ext}"
+            self.logger.error(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
+            return (None, None)
+        rel_path = os.path.relpath(file_path, self.last_scanned_dir)
+        if key is None:
+            key = rel_path
+            subdir = rel_path
+        else:
+            subdir = get_path_component(rel_path, key)
+        if file in self.files[key]:
+            same_name = [i for i, f in enumerate(self.files[key]) if f == file]
+            if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
+                self.logger.error(
+                    f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
+Load one of the identically named files with a different key using add_dir(key='KEY').""")
+                return (None, None)
+            self.logger.debug(
+                f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path {rel_path}.")
+
+        i = len(self.full_paths[key])
+        self.full_paths[key].append(full_path)
+        self.scan_paths[key].append(self.last_scanned_dir)
+        self.rel_paths[key].append(rel_path)
+        self.subdirs[key].append(subdir)
+        self.paths[key].append(file_path)
+        self.files[key].append(file)
+        self.logger_names[(key, i)] = f"{self.logger.logger.name}.{key}.{file_name.replace('.', '')}"
+        self.fnames[key].append(file_name)
+        self.fexts[key].append(file_ext)
+        return key, len(self.paths[key]) - 1
+
 
 
     def _infer_tsv_type(self, df):
