@@ -42,9 +42,9 @@ class TestParse:
 
     def test_extract(self, parsed_mscx):
         target = self.test_results
-        path_dict = parsed_mscx.store_lists(measures_folder=target, measures_suffix="_measures",
-                                notes_folder=target, notes_suffix='_notes',
-                                labels_folder=target, labels_suffix='_labels')
+        path_dict = parsed_mscx.output_dataframes(measures_folder=target, measures_suffix="_measures",
+                                                  notes_folder=target, notes_suffix='_notes',
+                                                  labels_folder=target, labels_suffix='_labels')
         # for path, what in path_dict.items():
         #     original_path = os.path.join(test_folder, what, )
 

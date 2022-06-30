@@ -152,19 +152,19 @@ def extract(args):
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
               logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
     p.parse_mscx(simulate=args.test)
-    p.store_lists(root_dir=args.out,
-                  notes_folder=args.notes,
-                  labels_folder=args.labels,
-                  measures_folder=args.measures,
-                  rests_folder=args.rests,
-                  events_folder=args.events,
-                  chords_folder=args.chords,
-                  expanded_folder=args.expanded,
-                  metadata_path=resolve_dir(args.metadata),
-                  simulate=args.test,
-                  unfold=args.unfold,
-                  quarterbeats=args.quarterbeats,
-                  **suffixes)
+    p.output_dataframes(root_dir=args.out,
+                        notes_folder=args.notes,
+                        labels_folder=args.labels,
+                        measures_folder=args.measures,
+                        rests_folder=args.rests,
+                        events_folder=args.events,
+                        chords_folder=args.chords,
+                        expanded_folder=args.expanded,
+                        metadata_path=resolve_dir(args.metadata),
+                        simulate=args.test,
+                        unfold=args.unfold,
+                        quarterbeats=args.quarterbeats,
+                        **suffixes)
 
 
 def metadata(args):
@@ -196,9 +196,9 @@ def metadata(args):
     else:
         p.store_mscx(ids=ids, overwrite=True)
     if args.out is not None:
-        p.store_lists(metadata_path=args.out)
+        p.output_dataframes(metadata_path=args.out)
     elif args.dir is not None:
-        p.store_lists(metadata_path=args.dir)
+        p.output_dataframes(metadata_path=args.dir)
 
 
 def repair(args):

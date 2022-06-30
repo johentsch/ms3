@@ -1864,18 +1864,18 @@ Available keys: {available_keys}""")
         result.index.names = ['key', 'metadata_row']
         return result
 
-    def store_lists(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
-                                                    rests_folder=None, rests_suffix='',
-                                                    notes_and_rests_folder=None, notes_and_rests_suffix='',
-                                                    measures_folder=None, measures_suffix='',
-                                                    events_folder=None, events_suffix='',
-                                                    labels_folder=None, labels_suffix='',
-                                                    chords_folder=None, chords_suffix='',
-                                                    expanded_folder=None, expanded_suffix='',
-                                                    cadences_folder=None, cadences_suffix='',
-                                                    form_labels_folder=None, form_labels_suffix='',
-                                                    metadata_path=None, markdown=True,
-                                                    simulate=None, unfold=False, quarterbeats=False):
+    def output_dataframes(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
+                          rests_folder=None, rests_suffix='',
+                          notes_and_rests_folder=None, notes_and_rests_suffix='',
+                          measures_folder=None, measures_suffix='',
+                          events_folder=None, events_suffix='',
+                          labels_folder=None, labels_suffix='',
+                          chords_folder=None, chords_suffix='',
+                          expanded_folder=None, expanded_suffix='',
+                          cadences_folder=None, cadences_suffix='',
+                          form_labels_folder=None, form_labels_suffix='',
+                          metadata_path=None, markdown=True,
+                          simulate=None, unfold=False, quarterbeats=False):
         """ Store score information as TSV files.
 
         Parameters
