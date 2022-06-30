@@ -731,7 +731,7 @@ Continuing with {annotation_key}.""")
             score.change_labels_cfg(labels_cfg=updated)
         ids = list(self._labellists.keys())
         if len(ids) > 0:
-            self.collect_lists(ids=ids, labels=True)
+            self._extract_and_cache_dataframes(ids=ids, labels=True)
 
 
     def check_labels(self, keys=None, ids=None):
@@ -749,8 +749,8 @@ Continuing with {annotation_key}.""")
 
 
 
-    def collect_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                      labels=False, chords=False, expanded=False, form_labels=False, cadences=False, only_new=True):
+    def _extract_and_cache_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
+                                      labels=False, chords=False, expanded=False, form_labels=False, cadences=False, only_new=True):
         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
 
         Parameters
@@ -1050,7 +1050,7 @@ Available keys: {available_keys}""")
             return pd.DataFrame()
         keys = self._treat_key_param(keys)
         label_type = self._treat_label_type_param(label_type)
-        self.collect_lists(labels=True, only_new=True)
+        self._extract_and_cache_dataframes(labels=True, only_new=True)
         l = locals()
         params = {p: l[p] for p in self.labels_cfg.keys()}
         ids = [id for id in self._iterids(keys) if id in self._annotations]
