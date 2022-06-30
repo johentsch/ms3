@@ -52,7 +52,7 @@ def check(args):
     logger_object.addHandler(captured_warnings.log_handler)
     p.parse_mscx()
     if not args.scores_only:
-        expanded = p.get_lists(expanded=True)
+        expanded = p.get_dataframes(expanded=True)
         if len(expanded) == 0:
             p.logger.info(f"No DCML labels could be detected.")
             return

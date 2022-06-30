@@ -362,7 +362,7 @@ class Parse(LoggedClass):
         -------
 
         """
-        d = self.get_lists(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index, **{which: True})
+        d = self.get_dataframes(keys, ids, flat=False, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index, **{which: True})
         d = d[which] if which in d else {}
         msg = {
             'cadences': 'cadence lists',
@@ -1069,9 +1069,9 @@ Available keys: {available_keys}""")
 
 
 
-    def get_lists(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False,
-                  events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False,
-                  simulate=False, flat=False, unfold=False, quarterbeats=False, interval_index=False):
+    def get_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False,
+                       events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False,
+                       simulate=False, flat=False, unfold=False, quarterbeats=False, interval_index=False):
         """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
         If you want to retrieve parse TSV files, use :py:meth:`get_tsvs`.
 
@@ -1926,7 +1926,7 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
         list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_lists(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **list_params)
+        lists = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **list_params)
         modus = 'would ' if simulate else ''
         if len(lists) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
