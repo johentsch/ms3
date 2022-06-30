@@ -14,9 +14,10 @@ from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
     group_id_tuples, \
     iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, pretty_dict, resolve_dir, \
-    scan_directory, unfold_repeats, update_labels_cfg, write_metadata, write_tsv
-from .transformations import add_quarterbeats_col, add_weighted_grace_durations, dfs2quarterbeats
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
+    pretty_dict, resolve_dir, \
+    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2key
+from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 
 
 class Parse(LoggedClass):
@@ -630,7 +631,10 @@ class Parse(LoggedClass):
             self.last_scanned_dir = os.getcwd()
 
         self.logger.debug(f"Attempting to add {len(paths)} files...")
-        ids = [self._handle_path(p, key) for p in paths]
+        if key is None:
+            ids = [self._handle_path(p, path2key(p)) for p in paths]
+        else:
+            ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
             exts = self.count_extensions(ids=added_ids, per_key=True)

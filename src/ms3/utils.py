@@ -3091,3 +3091,10 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             'root': root,
         }
 
+def path2key(path):
+    if path in ('', '/'):
+        return None
+    if os.path.isdir(path):
+        if 'metadata.tsv' in os.listdir(path):
+            return os.path.basename(path)
+    return path2key(os.path.dirname(path))
