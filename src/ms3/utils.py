@@ -1163,7 +1163,7 @@ def iterate_subcorpora(path: str,
                any(s.endswith(suf) for suf in suffixes)
 
     if prefixes is None:
-        prefixes = []
+        prefixes = ['metadata.tsv']
     if suffixes is None:
         suffixes = STANDARD_NAMES
 
