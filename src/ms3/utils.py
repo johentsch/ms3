@@ -2092,6 +2092,7 @@ def column_order(df, first_cols=None, sort=True):
     cols = df.columns
     remaining = [col for col in cols if col not in first_cols]
     if sort:
+        # Problem: string sort orders staff_1 staff_10 staff_11 ... and only then staff_2
         remaining = sorted(remaining)
     column_order = [col for col in first_cols if col in cols] + remaining
     return df[column_order]
@@ -2502,7 +2503,13 @@ def write_metadata(df, path, markdown=True, index=False):
     if len(convert_to_str) > 0:
         write_this = write_this.astype(convert_to_str, errors='ignore')
     write_this.sort_index(inplace=True)
-    column_order(write_this, METADATA_COLUMN_ORDER).to_csv(tsv_path, sep='\t', index=index)
+    write_this = column_order(write_this, METADATA_COLUMN_ORDER, sort=False)
+    staff_cols, other_cols = [], []
+    for col in write_this.columns:
+        staff_cols.append(col) if re.match(r"^staff_(\d+)", col) else other_cols.append(col)
+    staff_cols = sorted(staff_cols, key=lambda s: int(re.match(r"^staff_(\d+)", s)[1]))
+    write_this = write_this[other_cols + staff_cols]
+    write_this.to_csv(tsv_path, sep='\t', index=index)
     logger.info(f"{msg} {tsv_path}")
     if markdown:
         rename4markdown = {
