@@ -21,8 +21,8 @@ def test_json_parse():
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     directory = 'test_results'
     goal = 72
-    p = Parse(directory=directory, paths=paths, key='tests', logger_cfg=dict(level='d'))
-    assert len(p.files['tests']) >= goal, f"Failed to parse list of paths that included several JSON files containing paths: Loaded only {len(p.files['tests'])} instead of {goal} or more."
+    p = Parse(directory=directory, paths=paths, key='old_tests', logger_cfg=dict(level='d'))
+    assert len(p.files['old_tests']) >= goal, f"Failed to parse list of paths that included several JSON files containing paths: Loaded only {len(p.files['old_tests'])} instead of {goal} or more."
 
 
 

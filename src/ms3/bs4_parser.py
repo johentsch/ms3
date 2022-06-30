@@ -1447,7 +1447,7 @@ def make_spanner_cols(df, spanner_types=None):
     #### caused some spanners to continue until the end of the piece because endings were missing when selecting based
     #### on the subtype column (endings don't specify subtype). After fixing this, there were still mistakes, particularly for slurs, because:
     #### 1. endings can be missing, 2. endings can occur in a different voice than they should, 3. endings can be
-    #### expressed with different values then the beginning (all three cases found in ms3/tests/MS3/stabat_03_coloured.mscx)
+    #### expressed with different values then the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
     #### Therefore, the new algorithm ends spanners simply after their given duration.
 
     cols = {
