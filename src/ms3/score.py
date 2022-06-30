@@ -416,8 +416,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
-        old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'])
-        new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'])
+        old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
+        new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
         assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
         assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
         old_vals = set(old[old_cols].itertuples(index=False, name=None))
@@ -1099,7 +1099,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         missing_main = {c for  c in main_cols if columns[c] not in df.columns}
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:
-            df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True)
+            df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True, logger=self.logger)
         #df = df[df[columns['label']].notna()]
         existing_cols = {k: v for k, v in columns.items() if v in df.columns}
         param2cols = {**existing_cols}

@@ -262,7 +262,7 @@ class Annotations(LoggedClass):
             self.df = self.df[~sel]
         label_col = self.cols['label']
         if decode:
-            res = decode_harmonies(res, label_col=label_col)
+            res = decode_harmonies(res, label_col=label_col, logger=self.logger)
         if column_name is not None and column_name != label_col:
             res = res.rename(columns={label_col: column_name})
         color_cols = ['color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'color_name']
@@ -334,7 +334,7 @@ class Annotations(LoggedClass):
         if not drop_others:
             warn_about_others = False
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True)[['mc', 'mn', 'label', 'label_type']].to_string()}")
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True, logger=self.logger)[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = df[sel]
         try:
             exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=True, logger=self.logger)
@@ -383,7 +383,7 @@ class Annotations(LoggedClass):
         if 'absolute_root' in self.df.columns:
             self.df.loc[self.df.absolute_root.notna(), 'label_type'] = 3
         if len(self.regex_dict) > 0:
-            decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True)
+            decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True, logger=self.logger)
             for name, regex in self.regex_dict.items():
                 sel = self.df.label_type.isin(recognized)
                 #mtch = self.df.loc[sel, self.cols['label']].str.match(regex)

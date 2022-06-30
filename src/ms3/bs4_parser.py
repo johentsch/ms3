@@ -657,6 +657,13 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return mc, mc_onset
 
     def _get_metadata(self):
+        """
+
+
+        Returns
+        -------
+        :obj:`dict`
+        """
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}

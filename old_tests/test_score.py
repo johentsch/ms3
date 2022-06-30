@@ -73,7 +73,7 @@ class TestScore:
             old_path = os.path.join(fpath, 'harmonies', fname + '.tsv')
             new_expanded = load_tsv(new_path)
             old_expanded = load_tsv(old_path)
-            assert_dfs_equal(old_expanded, decode_harmonies(new_expanded))
+            assert_dfs_equal(old_expanded, decode_harmonies(new_expanded, logger='old_test'))
 
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']

@@ -60,7 +60,7 @@ def check(args):
     warnings = captured_warnings.content_list
     if args.assertion:
         assert len(warnings) == 0, "Warnings found."
-    check_logger = get_logger("ms3 check", level=args.level)
+    check_logger = get_logger("ms3.check", level=args.level)
     if len(warnings) == 0:
         check_logger.info(f"All good.")
         return True
@@ -252,7 +252,8 @@ def transform(args):
 
 
 def update(args):
-    MS = get_musescore(args.musescore)
+    update_logger = get_logger("ms3.update", level=args.level)
+    MS = get_musescore(args.musescore, logger=update_logger)
     assert MS is not None, f"MuseScore not found: {ms}"
     logger_cfg = {
         'level': args.level,
@@ -263,13 +264,15 @@ def update(args):
     else:
         paths = scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
                                subdirs=False,
-                               exclude_files_only=True)
+                               exclude_files_only=True,
+                               logger=update_logger)
 
     for old in paths:
         path, name = os.path.split(old)
         fname, fext = os.path.splitext(name)
         if fext not in ('.mscx', '.mscz'):
             continue
+        logger_cfg = dict(logger_cfg, name=f"ms3.{fname}")
         if args.suffix is not None:
             fname = f"{fname}{args.suffix}.mscx"
         else:

@@ -556,6 +556,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
             convert(o, n, ms)
 
 
+@function_logger
 def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
     """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
     the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
@@ -592,7 +593,7 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
         compose_label.append('leftParen')
         drop_cols.append('leftParen')
     if 'absolute_root' in df.columns:
-        df.absolute_root = fifths2name(df.absolute_root, ms=True)
+        df.absolute_root = fifths2name(df.absolute_root, ms=True, logger=logger)
         compose_label.append('absolute_root')
         drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
@@ -602,7 +603,7 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
     if label_col in df.columns:
         compose_label.append(label_col)
     if 'absolute_base' in df.columns:
-        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True)
+        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True, logger=logger)
         compose_label.append('absolute_base')
         drop_cols.append('absolute_base')
     if 'rightParen' in df.columns:
@@ -729,7 +730,7 @@ def fifths2acc(fifths):
     return abs(fifths // 7) * 'b' if fifths < 0 else fifths // 7 * '#'
 
 
-
+@function_logger
 def fifths2iv(fifths, smallest=False):
     """ Return interval name of a stack of fifths such that
        0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass ``smallest=True``, intervals of a fifth or greater
@@ -737,7 +738,7 @@ def fifths2iv(fifths, smallest=False):
        Uses: map2elements()
     """
     if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2iv)
+        return map2elements(fifths, fifths2iv, logger=logger)
     if pd.isnull(fifths):
         return fifths
     interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
@@ -749,6 +750,7 @@ def fifths2iv(fifths, smallest=False):
     int_num = [4, 1, 5, 2, 6, 3, 7][pos]
     qual_region = fifths // 7
     if smallest and int_num > 4:
+        # interval is of a fifth or larger and is to be inverted
         int_num = 9 - int_num
         if qual_region in interval_qualities_inverted:
             int_qual = interval_qualities_inverted[qual_region][pos]
@@ -789,7 +791,7 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
         fifths = int(float(fifths))
     except:
         if isinstance(fifths, Iterable):
-            return map2elements(fifths, fifths2name, ms=ms)
+            return map2elements(fifths, fifths2name, ms=ms, logger=logger)
         return fifths
 
     if ms:
@@ -1626,7 +1628,7 @@ def midi2octave(midi, fifths=None):
         midi = int(float(midi))
     except:
         if isinstance(midi, Iterable):
-            return map2elements(midi, midi2octave)
+            return map2elements(midi, midi2octave, logger=logger)
         return midi
     i = -1
     if fifths is not None:
