@@ -136,6 +136,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                     current_position = frac(0)
                     duration_multiplier = 1
                     multiplier_stack = [1]
+                    tremolo_flag = False
                     # iterate through children of <voice> which constitute the note level of one notational layer
                     for event_node in voice_node.find_all(recursive=False):
                         event_name = event_node.name
@@ -150,6 +151,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
                             grace = event_node.find(grace_tags)
+                            if event_node.find('Tremolo'):
+                                tremolo_duration = event_node.find('duration').string
+                                if tremolo_flag:
+                                    self.logger.error("Chord with <Tremolo> follows another one with <Tremolo>")
+                                else:
+                                    tremolo_flag = True
                             dur, dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
                             if grace:
                                 event['gracenote'] = grace.name
@@ -205,7 +212,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                 position += event['duration']
                             self.tags[mc][staff_id][voice_id][position].append(remember)
 
-                        current_position += event['duration']
+                        if not tremolo_flag:
+                            current_position += event['duration']
+                        else:
+                            duration_to_complete_tremolo = event_node.find('duration').string
+                            assert duration_to_complete_tremolo == tremolo_duration, "No match"
+                            tremolo_flag = False
 
                 measure_list.append(measure_info)
         self._measures = column_order(pd.DataFrame(measure_list))
@@ -757,6 +769,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return str(self.soup.find('programVersion').string)
 
     def add_standard_cols(self, df):
+        """Ensures that the DataFrame's first columns are ['mc', 'mn', 'timesig', 'mc_offset', 'volta']"""
         add_cols = ['mc'] + [c for c in ['mn', 'timesig', 'mc_offset', 'volta'] if c not in df.columns]
         df =  df.merge(self.ml[add_cols], on='mc', how='left')
         df['mn_onset'] =  df.mc_onset + df.mc_offset
@@ -1596,7 +1609,13 @@ def safe_update(old, new):
 
 
 def recurse_node(node, prepend=None, exclude_children=None):
+    """ The heart of the XML -> DataFrame conversion. Changes may have ample repercussions!
 
+    Returns
+    -------
+    :obj:`dict`
+        Keys are combinations of tag (& attribute) names, values are value strings.
+    """
     def tag_or_string(c, ignore_empty=False):
         nonlocal info, name
         if isinstance(c, bs4.element.Tag):
