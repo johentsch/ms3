@@ -448,9 +448,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'verses' : 'Chord/Lyrics/no',
                 'articulation': 'Chord/Articulation/subtype',
                 'dynamics': 'Dynamic/subtype',
-                'system_text': 'SystemText/text'}
+                'system_text': 'SystemText/text',
+                'tremolo': 'Chord/Tremolo/subtype'}
         main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
-                     'nominal_duration', 'scalar', 'volta', 'chord_id']
+                     'tremolo', 'nominal_duration', 'scalar', 'volta', 'chord_id']
         sel = self._events.event == 'Chord'
         aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners']
         if mode == 'all':
