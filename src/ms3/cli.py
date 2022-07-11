@@ -89,6 +89,7 @@ def compare(args):
 def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
+    update_logger = get_logger("ms3.convert", level=args.level)
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
     convert_folder(directory=resolve_dir(args.dir),
                    paths=args.file,
@@ -100,7 +101,8 @@ def convert_cmd(args):
                    recursive=args.nonrecursive,
                    ms=args.musescore,
                    overwrite=args.safe,
-                   parallel=args.nonparallel)
+                   parallel=args.nonparallel,
+                   logger=update_logger)
 
 def empty(args):
     logger_cfg = {
