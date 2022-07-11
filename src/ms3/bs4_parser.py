@@ -136,7 +136,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                     current_position = frac(0)
                     duration_multiplier = 1
                     multiplier_stack = [1]
-                    tremolo_flag = False
+                    tremolo_type = None
+                    tremolo_component = 0
                     # iterate through children of <voice> which constitute the note level of one notational layer
                     for event_node in voice_node.find_all(recursive=False):
                         event_name = event_node.name
@@ -151,24 +152,34 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
                             grace = event_node.find(grace_tags)
-                            if event_node.find('Tremolo'):
+                            tremolo_tag = event_node.find('Tremolo')
+                            if tremolo_tag:
+                                if tremolo_type is not None:
+                                    raise NotImplementedError("Chord with <Tremolo> follows another one with <Tremolo>")
+                                tremolo_type = tremolo_tag.subtype.string
+                                tremolo_component = 1
                                 tremolo_duration = event_node.find('duration').string
-                                if tremolo_flag:
-                                    self.logger.error("Chord with <Tremolo> follows another one with <Tremolo>")
-                                else:
-                                    tremolo_flag = True
+                            elif tremolo_type is not None:
+                                tremolo_component = 2
+
                             dur, dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
                             if grace:
                                 event['gracenote'] = grace.name
                             else:
                                 event['duration'] = dur
                             chord_info = dict(event)
-                            note_event = dict(chord_info)
+                            if tremolo_component:
+                                chord_info['tremolo'] = f"{tremolo_duration}_{tremolo_type}_{tremolo_component}"
+                                if tremolo_component == 2:
+                                    duration_to_complete_tremolo = event_node.find(
+                                        'duration').string
+                                    assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
+                                    tremolo_type = None
+                                    tremolo_component = 0
                             for chord_child in event_node.find_all(recursive=False):
                                 if chord_child.name == 'Note':
-                                    note_event.update(recurse_node(chord_child, prepend=chord_child.name))
+                                    note_event = dict(chord_info, **recurse_node(chord_child, prepend=chord_child.name))
                                     note_list.append(note_event)
-                                    note_event = dict(chord_info)
                                 else:
                                     event.update(recurse_node(chord_child, prepend='Chord/' + chord_child.name))
                             chord_id += 1
@@ -212,12 +223,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                 position += event['duration']
                             self.tags[mc][staff_id][voice_id][position].append(remember)
 
-                        if not tremolo_flag:
+                        if tremolo_type is None:
+                            # MuseScore assigns a <duration> of half the note value to both components of a tremolo.
+                            # The parser, instead, assigns the actual note value and the same position to both the
+                            # <Chord> with the <Tremolo> tag and the following one. In other words, the current_position
+                            # pointer is moved forward in all cases except for the first component of a tremolo
                             current_position += event['duration']
-                        else:
-                            duration_to_complete_tremolo = event_node.find('duration').string
-                            assert duration_to_complete_tremolo == tremolo_duration, "No match"
-                            tremolo_flag = False
 
                 measure_list.append(measure_info)
         self._measures = column_order(pd.DataFrame(measure_list))
@@ -401,6 +412,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if len(self._notes.index) == 0:
             self._nl = pd.DataFrame(columns=nl_cols)
             return
+        if 'tremolo' in self._notes.columns:
+            nl_cols.insert(9, 'tremolo')
         self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
         self._nl.loc[:, ['midi', 'tpc']] = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
