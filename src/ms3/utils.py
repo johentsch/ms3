@@ -494,7 +494,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
         Give the path to the MuseScore executable on your system. Need only if
         the command 'mscore' does not execute MuseScore on your system.
     """
-    MS = get_musescore(ms)
+    MS = get_musescore(ms, logger=logger)
     assert MS is not None, f"MuseScore not found: {ms}"
     assert any(arg is not None for arg in (directory, paths)), "Pass at least a directory or one path."
     if isinstance(paths, str):
@@ -514,7 +514,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
     if directory is not None:
         subdir_file_tuples = chain(subdir_file_tuples,
                                    scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive,
-                                                  subdirs=True, exclude_files_only=True))
+                                                  subdirs=True, exclude_files_only=True, logger=logger))
     if paths is not None:
         subdir_file_tuples = chain(subdir_file_tuples,
                                    (os.path.split(resolve_dir(path)) for path in paths))
@@ -1163,9 +1163,9 @@ def iterate_subcorpora(path: str,
                any(s.endswith(suf) for suf in suffixes)
 
     if prefixes is None:
-        prefixes = ['metadata.tsv']
+        prefixes = ['metadata.tsv'] + STANDARD_NAMES
     if suffixes is None:
-        suffixes = STANDARD_NAMES
+        suffixes = []
 
     if ignore_case:
         prefixes = [p.lower() for p in prefixes]
@@ -2008,7 +2008,7 @@ def scale_degree2name(sd, localkey, globalkey):
 
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False):
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=True):
     """ Generator of file names in ``directory``.
 
     Parameters
@@ -2026,6 +2026,8 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         By default, the scanning process is shown. Pass False to prevent.
     exclude_files_only : :obj:`bool`, optional
         By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
+    return_metadata: :obj:`bool`, optional
+        Independent of file_re, files called 'metadata.tsv' are always yielded.
 
 
     Yields
@@ -2065,7 +2067,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
                         folder_passes = check_regex(folder_re, folder, excl='^$')  # passes if the folder name itself matches the regex
                     if folder_passes and not exclude_files_only: # True if the exclude_re should also exclude folder names
                         folder_passes = check_regex(folder_re, folder_path) # is false if any part of the folder path matches exclude_re
-                if dir_entry.is_file() and folder_passes and check_regex(file_re, name):
+                if dir_entry.is_file() and folder_passes and (check_regex(file_re, name) or (return_metadata and name=='metadata.tsv')):
                     counter += 1
                     if pbar is not None:
                         pbar.set_postfix({'selected': counter})
@@ -3094,7 +3096,10 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
 def path2key(path):
     if path in ('', '/'):
         return None
-    if os.path.isdir(path):
-        if 'metadata.tsv' in os.listdir(path):
-            return os.path.basename(path)
-    return path2key(os.path.dirname(path))
+    try:
+        if os.path.isdir(path):
+            if 'metadata.tsv' in os.listdir(path):
+                return os.path.basename(path)
+        return path2key(os.path.dirname(path))
+    except Exception:
+        return None
