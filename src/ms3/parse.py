@@ -320,12 +320,12 @@ class Parse(LoggedClass):
 
 
 
-    def _concat_id_df_dict(self, d, id_index=False, third_level_name=None):
+    def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
 
         Parameters
         ----------
-        d : :obj:`dict`
+        dict_of_dataframes : :obj:`dict`
             {ID -> DataFrame}
         id_index : :obj:`bool`, optional
             By default, the concatenated data will be differentiated through a three-level MultiIndex with the levels
@@ -336,7 +336,7 @@ class Parse(LoggedClass):
         -------
 
         """
-        d = {k: v for k, v in d.items() if v.shape[0] > 0}
+        d = {k: v for k, v in dict_of_dataframes.items() if v.shape[0] > 0}
         if id_index:
             result = pd.concat(d.values(), keys=d.keys())
             result.index.names = ['key', 'i', third_level_name]
@@ -386,42 +386,43 @@ class Parse(LoggedClass):
         return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
 
     def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('cadences', keys, ids, quarterbeats=quarterbeats, unfold=unfold, interval_index=interval_index)
+        return self._concat_lists('cadences', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
+                                  interval_index=interval_index)
 
     def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('chords', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('chords', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def events(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('events', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('events', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('expanded', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('expanded', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('form_labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('form_labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('labels', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('measures', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('measures', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('notes', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('notes', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('notes_and_rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('notes_and_rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('rests', keys, ids, quarterbeats=quarterbeats, unfold=unfold,
+        return self._concat_lists('rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
                                   interval_index=interval_index)
 
     def ids(self, keys=None):
@@ -443,7 +444,7 @@ class Parse(LoggedClass):
 
     @ms.setter
     def ms(self, ms):
-        self._ms = get_musescore(ms)
+        self._ms = get_musescore(ms, logger=self.logger)
 
 
     @property
@@ -588,7 +589,7 @@ class Parse(LoggedClass):
             _ = self.add_files(paths=paths, key=key)
 
 
-    def add_files(self, paths, key, exclude_re=None):
+    def add_files(self, paths, key=None, exclude_re=None):
         """
 
         Parameters
@@ -1127,6 +1128,7 @@ Available keys: {available_keys}""")
         bool_params = list(self._lists.keys())
         l = locals()
         columns = [tsv_type for tsv_type in self._lists.keys() if l[tsv_type]]
+        self.logger.debug(f"Looking up {columns} DataFrames for IDs {grouped_ids}")
         #self.collect_lists(ids=ids, only_new=True, **params)
         res = {} if flat else defaultdict(dict)
         # if unfold:
@@ -1140,7 +1142,7 @@ Available keys: {available_keys}""")
                         if flat:
                             res[id + (tsv_type,)] = df
                         else:
-                            res[id][tsv_type] = df
+                            res[tsv_type][id] = df
         return dict(res)
         # if unfold or quarterbeats:
         #     _ = self.match_files(ids=ids)
@@ -1632,7 +1634,7 @@ Available keys: {available_keys}""")
             try:
                 i = self.files[k].index('metadata.tsv')
             except ValueError:
-                self.logger.info(f"Key '{k}' does not include a file named 'metadata.tsv'.")
+                self.logger.debug(f"Key '{k}' does not include a file named 'metadata.tsv'.")
                 return metadata_dfs
             id = (k, i)
             if id not in self._parsed_tsv:
@@ -1644,10 +1646,10 @@ Available keys: {available_keys}""")
             if id in self._parsed_tsv:
                 metadata_dfs[id] = self._parsed_tsv[id]
             elif parse_if_necessary:
-                self.logger.info(f"Could not find the DataFrame for the freshly parsed {self.full_paths[k][i]}.")
+                self.logger.debug(f"Could not find the DataFrame for the freshly parsed {self.full_paths[k][i]}.")
         n_found = len(metadata_dfs)
         if n_found == 0:
-            self.logger.info(f"No metadata.tsv files have been found for they keys {', '.join(keys)}")
+            self.logger.debug(f"No metadata.tsv files have been found for they keys {', '.join(keys)}")
             return {}
         return metadata_dfs
 
@@ -2092,7 +2094,7 @@ Available keys: {available_keys}""")
         file_name, file_ext = os.path.splitext(file)
         if file_ext[1:] not in Score.parseable_formats + ('tsv',):
             ext_string = "without extension" if file_ext == '' else f"with extension {file_ext}"
-            self.logger.error(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
+            self.logger.debug(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
             return (None, None)
         rel_path = os.path.relpath(file_path, self.last_scanned_dir)
         if key is None:
@@ -2103,7 +2105,7 @@ Available keys: {available_keys}""")
         if file in self.files[key]:
             same_name = [i for i, f in enumerate(self.files[key]) if f == file]
             if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
-                self.logger.error(
+                self.logger.debug(
                     f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
                 return (None, None)
@@ -2868,12 +2870,20 @@ class View(Parse):
             if 'scores' in ids and not pd.isnull(ids['scores']) and column in standard_cols:
                 i = int(ids['scores'])
                 score = self.p[(self.key, i)]
-                df = score.mscx.__getattribute__(column)
-                if df.shape[0] > 0:
-                    score.logger.debug(f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
-                    return df, i
+                if score is None:
+                    self.logger.debug(f"No Score object found for ID ({self.key}, {i}).")
                 else:
-                    score.logger.debug(f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
+                    df = score.mscx.__getattribute__(column)
+                    if df is None:
+                        score.logger.debug(
+                            f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.")
+                    elif df.shape[0] == 0:
+                        score.logger.debug(
+                            f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
+                    else:
+                        score.logger.debug(
+                            f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
+                        return df, i
             if column in ids and not pd.isnull(ids[column]):
                 i = int(ids[column])
                 return self.p._parsed_tsv[(self.key, i)], i
