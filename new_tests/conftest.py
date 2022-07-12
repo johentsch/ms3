@@ -70,7 +70,37 @@ def parse_cfg(directory, path_cfg):
 def parse_obj(parse_cfg):
     return Parse(**parse_cfg)
 
+@pytest.fixture(
+    scope="session",
+    params=[
+        0,
+        1,
+        2,
+    ],
+    ids=[
+        "parsed_mscx",
+        "parsed_tsv",
+        "parsed_all",
+    ],
+)
+def parsed_parse_obj(parse_obj, request):
+    if request.param == 0:
+        parse_obj.parse_mscx()
+    elif request.param == 1:
+        parse_obj.parse_tsv()
+    elif request.param == 2:
+        parse_obj.parse()
+    else:
+        assert False
+    return parse_obj
 
+@pytest.fixture(scope="class")
+def parse_objects(request, parse_obj):
+    request.cls.parse_obj = parse_obj
+
+@pytest.fixture(scope="class")
+def parsed_parse_objects(request, parsed_parse_obj):
+    request.cls.parsed_parse_obj = parsed_parse_obj
 
 
 
