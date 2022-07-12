@@ -99,8 +99,8 @@ def parse_objects(request, parse_obj):
     request.cls.parse_obj = parse_obj
 
 @pytest.fixture(scope="class")
-def parsed_parse_objects(request, parse_obj):
-    request.cls.parse_obj = parse_obj
+def parsed_parse_objects(request, parsed_parse_obj):
+    request.cls.parsed_parse_obj = parsed_parse_obj
 
 
 
