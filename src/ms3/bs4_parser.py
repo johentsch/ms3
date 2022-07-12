@@ -152,15 +152,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                         if event_name == 'Chord':
                             event['chord_id'] = chord_id
                             grace = event_node.find(grace_tags)
-                            tremolo_tag = event_node.find('Tremolo')
-                            if tremolo_tag:
-                                if tremolo_type is not None:
-                                    raise NotImplementedError("Chord with <Tremolo> follows another one with <Tremolo>")
-                                tremolo_type = tremolo_tag.subtype.string
-                                tremolo_component = 1
-                                tremolo_duration = event_node.find('duration').string
-                            elif tremolo_type is not None:
-                                tremolo_component = 2
+
 
                             dur, dot_multiplier = bs4_chord_duration(event_node, duration_multiplier)
                             if grace:
@@ -168,14 +160,33 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                             else:
                                 event['duration'] = dur
                             chord_info = dict(event)
-                            if tremolo_component:
+
+                            tremolo_tag = event_node.find('Tremolo')
+                            if tremolo_tag:
+                                if tremolo_component > 0:
+                                    raise NotImplementedError("Chord with <Tremolo> follows another one with <Tremolo>")
+                                tremolo_type = tremolo_tag.subtype.string
+                                tremolo_duration_node = event_node.find('duration')
+                                if tremolo_duration_node:
+                                    # the tremolo has two components that factually start sounding
+                                    # on the same onset, but are encoded as two subsequent <Chord> tags
+                                    tremolo_duration = tremolo_duration_node.string
+                                    tremolo_component = 1
+                                else:
+                                    # the tremolo consists of one <Chord> only
+                                    tremolo_duration = dur
+                            elif tremolo_component == 1:
+                                tremolo_component = 2
+                            if tremolo_type:
                                 chord_info['tremolo'] = f"{tremolo_duration}_{tremolo_type}_{tremolo_component}"
+                                if tremolo_component in (0, 2):
+                                    tremolo_type = None
                                 if tremolo_component == 2:
                                     duration_to_complete_tremolo = event_node.find(
                                         'duration').string
                                     assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
-                                    tremolo_type = None
                                     tremolo_component = 0
+
                             for chord_child in event_node.find_all(recursive=False):
                                 if chord_child.name == 'Note':
                                     note_event = dict(chord_info, **recurse_node(chord_child, prepend=chord_child.name))
@@ -223,7 +234,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                 position += event['duration']
                             self.tags[mc][staff_id][voice_id][position].append(remember)
 
-                        if tremolo_type is None:
+                        if tremolo_component != 1:
+                            # In case a tremolo appears in the score as two subsequent events of equal length,
                             # MuseScore assigns a <duration> of half the note value to both components of a tremolo.
                             # The parser, instead, assigns the actual note value and the same position to both the
                             # <Chord> with the <Tremolo> tag and the following one. In other words, the current_position
