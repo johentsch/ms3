@@ -70,8 +70,7 @@ class LoggedClass():
         self.logger = get_logger(self.logger_names['class'])
 
 
-
-def get_logger(name=None, level=None, path=None, propagate=True, adapter=ContextAdapter):
+def get_logger(name=None, level=None, path=None, propagate=True, adapter=None):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     assert name != 'ms3' # TODO: comment out before release
     if isinstance(name, logging.LoggerAdapter):
@@ -81,7 +80,6 @@ def get_logger(name=None, level=None, path=None, propagate=True, adapter=Context
             level = level.level
         name = name.name
     logger = config_logger(name, level=level, path=path, propagate=propagate)
-
     if adapter is not None:
         logger = adapter(logger, {})
     if name is None:
@@ -103,11 +101,35 @@ def get_parent_level(logger):
         return get_parent_level(parent)
     return parent
 
+class WarningFilter(logging.Filter):
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+        self.ignore = ["MC_OFFSET"]
+
+    def filter(self, record):
+        if record._extra is None:
+            return True
+        elif record._extra["warning_type"] in self.ignore:
+            return False
+        else:
+            fn, l, f, s = self.logger.findCaller()
+            record.msg = f"{fn} (line {l}) {f}():\n\t{record.msg}" if s is None else f"{fn} (line {l}) {f}():\n\t{record.msg}\n{s}"
+            return True
+
 def config_logger(name, level=None, path=None, propagate=True):
     """Configs the logger with name `name`. Overwrites existing config."""
     assert name is not None, "I don't want to change the root logger."
     new_logger = name not in logging.root.manager.loggerDict
     logger = logging.getLogger(name)
+    original_makeRecord = logger.makeRecord
+
+    def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
+        record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
+        record._extra = extra
+        return record
+
+    logger.makeRecord = make_record_with_extra
     logger.propagate = propagate
     if level is not None:
         level = resolve_level_param(level)
@@ -136,12 +158,12 @@ def config_logger(name, level=None, path=None, propagate=True):
         streamHandler.setFormatter(formatter)
         streamHandler.setLevel(level)
         logger.addHandler(streamHandler)
+        streamHandler.addFilter(WarningFilter(logger))
     elif n_stream_handlers == 1:
         streamHandler = stream_handlers[0]
         streamHandler.setLevel(level)
     else:
         logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
-
     log_file = None
     if path is not None:
         path = resolve_dir(path)
@@ -171,6 +193,7 @@ def config_logger(name, level=None, path=None, propagate=True):
             #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
             fileHandler.setFormatter(formatter)
             logger.addHandler(fileHandler)
+            fileHandler.addFilter(WarningFilter(logger))
     return logger
 
 

@@ -1245,7 +1245,7 @@ Available keys: {available_keys}""")
             if unf_mcs is not None:
                 res[id] = unf_mcs
             # else:
-            #     self.id_logger(id).warning(f"Unable to unfold.")
+            #     self.id_logger(id).(f"Unable to unfold.")
         return res
 
     def _get_measure_list(self, id, unfold=False):
@@ -1724,7 +1724,7 @@ Available keys: {available_keys}""")
             self.logger.debug(f"No parseable scores found {reason}.")
             return
         if level is None:
-            level = self.logger.logger.level
+            level = self.logger.level  # logger if ContextAdapter
         configs = [dict(
             level=level,
             name=self.logger_names[id]
@@ -2119,7 +2119,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.subdirs[key].append(subdir)
         self.paths[key].append(file_path)
         self.files[key].append(file)
-        self.logger_names[(key, i)] = f"{self.logger.logger.name}.{key}.{file_name.replace('.', '')}"
+        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}" # logger if Context Adapter
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         return key, len(self.paths[key]) - 1
