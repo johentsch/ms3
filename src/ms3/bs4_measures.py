@@ -182,7 +182,7 @@ class MeasureList(LoggedClass):
                     current_mn = mc2mn[mc]
                     if current_mn != mn:
                         self.logger.warning(
-                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, not MN {current_mn}.", extra={"ms": mc, "warning_type": "NON_EXPECTED_MN"})
+                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, not MN {current_mn}.", extra={"info": (mc), "message_type": 2})
 
         # Check measure numbers for split measures
         error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
@@ -193,7 +193,7 @@ class MeasureList(LoggedClass):
             context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
-                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"ms": mcs, "warning_type": "MC_OFFSET"})
+                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"info": (mcs), "message_type": 1})
 
 
 @function_logger

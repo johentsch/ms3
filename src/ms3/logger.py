@@ -1,5 +1,6 @@
 import logging, sys, os
 from functools import wraps
+from enum import Enum
 
 
 LEVELS = {
@@ -15,24 +16,17 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-DEFAULT_LOG_FORMAT = '%(levelname)-8s %(name)s -- %(message)s'
+DEFAULT_LOG_FORMAT = '%(levelname)-8s %(_message_type_full)s %(_info)s %(name)s -- %(pathname)s (line %(lineno)s) %(funcName)s(): \n\t %(message)s'
+
+
+class MessageType(Enum):
+    NO_TYPE = 0
+    MC_OFFSET = 1
+    NON_EXPECTED_MN = 2
 
 def get_default_formatter():
     format = DEFAULT_LOG_FORMAT
     return logging.Formatter(format)
-
-class ContextAdapter(logging.LoggerAdapter):
-    """ This LoggerAdapter is designed to include the module and function that called the logger."""
-    def process(self, msg, overwrite={}, stack_info=False, **kwargs):
-        # my_context = kwargs.pop('my_context', self.extra['my_context'])
-        fn, l, f, s = self.logger.findCaller(stack_info=stack_info)
-        fname = os.path.basename(overwrite.pop('fname', fn))
-        line = overwrite.pop('line', l)
-        func = overwrite.pop('func', f)
-        stack = overwrite.pop('stack', s)
-        msg = msg.replace('\n', '\n\t')
-        message = f"{fname} (line {line}) {func}():\n\t{msg}" if stack is None else f"{fname} line {line}, {func}():\n\t{msg}\n{stack}"
-        return message, kwargs
 
 
 class LoggedClass():
@@ -70,7 +64,7 @@ class LoggedClass():
         self.logger = get_logger(self.logger_names['class'])
 
 
-def get_logger(name=None, level=None, path=None, propagate=True, adapter=None):
+def get_logger(name=None, level=None, path=None, propagate=True):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     assert name != 'ms3' # TODO: comment out before release
     if isinstance(name, logging.LoggerAdapter):
@@ -80,8 +74,6 @@ def get_logger(name=None, level=None, path=None, propagate=True, adapter=None):
             level = level.level
         name = name.name
     logger = config_logger(name, level=level, path=path, propagate=propagate)
-    if adapter is not None:
-        logger = adapter(logger, {})
     if name is None:
         logging.critical("The root logger has been altered.")
     return logger
@@ -105,16 +97,12 @@ class WarningFilter(logging.Filter):
     def __init__(self, logger):
         super().__init__()
         self.logger = logger
-        self.ignore = ["MC_OFFSET"]
+        self.ignore = {2: [(96)], 1: [()]}
 
     def filter(self, record):
-        if record._extra is None:
-            return True
-        elif record._extra["warning_type"] in self.ignore:
+        if record._message_type != "" and record._info in self.ignore[record._message_type]:
             return False
         else:
-            fn, l, f, s = self.logger.findCaller()
-            record.msg = f"{fn} (line {l}) {f}():\n\t{record.msg}" if s is None else f"{fn} (line {l}) {f}():\n\t{record.msg}\n{s}"
             return True
 
 def config_logger(name, level=None, path=None, propagate=True):
@@ -126,7 +114,9 @@ def config_logger(name, level=None, path=None, propagate=True):
 
     def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
         record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
-        record._extra = extra
+        record._message_type = extra["message_type"] if extra is not None else ""
+        record._info = extra["info"] if extra is not None else ""
+        record._message_type_full = MessageType(extra["message_type"]).name if extra is not None else ""
         return record
 
     logger.makeRecord = make_record_with_extra
