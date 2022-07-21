@@ -506,7 +506,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
             return
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += f"{self.mscx.logger.logger.name}.{key}"
+        logger_cfg['name'] += f"{self.mscx.logger.name}.{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:
@@ -654,7 +654,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
-            self.logger_names[key] = f"{self.logger.logger.name}.{key}"
+            self.logger_names[key] = f"{self.logger.name}.{key}"  # logger
             return key
         else:
             raise ValueError(f"Path not found: {path}.")
