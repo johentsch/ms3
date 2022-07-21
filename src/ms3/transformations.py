@@ -76,10 +76,10 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     else:
         logger.debug("quarterbeats column was already present.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
-        df = replace_index_by_intervals(df)
+        df = replace_index_by_intervals(df, logger=logger)
     return df
 
-
+@function_logger
 def add_weighted_grace_durations(notes, weight=1/2):
     """ For a given notes table, change the 'duration' value of all grace notes, weighting it by ``weight``.
 
@@ -109,7 +109,7 @@ def add_weighted_grace_durations(notes, weight=1/2):
     if 'duration_qb' in notes.columns:
         notes.loc[grace, 'duration_qb'] = (new_durations * 4).astype(float)
         if isinstance(notes.index, pd.IntervalIndex):
-            notes = replace_index_by_intervals(notes)
+            notes = replace_index_by_intervals(notes, logger=logger)
     return notes
 
 

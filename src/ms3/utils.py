@@ -473,6 +473,11 @@ def convert(old, new, MS='mscore'):
     else:
         logger.warning("Error while converting " + old)
 
+def _convert_kwargs(kwargs):
+    """Auxiliary function allowing to use Pool.starmap() with keyword arguments (needed in order to
+    pass the logger argument which is not part of the signature of convert() )."""
+    return convert(**kwargs)
+
 @function_logger
 def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
@@ -537,7 +542,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
         old = os.path.join(subdir, file)
         new = os.path.join(new_subdir, fname)
         if overwrite or not os.path.isfile(new):
-            conversion_params.append((old, new, MS))
+            conversion_params.append([dict(old=old, new=new, MS=MS, logger=logger)])
         else:
             logger.debug(new, 'exists already. Pass -o to overwrite.')
 
@@ -545,15 +550,14 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
         logger.info(f"No files to convert.")
 
 
-    # TODO: pass filenames as 'logger' argument to convert()
     if parallel:
         pool = multiprocessing.Pool(multiprocessing.cpu_count())
-        pool.starmap(convert, conversion_params)
+        pool.starmap(_convert_kwargs, conversion_params)
         pool.close()
         pool.join()
     else:
-        for o, n, ms in conversion_params:
-            convert(o, n, ms)
+        for old, new, MS in conversion_params:
+            convert(old=old, new=new, MS=MS, logger=logger)
 
 
 @function_logger
