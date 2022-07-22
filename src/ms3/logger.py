@@ -1,4 +1,5 @@
 import logging, sys, os
+from collections import defaultdict
 from functools import wraps
 from enum import Enum
 
@@ -23,6 +24,10 @@ class MessageType(Enum):
     NO_TYPE = 0  # 0 is reserved as no type message
     MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING = 1
     INCORRECT_VOLTA_MN_WARNING = 2
+    INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING = 3
+    VOLTAS_WITH_DIFFERING_LENGTHS_WARNING = 4
+    MISSING_END_REPEAT_WARNING = 5
+    SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
 
 def get_default_formatter():
     format = DEFAULT_LOG_FORMAT
@@ -97,7 +102,8 @@ class WarningFilter(logging.Filter):
     def __init__(self, logger):
         super().__init__()
         self.logger = logger
-        self.ignore = {2: [(96)], 1: [()]}
+        self.ignore = defaultdict(lambda: [()])
+        self.ignore.update({2: [(96)], 1: [()]})
 
     def filter(self, record):
         if record._message_type != 0 and record._info in self.ignore[record._message_type]:
