@@ -18,19 +18,19 @@ def collect_test_name(request):
 
 class TestNameCollection():
 
-    def test_collect_parse_obj_names(self, parse_obj, collect_test_name):
-        """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
-        print('\ntest_names = [')
-        for name in sorted(TEST_NAMES['test_collect_parse_obj_names']):
-            print(f" '{name}',")
-        print("]")
+    # def test_collect_parse_obj_names(self, parse_obj, collect_test_name):
+    #     """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
+    #     print('\ntest_names = [')
+    #     for name in sorted(TEST_NAMES['test_collect_parse_obj_names']):
+    #         print(f" '{name}',")
+    #     print("]")
 
     def test_collect_parsed_parse_obj_names(self, parsed_parse_obj, collect_test_name):
         """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
-        print('\nname2expected = {')
+        print('\nname2expected.update(dict(')
         for name in sorted(TEST_NAMES['test_collect_parsed_parse_obj_names']):
-            print(f" '{name}'" + ": {},")
-        print("}")
+            print(f"\t{name}" + " = {},")
+        print("))")
 
 
 ################################## Actual tests ############################################
@@ -40,59 +40,21 @@ class TestNameCollection():
 @pytest.mark.usefixtures("parse_objects")
 class TestEmptyParse():
 
-    test_names = [
-        'multiple-all_paths',
-        'multiple-directory',
-        'multiple-directory+paths',
-        'multiple-mscx_paths',
-        'multiple-tsv_paths',
-        'single-all_paths',
-        'single-directory',
-        'single-directory+paths',
-        'single-mscx_paths',
-        'single-tsv_paths',
-    ]
-
     @pytest.fixture()
     def expected_keys(self, request):
-        expected = [
-            {'mixed_files': {'.mscx': 8,  # multiple-all_paths
-                             '.mscz': 1,
-                             '.musicxml': 1,
-                             '.mxl': 1,
-                             '.tsv': 1,
-                             '.xml': 1},
-             'ravel_piano': {'.mscx': 5, '.tsv': 14},
-             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},  # multiple-directory
-             'ravel_piano': {'.mscx': 5, '.tsv': 14},
-             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            {'mixed_files': {'.mscx': 8,  # multiple-directory+paths
-                             '.mscz': 1,
-                             '.musicxml': 1,
-                             '.mxl': 1,
-                             '.tsv': 1,
-                             '.xml': 1},
-             'ravel_piano': {'.mscx': 5, '.tsv': 14},
-             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            {'mixed_files': {'.mscx': 8},  # multiple-mscx_paths
-             'ravel_piano': {'.mscx': 5},
-             'sweelinck_keyboard': {'.mscx': 1},
-             'wagner_overtures': {'.mscx': 2}},
-            {'mixed_files': {'.tsv': 1},  # multiple-tsv_paths
-             'ravel_piano': {'.tsv': 14},
-             'sweelinck_keyboard': {'.tsv': 4},
-             'wagner_overtures': {'.tsv': 7}},
-            {'pleyel_quartets': {'.mscx': 6, '.tsv': 13}},  # single-all_paths
-            {'pleyel_quartets': {'.mscx': 6, '.tsv': 13}},  # single-directory
-            {'pleyel_quartets': {'.mscx': 6, '.tsv': 13}},  # single-directory+paths
-            {'pleyel_quartets': {'.mscx': 6}},  # single-mscx_paths
-            {'pleyel_quartets': {'.tsv': 13}},  # single-tsv_paths
-        ]
-        name2expected = dict(zip(self.test_names, expected))
+        name2expected = defaultdict(dict)
+        name2expected.update(dict(
+            everything = {'mixed_files': {'.mscx': 8, '.mscz': 1},
+                         'outputs': {'.tsv': 3},
+                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            regular_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1},
+                             'outputs': {'.tsv': 3},
+                             'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+        ))
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
@@ -110,39 +72,23 @@ class TestParsedParse():
 
     @pytest.fixture()
     def expected_keys(self, request):
-        name2expected = {
-            'parsed_all-multiple-all_paths': {},
-            'parsed_all-multiple-directory': {},
-            'parsed_all-multiple-directory+paths': {},
-            'parsed_all-multiple-mscx_paths': {},
-            'parsed_all-multiple-tsv_paths': {},
-            'parsed_all-single-all_paths': {},
-            'parsed_all-single-directory': {},
-            'parsed_all-single-directory+paths': {},
-            'parsed_all-single-mscx_paths': {},
-            'parsed_all-single-tsv_paths': {},
-            'parsed_mscx-multiple-all_paths': {},
-            'parsed_mscx-multiple-directory': {},
-            'parsed_mscx-multiple-directory+paths': {},
-            'parsed_mscx-multiple-mscx_paths': {},
-            'parsed_mscx-multiple-tsv_paths': {},
-            'parsed_mscx-single-all_paths': {},
-            'parsed_mscx-single-directory': {},
-            'parsed_mscx-single-directory+paths': {},
-            'parsed_mscx-single-mscx_paths': {'pleyel_quartets': {'.mscx': 6}},
-            'parsed_mscx-single-tsv_paths': {},
-            'parsed_tsv-multiple-all_paths': {},
-            'parsed_tsv-multiple-directory': {},
-            'parsed_tsv-multiple-directory+paths': {},
-            'parsed_tsv-multiple-mscx_paths': {},
-            'parsed_tsv-multiple-tsv_paths': {},
-            'parsed_tsv-single-all_paths': {},
-            'parsed_tsv-single-directory': {},
-            'parsed_tsv-single-directory+paths': {},
-            'parsed_tsv-single-mscx_paths': {},
-            'parsed_tsv-single-tsv_paths': {},
-        }
-        #name2expected = dict(zip_longest(self.test_names, expected, fillvalue={}))
+        name2expected = defaultdict(dict)
+        name2expected.update(dict(
+            parsed_mscx-regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+E          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+E          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+
+            everything={'mixed_files': {'.mscx': 8, '.mscz': 1},
+                       'outputs': {'.tsv': 3},
+                       'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                       'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                       'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            regular_dirs={'mixed_files': {'.mscx': 8, '.mscz': 1},
+                            'outputs': {'.tsv': 3},
+                            'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                            'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                            'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+        ))
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 

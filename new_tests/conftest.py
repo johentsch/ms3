@@ -1,74 +1,49 @@
 import os
 import pytest
 from ms3 import Parse
+from ms3.utils import first_level_subdirs
 
-# Directory holding your clones of DCMLab/unittest_metacorpus & DCMLab/pleyel_quartets
+# Directory holding your clone of DCMLab/unittest_metacorpus
 CORPUS_DIR = "~"
 
 
-@pytest.fixture(
-    scope="session",
-    params=[
-        "pleyel_quartets",
-        "unittest_metacorpus",
-    ],
-    ids=[
-        "single",
-        "multiple",
-    ],
-)
-def directory(request):
-    """Compose the paths for the test corpora."""
-    path = os.path.join(os.path.expanduser(CORPUS_DIR), request.param)
+@pytest.fixture(scope="session")
+def directory():
+    """Compose the path for the test corpus."""
+    path = os.path.join(os.path.expanduser(CORPUS_DIR), "unittest_metacorpus")
+    if not os.path.isdir(path):
+        print(f"Directory does not exist: {path} Clone DCMLab/unittest_metacorpus, checkout ms3_tests branch, "
+              f"and specify CORPUS_DIR above.")
+    assert os.path.isdir(path)
     return path
 
-def make_path_cfg(directory, include_directory, include_paths, path_endswith=None):
-    assert sum((include_directory, include_paths)) > 0, "At least one needs to be True"
-    path_cfg = {}
-    if include_directory:
-        path_cfg['directory'] = directory
-    if include_paths:
-        paths = []
-        for dirpath, subdirs, filenames in os.walk(directory):
-            subdirs[:] = [sd for sd in subdirs if not sd.startswith('.')]
-            for f in filenames:
-                if path_endswith is None or f.endswith(path_endswith):
-                    paths.append(os.path.join(dirpath, f))
-        path_cfg['paths'] = paths
-    return path_cfg
-
 @pytest.fixture(
     scope="session",
     params=[
-        (False, True, '.mscx'),
-        (False, True, '.tsv'),
-        (False, True),
-        (True, False),
-        (True, True)
-    ],
-    ids=[
-        "mscx_paths",
-        "tsv_paths",
-        "all_paths",
-        "directory",
-        "directory+paths",
-    ],
+        "hidden_dirs",
+        "regular_dirs",
+        "everything",
+        "chaotic_dirs",
+    ]
 )
-def path_cfg(request):
-    return request.param
-
-@pytest.fixture(
-    scope="session",
-)
-def parse_cfg(directory, path_cfg):
-    result = make_path_cfg(directory, *path_cfg)
-    return result
-
-@pytest.fixture(
-    scope="session",
-)
-def parse_obj(parse_cfg):
-    return Parse(**parse_cfg)
+def parse_obj(directory, request):
+    if request.param.startswith('everything'):
+        p = Parse(directory=directory)
+        return p
+    p = Parse()
+    if request.param == "regular_dirs":
+        for subdir in ['ravel_piano', 'sweelinck_keyboard', 'wagner_overtures']:
+            add_path = os.path.join(directory, subdir)
+            p.add_dir(add_path)
+    if request.param == "chaotic_dirs":
+        for subdir in ['mixed_files', 'outputs']:
+            add_path = os.path.join(directory, subdir)
+            p.add_dir(add_path)
+    if request.param == "hidden_dirs":
+        for subdir in ['.git', '.github']:
+            add_path = os.path.join(directory, subdir)
+            p.add_dir(add_path)
+    return p
 
 @pytest.fixture(
     scope="session",
@@ -78,16 +53,16 @@ def parse_obj(parse_cfg):
         2,
     ],
     ids=[
-        "parsed_mscx",
         "parsed_tsv",
+        "parsed_mscx",
         "parsed_all",
     ],
 )
 def parsed_parse_obj(parse_obj, request):
     if request.param == 0:
-        parse_obj.parse_mscx()
-    elif request.param == 1:
         parse_obj.parse_tsv()
+    elif request.param == 1:
+        parse_obj.parse_mscx()
     elif request.param == 2:
         parse_obj.parse()
     else:
@@ -95,11 +70,11 @@ def parsed_parse_obj(parse_obj, request):
     return parse_obj
 
 @pytest.fixture(scope="class")
-def parse_objects(request, parse_obj):
+def parse_objects(parse_obj, request):
     request.cls.parse_obj = parse_obj
 
 @pytest.fixture(scope="class")
-def parsed_parse_objects(request, parsed_parse_obj):
+def parsed_parse_objects(parsed_parse_obj, request):
     request.cls.parsed_parse_obj = parsed_parse_obj
 
 

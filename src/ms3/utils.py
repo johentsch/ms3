@@ -1129,71 +1129,107 @@ def iterable2str(iterable):
     except:
         return iterable
 
+# @function_logger
+# def iterate_subcorpora(path: str,
+#                        prefixes: Iterable = None, # Iterable[str] would require python>=3.9
+#                        suffixes: Iterable = None,
+#                        ignore_case: bool = True) -> Iterator:
+#     """ Recursively walk through subdirectory and files but stop and return path as soon as
+#     at least one file or at least one folder matches at least one prefix or at least one suffix.
+#
+#     Parameters
+#     ----------
+#     path : :obj:`str`
+#         Directory to scan.
+#     prefixes : :obj:`collections.abc.Iterable`, optional
+#         Current directory is returned if at least one contained item starts with one of the prefixes.
+#     suffixes : :obj:`collections.abc.Iterable`, optional
+#         Current directory is returned if at least one contained item ends with one of the suffixes.
+#         Files are tested against suffixes including and excluding file extensions.
+#         Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+#         'harmonies', 'cadences', 'form_labels', 'MS3']``
+#     ignore_case : :obj:`bool`, optional
+#         Defaults to True, meaning that file and folder names match prefixes and suffixes independent
+#         of capitalization.
+#
+#     Yields
+#     ------
+#     :obj:`str`
+#         Full path of the next subcorpus.
+#
+#     """
+#
+#     def check_fname(s):
+#         if ignore_case:
+#             return any(s.lower().startswith(p) for p in prefixes) or \
+#                    any(s.lower().endswith(suf) for suf in suffixes)
+#         return any(s.startswith(p) for p in prefixes) or \
+#                any(s.endswith(suf) for suf in suffixes)
+#
+#     if prefixes is None:
+#         prefixes = ['metadata.tsv'] + STANDARD_NAMES
+#     if suffixes is None:
+#         suffixes = []
+#
+#     if ignore_case:
+#         prefixes = [p.lower() for p in prefixes]
+#         suffixes = [s.lower() for s in suffixes]
+#
+#     for d, subdirs, files in os.walk(path):
+#         subdirs[:] = sorted(subdirs)
+#         if files != []:
+#             fnames, _ = zip(*[os.path.splitext(f) for f in files])
+#         else:
+#             fnames = []
+#         for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
+#             if any(check_fname(i) for i in items_to_check):
+#                 match = next(i for i in items_to_check if check_fname(i))
+#                 logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
+#                 del (subdirs[:])
+#                 yield d
+#                 break
+
+def contains_metadata(path):
+    for _, _, files in os.walk(path):
+        return any(f == 'metadata.tsv' for f in files)
+
+def first_level_subdirs(path):
+    for _, subdirs, _ in os.walk(path):
+        return subdirs
+
 @function_logger
-def iterate_subcorpora(path: str,
-                       prefixes: Iterable = None, # Iterable[str] would require python>=3.9
-                       suffixes: Iterable = None,
-                       ignore_case: bool = True) -> Iterator:
-    """ Recursively walk through subdirectory and files but stop and return path as soon as
-    at least one file or at least one folder matches at least one prefix or at least one suffix.
+def contains_subcorpus_indicator(path):
+    for subdir in first_level_subdirs(path):
+        for name in STANDARD_NAMES:
+            if subdir == name:
+                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a subcorpus.")
+                return True
+    return False
 
-    Parameters
-    ----------
-    path : :obj:`str`
-        Directory to scan.
-    prefixes : :obj:`collections.abc.Iterable`, optional
-        Current directory is returned if at least one contained item starts with one of the prefixes.
-    suffixes : :obj:`collections.abc.Iterable`, optional
-        Current directory is returned if at least one contained item ends with one of the suffixes.
-        Files are tested against suffixes including and excluding file extensions.
-        Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-        'harmonies', 'cadences', 'form_labels', 'MS3']``
-    ignore_case : :obj:`bool`, optional
-        Defaults to True, meaning that file and folder names match prefixes and suffixes independent
-        of capitalization.
 
-    Yields
-    ------
-    :obj:`str`
-        Full path of the next subcorpus.
-
-    """
-
-    def check_fname(s):
-        if ignore_case:
-            return any(s.lower().startswith(p) for p in prefixes) or \
-                   any(s.lower().endswith(suf) for suf in suffixes)
-        return any(s.startswith(p) for p in prefixes) or \
-               any(s.endswith(suf) for suf in suffixes)
-
-    if prefixes is None:
-        prefixes = ['metadata.tsv'] + STANDARD_NAMES
-    if suffixes is None:
-        suffixes = []
-
-    if ignore_case:
-        prefixes = [p.lower() for p in prefixes]
-        suffixes = [s.lower() for s in suffixes]
-
-    for d, subdirs, files in os.walk(path):
-        subdirs[:] = sorted(subdirs)
-        if files != []:
-            fnames, _ = zip(*[os.path.splitext(f) for f in files])
-        else:
-            fnames = []
-        for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
-            if any(check_fname(i) for i in items_to_check):
-                match = next(i for i in items_to_check if check_fname(i))
-                logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
-                del (subdirs[:])
-                yield d
+@function_logger
+def iterate_subcorpora(path):
+    """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
+    of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
+    score file."""
+    if contains_metadata(path):
+        return path
+    subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
+    yield_subpaths = False
+    for subpath in subpaths:
+        if contains_metadata(subpath):
+            yield_subpaths = True
+            break
+    if not yield_subpaths:
+        if contains_subcorpus_indicator(path, logger=logger):
+            return path
+        for subpath in subpaths:
+            if contains_subcorpus_indicator(subpath, logger=logger):
+                yield_subpaths = True
                 break
-        ### The inner for loop is equivalent to the following code but includes logging:
-        # if any(check_fname(f) for f in files) or \
-        #     any(check_fname(d) for d in subdirs) or \
-        #     any(check_fname(fn) for fn in fnames):
-        #     del(subdirs[:])
-        #     yield d
+    if not yield_subpaths:
+        return path
+    yield from subpaths
 
 
 @function_logger
