@@ -21,8 +21,8 @@ DEFAULT_LOG_FORMAT = '%(levelname)-8s %(_message_type_full)s (%(_message_type)s,
 
 class MessageType(Enum):
     NO_TYPE = 0  # 0 is reserved as no type message
-    MC_OFFSET = 1
-    NON_EXPECTED_MN = 2
+    MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING = 1
+    INCORRECT_VOLTA_MN_WARNING = 2
 
 def get_default_formatter():
     format = DEFAULT_LOG_FORMAT

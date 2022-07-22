@@ -1,6 +1,6 @@
 # for testing we use the example of annotations
-test_file = """WARNING  MC_OFFSET (1, 1, 40, 85, 97, 131, 139) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList 
-WARNING  NON_EXPECTED_MN (2, 138) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList
+test_file = """WARNING  MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING (1, 1, 40, 85, 97, 131, 139) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList 
+WARNING  INCORRECT_VOLTA_MN_WARNING (2, 138) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList
 WARNING   (0, ) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList
 WARNING   (0, ) ms3.Parse.old_tests.BWV_0816.mscx
 WARNING   (0, ) ms3.Parse.old_tests.BWV_0815.mscx.MeasureList"""
