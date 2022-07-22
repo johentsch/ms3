@@ -116,6 +116,11 @@ class TestParsedParse():
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
 
+    def test_check(self, caplog):
+        _ = self.parsed_parse_obj.get_dataframes(expanded=True)
+        for record in caplog.records:
+            if record.levelname == 'WARNING':
+                print(inspect_object(record))
 
 # add_dir (different keys)
 # file_re
