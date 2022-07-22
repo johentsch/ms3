@@ -16,11 +16,11 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-DEFAULT_LOG_FORMAT = '%(levelname)-8s %(_message_type_full)s %(_info)s %(name)s -- %(pathname)s (line %(lineno)s) %(funcName)s(): \n\t %(message)s'
+DEFAULT_LOG_FORMAT = '%(levelname)-8s %(_message_type_full)s (%(_message_type)s, %(_info)s) %(name)s -- %(pathname)s (line %(lineno)s) %(funcName)s(): \n\t %(message)s'
 
 
 class MessageType(Enum):
-    NO_TYPE = 0
+    NO_TYPE = 0  # 0 is reserved as no type message
     MC_OFFSET = 1
     NON_EXPECTED_MN = 2
 
@@ -100,7 +100,7 @@ class WarningFilter(logging.Filter):
         self.ignore = {2: [(96)], 1: [()]}
 
     def filter(self, record):
-        if record._message_type != "" and record._info in self.ignore[record._message_type]:
+        if record._message_type != 0 and record._info in self.ignore[record._message_type]:
             return False
         else:
             return True
@@ -114,7 +114,7 @@ def config_logger(name, level=None, path=None, propagate=True):
 
     def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
         record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
-        record._message_type = extra["message_type"] if extra is not None else ""
+        record._message_type = extra["message_type"] if extra is not None else 0
         record._info = extra["info"] if extra is not None else ""
         record._message_type_full = MessageType(extra["message_type"]).name if extra is not None else ""
         return record
