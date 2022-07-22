@@ -1,6 +1,13 @@
 import pytest
 from collections import defaultdict
 
+def inspect_object(obj, no_magic=True):
+    result = {}
+    for attr in dir(obj):
+        if no_magic and attr[:2] == '__':
+            continue
+        result[attr] = obj.__getattribute__(attr)
+    return result
 
 def node_name2cfg_name(node_name):
     """Takes 'test_function[cfg_name]' and returns 'cfg_name'."""
@@ -27,10 +34,10 @@ class TestNameCollection():
 
     def test_collect_parsed_parse_obj_names(self, parsed_parse_obj, collect_test_name):
         """Run this if the parametrization of Parse has changed and you need to update TEST_NAMES."""
-        print('\nname2expected.update(dict(')
+        print('\nname2expected.update({')
         for name in sorted(TEST_NAMES['test_collect_parsed_parse_obj_names']):
-            print(f"\t{name}" + " = {},")
-        print("))")
+            print(f" {name}:" + " {},")
+        print("})")
 
 
 ################################## Actual tests ############################################
@@ -39,21 +46,21 @@ class TestNameCollection():
 
 @pytest.mark.usefixtures("parse_objects")
 class TestEmptyParse():
+    """Tests Parse objects where no files have been parsed yet."""
 
     @pytest.fixture()
     def expected_keys(self, request):
         name2expected = defaultdict(dict)
         name2expected.update(dict(
-            everything = {'mixed_files': {'.mscx': 8, '.mscz': 1},
-                         'outputs': {'.tsv': 3},
-                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            regular_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1},
+            everything = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
                              'outputs': {'.tsv': 3},
                              'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            chaotic_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.tsv': 3}},
         ))
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
@@ -69,26 +76,40 @@ class TestEmptyParse():
 
 @pytest.mark.usefixtures("parsed_parse_objects")
 class TestParsedParse():
+    """Test Parse objects containing either parsed MSCX, parsed TSV, or both."""
 
     @pytest.fixture()
     def expected_keys(self, request):
         name2expected = defaultdict(dict)
-        name2expected.update(dict(
-            parsed_mscx-regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
-E          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-E          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-
-            everything={'mixed_files': {'.mscx': 8, '.mscz': 1},
-                       'outputs': {'.tsv': 3},
-                       'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                       'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                       'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            regular_dirs={'mixed_files': {'.mscx': 8, '.mscz': 1},
-                            'outputs': {'.tsv': 3},
-                            'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                            'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                            'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-        ))
+        name2expected.update({
+            "parsed_all-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.tsv': 3}},
+            "parsed_all-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+                                         'outputs': {'.tsv': 3},
+                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_mscx-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.tsv': 3}},
+            "parsed_mscx-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+                                         'outputs': {'.tsv': 3},
+                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_mscx-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_tsv-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.tsv': 3}},
+            "parsed_tsv-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+                                         'outputs': {'.tsv': 3},
+                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_tsv-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+        })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
