@@ -3,21 +3,20 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.bs4_parser &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
-    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
+    <title>ms3.bs4_parser &#8212; ms3 0.4.11 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
 
     
     
@@ -50,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.11 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.bs4_parser</a></li> 
@@ -65,7 +64,7 @@
           <div class="body" role="main">
             
   <h1>Source code for ms3.bs4_parser</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">re</span>
+<span></span><span class="kn">import</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">ChainMap</span> <span class="c1"># for merging dictionaries</span>
@@ -76,8 +75,8 @@
 
 <span class="kn">from</span> <span class="nn">.bs4_measures</span> <span class="kn">import</span> <span class="n">MeasureList</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span><span class="p">,</span> <span class="n">LoggedClass</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">color_params2rgba</span><span class="p">,</span> <span class="n">column_order</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">FORM_DETECTION_REGEX</span><span class="p">,</span> <span class="n">ordinal_suffix</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span>\
-    <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2attrs</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">sort_note_list</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">adjacency_groups</span><span class="p">,</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">color_params2rgba</span><span class="p">,</span> <span class="n">column_order</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">FORM_DETECTION_REGEX</span><span class="p">,</span> \
+    <span class="n">get_quarterbeats_length</span><span class="p">,</span> <span class="n">ordinal_suffix</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2attrs</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">sort_note_list</span>
 
 
 
@@ -128,7 +127,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">read_only</span> <span class="o">=</span> <span class="n">read_only</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">first_mc</span> <span class="o">=</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">measure_nodes</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># only used if not self.read_only</span>
+        <span class="sd">&quot;&quot;&quot;{staff -&gt; {MC -&gt; tag} }&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># only used if not self.read_only</span>
+        <span class="sd">&quot;&quot;&quot;{MC -&gt; {staff -&gt; {voice -&gt; tag} } }&quot;&quot;&quot;</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">has_annotations</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_form_labels</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="o">=</span> <span class="kc">None</span>
@@ -293,7 +296,7 @@
         <span class="k">try</span><span class="p">:</span>
             <span class="n">mscx_string</span> <span class="o">=</span> <span class="n">bs4_to_mscx</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="p">)</span>
         <span class="k">except</span><span class="p">:</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BeautifulSoup object is None.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Couldn&#39;t output MSCX because of the following error:</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="kc">False</span>
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">resolve_dir</span><span class="p">(</span><span class="n">filepath</span><span class="p">),</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
             <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">mscx_string</span><span class="p">)</span>
@@ -723,13 +726,40 @@
         <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;The file&#39;s XML needs to be loaded. Get metadata from the &#39;metadata&#39; property or use the method make_writeable()&quot;</span>
         <span class="n">nav_str2str</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="p">{</span><span class="n">tag</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]:</span> <span class="n">nav_str2str</span><span class="p">(</span><span class="n">tag</span><span class="o">.</span><span class="n">string</span><span class="p">)</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;metaTag&#39;</span><span class="p">)}</span>
+        <span class="k">if</span> <span class="s1">&#39;reviewer&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;reviewers&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Score properties contain a superfluous key called &#39;reviewer&#39;. &quot;</span>
+                               <span class="s2">&quot;Please merge with the value for &#39;reviewers&#39; and delete.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The key &#39;reviewer&#39; contained in the Score properties was automatically &quot;</span>
+                            <span class="s2">&quot;renamed to &#39;reviewers&#39; when extracting metadata.&quot;</span><span class="p">)</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;reviewers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;reviewer&#39;</span><span class="p">]</span>
+                <span class="k">del</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;reviewer&#39;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="s1">&#39;annotator&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;annotators&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Score properties contain a superfluous key called &#39;annotator&#39;. &quot;</span>
+                               <span class="s2">&quot;Please merge with the value for &#39;annotators&#39; and delete.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The key &#39;annotator&#39; contained in the Score properties was automatically &quot;</span>
+                            <span class="s2">&quot;renamed to &#39;annotators&#39; when extracting metadata.&quot;</span><span class="p">)</span>
+                <span class="n">data</span><span class="p">[</span><span class="s1">&#39;annotators&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;annotator&#39;</span><span class="p">]</span>
+                <span class="k">del</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;annotator&#39;</span><span class="p">])</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;musescore&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span>
         <span class="n">last_measure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;last_mc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">last_measure</span><span class="o">.</span><span class="n">mc</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;last_mn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">last_measure</span><span class="o">.</span><span class="n">mn</span><span class="p">)</span>
+        <span class="n">lqb</span><span class="p">,</span> <span class="n">lqbu</span> <span class="o">=</span> <span class="n">get_quarterbeats_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;length_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lqb</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;length_qb_unfolded&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lqbu</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label_count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_raw_labels</span><span class="p">())</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span><span class="o">.</span><span class="n">shift</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeySig&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span><span class="o">.</span><span class="n">shift</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+        <span class="n">ts_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span><span class="p">)</span>
+        <span class="n">mc_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ts_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">timesigs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mc_ts</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timesigs</span>
+        <span class="n">ks_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span><span class="p">)</span>
+        <span class="n">mc_ks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ks_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">keysigs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mc_ks</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeySig&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">keysigs</span>
         <span class="n">annotated_key</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">harmony_tag</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;Harmony&#39;</span><span class="p">):</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">harmony_tag</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
@@ -741,7 +771,13 @@
         <span class="k">if</span> <span class="n">annotated_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;annotated_key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotated_key</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;all_notes_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
+            <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onsets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">return</span> <span class="n">data</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;all_notes_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="mf">4.</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">not_tied</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">tied</span><span class="o">.</span><span class="n">isin</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onsets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">not_tied</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onset_positions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">[</span><span class="n">not_tied</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">staff_groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;staff&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">midi</span>
         <span class="n">ambitus</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">staff</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;min_midi&#39;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="s1">&#39;min_name&#39;</span><span class="p">:</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">tpc</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span><span class="p">)}</span>
                         <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">staff_groups</span><span class="o">.</span><span class="n">idxmin</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)}</span>
@@ -984,6 +1020,9 @@
 <span class="sd">        -------</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Label cannot be &#39;</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
         <span class="k">assert</span> <span class="n">mc_onset</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Cannot attach label </span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2"> to negative onset </span><span class="si">{</span><span class="n">mc_onset</span><span class="si">}</span><span class="s2"> at MC </span><span class="si">{</span><span class="n">mc</span><span class="si">}</span><span class="s2">, staff </span><span class="si">{</span><span class="n">staff</span><span class="si">}</span><span class="s2">, voice </span><span class="si">{</span><span class="n">voice</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">make_writeable</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">mc</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
@@ -1715,7 +1754,7 @@
     <span class="n">node_name</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">name</span>
     <span class="c1"># The following tags are exceptionally not abbreviated when empty,</span>
     <span class="c1"># so for instance you get &lt;metaTag&gt;&lt;/metaTag&gt; and not &lt;metaTag/&gt;</span>
-    <span class="k">if</span> <span class="n">node_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;continueAt&#39;</span><span class="p">,</span> <span class="s1">&#39;continueText&#39;</span><span class="p">,</span> <span class="s1">&#39;endText&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;LayerTag&#39;</span><span class="p">,</span> <span class="s1">&#39;metaTag&#39;</span><span class="p">,</span> <span class="s1">&#39;trackName&#39;</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="n">node_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;continueAt&#39;</span><span class="p">,</span> <span class="s1">&#39;continueText&#39;</span><span class="p">,</span> <span class="s1">&#39;endText&#39;</span><span class="p">,</span> <span class="s1">&#39;text&#39;</span><span class="p">,</span> <span class="s1">&#39;LayerTag&#39;</span><span class="p">,</span> <span class="s1">&#39;programRevision&#39;</span><span class="p">,</span> <span class="s1">&#39;metaTag&#39;</span><span class="p">,</span> <span class="s1">&#39;trackName&#39;</span><span class="p">]:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">space</span><span class="si">}{</span><span class="n">make_oneliner</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
     <span class="n">children</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="n">recursive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">children</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -1761,12 +1800,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
     
@@ -1799,7 +1838,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.11 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.bs4_parser</a></li> 
@@ -1809,7 +1848,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

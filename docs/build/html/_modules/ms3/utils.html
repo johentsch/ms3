@@ -3,21 +3,20 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.utils &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
-    <link rel="stylesheet" href="../../_static/cloud.css" type="text/css" />
-    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/ansi.css" />
+    <title>ms3.utils &#8212; ms3 0.4.11 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
-    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
-    <script src="../../_static/language_data.js"></script>
 
     
     
@@ -50,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.11 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
@@ -65,13 +64,13 @@
           <div class="body" role="main">
             
   <h1>Source code for ms3.utils</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">platform</span><span class="o">,</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">subprocess</span>
+<span></span><span class="kn">import</span> <span class="nn">os</span><span class="o">,</span><span class="nn">sys</span><span class="o">,</span> <span class="nn">platform</span><span class="o">,</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">shutil</span><span class="o">,</span> <span class="nn">subprocess</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">namedtuple</span>
 <span class="kn">from</span> <span class="nn">collections.abc</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Iterator</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">reduce</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">takewhile</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="n">takewhile</span>
 <span class="kn">from</span> <span class="nn">shutil</span> <span class="kn">import</span> <span class="n">which</span>
 <span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span> <span class="k">as</span> <span class="n">Temp</span>
 <span class="kn">from</span> <span class="nn">zipfile</span> <span class="kn">import</span> <span class="n">ZipFile</span> <span class="k">as</span> <span class="n">Zip</span>
@@ -85,12 +84,25 @@
 
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span><span class="p">,</span> <span class="n">update_cfg</span>
 
+<span class="n">METADATA_COLUMN_ORDER</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mc&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mn&#39;</span><span class="p">,</span> <span class="s1">&#39;length_qb&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;length_qb_unfolded&#39;</span><span class="p">,</span> <span class="s1">&#39;all_notes_qb&#39;</span><span class="p">,</span> <span class="s1">&#39;n_onsets&#39;</span><span class="p">,</span> <span class="s1">&#39;n_onset_positions&#39;</span><span class="p">,</span> <span class="s1">&#39;TimeSig&#39;</span><span class="p">,</span> <span class="s1">&#39;KeySig&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;label_count&#39;</span><span class="p">,</span> <span class="s1">&#39;annotated_key&#39;</span><span class="p">,</span> <span class="s1">&#39;annotators&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;reviewers&#39;</span><span class="p">,</span> <span class="s1">&#39;composer&#39;</span><span class="p">,</span> <span class="s1">&#39;workTitle&#39;</span><span class="p">,</span> <span class="s1">&#39;movementNumber&#39;</span><span class="p">,</span> <span class="s1">&#39;movementTitle&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;workNumber&#39;</span><span class="p">,</span> <span class="s1">&#39;poet&#39;</span><span class="p">,</span> <span class="s1">&#39;lyricist&#39;</span><span class="p">,</span> <span class="s1">&#39;arranger&#39;</span><span class="p">,</span> <span class="s1">&#39;copyright&#39;</span><span class="p">,</span> <span class="s1">&#39;creationDate&#39;</span><span class="p">,</span>
+                         <span class="s1">&#39;mscVersion&#39;</span><span class="p">,</span> <span class="s1">&#39;platform&#39;</span><span class="p">,</span> <span class="s1">&#39;source&#39;</span><span class="p">,</span> <span class="s1">&#39;translator&#39;</span><span class="p">,</span> <span class="s1">&#39;musescore&#39;</span><span class="p">,</span> <span class="s1">&#39;ambitus&#39;</span><span class="p">]</span>
+
+<span class="n">STANDARD_COLUMN_ORDER</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_playthrough&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;mn_playthrough&#39;</span><span class="p">,</span> <span class="s1">&#39;quarterbeats&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">,</span> <span class="s1">&#39;mn_onset&#39;</span><span class="p">,</span> <span class="s1">&#39;beat&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">,</span> <span class="s1">&#39;tied&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gracenote&#39;</span><span class="p">,</span> <span class="s1">&#39;nominal_duration&#39;</span><span class="p">,</span> <span class="s1">&#39;scalar&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]</span>
+
 <span class="n">STANDARD_NAMES</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="s1">&#39;rests&#39;</span><span class="p">,</span> <span class="s1">&#39;notes_and_rests&#39;</span><span class="p">,</span> <span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;harmonies&#39;</span><span class="p">,</span> <span class="s1">&#39;cadences&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">,</span> <span class="s1">&#39;MS3&#39;</span><span class="p">,</span> <span class="s1">&#39;score&#39;</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;mscx&#39;</span><span class="p">]</span>
+                  <span class="s1">&#39;harmonies&#39;</span><span class="p">,</span> <span class="s1">&#39;cadences&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">,</span> <span class="s1">&#39;MS3&#39;</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">]</span>
 <span class="sd">&quot;&quot;&quot;:obj:`list`</span>
 <span class="sd">Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is </span>
 <span class="sd">considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
+
 
 <span class="n">DCML_REGEX</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">^(\.?</span>
@@ -254,59 +266,6 @@
     <span class="k">def</span> <span class="fm">__missing__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">key</span></div>
 
-<div class="viewcode-block" id="add_quarterbeats_col"><a class="viewcode-back" href="../../reference.html#ms3.utils.add_quarterbeats_col">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">add_quarterbeats_col</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">offset_dict</span><span class="p">,</span> <span class="n">insert_after</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Insert a column measuring the distance of events from MC 1 in quarter notes. If no &#39;mc_onset&#39; column is present,</span>
-<span class="sd">        the column corresponds to the ``insert_after`` column&#39;s measure counts.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    df : :obj:`pandas.DataFrame`</span>
-<span class="sd">        DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.</span>
-<span class="sd">    offset_dict : :obj:`pandas.Series` or :obj:`dict`</span>
-<span class="sd">        | If unfolded: {mc_playthrough -&gt; offset}</span>
-<span class="sd">        | Otherwise: {mc -&gt; offset}</span>
-<span class="sd">        | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()&lt;ms3.parse.Parse.get_continuous_offsets&gt;`</span>
-<span class="sd">    insert_after : :obj:`str`, optional</span>
-<span class="sd">        Name of the column after which the new column will be inserted.</span>
-<span class="sd">    interval_index : :obj:`bool`, optional</span>
-<span class="sd">        Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful</span>
-<span class="sd">        creation of the column ``duration_qb``).</span>
-
-<span class="sd">    Returns</span>
-<span class="sd">    -------</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">offset_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No offset_dict was passed: Not adding quarterbeats.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">df</span>
-    <span class="k">if</span> <span class="s1">&#39;quarterbeats&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-        <span class="n">quarterbeats</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">insert_after</span><span class="p">]</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">offset_dict</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s1">&#39;mc_onset&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="n">quarterbeats</span> <span class="o">+=</span> <span class="n">df</span><span class="o">.</span><span class="n">mc_onset</span> <span class="o">*</span> <span class="mi">4</span>
-        <span class="n">insert_here</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="n">insert_after</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">insert_here</span><span class="p">,</span> <span class="s1">&#39;quarterbeats&#39;</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s1">&#39;duration_qb&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-            <span class="k">if</span> <span class="s1">&#39;duration&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
-                <span class="n">dur</span> <span class="o">=</span> <span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-                <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">insert_here</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;duration_qb&#39;</span><span class="p">,</span> <span class="n">dur</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="s1">&#39;end&#39;</span> <span class="ow">in</span> <span class="n">offset_dict</span><span class="p">:</span>
-                <span class="n">present_qb</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">quarterbeats</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
-                <span class="k">try</span><span class="p">:</span>
-                    <span class="n">ivs</span> <span class="o">=</span> <span class="n">make_interval_index</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">present_qb</span><span class="p">,</span> <span class="s1">&#39;quarterbeats&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span>
-                                              <span class="n">end_value</span><span class="o">=</span><span class="nb">float</span><span class="p">(</span><span class="n">offset_dict</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]))</span>
-                    <span class="n">df</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">insert_here</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;duration_qb&#39;</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span><span class="p">)</span>
-                    <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">present_qb</span><span class="p">,</span> <span class="s1">&#39;duration_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ivs</span><span class="o">.</span><span class="n">length</span>
-                <span class="k">except</span><span class="p">:</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; &#39;end&#39; value in offset_dict needs to be larger than the last quarterbeat).&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Column &#39;duration_qb&#39; could not be created.&quot;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;quarterbeats column was already present.&quot;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">interval_index</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;quarterbeats&#39;</span><span class="p">,</span> <span class="s1">&#39;duration_qb&#39;</span><span class="p">)):</span>
-        <span class="n">df</span> <span class="o">=</span> <span class="n">replace_index_by_intervals</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">df</span></div>
 
 <div class="viewcode-block" id="assert_all_lines_equal"><a class="viewcode-back" href="../../reference.html#ms3.utils.assert_all_lines_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_all_lines_equal</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">tmp_file</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Compares two multiline strings to test equality.&quot;&quot;&quot;</span>
@@ -324,7 +283,7 @@
 
 
 <div class="viewcode-block" id="assert_dfs_equal"><a class="viewcode-back" href="../../reference.html#ms3.utils.assert_dfs_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_dfs_equal</span><span class="p">(</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">[]):</span>
-    <span class="sd">&quot;&quot;&quot; Compares the common columns of two DataFrames to test equality.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot; Compares the common columns of two DataFrames to test equality. Uses: nan_eq()&quot;&quot;&quot;</span>
     <span class="n">old_l</span><span class="p">,</span> <span class="n">new_l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">old</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">new</span><span class="p">)</span>
     <span class="n">greater_length</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">old_l</span><span class="p">,</span> <span class="n">new_l</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">old_l</span> <span class="o">!=</span> <span class="n">new_l</span><span class="p">:</span>
@@ -342,7 +301,6 @@
     <span class="n">old</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;old_ix&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">new</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;new_ix&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">old</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">new</span><span class="o">.</span><span class="n">columns</span><span class="p">))</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude</span><span class="p">]</span>
-    <span class="n">nan_eq</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="o">|</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
     <span class="n">diff</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="o">~</span><span class="n">nan_eq</span><span class="p">(</span><span class="n">o</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="k">for</span> <span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">),</span> <span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">old</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">iterrows</span><span class="p">(),</span> <span class="n">new</span><span class="p">[</span><span class="n">cols</span><span class="p">]</span><span class="o">.</span><span class="n">iterrows</span><span class="p">())]</span>
     <span class="n">old_bool</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="n">ix</span><span class="p">:</span> <span class="n">bool_series</span> <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">bool_series</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">},</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">)</span>
     <span class="n">new_bool</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_dict</span><span class="p">({</span><span class="n">ix</span><span class="p">:</span> <span class="n">bool_series</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">ix</span><span class="p">,</span> <span class="n">bool_series</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">},</span> <span class="n">orient</span><span class="o">=</span><span class="s1">&#39;index&#39;</span><span class="p">)</span>
@@ -350,10 +308,20 @@
 
     <span class="k">def</span> <span class="nf">show_diff</span><span class="p">():</span>
         <span class="n">comp_str</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s1">&#39;mc&#39;</span> <span class="ow">in</span> <span class="n">old</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">position_col</span> <span class="o">=</span> <span class="s1">&#39;mc&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;last_mc&#39;</span> <span class="ow">in</span> <span class="n">old</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+            <span class="n">position_col</span> <span class="o">=</span> <span class="s1">&#39;last_mc&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">position_col</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">n_diffs</span> <span class="ow">in</span> <span class="n">diffs_per_col</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">n_diffs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">old</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">old_bool</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">col</span><span class="p">]]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">20</span><span class="p">],</span>
-                                        <span class="n">new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">new_bool</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">col</span><span class="p">]]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span>
+                <span class="k">if</span> <span class="n">position_col</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">columns</span> <span class="o">=</span> <span class="n">col</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">position_col</span><span class="p">,</span> <span class="n">col</span><span class="p">]</span>
+                <span class="n">comparison</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">old</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">old_bool</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">20</span><span class="p">],</span>
+                                        <span class="n">new</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">new_bool</span><span class="p">[</span><span class="n">col</span><span class="p">],</span> <span class="n">columns</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span>
                                        <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                        <span class="n">keys</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;old&#39;</span><span class="p">,</span> <span class="s1">&#39;new&#39;</span><span class="p">])</span>
                 <span class="n">comp_str</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -572,14 +540,18 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Error while converting &quot;</span> <span class="o">+</span> <span class="n">old</span><span class="p">)</span>
 
 <div class="viewcode-block" id="convert_folder"><a class="viewcode-back" href="../../reference.html#ms3.utils.convert_folder">[docs]</a><span class="nd">@function_logger</span>
-<span class="k">def</span> <span class="nf">convert_folder</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">new_folder</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="p">[],</span> <span class="n">target_extension</span><span class="o">=</span><span class="s1">&#39;mscx&#39;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="k">def</span> <span class="nf">convert_folder</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">target_dir</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extensions</span><span class="o">=</span><span class="p">[],</span> <span class="n">target_extension</span><span class="o">=</span><span class="s1">&#39;mscx&#39;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="s1">&#39;.*&#39;</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                    <span class="n">ms</span><span class="o">=</span><span class="s1">&#39;mscore&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    directory, new_folder : str</span>
-<span class="sd">        Directories</span>
+<span class="sd">    directory : :obj:`str`</span>
+<span class="sd">        Directory in which to look for files to convert.</span>
+<span class="sd">    paths : :obj:`list` of `dir`</span>
+<span class="sd">        List of file paths to convert. These are not filtered by any means.</span>
+<span class="sd">    target_dir : :obj:`str`</span>
+<span class="sd">        Directory where to store converted files. Defaults to ``directory``</span>
 <span class="sd">    extensions : list, optional</span>
 <span class="sd">        If you want to convert only certain formats, give those, e.g. [&#39;mscz&#39;, &#39;xml&#39;]</span>
 <span class="sd">    recursive : bool, optional</span>
@@ -590,6 +562,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">MS</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">MS</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;MuseScore not found: </span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">assert</span> <span class="nb">any</span><span class="p">(</span><span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">paths</span><span class="p">)),</span> <span class="s2">&quot;Pass at least a directory or one path.&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">paths</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">target_extension</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
         <span class="n">target_extension</span> <span class="o">=</span> <span class="n">target_extension</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
     <span class="n">conversion_params</span> <span class="o">=</span> <span class="p">[]</span>
@@ -598,35 +573,42 @@
         <span class="n">exclude_re</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;^(?:(?!(</span><span class="si">{</span><span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">extensions</span><span class="p">)</span><span class="si">}</span><span class="s2">)).)*$&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">exclude_re</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
-    <span class="k">if</span> <span class="n">new_folder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">new_folder</span> <span class="o">=</span> <span class="n">directory</span>
+    <span class="k">if</span> <span class="n">target_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">target_dir</span> <span class="o">=</span> <span class="n">directory</span>
     <span class="n">new_dirs</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">scan_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="n">regex</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">,</span> <span class="n">subdirs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude_files_only</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-            <span class="k">if</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">new_dirs</span><span class="p">:</span>
-                <span class="n">new_subdir</span> <span class="o">=</span> <span class="n">new_dirs</span><span class="p">[</span><span class="n">subdir</span><span class="p">]</span>
+    <span class="n">subdir_file_tuples</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">([])</span>
+    <span class="k">if</span> <span class="n">directory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">subdir_file_tuples</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">subdir_file_tuples</span><span class="p">,</span>
+                                   <span class="n">scan_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">file_re</span><span class="o">=</span><span class="n">regex</span><span class="p">,</span> <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">,</span>
+                                                  <span class="n">subdirs</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude_files_only</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">paths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">subdir_file_tuples</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">subdir_file_tuples</span><span class="p">,</span>
+                                   <span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">resolve_dir</span><span class="p">(</span><span class="n">path</span><span class="p">))</span> <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">subdir</span><span class="p">,</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">subdir_file_tuples</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="n">new_dirs</span><span class="p">:</span>
+            <span class="n">new_subdir</span> <span class="o">=</span> <span class="n">new_dirs</span><span class="p">[</span><span class="n">subdir</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">target_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">new_subdir</span> <span class="o">=</span> <span class="n">subdir</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">old_subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span> <span class="n">directory</span><span class="p">)</span>
-                <span class="n">new_subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_folder</span><span class="p">,</span> <span class="n">old_subdir</span><span class="p">)</span> <span class="k">if</span> <span class="n">old_subdir</span> <span class="o">!=</span> <span class="s1">&#39;.&#39;</span> <span class="k">else</span> <span class="n">new_folder</span>
-                <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">new_subdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-                <span class="n">new_dirs</span><span class="p">[</span><span class="n">subdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_subdir</span>
-            <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_extension</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_extension</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="n">old</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
-            <span class="n">new</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_subdir</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">new</span><span class="p">):</span>
-                <span class="n">conversion_params</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">MS</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="s1">&#39;exists already. Pass -o to overwrite.&#39;</span><span class="p">)</span>
+                <span class="n">new_subdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">target_dir</span><span class="p">,</span> <span class="n">old_subdir</span><span class="p">)</span> <span class="k">if</span> <span class="n">old_subdir</span> <span class="o">!=</span> <span class="s1">&#39;.&#39;</span> <span class="k">else</span> <span class="n">target_dir</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">new_subdir</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">new_dirs</span><span class="p">[</span><span class="n">subdir</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_subdir</span>
+        <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_extension</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fname</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">target_extension</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">old</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">subdir</span><span class="p">,</span> <span class="n">file</span><span class="p">)</span>
+        <span class="n">new</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_subdir</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">overwrite</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">new</span><span class="p">):</span>
+            <span class="n">conversion_params</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">,</span> <span class="n">MS</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">new</span><span class="p">,</span> <span class="s1">&#39;exists already. Pass -o to overwrite.&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conversion_params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files to convert.&quot;</span><span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to scan directory </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2"> because of the following error:&quot;</span><span class="p">)</span>
-        <span class="k">raise</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">conversion_params</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files to convert.&quot;</span><span class="p">)</span>
 
 
     <span class="c1"># TODO: pass filenames as &#39;logger&#39; argument to convert()</span>
@@ -727,7 +709,6 @@
     <span class="n">writer</span><span class="o">.</span><span class="n">header_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
     <span class="n">writer</span><span class="o">.</span><span class="n">value_matrix</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">writer</span></div>
-
 
 
 <div class="viewcode-block" id="dict2oneliner"><a class="viewcode-back" href="../../reference.html#ms3.utils.dict2oneliner">[docs]</a><span class="k">def</span> <span class="nf">dict2oneliner</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
@@ -853,7 +834,7 @@
 
 
 
-<div class="viewcode-block" id="fifths2name"><a class="viewcode-back" href="../../reference.html#ms3.utils.fifths2name">[docs]</a><span class="k">def</span> <span class="nf">fifths2name</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">midi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="fifths2name"><a class="viewcode-back" href="../../reference.html#ms3.utils.fifths2name">[docs]</a><span class="k">def</span> <span class="nf">fifths2name</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">midi</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">minor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Return note name of a stack of fifths such that</span>
 <span class="sd">       0 = C, -1 = F, -2 = Bb, 1 = G etc.</span>
 <span class="sd">       Uses: map2elements(), fifths2str()</span>
@@ -867,6 +848,8 @@
 <span class="sd">        pass the corresponding MIDI pitch.</span>
 <span class="sd">    ms : :obj:`bool`, optional</span>
 <span class="sd">        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14</span>
+<span class="sd">    minor : :obj:`bool`, optional</span>
+<span class="sd">        Pass True if the string is to be returned as lowercase.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">fifths</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">fifths</span><span class="p">))</span>
@@ -878,10 +861,12 @@
     <span class="k">if</span> <span class="n">ms</span><span class="p">:</span>
         <span class="n">fifths</span> <span class="o">-=</span> <span class="mi">14</span>
     <span class="n">note_names</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;F&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">]</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">note_names</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">_fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">note_names</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">midi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">octave</span> <span class="o">=</span> <span class="n">midi2octave</span><span class="p">(</span><span class="n">midi</span><span class="p">,</span> <span class="n">fifths</span><span class="p">)</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">name</span><span class="si">}{</span><span class="n">octave</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">if</span> <span class="n">minor</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">name</span></div>
 
 
@@ -918,7 +903,7 @@
         <span class="k">return</span> <span class="n">fifths</span>
     <span class="n">rn</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;III&#39;</span><span class="p">,</span> <span class="s1">&#39;VII&#39;</span><span class="p">,</span> <span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="p">[</span><span class="s1">&#39;IV&#39;</span><span class="p">,</span> <span class="s1">&#39;I&#39;</span><span class="p">,</span> <span class="s1">&#39;V&#39;</span><span class="p">,</span> <span class="s1">&#39;II&#39;</span><span class="p">,</span> <span class="s1">&#39;VI&#39;</span><span class="p">,</span> <span class="s1">&#39;III&#39;</span><span class="p">,</span> <span class="s1">&#39;VII&#39;</span><span class="p">]</span>
     <span class="n">sel</span> <span class="o">=</span> <span class="n">fifths</span> <span class="o">+</span> <span class="mi">3</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="n">fifths</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">rn</span><span class="p">)</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">_fifths2str</span><span class="p">(</span><span class="n">sel</span><span class="p">,</span> <span class="n">rn</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">auto_key</span> <span class="ow">and</span> <span class="n">is_minor_mode</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">minor</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">res</span></div>
@@ -937,18 +922,18 @@
     <span class="n">sd</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">minor</span> <span class="k">else</span> <span class="p">[</span><span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">minor</span><span class="p">:</span>
         <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">3</span>
-    <span class="k">return</span> <span class="n">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">sd</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">sd</span><span class="p">)</span></div>
 
 
 
-<div class="viewcode-block" id="fifths2str"><a class="viewcode-back" href="../../reference.html#ms3.utils.fifths2str">[docs]</a><span class="k">def</span> <span class="nf">fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">_fifths2str</span><span class="p">(</span><span class="n">fifths</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">inverted</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Boiler plate used by fifths2-functions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="n">acc</span> <span class="o">=</span> <span class="n">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">inverted</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="n">acc</span>
-    <span class="k">return</span> <span class="n">acc</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="n">acc</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span>
 
 
 <span class="k">def</span> <span class="nf">get_ms_version</span><span class="p">(</span><span class="n">mscx_file</span><span class="p">):</span>
@@ -1017,6 +1002,32 @@
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">higher_levels</span><span class="p">,</span> <span class="n">base1</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="get_quarterbeats_length"><a class="viewcode-back" href="../../reference.html#ms3.utils.get_quarterbeats_length">[docs]</a><span class="k">def</span> <span class="nf">get_quarterbeats_length</span><span class="p">(</span><span class="n">measures</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    measures : :obj:`pandas.DataFrame`</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    float, float</span>
+<span class="sd">        Length and unfolded length, both measuresd in quarter notes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">mc_durations</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">act_dur</span> <span class="o">*</span> <span class="mf">4.</span>
+    <span class="n">length_qb</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">mc_durations</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">decimals</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">playthrough2mc</span> <span class="o">=</span> <span class="n">make_playthrough2mc</span><span class="p">(</span><span class="n">measures</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">playthrough2mc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">length_qb_unfolded</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">NA</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">length_qb_unfolded</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">mc_durations</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">playthrough2mc</span><span class="o">.</span><span class="n">values</span><span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="n">decimals</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to unfold measures: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">length_qb_unfolded</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+    <span class="k">return</span> <span class="n">length_qb</span><span class="p">,</span> <span class="n">length_qb_unfolded</span></div>
+
+
 <div class="viewcode-block" id="group_id_tuples"><a class="viewcode-back" href="../../reference.html#ms3.utils.group_id_tuples">[docs]</a><span class="k">def</span> <span class="nf">group_id_tuples</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Turns a list of (key, ix) into a {key: [ix]}</span>
 
@@ -1072,6 +1083,64 @@
     <span class="k">return</span> <span class="n">html_color2format</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="s1">&#39;rgba&#39;</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="interval_overlap"><a class="viewcode-back" href="../../reference.html#ms3.utils.interval_overlap">[docs]</a><span class="k">def</span> <span class="nf">interval_overlap</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Returns the overlap of two pd.Intervals as a new pd.Interval.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    a, b : :obj:`pandas.Interval`</span>
+<span class="sd">        Intervals for which to compute the overlap.</span>
+<span class="sd">    closed : {&#39;left&#39;, &#39;right&#39;, &#39;both&#39;, &#39;neither&#39;}, optional</span>
+<span class="sd">        If no value is passed, the closure of the returned interval is inferred from ``a`` and ``b``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :obj:`pandas.Interval`</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">overlaps</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">left</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">left</span><span class="p">:</span>
+        <span class="c1"># making a the leftmost interval</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span>
+    <span class="k">if</span> <span class="n">closed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span><span class="p">:</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span>
+            <span class="n">right_closed</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">closed</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">)</span>
+            <span class="n">other_iv</span> <span class="o">=</span> <span class="n">b</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span>
+            <span class="n">right_closed</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">closed</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">)</span>
+            <span class="n">other_iv</span> <span class="o">=</span> <span class="n">a</span>
+        <span class="k">if</span> <span class="n">right_closed</span> <span class="ow">and</span> <span class="n">right</span> <span class="o">==</span> <span class="n">other_iv</span><span class="o">.</span><span class="n">right</span> <span class="ow">and</span> <span class="n">other_iv</span><span class="o">.</span><span class="n">closed</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;right&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">):</span>
+            <span class="n">right_closed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">left_closed</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">closed</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">left_closed</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">left</span> <span class="o">==</span> <span class="n">b</span><span class="o">.</span><span class="n">left</span> <span class="ow">and</span> <span class="n">a</span><span class="o">.</span><span class="n">closed</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="s1">&#39;both&#39;</span><span class="p">):</span>
+            <span class="n">left_closed</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">left_closed</span> <span class="ow">and</span> <span class="n">right_closed</span><span class="p">:</span>
+            <span class="n">closed</span> <span class="o">=</span> <span class="s1">&#39;both&#39;</span>
+        <span class="k">elif</span> <span class="n">left_closed</span><span class="p">:</span>
+            <span class="n">closed</span> <span class="o">=</span> <span class="s1">&#39;left&#39;</span>
+        <span class="k">elif</span> <span class="n">right_closed</span><span class="p">:</span>
+            <span class="n">closed</span> <span class="o">=</span> <span class="s1">&#39;right&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">closed</span> <span class="o">=</span> <span class="s1">&#39;neither&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">right</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Interval</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">left</span><span class="p">,</span> <span class="n">right</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="interval_overlap_size"><a class="viewcode-back" href="../../reference.html#ms3.utils.interval_overlap_size">[docs]</a><span class="k">def</span> <span class="nf">interval_overlap_size</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the size of the overlap of two pd.Intervals.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">a</span><span class="o">.</span><span class="n">overlaps</span><span class="p">(</span><span class="n">b</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">left</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">.</span><span class="n">left</span><span class="p">:</span>
+        <span class="c1"># making a the leftmost interval</span>
+        <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">b</span><span class="p">,</span> <span class="n">a</span>
+    <span class="n">right</span> <span class="o">=</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span> <span class="k">if</span> <span class="n">a</span><span class="o">.</span><span class="n">right</span> <span class="o">&lt;</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span> <span class="k">else</span> <span class="n">b</span><span class="o">.</span><span class="n">right</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">right</span> <span class="o">-</span> <span class="n">b</span><span class="o">.</span><span class="n">left</span>
+    <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">decimals</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="is_any_row_equal"><a class="viewcode-back" href="../../reference.html#ms3.utils.is_any_row_equal">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">is_any_row_equal</span><span class="p">(</span><span class="n">df1</span><span class="p">,</span> <span class="n">df2</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Returns True if any two rows of the two DataFrames contain the same value tuples. &quot;&quot;&quot;</span>
@@ -1121,8 +1190,8 @@
     <span class="k">except</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">iterable</span>
 
-
-<div class="viewcode-block" id="iterate_subcorpora"><a class="viewcode-back" href="../../reference.html#ms3.utils.iterate_subcorpora">[docs]</a><span class="k">def</span> <span class="nf">iterate_subcorpora</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<div class="viewcode-block" id="iterate_subcorpora"><a class="viewcode-back" href="../../reference.html#ms3.utils.iterate_subcorpora">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">iterate_subcorpora</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                        <span class="n">prefixes</span><span class="p">:</span> <span class="n">Iterable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="c1"># Iterable[str] would require python&gt;=3.9</span>
                        <span class="n">suffixes</span><span class="p">:</span> <span class="n">Iterable</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                        <span class="n">ignore_case</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">:</span>
@@ -1173,11 +1242,19 @@
             <span class="n">fnames</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">fnames</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">check_fname</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">)</span> <span class="ow">or</span> \
-            <span class="nb">any</span><span class="p">(</span><span class="n">check_fname</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">subdirs</span><span class="p">)</span> <span class="ow">or</span> \
-            <span class="nb">any</span><span class="p">(</span><span class="n">check_fname</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span> <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">fnames</span><span class="p">):</span>
-            <span class="k">del</span><span class="p">(</span><span class="n">subdirs</span><span class="p">[:])</span>
-            <span class="k">yield</span> <span class="n">d</span></div>
+        <span class="k">for</span> <span class="n">item_type</span><span class="p">,</span> <span class="n">items_to_check</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="s1">&#39;fname.ext&#39;</span><span class="p">,</span> <span class="s1">&#39;subdirectory&#39;</span><span class="p">,</span> <span class="s1">&#39;fname&#39;</span><span class="p">),</span> <span class="p">(</span><span class="n">files</span><span class="p">,</span> <span class="n">subdirs</span><span class="p">,</span> <span class="n">fnames</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">check_fname</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items_to_check</span><span class="p">):</span>
+                <span class="n">match</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">items_to_check</span> <span class="k">if</span> <span class="n">check_fname</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Yielding </span><span class="si">{</span><span class="n">d</span><span class="si">}</span><span class="s2"> because the contained </span><span class="si">{</span><span class="n">item_type</span><span class="si">}</span><span class="s2"> &#39;</span><span class="si">{</span><span class="n">match</span><span class="si">}</span><span class="s2">&#39; matched.&quot;</span><span class="p">)</span>
+                <span class="k">del</span> <span class="p">(</span><span class="n">subdirs</span><span class="p">[:])</span>
+                <span class="k">yield</span> <span class="n">d</span>
+                <span class="k">break</span></div>
+        <span class="c1">### The inner for loop is equivalent to the following code but includes logging:</span>
+        <span class="c1"># if any(check_fname(f) for f in files) or \</span>
+        <span class="c1">#     any(check_fname(d) for d in subdirs) or \</span>
+        <span class="c1">#     any(check_fname(fn) for fn in fnames):</span>
+        <span class="c1">#     del(subdirs[:])</span>
+        <span class="c1">#     yield d</span>
 
 
 <div class="viewcode-block" id="join_tsvs"><a class="viewcode-back" href="../../reference.html#ms3.utils.join_tsvs">[docs]</a><span class="nd">@function_logger</span>
@@ -1190,8 +1267,8 @@
 <span class="sd">    dfs : :obj:`Collection`</span>
 <span class="sd">        Collection of DataFrames to join.</span>
 <span class="sd">    sort_cols : :obj:`bool`, optional</span>
-<span class="sd">        If you pass True, the remaining columns (those that are not defined in the standard column order in the function</span>
-<span class="sd">        sort_cols) will be sorted.</span>
+<span class="sd">        If you pass True, the columns after those defined in :py:attr:`STANDARD_COLUMN_ORDER`</span>
+<span class="sd">        will be sorted alphabetically.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -1243,6 +1320,7 @@
             <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
         <span class="k">except</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;String value &#39;</span><span class="si">{</span><span class="n">s</span><span class="si">}</span><span class="s2">&#39; could not be converted to a tuple.&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">res</span><span class="p">)</span>
 
 
@@ -1260,7 +1338,7 @@
         <span class="k">return</span> <span class="n">s</span>
 
 
-<div class="viewcode-block" id="load_tsv"><a class="viewcode-back" href="../../reference.html#ms3.utils.load_tsv">[docs]</a><span class="k">def</span> <span class="nf">load_tsv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">dtypes</span><span class="o">=</span><span class="p">{},</span> <span class="n">stringtype</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="load_tsv"><a class="viewcode-back" href="../../reference.html#ms3.utils.load_tsv">[docs]</a><span class="k">def</span> <span class="nf">load_tsv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">converters</span><span class="o">=</span><span class="p">{},</span> <span class="n">dtype</span><span class="o">=</span><span class="p">{},</span> <span class="n">stringtype</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Loads the TSV file `path` while applying correct type conversion and parsing tuples.</span>
 
 <span class="sd">    Parameters</span>
@@ -1270,7 +1348,7 @@
 <span class="sd">    index_col : :obj:`list`, optional</span>
 <span class="sd">        By default, the first two columns are loaded as MultiIndex.</span>
 <span class="sd">        The first level distinguishes pieces and the second level the elements within.</span>
-<span class="sd">    converters, dtypes : :obj:`dict`, optional</span>
+<span class="sd">    converters, dtype : :obj:`dict`, optional</span>
 <span class="sd">        Enhances or overwrites the mapping from column names to types included the constants.</span>
 <span class="sd">    stringtype : :obj:`bool`, optional</span>
 <span class="sd">        If you&#39;re using pandas &gt;= 1.0.0 you might want to set this to True in order</span>
@@ -1361,11 +1439,13 @@
         <span class="n">conv</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">CONVERTERS</span><span class="p">)</span>
         <span class="n">conv</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">converters</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">dtypes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">types</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="n">dtype</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">types</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">DTYPES</span><span class="p">)</span>
-        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span>
+        <span class="n">types</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">stringtype</span><span class="p">:</span>
         <span class="n">types</span> <span class="o">=</span> <span class="p">{</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span> <span class="k">if</span> <span class="n">typ</span> <span class="o">==</span> <span class="nb">str</span> <span class="k">else</span> <span class="n">typ</span> <span class="k">for</span> <span class="n">col</span><span class="p">,</span> <span class="n">typ</span> <span class="ow">in</span> <span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -1382,15 +1462,16 @@
     <span class="k">return</span> <span class="n">df</span></div>
 
 
-
-<div class="viewcode-block" id="make_continuous_offset"><a class="viewcode-back" href="../../reference.html#ms3.utils.make_continuous_offset">[docs]</a><span class="k">def</span> <span class="nf">make_continuous_offset</span><span class="p">(</span><span class="n">act_durs</span><span class="p">,</span> <span class="n">quarters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">negative_anacrusis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; In order to compute continuous offset, this function is required to compute each MC&#39;s offset from the</span>
-<span class="sd">    piece&#39;s beginning.</span>
+<div class="viewcode-block" id="make_continuous_offset"><a class="viewcode-back" href="../../reference.html#ms3.utils.make_continuous_offset">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">make_continuous_offset</span><span class="p">(</span><span class="n">measures</span><span class="p">,</span> <span class="n">quarters</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">negative_anacrusis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Takes a measures table and compute each MC&#39;s offset from the piece&#39;s beginning. Deal with</span>
+<span class="sd">    voltas before passing the table.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
-<span class="sd">    act_durs : :obj:`pandas.Series`</span>
-<span class="sd">        A series of actual measures durations as fractions of whole notes (might differ from time signature).</span>
+<span class="sd">    measures : :obj:`pandas.DataFrame`</span>
+<span class="sd">        A measures table with &#39;normal&#39; RangeIndex containing the column &#39;act_durs&#39; and one of</span>
+<span class="sd">        &#39;mc&#39; or &#39;mc_playthrough&#39; (if repeats were unfolded).</span>
 <span class="sd">    quarters : :obj:`bool`, optional</span>
 <span class="sd">        By default, the continuous offsets are expressed in quarter notes. Pass false to leave them as fractions</span>
 <span class="sd">        of a whole note.</span>
@@ -1401,17 +1482,24 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    :obj:`pandas.Series`</span>
-<span class="sd">        Cumulative sum of the values, shifted down by 1.</span>
+<span class="sd">        Cumulative sum of the actual durations, shifted down by 1.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;mc_playthrough&#39;</span> <span class="ow">in</span> <span class="n">measures</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">act_durs</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc_playthrough&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">act_dur</span>
+    <span class="k">elif</span> <span class="s1">&#39;mc&#39;</span> <span class="ow">in</span> <span class="n">measures</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">act_durs</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">act_dur</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Expected to have at least one column called &#39;mc&#39; or &#39;mc_playthrough&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">quarters</span><span class="p">:</span>
         <span class="n">act_durs</span> <span class="o">=</span> <span class="n">act_durs</span> <span class="o">*</span> <span class="mi">4</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">act_durs</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
     <span class="n">last_val</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">last_ix</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="n">fill_value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">last_val</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">last_ix</span><span class="p">]))</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">last_val</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]))</span>
+    <span class="n">ending</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="n">last_val</span><span class="p">,</span> <span class="n">last_val</span><span class="p">],</span> <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="n">last_ix</span><span class="p">,</span> <span class="s1">&#39;end&#39;</span><span class="p">])</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">res</span><span class="p">,</span> <span class="n">ending</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">negative_anacrusis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">res</span> <span class="o">-=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">frac</span><span class="p">(</span><span class="n">negative_anacrusis</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">res</span></div>
@@ -1430,21 +1518,24 @@
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">repeat</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span></div>
 
 
-<div class="viewcode-block" id="make_interval_index"><a class="viewcode-back" href="../../reference.html#ms3.utils.make_interval_index">[docs]</a><span class="k">def</span> <span class="nf">make_interval_index</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="make_interval_index"><a class="viewcode-back" href="../../reference.html#ms3.utils.make_interval_index">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">make_interval_index</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">end_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;interval&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Interpret a Series as interval breaks and make an IntervalIndex out of it.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    S : :obj:`pandas.Series`</span>
 <span class="sd">        Interval breaks. It is assumed that the breaks are sorted.</span>
-<span class="sd">    end_value : numeric</span>
+<span class="sd">    end_value : numeric, optional</span>
 <span class="sd">        Often you want to pass the right border of the last interval.</span>
-<span class="sd">    closed : :obj:`str`</span>
-<span class="sd">        Defaults to &#39;left&#39;. This and the kwargs are fed to :py:meth:`pandas.IntervalIndex.from_breaks`.</span>
-<span class="sd">    kwargs</span>
+<span class="sd">    closed : :obj:`str`, optional</span>
+<span class="sd">        Defaults to &#39;left&#39;. Argument passed to to :py:meth:`pandas.IntervalIndex.from_breaks`.</span>
+<span class="sd">    name : :obj:`str`, optional</span>
+<span class="sd">        Name of the created index. Defaults to &#39;interval&#39;.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
+<span class="sd">    :obj:`pandas.IntervalIndex`</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">breaks</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
@@ -1455,9 +1546,13 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">breaks</span> <span class="o">+=</span> <span class="p">[</span><span class="n">last</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">iix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">IntervalIndex</span><span class="o">.</span><span class="n">from_breaks</span><span class="p">(</span><span class="n">breaks</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">except</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">breaks</span><span class="p">)</span>
+        <span class="n">iix</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">IntervalIndex</span><span class="o">.</span><span class="n">from_breaks</span><span class="p">(</span><span class="n">breaks</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+        <span class="n">unsorted</span> <span class="o">=</span> <span class="p">[(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">breaks</span><span class="p">,</span> <span class="n">breaks</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span> <span class="k">if</span> <span class="n">b</span> <span class="o">&lt;</span> <span class="n">a</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">unsorted</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Breaks are not sorted: </span><span class="si">{</span><span class="n">unsorted</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot create IntervalIndex from these breaks:</span><span class="se">\n</span><span class="si">{</span><span class="n">breaks</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">raise</span>
     <span class="k">return</span> <span class="n">iix</span></div>
 
@@ -1473,12 +1568,32 @@
     <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">new_cols</span><span class="p">)</span></div>
 
 
+<span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">make_playthrough2mc</span><span class="p">(</span><span class="n">measures</span><span class="p">):</span>
+    <span class="n">ml</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
+    <span class="n">seq</span> <span class="o">=</span> <span class="n">next2sequence</span><span class="p">(</span><span class="n">ml</span><span class="o">.</span><span class="n">next</span><span class="p">)</span>
+    <span class="c1">############## &lt; v0.5: playthrough &lt;=&gt; mn; &gt;= v0.5: playthrough &lt;=&gt; mc</span>
+    <span class="c1"># playthrough = compute_mn(ml[[&#39;dont_count&#39;, &#39;numbering_offset&#39;]].loc[seq]).rename(&#39;playthrough&#39;)</span>
+    <span class="n">mc_playthrough</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">seq</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;mc_playthrough&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;Int64&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_playthrough</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">pass</span>
+    <span class="k">elif</span> <span class="n">seq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">mc_playthrough</span><span class="o">.</span><span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">seq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;The first mc should be 0 or 1, not </span><span class="si">{</span><span class="n">seq</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="k">return</span> <span class="n">mc_playthrough</span>
+
 
 <div class="viewcode-block" id="map2elements"><a class="viewcode-back" href="../../reference.html#ms3.utils.map2elements">[docs]</a><span class="k">def</span> <span class="nf">map2elements</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; If `e` is an iterable, `f` is applied to all elements.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">map2elements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">e</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">map2elements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">):</span>
+                <span class="c1">### e.g., if a numerical index is transformed to strings</span>
+                <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Index</span><span class="p">(</span><span class="n">map2elements</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
@@ -1670,20 +1785,31 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">step_pc</span> <span class="o">+</span> <span class="n">accidentals</span><span class="p">)</span> <span class="o">%</span> <span class="mi">12</span></div>
 
 
+<div class="viewcode-block" id="nan_eq"><a class="viewcode-back" href="../../reference.html#ms3.utils.nan_eq">[docs]</a><span class="k">def</span> <span class="nf">nan_eq</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True if a and b are equal or both null. Works on two Series or two elements.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">b</span><span class="p">))</span></div>
+
+
 
 <div class="viewcode-block" id="next2sequence"><a class="viewcode-back" href="../../reference.html#ms3.utils.next2sequence">[docs]</a><span class="k">def</span> <span class="nf">next2sequence</span><span class="p">(</span><span class="n">nxt</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Turns a &#39;next&#39; column into the correct sequence of MCs corresponding to unfolded repetitions.</span>
 <span class="sd">    Requires that the Series&#39; index be the MCs as in ``measures.set_index(&#39;mc&#39;).next``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">mc</span> <span class="o">=</span> <span class="n">nxt</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">last_mc</span> <span class="o">=</span> <span class="n">nxt</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">max_iter</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">last_mc</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">nxt</span> <span class="o">=</span> <span class="n">nxt</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-    <span class="k">while</span> <span class="n">mc</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">mc</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">max_iter</span><span class="p">:</span>
         <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mc</span><span class="p">)</span>
         <span class="n">new_mc</span><span class="p">,</span> <span class="o">*</span><span class="n">rest</span> <span class="o">=</span> <span class="n">nxt</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">rest</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">nxt</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="o">=</span> <span class="n">rest</span>
         <span class="n">mc</span> <span class="o">=</span> <span class="n">new_mc</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="n">max_iter</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">[]</span>
     <span class="k">return</span> <span class="n">result</span></div>
 
 
@@ -1788,7 +1914,7 @@
         <span class="k">return</span> <span class="n">typ</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">shortened_path</span> <span class="o">=</span> <span class="n">path</span>
-        <span class="k">while</span> <span class="n">shortened_path</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">shortened_path</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">shortened_path</span><span class="p">,</span> <span class="n">base</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">shortened_path</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">comp2type</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="k">if</span> <span class="n">comp</span> <span class="ow">in</span> <span class="n">base</span><span class="p">:</span>
@@ -1796,7 +1922,7 @@
                     <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Multiple components (</span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">found_components</span><span class="p">)</span><span class="si">}</span><span class="s2">) found in path &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;. Chose the last one: </span><span class="si">{</span><span class="n">typ</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="k">return</span> <span class="n">typ</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Components </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">found_components</span><span class="p">)</span><span class="si">}</span><span class="s2"> found in path &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;, but not in one of its constituents.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="s1">&#39;unknown&#39;</span></div>
+        <span class="k">return</span> <span class="s1">&#39;other&#39;</span></div>
 
 
 <div class="viewcode-block" id="pretty_dict"><a class="viewcode-back" href="../../reference.html#ms3.utils.pretty_dict">[docs]</a><span class="k">def</span> <span class="nf">pretty_dict</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">heading</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2014,7 +2140,8 @@
     <span class="n">directory</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
     <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Not an existing directory: &quot;</span> <span class="o">+</span> <span class="n">directory</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Not an existing directory: &quot;</span> <span class="o">+</span> <span class="n">directory</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">([])</span>
     <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Scanning files&#39;</span><span class="p">,</span> <span class="n">unit</span><span class="o">=</span><span class="s1">&#39; files&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">progress</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">traverse</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span></div>
 
@@ -2022,9 +2149,7 @@
 <div class="viewcode-block" id="column_order"><a class="viewcode-back" href="../../reference.html#ms3.utils.column_order">[docs]</a><span class="k">def</span> <span class="nf">column_order</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">first_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sort DataFrame columns so that they start with the order of ``first_cols``, followed by those not included. &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">first_cols</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">first_cols</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_playthrough&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;mn_playthrough&#39;</span><span class="p">,</span> <span class="s1">&#39;quarterbeats&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">,</span> <span class="s1">&#39;mn_onset&#39;</span><span class="p">,</span> <span class="s1">&#39;beat&#39;</span><span class="p">,</span> <span class="s1">&#39;event&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;voice&#39;</span><span class="p">,</span> <span class="s1">&#39;duration&#39;</span><span class="p">,</span> <span class="s1">&#39;tied&#39;</span><span class="p">,</span>
-            <span class="s1">&#39;gracenote&#39;</span><span class="p">,</span> <span class="s1">&#39;nominal_duration&#39;</span><span class="p">,</span> <span class="s1">&#39;scalar&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]</span>
+        <span class="n">first_cols</span> <span class="o">=</span> <span class="n">STANDARD_COLUMN_ORDER</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
     <span class="n">remaining</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">cols</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">first_cols</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
@@ -2277,21 +2402,90 @@
     <span class="k">return</span> <span class="n">res</span></div>
 
 
-<div class="viewcode-block" id="unfold_repeats"><a class="viewcode-back" href="../../reference.html#ms3.utils.unfold_repeats">[docs]</a><span class="k">def</span> <span class="nf">unfold_repeats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">mc_sequence</span><span class="p">):</span>
+<div class="viewcode-block" id="adjacency_groups"><a class="viewcode-back" href="../../reference.html#ms3.utils.adjacency_groups">[docs]</a><span class="k">def</span> <span class="nf">adjacency_groups</span><span class="p">(</span><span class="n">S</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prevent_merge</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    S : :obj:`pandas.Series`</span>
+<span class="sd">        Series in which to group identical adjacent values with each other.</span>
+<span class="sd">    na_values : :obj:`str`, optional</span>
+<span class="sd">        | How to treat (groups of) NA values. By default, NA values are being ignored.</span>
+<span class="sd">        | &#39;group&#39; creates individual groups for NA values</span>
+<span class="sd">        | &#39;backfill&#39; or &#39;bfill&#39; groups NA values with the subsequent group</span>
+<span class="sd">        | &#39;pad&#39;, &#39;ffill&#39; groups NA values with the preceding group</span>
+<span class="sd">        | Any other string works like &#39;group&#39;, with the difference that the groups will be named with this value.</span>
+<span class="sd">    prevent_merge : :obj:`bool`, optional</span>
+<span class="sd">        By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.</span>
+<span class="sd">        Pass True to prevent this. For example, take the sequence [&#39;a&#39;, NA, &#39;a&#39;] with ``na_values=&#39;ffill&#39;``: By default,</span>
+<span class="sd">        it will be merged to one single group ``[1, 1, 1], {1: &#39;a&#39;}``. However, passing ``prevent_merge=True`` will</span>
+<span class="sd">        result in ``[1, 1, 2], {1: &#39;a&#39;, 2: &#39;a&#39;}``.</span>
+
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    :obj:`pandas.Series</span>
+<span class="sd">        A series with increasing integers that can be used for grouping.</span>
+<span class="sd">    :obj:`dict`</span>
+<span class="sd">        A dictionary mapping the integers to the grouped values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">reindex_flag</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">prevent_merge</span><span class="p">:</span>
+        <span class="n">forced_beginnings</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">&amp;</span> <span class="o">~</span><span class="n">S</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">na_values</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">S</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">reindex_flag</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">S</span>
+    <span class="k">elif</span> <span class="n">na_values</span> <span class="o">==</span> <span class="s1">&#39;group&#39;</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">S</span>
+    <span class="k">elif</span> <span class="n">na_values</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;backfill&#39;</span><span class="p">,</span> <span class="s1">&#39;bfill&#39;</span><span class="p">,</span> <span class="s1">&#39;pad&#39;</span><span class="p">,</span> <span class="s1">&#39;ffill&#39;</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">method</span><span class="o">=</span><span class="n">na_values</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">S</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">na_values</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">na_values</span> <span class="o">==</span> <span class="s1">&#39;group&#39;</span><span class="p">:</span>
+            <span class="n">shifted</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="n">shifted</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">beginnings</span> <span class="o">=</span> <span class="o">~</span><span class="n">nan_eq</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">shifted</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;After treating the Series &#39;</span><span class="si">{</span><span class="n">S</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; with na_values=&#39;</span><span class="si">{</span><span class="n">na_values</span><span class="si">}</span><span class="s2">&#39;, &quot;</span>
+                           <span class="sa">f</span><span class="s2">&quot;there were still </span><span class="si">{</span><span class="n">s</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> NA values left.&quot;</span><span class="p">)</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">dropna</span><span class="p">()</span>
+            <span class="n">beginnings</span> <span class="o">=</span> <span class="p">(</span><span class="n">s</span> <span class="o">!=</span> <span class="n">s</span><span class="o">.</span><span class="n">shift</span><span class="p">())</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">beginnings</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">reindex_flag</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">beginnings</span> <span class="o">=</span> <span class="n">s</span> <span class="o">!=</span> <span class="n">s</span><span class="o">.</span><span class="n">shift</span><span class="p">()</span>
+        <span class="n">beginnings</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">prevent_merge</span><span class="p">:</span>
+        <span class="n">beginnings</span> <span class="o">|=</span> <span class="n">forced_beginnings</span>
+    <span class="n">groups</span> <span class="o">=</span> <span class="n">beginnings</span><span class="o">.</span><span class="n">cumsum</span><span class="p">()</span>
+    <span class="n">names</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">beginnings</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">reindex_flag</span><span class="p">:</span>
+        <span class="n">groups</span> <span class="o">=</span> <span class="n">groups</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">S</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">groups</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;Int64&#39;</span><span class="p">),</span> <span class="n">names</span></div>
+
+
+<div class="viewcode-block" id="unfold_repeats"><a class="viewcode-back" href="../../reference.html#ms3.utils.unfold_repeats">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">unfold_repeats</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">playthrough2mc</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot; Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    df : :obj:`pandas.DataFrame`</span>
 <span class="sd">        DataFrame needs to have the columns &#39;mc&#39; and &#39;mn&#39;.</span>
-<span class="sd">    mc_sequence : :obj:`pandas.Series`</span>
+<span class="sd">    playthrough2mc : :obj:`pandas.Series`</span>
 <span class="sd">        A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds</span>
 <span class="sd">        to continuous MC</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">############## &lt; v0.5: playthrough &lt;=&gt; mn; &gt;= v0.5: playthrough &lt;=&gt; mc</span>
     <span class="n">vc</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">mc</span><span class="o">.</span><span class="n">value_counts</span><span class="p">()</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span>
-    <span class="n">seq</span> <span class="o">=</span> <span class="n">mc_sequence</span><span class="p">[</span><span class="n">mc_sequence</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span>
+    <span class="n">seq</span> <span class="o">=</span> <span class="n">playthrough2mc</span><span class="p">[</span><span class="n">playthrough2mc</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">index</span><span class="p">)]</span>
     <span class="n">playthrough_col</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([[</span><span class="n">playthrough</span><span class="p">]</span> <span class="o">*</span> <span class="n">vc</span><span class="p">[</span><span class="n">mc</span><span class="p">]</span> <span class="k">for</span> <span class="n">playthrough</span><span class="p">,</span> <span class="n">mc</span> <span class="ow">in</span> <span class="n">seq</span><span class="o">.</span><span class="n">items</span><span class="p">()],</span> <span class="p">[])</span>
     <span class="n">res</span> <span class="o">=</span> <span class="n">res</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">seq</span><span class="o">.</span><span class="n">values</span><span class="p">]</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
     <span class="n">res</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;mc_playthrough&#39;</span><span class="p">,</span> <span class="n">playthrough_col</span><span class="p">)</span>
@@ -2334,32 +2528,43 @@
 
 <span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">write_metadata</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">markdown</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;metadata.tsv&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="n">tsv_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;metadata.tsv&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">tsv_path</span> <span class="o">=</span> <span class="n">path</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">):</span>
         <span class="n">write_this</span> <span class="o">=</span> <span class="n">df</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Created&#39;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">try</span><span class="p">:</span>
             <span class="c1"># Trying to load an existing &#39;metadata.tsv&#39; file to update overlapping indices, assuming two index levels</span>
-            <span class="n">previous</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-            <span class="n">ix_union</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
-            <span class="n">col_union</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
+            <span class="n">previous</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;string&#39;</span><span class="p">,</span> <span class="n">index_col</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">])</span>
+            <span class="n">df_tmp</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">)</span>
+            <span class="n">df_tmp</span> <span class="o">=</span> <span class="n">df_tmp</span><span class="o">.</span><span class="n">set_index</span><span class="p">([</span><span class="s1">&#39;rel_paths&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">what</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="n">previous</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">previous</span><span class="o">.</span><span class="n">columns</span><span class="p">,</span> <span class="n">df_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df_tmp</span><span class="o">.</span><span class="n">columns</span><span class="p">),</span>
+                          <span class="p">(</span><span class="s1">&#39;index of the existing&#39;</span><span class="p">,</span> <span class="s1">&#39;columns of the existing&#39;</span><span class="p">,</span> <span class="s1">&#39;index of the updated&#39;</span><span class="p">,</span> <span class="s1">&#39;columns of the updated&#39;</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ix</span><span class="o">.</span><span class="n">is_unique</span><span class="p">:</span>
+                    <span class="n">duplicated</span> <span class="o">=</span> <span class="n">ix</span><span class="p">[</span><span class="n">ix</span><span class="o">.</span><span class="n">duplicated</span><span class="p">()]</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2"> metadata contains duplicates and no metadata were written.</span><span class="se">\n</span><span class="s2">Duplicates: </span><span class="si">{</span><span class="n">duplicated</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span>
+            <span class="n">ix_union</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">df_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+            <span class="n">col_union</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">df_tmp</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span>
             <span class="n">previous</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">reindex</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="n">ix_union</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">col_union</span><span class="p">)</span>
-            <span class="n">previous</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span>
-            <span class="n">write_this</span> <span class="o">=</span> <span class="n">previous</span>
+            <span class="n">previous</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">df_tmp</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="n">df_tmp</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span> <span class="o">=</span> <span class="n">df_tmp</span>
+            <span class="n">write_this</span> <span class="o">=</span> <span class="n">previous</span><span class="o">.</span><span class="n">reset_index</span><span class="p">()</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Updated&#39;</span>
-        <span class="k">except</span><span class="p">:</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updating existing metadata at </span><span class="si">{</span><span class="n">tsv_path</span><span class="si">}</span><span class="s2"> failed with the following error:</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="n">write_this</span> <span class="o">=</span> <span class="n">df</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Replaced &#39;</span>
-    <span class="n">first_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;last_mc&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mn&#39;</span><span class="p">,</span> <span class="s1">&#39;KeySig&#39;</span><span class="p">,</span> <span class="s1">&#39;TimeSig&#39;</span><span class="p">,</span> <span class="s1">&#39;label_count&#39;</span><span class="p">,</span> <span class="s1">&#39;harmony_version&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;annotated_key&#39;</span><span class="p">,</span> <span class="s1">&#39;annotators&#39;</span><span class="p">,</span> <span class="s1">&#39;reviewers&#39;</span><span class="p">,</span> <span class="s1">&#39;composer&#39;</span><span class="p">,</span> <span class="s1">&#39;workTitle&#39;</span><span class="p">,</span> <span class="s1">&#39;movementNumber&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;movementTitle&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;workNumber&#39;</span><span class="p">,</span> <span class="s1">&#39;poet&#39;</span><span class="p">,</span> <span class="s1">&#39;lyricist&#39;</span><span class="p">,</span> <span class="s1">&#39;arranger&#39;</span><span class="p">,</span> <span class="s1">&#39;copyright&#39;</span><span class="p">,</span> <span class="s1">&#39;creationDate&#39;</span><span class="p">,</span>
-                  <span class="s1">&#39;mscVersion&#39;</span><span class="p">,</span> <span class="s1">&#39;platform&#39;</span><span class="p">,</span> <span class="s1">&#39;source&#39;</span><span class="p">,</span> <span class="s1">&#39;translator&#39;</span><span class="p">,</span> <span class="s1">&#39;musescore&#39;</span><span class="p">,</span> <span class="s1">&#39;ambitus&#39;</span><span class="p">]</span>
+    <span class="n">convert_to_str</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="s1">&#39;string&#39;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;length_qb&#39;</span><span class="p">,</span> <span class="s1">&#39;length_qb_unfolded&#39;</span><span class="p">,</span> <span class="s1">&#39;all_notes_qb&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="p">}</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">convert_to_str</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">write_this</span> <span class="o">=</span> <span class="n">write_this</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">convert_to_str</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
     <span class="n">write_this</span><span class="o">.</span><span class="n">sort_index</span><span class="p">(</span><span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">column_order</span><span class="p">(</span><span class="n">write_this</span><span class="p">,</span> <span class="n">first_cols</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">column_order</span><span class="p">(</span><span class="n">write_this</span><span class="p">,</span> <span class="n">METADATA_COLUMN_ORDER</span><span class="p">)</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">tsv_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">markdown</span><span class="p">:</span>
         <span class="n">rename4markdown</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;fnames&#39;</span><span class="p">:</span> <span class="s1">&#39;file_name&#39;</span><span class="p">,</span>
@@ -2377,8 +2582,7 @@
         <span class="n">md</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">rename4markdown</span><span class="p">)[</span><span class="nb">list</span><span class="p">(</span><span class="n">rename4markdown</span><span class="o">.</span><span class="n">values</span><span class="p">())]</span>
         <span class="n">md_table</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">df2md</span><span class="p">(</span><span class="n">md</span><span class="p">))</span>
 
-        <span class="n">p</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="n">readme</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;README.md&#39;</span><span class="p">)</span>
+        <span class="n">readme</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;README.md&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">readme</span><span class="p">):</span>
             <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Updated&#39;</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">readme</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -2398,7 +2602,50 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">readme</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="abs2rel_key"><a class="viewcode-back" href="../../reference.html#ms3.utils.abs2rel_key">[docs]</a><span class="k">def</span> <span class="nf">abs2rel_key</span><span class="p">(</span><span class="n">absolute</span><span class="p">,</span> <span class="n">localkey</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="write_tsv"><a class="viewcode-back" href="../../reference.html#ms3.utils.write_tsv">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">write_tsv</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">file_path</span><span class="p">,</span> <span class="n">pre_process</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; Write a DataFrame to a TSV or CSV file based on the extension of &#39;file_path&#39;.</span>
+<span class="sd">    Uses: :py:func:`no_collections_no_booleans`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    df : :obj:`pandas.DataFrame`</span>
+<span class="sd">        DataFrame to write.</span>
+<span class="sd">    file_path : :obj:`str`</span>
+<span class="sd">        File to create or overwrite. If the extension is .tsv, the argument &#39;sep&#39; will be set to &#39;\t&#39;, otherwise the</span>
+<span class="sd">        extension is expected to be .csv and the default separator &#39;,&#39; will be used.</span>
+<span class="sd">    pre_process : :obj:`bool`, optional</span>
+<span class="sd">        By default, DataFrame cells containing lists and tuples will be transformed to strings and Booleans will be</span>
+<span class="sd">        converted to 0 and 1 (otherwise they will be written out as True and False). Pass False to prevent.</span>
+<span class="sd">    kwargs :</span>
+<span class="sd">        Additional keyword arguments will be passed on to :py:meth:`pandas.DataFrame.to_csv`.</span>
+<span class="sd">        Defaults arguments are ``index=False`` and ``sep=&#39;\t&#39;`` (assuming extension &#39;.tsv&#39;, see above).</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span><span class="p">,</span> <span class="n">fname</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+    <span class="n">name</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;.tsv&#39;</span><span class="p">,</span> <span class="s1">&#39;.csv&#39;</span><span class="p">):</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This function expects file_path to include the file name ending on .csv or tsv, not &#39;</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">)</span>
+        <span class="k">return</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ext</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;.tsv&#39;</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="s1">&#39;index&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">pre_process</span><span class="p">:</span>
+        <span class="n">df</span> <span class="o">=</span> <span class="n">no_collections_no_booleans</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2"> written with parameters </span><span class="si">{</span><span class="n">kwargs</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="k">return</span></div>
+
+
+<div class="viewcode-block" id="abs2rel_key"><a class="viewcode-back" href="../../reference.html#ms3.utils.abs2rel_key">[docs]</a><span class="nd">@function_logger</span>
+<span class="k">def</span> <span class="nf">abs2rel_key</span><span class="p">(</span><span class="n">absolute</span><span class="p">,</span> <span class="n">localkey</span><span class="p">,</span> <span class="n">global_minor</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Expresses a Roman numeral as scale degree relative to a given localkey.</span>
 <span class="sd">    The result changes depending on whether Roman numeral and localkey are</span>
@@ -2485,7 +2732,7 @@
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
 <span class="sd">    If the label viio6/VI appears in the context of the local key VI or vi,</span>
-<span class="sd">    viio6 the absolute key to which viio6 applies depends on the global key.</span>
+<span class="sd">    the absolute key to which viio6 applies depends on the global key.</span>
 <span class="sd">    The comments express the examples in relation to global C major or C minor.</span>
 
 <span class="sd">        &gt;&gt;&gt; rel2abs_key(&#39;vi&#39;, &#39;VI&#39;, global_minor=False)</span>
@@ -2529,8 +2776,8 @@
 
 <div class="viewcode-block" id="replace_index_by_intervals"><a class="viewcode-back" href="../../reference.html#ms3.utils.replace_index_by_intervals">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">replace_index_by_intervals</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">position_col</span><span class="o">=</span><span class="s1">&#39;quarterbeats&#39;</span><span class="p">,</span> <span class="n">duration_col</span><span class="o">=</span><span class="s1">&#39;duration_qb&#39;</span><span class="p">,</span> <span class="n">closed</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">,</span>
-                               <span class="n">filter_zero_duration</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">round</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex &lt;pandas.IntervalIndex&gt;`.</span>
+                               <span class="n">filter_zero_duration</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="nb">round</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;interval&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.</span>
 <span class="sd">    Underspecified rows are removed.</span>
 
 <span class="sd">    Parameters</span>
@@ -2548,11 +2795,14 @@
 <span class="sd">        Defaults to False, meaning that rows with zero durations are maintained. Pass True to remove them.</span>
 <span class="sd">    round : :obj:`int`, optional</span>
 <span class="sd">        To how many decimal places to round the intervals&#39; boundary values.</span>
+<span class="sd">    name : :obj:`str`, optional</span>
+<span class="sd">        Name of the created index. Defaults to &#39;iv&#39;.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    :obj:`pandas.DataFrame`</span>
-
+<span class="sd">        A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval</span>
+<span class="sd">        could be coputed).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="n">position_col</span><span class="p">,</span> <span class="n">duration_col</span><span class="p">)):</span>
         <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">(</span><span class="n">position_col</span><span class="p">,</span> <span class="n">duration_col</span><span class="p">)</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
@@ -2562,11 +2812,10 @@
     <span class="n">mask</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">position_col</span><span class="p">]</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">filter_zero_duration</span><span class="p">:</span>
         <span class="n">mask</span> <span class="o">&amp;=</span> <span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="n">duration_col</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">mask</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">left</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">position_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
     <span class="n">right</span> <span class="o">=</span> <span class="n">left</span> <span class="o">+</span> <span class="n">df</span><span class="p">[</span><span class="n">duration_col</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
-    <span class="n">index_tuples</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">left</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">),</span> <span class="n">right</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">))</span>
-    <span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">IntervalIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">),</span> <span class="n">right</span><span class="o">=</span><span class="n">right</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">),</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">)</span>
+    <span class="n">df</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">IntervalIndex</span><span class="o">.</span><span class="n">from_arrays</span><span class="p">(</span><span class="n">left</span><span class="o">=</span><span class="n">left</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">),</span> <span class="n">right</span><span class="o">=</span><span class="n">right</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">round</span><span class="p">),</span> <span class="n">closed</span><span class="o">=</span><span class="n">closed</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">df</span></div>
 
 
@@ -2896,6 +3145,7 @@
             <span class="s1">&#39;added_tones&#39;</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">added_notes</span><span class="p">),</span>
             <span class="s1">&#39;root&#39;</span><span class="p">:</span> <span class="n">root</span><span class="p">,</span>
         <span class="p">}</span></div>
+
 </pre></div>
 
             <div class="clearer"></div>
@@ -2920,12 +3170,12 @@
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
     
@@ -2958,7 +3208,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 0.4.11 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
@@ -2968,7 +3218,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>
