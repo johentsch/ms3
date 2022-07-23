@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Quick Reference &#8212; ms3 0.4.11 documentation</title>
+    <title>Quick Reference &#8212; ms3 0.5.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -58,7 +58,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.11 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -203,6 +203,10 @@ The output will always be uncompressed, so make sure to use <code class="docutil
 <span class="go">staff  voice  label_type  color_name</span>
 <span class="go">3      1      1           default       48</span>
 </pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
 </div>
 <p>As we can see, the parameter <code class="docutils literal notranslate"><span class="pre">voice=1</span></code> has been used to insert the labels in the first layer (coloured blue in MuseScore)
 of staff 3 when originally they had been attached to layer two (coloured in green in the software). Additionally,
@@ -402,6 +406,10 @@ Instead, we could assign all ten files to the same key and then add the ‘docs�
 <span class="go">doubly -&gt; {&#39;.mscx&#39;: 4}</span>
 </pre></div>
 </div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 </section>
 <section id="parsing">
 <h3>Parsing<a class="headerlink" href="#parsing" title="Permalink to this heading">¶</a></h3>
@@ -461,6 +469,10 @@ filenames. If the parameter <code class="docutils literal notranslate"><span cla
 <span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
 </pre></div>
 </div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 <p>In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
 same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="o">=</span><span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;pergo&#39;</span><span class="p">)</span>
@@ -493,6 +505,10 @@ same four files but this time from the perspective of <code class="docutils lite
 <span class="go"> &#39;~/labels/stabat.tsv&#39;,</span>
 <span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
 </pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
 </div>
 <p>The rules for specifying the folders are as follows:</p>
 <ul class="simple">
@@ -615,7 +631,7 @@ in each of them.</p></li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.4.11 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>

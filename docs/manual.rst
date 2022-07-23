@@ -731,6 +731,10 @@ Parsing multiple scores
     in the object (``$`` stands for the end of the filename, without it, files including the string 'mscx' anywhere
     in their names would be selected, too):
 
+    .. caution::
+
+      The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
+
     .. code-block:: python
 
         >>> from ms3 import Parse
@@ -750,6 +754,10 @@ Parsing multiple scores
         >>> p
 
     .. program-output:: python examples/parse_other_directory.py
+
+    .. caution::
+
+      The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
     Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation on a particular group of files.
 
@@ -1152,6 +1160,10 @@ Before you are sure to have picked the right parameters for your desired output,
 you can simply use the ``simulate=True`` argument which lets you view the paths
 without actually creating any files. In this variant, all aspects are stored each
 in individual folders but with identical filenames:
+
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
 .. code-block:: python
 
