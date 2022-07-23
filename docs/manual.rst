@@ -45,6 +45,30 @@ When loading corpora, ms3 looks for the standard folder names (and suffixes) to 
 assign them keys automatically (e.g. in the example above, 'corpus1' and 'corpus2').
 Using the default names will therefore facilitate the use of the library considerably.
 
+.. _keys_and_ids:
+
+Keys and IDs
+------------
+
+ms3 uses keys for grouping files. The way how these keys are being used is transitioning in the 0.5.x versions:
+
+* **< 0.5** keys were arbitrary and used by some methods to bring groups of files together. For example, ``Parse.attach_labels()``
+  would take a key with a group of scores and, as the parameter ``annotation_key``, the key with a group of annotations and
+  then use ``Parse.match_files()`` to match the files from the given keys.
+* **>= 0.6.x** keys are used to address sub-corpora that are assumed to have a particular :ref:`corpus_structure`.
+  The method ``Parse.attach_labels()`` then takes only one key and uses the key's :py:class:`~.parse.View` object
+  for matching files. The parameter ``annotation_key`` is replaced by ``use`` that can be used in the case that the View
+  object has detected several annotation files for one or several pieces.
+* **0.5x** transitioning from the old to the new behaviour.
+
+IDs
+~~~
+
+IDs are ``(key, i)`` pairs that identify one particular file (not piece) found by a Parse object. They are used as
+dictionary keys except for storing the information on file paths such as :py:attr:`~.parse.full_paths` or
+:py:attr:`~.parse.fnames` which are dictionaries containing lists where only keys are dictionary keys, whereas ``i``
+is simply the list index of the respective file.
+
 
 .. _label_types:
 

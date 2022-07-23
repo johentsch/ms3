@@ -132,6 +132,10 @@ and stored as a tab-separated file (TSV) like this:</p>
 <section id="removing-annotation-labels">
 <span id="detaching"></span><h3>Removing annotation labels<a class="headerlink" href="#removing-annotation-labels" title="Permalink to this heading">¶</a></h3>
 <p>The annotations will be stored with a keyword that you choose. It needs to be different from <code class="docutils literal notranslate"><span class="pre">'annotations'</span></code>.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;chords&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
 <span class="go">Uncompressed MuseScore file (CHANGED!!!)</span>
@@ -501,7 +505,7 @@ folders are created at the top level (of the original directory or the specified
 <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
 in each of them.</p></li>
 </ul>
-<p>To see examples for the three possibilities, see <a class="reference internal" href="manual.html#specifying-folders"><span class="std std-ref">Specifying folders</span></a>.</p>
+<p>To see examples for the three possibilities, see <span class="xref std std-ref">specifying_folders</span>.</p>
 </section>
 </section>
 </section>

@@ -79,6 +79,10 @@ Removing annotation labels
 
 The annotations will be stored with a keyword that you choose. It needs to be different from ``'annotations'``.
 
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
+
 .. code-block:: python
 
     >>> s.detach_labels(key='chords')

@@ -1959,7 +1959,7 @@ Available keys: {available_keys}""")
             Where to store an overview file with the MuseScore files' metadata.
             If no file name is specified, the file will be named ``metadata.tsv``.
         markdown : bool, optional
-            By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+            By default, when ``metadata_path`` is specified, a markdown file called ``README.rst.md`` containing
             the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
             this table will be appended or overwritten after the heading ``# Overview``.
         simulate : bool, optional

@@ -2516,7 +2516,7 @@ def write_metadata(df, path, markdown=True, index=False):
         md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
         md_table = str(df2md(md))
 
-        readme = os.path.join(path, 'README.md')
+        readme = os.path.join(path, 'README.rst.md')
         if os.path.isfile(readme):
             msg = 'Updated'
             with open(readme, 'r', encoding='utf-8') as f:
@@ -2524,7 +2524,7 @@ def write_metadata(df, path, markdown=True, index=False):
         else:
             msg = 'Created'
             lines = []
-        # in case the README exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
+        # in case the README.rst exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
         with open(readme, 'w', encoding='utf-8') as f:
             for line in lines:
                 if '# Overview' in line:
