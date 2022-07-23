@@ -3,21 +3,21 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Changelog &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
-    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/ansi.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Changelog &#8212; ms3 0.5.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
 
     
     
@@ -54,7 +54,7 @@
         <li class="right" >
           <a href="authors.html" title="Contributors"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
@@ -67,10 +67,64 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="changelog">
-<span id="changes"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this headline">¶</a></h1>
-<div class="section" id="version-0-5-0">
-<h2>Version 0.5.0<a class="headerlink" href="#version-0-5-0" title="Permalink to this headline">¶</a></h2>
+  <section id="changelog">
+<span id="changes"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this heading">¶</a></h1>
+<section id="version-0-5-3">
+<h2>Version 0.5.3<a class="headerlink" href="#version-0-5-3" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>recognizes metadata fields <code class="docutils literal notranslate"><span class="pre">reviewers</span></code> and <code class="docutils literal notranslate"><span class="pre">annotators</span></code> also in their singular forms</p></li>
+<li><p>adds column <code class="docutils literal notranslate"><span class="pre">n_onset_positions</span></code> to metadata.tsv</p></li>
+<li><p>interval index levels renamed from ‘iv’ =&gt; ‘interval’</p></li>
+<li><p>gets rid of pandas deprecation warnings</p></li>
+<li><p>bug fixes &amp; log messages</p></li>
+</ul>
+</section>
+<section id="version-0-5-2">
+<h2>Version 0.5.2<a class="headerlink" href="#version-0-5-2" title="Permalink to this heading">¶</a></h2>
+<ul class="simple">
+<li><p>the <code class="docutils literal notranslate"><span class="pre">View</span></code> on a <code class="docutils literal notranslate"><span class="pre">Parse</span></code> object can now be subscripted with a filename to obtain a <code class="docutils literal notranslate"><span class="pre">Piece</span></code> object, allowing
+for better access to the various files belonging to the same piece (based on their file names). These new objects
+facilitate access to the information which previously was available in one row of tge <code class="docutils literal notranslate"><span class="pre">View.pieces()</span></code> DataFrame.</p></li>
+<li><p>adds command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">empty</span></code> to remove harmony annotations from scores</p></li>
+<li><p>adds command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">add</span></code> to add harmony annotations from TSV files to scores</p></li>
+<li><p>re-factored <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">compare</span></code> to use new methods added to <code class="docutils literal notranslate"><span class="pre">View</span></code> objects</p></li>
+<li><p>methods based on <code class="docutils literal notranslate"><span class="pre">View.iter()</span></code> now accept the parameter <code class="docutils literal notranslate"><span class="pre">fnames</span></code> to filter out file names not included in the list</p></li>
+<li><p>while adding labels, use fallback values <code class="docutils literal notranslate"><span class="pre">staff=-1</span></code> and <code class="docutils literal notranslate"><span class="pre">voice=1</span></code> if not specified</p></li>
+</ul>
+</section>
+<section id="version-0-5-1">
+<h2>Version 0.5.1<a class="headerlink" href="#version-0-5-1" title="Permalink to this heading">¶</a></h2>
+<ul>
+<li><p>changes to <code class="docutils literal notranslate"><span class="pre">iter</span></code> methods for iterating through DataFrames and metadata belonging together:
+* supressed the second item: instead of <code class="docutils literal notranslate"><span class="pre">(metadata,</span> <span class="pre">paths,</span> <span class="pre">df1,</span> <span class="pre">df2...)</span></code> yield <code class="docutils literal notranslate"><span class="pre">(metadata,</span> <span class="pre">df1,</span> <span class="pre">df2...)</span></code> where the</p>
+<blockquote>
+<div><p>metadata dict contains the paths</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>added methods <code class="docutils literal notranslate"><span class="pre">iter_transformed()</span></code> and <code class="docutils literal notranslate"><span class="pre">iter_notes()</span></code> to <code class="docutils literal notranslate"><span class="pre">Parse</span></code> and <code class="docutils literal notranslate"><span class="pre">View</span></code> objects</p></li>
+</ul>
+</li>
+<li><p>added command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">transform</span></code>
+* used to concatenate all parsed TSVs of a certain type into one file including the option to unfold and add quarterbeats
+* stores them with prefix <code class="docutils literal notranslate"><span class="pre">concatenated_</span></code>; ms3 now ignores all files beginning with this prefix</p></li>
+<li><p>changes in default TSV columns
+* <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> includes the new columns</p>
+<blockquote>
+<div><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">length_qb</span></code>: a scores length in quarterbeats (including all voltas)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">length_qb_unfolded</span></code>: the same but with unfolded repeats, if any</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">all_notes_qb</span></code>: the sum of all note durations in quarterbeats</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">n_onsets</span></code>: the number of all onsets</p></li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li><p>no empty <code class="docutils literal notranslate"><span class="pre">volta</span></code> columns are included (except for measures) when no voltas are present</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="version-0-5-0">
+<h2>Version 0.5.0<a class="headerlink" href="#version-0-5-0" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
 <dt>considerable changes to <code class="docutils literal notranslate"><span class="pre">Parse</span></code> objects (bugs might still be abundant, please report them)</dt><dd><ul>
@@ -118,9 +172,9 @@ higher level that doesn’t match. Effectively, this allows, for example, to do 
 select all files from folders called notes.</p></li>
 <li><p>bug fixes (e.g. failing less on incoherent repeat structures)</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-10">
-<h2>Version 0.4.10<a class="headerlink" href="#version-0-4-10" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-10">
+<h2>Version 0.4.10<a class="headerlink" href="#version-0-4-10" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Enabled extraction of score labels.</p></li>
 <li><p>Made the use of <code class="docutils literal notranslate"><span class="pre">labels_cfg</span></code> more consistent.</p></li>
@@ -144,9 +198,9 @@ select all files from folders called notes.</p></li>
 </dl>
 </li>
 </ul>
-</div>
-<div class="section" id="version-0-4-9">
-<h2>Version 0.4.9<a class="headerlink" href="#version-0-4-9" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-9">
+<h2>Version 0.4.9<a class="headerlink" href="#version-0-4-9" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>enabled <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">from</span> <span class="pre">ms3</span></code> for all utils</p></li>
 <li><p>new command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">update</span></code> for converting files and moving annotations to the Roman Numeral Analysis layer</p></li>
@@ -220,9 +274,9 @@ select all files from folders called notes.</p></li>
 <li><p>renamed master branch to ‘main’</p></li>
 <li><p>many bug fixes</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-8">
-<h2>Version 0.4.8<a class="headerlink" href="#version-0-4-8" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-8">
+<h2>Version 0.4.8<a class="headerlink" href="#version-0-4-8" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>now reads DCML labels with cadence annotations</p></li>
 <li><p>unified command-line interface file options and included <code class="docutils literal notranslate"><span class="pre">-f</span> <span class="pre">file.json</span></code></p></li>
@@ -230,9 +284,9 @@ select all files from folders called notes.</p></li>
 <li><p>Parse.measures property for convenience</p></li>
 <li><p>bug fixes for better GitHub workflows</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-7">
-<h2>Version 0.4.7<a class="headerlink" href="#version-0-4-7" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-7">
+<h2>Version 0.4.7<a class="headerlink" href="#version-0-4-7" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><dl class="simple">
 <dt>Labels can be attached to MuseScore’s Roman Numeral Analysis (RNA) layer</dt><dd><ul>
@@ -246,24 +300,24 @@ select all files from folders called notes.</p></li>
 <li><p>interpret all <cite>#vii</cite> in major contexts as <cite>vii</cite> when computing chord tones</p></li>
 <li><p>code cosmetics and bug fixes</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-6">
-<h2>Version 0.4.6<a class="headerlink" href="#version-0-4-6" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-6">
+<h2>Version 0.4.6<a class="headerlink" href="#version-0-4-6" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>ms3 extract and Parse.store_lists() now have the option unfold to account for repeats</p></li>
 <li><p>minor bug fixes</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-5">
-<h2>Version 0.4.5<a class="headerlink" href="#version-0-4-5" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-5">
+<h2>Version 0.4.5<a class="headerlink" href="#version-0-4-5" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>added ‘ms3 compare’ command</p></li>
 <li><p>support for parsing cap, capx, midi, musicxml, mxl, and xml files through temporary conversion</p></li>
 <li><p>support for parsing MuseScore 2 files through temporary conversion</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-3">
-<h2>Version 0.4.3<a class="headerlink" href="#version-0-4-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-3">
+<h2>Version 0.4.3<a class="headerlink" href="#version-0-4-3" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>added ‘ms3 check’ command</p></li>
 <li><p>support of coloured labels</p></li>
@@ -271,25 +325,25 @@ select all files from folders called notes.</p></li>
 <li><p>better interface for defining log file paths (more options, now conforming to the Parse.store_lists() interface)</p></li>
 <li><p>fixed erroneous separation of alternative labels</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-2">
-<h2>Version 0.4.2<a class="headerlink" href="#version-0-4-2" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-2">
+<h2>Version 0.4.2<a class="headerlink" href="#version-0-4-2" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>small bug fixes</p></li>
 <li><p>correct computation of chord tones for new DCML syntax elements <code class="docutils literal notranslate"><span class="pre">+M</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code>, <code class="docutils literal notranslate"><span class="pre">^</span></code>, and <code class="docutils literal notranslate"><span class="pre">v</span></code></p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-1">
-<h2>Version 0.4.1<a class="headerlink" href="#version-0-4-1" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-1">
+<h2>Version 0.4.1<a class="headerlink" href="#version-0-4-1" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>ms3 0.4.1 supports parsing (but not storing) compressed MuseScore files (.mscz)</p></li>
 <li><p>Installs “ms3 convert” command to your system for batch conversion using your local MuseScore installation</p></li>
 <li><p>“ms3 extract” command now supports creation of log files</p></li>
 <li><p>take <code class="docutils literal notranslate"><span class="pre">labels_cfg</span></code> into account when creating expanded chord tables</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-4-0">
-<h2>Version 0.4.0<a class="headerlink" href="#version-0-4-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-4-0">
+<h2>Version 0.4.0<a class="headerlink" href="#version-0-4-0" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>The standard column ‘onset’ has been renamed to ‘mc_onset’ and ‘mn_onset’ has been added as an additional standard column.</p></li>
 <li><p>Parse TSV files as Annotations objects</p></li>
@@ -302,9 +356,9 @@ select all files from folders called notes.</p></li>
 <li><p>Easy access to individual parsed files through Parse[ID] or Parse[ix]</p></li>
 <li><p>parse annotation files with diverging column names</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-3-0">
-<h2>Version 0.3.0<a class="headerlink" href="#version-0-3-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-3-0">
+<h2>Version 0.3.0<a class="headerlink" href="#version-0-3-0" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Parse.detach_levels() for emptying all parsed scores from annotations</p></li>
 <li><p>Parse.store_mscx() for storing altered (e.g. emptied) score objects as MuseScore files</p></li>
@@ -317,9 +371,9 @@ select all files from folders called notes.</p></li>
 <li><p>renamed Score.output_mscx() to store_mscx() for consistency.</p></li>
 <li><p>improved expansion of DCML harmony labels</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-2-0">
-<h2>Version 0.2.0<a class="headerlink" href="#version-0-2-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-2-0">
+<h2>Version 0.2.0<a class="headerlink" href="#version-0-2-0" title="Permalink to this heading">¶</a></h2>
 <p>Beta stage:</p>
 <ul class="simple">
 <li><p>attaching and detaching labels</p></li>
@@ -329,9 +383,9 @@ select all files from folders called notes.</p></li>
 <li><p>conversion of MuseScore’s encoding of absolute chords</p></li>
 <li><p>first version of docs</p></li>
 </ul>
-</div>
-<div class="section" id="version-0-1-3">
-<h2>Version 0.1.3<a class="headerlink" href="#version-0-1-3" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-1-3">
+<h2>Version 0.1.3<a class="headerlink" href="#version-0-1-3" title="Permalink to this heading">¶</a></h2>
 <p>At this stage, the library can parse MuseScore 3 files to different types of lists:</p>
 <ul class="simple">
 <li><p>measures</p></li>
@@ -347,16 +401,16 @@ select all files from folders called notes.</p></li>
 <li><p>harmonies</p></li>
 </ul>
 <p>and also some basic metadata.</p>
-</div>
-<div class="section" id="version-0-1-0">
-<h2>Version 0.1.0<a class="headerlink" href="#version-0-1-0" title="Permalink to this headline">¶</a></h2>
+</section>
+<section id="version-0-1-0">
+<h2>Version 0.1.0<a class="headerlink" href="#version-0-1-0" title="Permalink to this heading">¶</a></h2>
 <ul class="simple">
 <li><p>Basic parser implemented</p></li>
 <li><p>Logging</p></li>
 <li><p>Measure lists</p></li>
 </ul>
-</div>
-</div>
+</section>
+</section>
 
 
             <div class="clearer"></div>
@@ -375,6 +429,9 @@ select all files from folders called notes.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-5-3">Version 0.5.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-5-2">Version 0.5.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-0-5-1">Version 0.5.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-5-0">Version 0.5.0</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-4-10">Version 0.4.10</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-4-9">Version 0.4.9</a></li>
@@ -410,12 +467,12 @@ select all files from folders called notes.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
     
@@ -451,7 +508,7 @@ select all files from folders called notes.</p></li>
         <li class="right" >
           <a href="authors.html" title="Contributors"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
@@ -460,7 +517,7 @@ select all files from folders called notes.</p></li>
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

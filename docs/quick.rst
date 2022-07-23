@@ -79,6 +79,10 @@ Removing annotation labels
 
 The annotations will be stored with a keyword that you choose. It needs to be different from ``'annotations'``.
 
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
+
 .. code-block:: python
 
     >>> s.detach_labels(key='chords')
@@ -154,6 +158,10 @@ The method :py:meth:`~ms3.score.Score.attach_labels` can be used to re-attach a 
     48 labels:
     staff  voice  label_type  color_name
     3      1      1           default       48
+
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
 As we can see, the parameter ``voice=1`` has been used to insert the labels in the first layer (coloured blue in MuseScore)
 of staff 3 when originally they had been attached to layer two (coloured in green in the software). Additionally,
@@ -321,6 +329,9 @@ Instead, we could assign all ten files to the same key and then add the 'docs' o
     all    -> {'.mscx': 10}
     doubly -> {'.mscx': 4}
 
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
 Parsing
 -------
@@ -389,6 +400,9 @@ In this variant, all aspects are stored each in individual folders but with iden
      '~/ms3/docs/rests/stabat.tsv',
      '~/ms3/docs/notes_and_rests/stabat.tsv']
 
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
 In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
 same four files but this time from the perspective of ``~/ms3``:
@@ -424,6 +438,10 @@ same four files but this time from the perspective of ``~/ms3``:
      '~/ms3/measures/stabat.tsv',
      '~/labels/stabat.tsv',
      '~/labels/stabat_exp.tsv']
+
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
 
 The rules for specifying the folders are as follows:
 

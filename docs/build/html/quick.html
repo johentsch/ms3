@@ -3,21 +3,21 @@
 
 <!DOCTYPE html>
 
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quick Reference &#8212; ms3 0.5.0+g73b2ab7.dirty documentation</title>
-    <link rel="stylesheet" href="_static/cloud.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" type="text/css" href="_static/ansi.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Quick Reference &#8212; ms3 0.5.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
-    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
     <script src="_static/jquery.js"></script>
     <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
-    <script src="_static/language_data.js"></script>
 
     
     
@@ -58,7 +58,7 @@
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -71,20 +71,20 @@
         <div class="bodywrapper">
           <div class="body" role="main">
             
-  <div class="section" id="quick-reference">
-<h1>Quick Reference<a class="headerlink" href="#quick-reference" title="Permalink to this headline">¶</a></h1>
-<div class="figure align-default">
+  <section id="quick-reference">
+<h1>Quick Reference<a class="headerlink" href="#quick-reference" title="Permalink to this heading">¶</a></h1>
+<figure class="align-default">
 <img alt="The archicture of ms3" src="_images/ms3_architecture.png" />
-</div>
+</figure>
 <p>There are two ways of interacting with ms3, namely using the commands that it installs to your system (such as
 <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>), or using its main objects, <a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> and <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a>, for example
 in an interactive Python interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
-<div class="section" id="parsing-a-single-score-working-with-the-score-object">
-<h2>Parsing a single score: Working with the Score object<a class="headerlink" href="#parsing-a-single-score-working-with-the-score-object" title="Permalink to this headline">¶</a></h2>
+<section id="parsing-a-single-score-working-with-the-score-object">
+<h2>Parsing a single score: Working with the Score object<a class="headerlink" href="#parsing-a-single-score-working-with-the-score-object" title="Permalink to this heading">¶</a></h2>
 <p>The example score is called <code class="docutils literal notranslate"><span class="pre">stabat.mscx</span></code> and can be downloaded from
 <a class="reference external" href="https://raw.githubusercontent.com/johentsch/ms3/master/docs/stabat.mscx">here</a>.</p>
-<div class="section" id="creating-a-score-object">
-<h3>Creating a Score object<a class="headerlink" href="#creating-a-score-object" title="Permalink to this headline">¶</a></h3>
+<section id="creating-a-score-object">
+<h3>Creating a Score object<a class="headerlink" href="#creating-a-score-object" title="Permalink to this heading">¶</a></h3>
 <p>Simply pass the path to the MuseScore 3 file that you want to parse:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Score</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;~/ms3/docs/stabat.mscx&#39;</span><span class="p">)</span>
@@ -114,9 +114,9 @@ CAP, CAPX, MID, MIDI, MUSICXML, MXL), as long as you have MuseScore 3 installed 
 the default installation path for your system by trying <code class="docutils literal notranslate"><span class="pre">Score('stabat.xml',</span> <span class="pre">ms='auto')</span></code>. Otherwise pass the path
 to the executable. Linux users might want to use the <a class="reference external" href="https://musescore.org/en/download#AppImage-(recommended)">AppImage</a>
 which can be stored anywhere on the system.</p>
-</div>
-<div class="section" id="storing-the-labels">
-<h3>Storing the labels<a class="headerlink" href="#storing-the-labels" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="storing-the-labels">
+<h3>Storing the labels<a class="headerlink" href="#storing-the-labels" title="Permalink to this heading">¶</a></h3>
 <p>The annotations contained in a score are stored in an <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object and can be accessed
 and stored as a tab-separated file (TSV) like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">annotations</span>
@@ -128,10 +128,14 @@ and stored as a tab-separated file (TSV) like this:</p>
 <span class="go">True</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="removing-annotation-labels">
-<span id="detaching"></span><h3>Removing annotation labels<a class="headerlink" href="#removing-annotation-labels" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="removing-annotation-labels">
+<span id="detaching"></span><h3>Removing annotation labels<a class="headerlink" href="#removing-annotation-labels" title="Permalink to this heading">¶</a></h3>
 <p>The annotations will be stored with a keyword that you choose. It needs to be different from <code class="docutils literal notranslate"><span class="pre">'annotations'</span></code>.</p>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;chords&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">s</span>
 <span class="go">Uncompressed MuseScore file (CHANGED!!!)</span>
@@ -153,18 +157,18 @@ and stored as a tab-separated file (TSV) like this:</p>
 <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
 The warning <code class="docutils literal notranslate"><span class="pre">CHANGED!!!</span></code> does not mean that the file on disc has been changed, only the object. Overwriting
 the original file could mean a loss of the labels unless they are stored separately.</p>
-</div>
-<div class="section" id="storing-the-changed-score">
-<h3>Storing the changed score<a class="headerlink" href="#storing-the-changed-score" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="storing-the-changed-score">
+<h3>Storing the changed score<a class="headerlink" href="#storing-the-changed-score" title="Permalink to this heading">¶</a></h3>
 <p>To output the changed score without the labels, choose a different path unless you really want to overwrite the annotated file.
 The output will always be uncompressed, so make sure to use <code class="docutils literal notranslate"><span class="pre">.mscx</span></code> as extension, not <code class="docutils literal notranslate"><span class="pre">.mscz</span></code>.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">store_mscx</span><span class="p">(</span><span class="s1">&#39;stabat_empty.mscx&#39;</span><span class="p">)</span>
 <span class="go">True</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="adding-labels-to-score">
-<h3>Adding labels to score<a class="headerlink" href="#adding-labels-to-score" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="adding-labels-to-score">
+<h3>Adding labels to score<a class="headerlink" href="#adding-labels-to-score" title="Permalink to this heading">¶</a></h3>
 <p>The method <a class="reference internal" href="reference.html#ms3.score.Score.attach_labels" title="ms3.score.Score.attach_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code></a> can be used to re-attach a set of labels that has been
 <a class="reference internal" href="#detaching"><span class="std std-ref">detached</span></a>. Similarly we can load the empty score and the stored labels to reunite them:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;stabat_empty.mscx&#39;</span><span class="p">)</span>
@@ -200,20 +204,24 @@ The output will always be uncompressed, so make sure to use <code class="docutil
 <span class="go">3      1      1           default       48</span>
 </pre></div>
 </div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 <p>As we can see, the parameter <code class="docutils literal notranslate"><span class="pre">voice=1</span></code> has been used to insert the labels in the first layer (coloured blue in MuseScore)
 of staff 3 when originally they had been attached to layer two (coloured in green in the software). Additionally,
 the parameter <code class="docutils literal notranslate"><span class="pre">label_type=1</span></code> resulted in the labels being attached to MuseScore’s Roman Numeral Analysis layer
 (for information on the various label types, <a class="reference internal" href="manual.html#label-types"><span class="std std-ref">see here</span></a>). If you followed the steps above,
 you may open the new file <code class="docutils literal notranslate"><span class="pre">stabat_rna.mscx</span></code> to inspect the result.</p>
-</div>
-<div class="section" id="accessing-score-information">
-<h3>Accessing score information<a class="headerlink" href="#accessing-score-information" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="accessing-score-information">
+<h3>Accessing score information<a class="headerlink" href="#accessing-score-information" title="Permalink to this heading">¶</a></h3>
 <p>After parsing a score, all contained information is accessible in structured formats. Most information is returned as
-<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.3.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
 <p>Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
 via <code class="docutils literal notranslate"><span class="pre">s.mscx</span></code>.</p>
-<div class="section" id="metadata">
-<h4>Metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h4>
+<section id="metadata">
+<h4>Metadata<a class="headerlink" href="#metadata" title="Permalink to this heading">¶</a></h4>
 <p>The metadata contains the data that can be accessed and altered in MuseScore 3 through the menu <code class="docutils literal notranslate"><span class="pre">File</span> <span class="pre">-&gt;</span> <span class="pre">Score</span> <span class="pre">Properties</span></code>
 as well as information computed from the score, such as the names and ambitus of the contained staves. Note that the
 ambitus in the example here pertain to the first page only.</p>
@@ -286,9 +294,9 @@ ambitus in the example here pertain to the first page only.</p>
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">musescore</span></code>: The MuseScore version with which the files has been saved.</p></li>
 </ul>
-</div>
-<div class="section" id="tabular-information">
-<span id="tabular-info"></span><h4>Tabular information<a class="headerlink" href="#tabular-information" title="Permalink to this headline">¶</a></h4>
+</section>
+<section id="tabular-information">
+<span id="tabular-info"></span><h4>Tabular information<a class="headerlink" href="#tabular-information" title="Permalink to this heading">¶</a></h4>
 <p>All score information, except the metadata, is contained in the following two tables:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">measures</span></code>: A list of all measures together with the strictly increasing <strong>measure counts (MC)</strong> mapped to the actual
@@ -367,15 +375,15 @@ into the encoded features.</p></li>
 47  13  13      3/4      3/4     4/4      3      2   &lt;NA&gt;      III6   0 (dcml)
 </pre></div>
 </div>
-</div>
-</div>
-</div>
-<div class="section" id="parsing-multiple-scores">
-<h2>Parsing multiple scores<a class="headerlink" href="#parsing-multiple-scores" title="Permalink to this headline">¶</a></h2>
+</section>
+</section>
+</section>
+<section id="parsing-multiple-scores">
+<h2>Parsing multiple scores<a class="headerlink" href="#parsing-multiple-scores" title="Permalink to this heading">¶</a></h2>
 <p>Often we want to perform operations on many scores at once, for example extracting the notelist of each and store it as
 a tab-separated values file (TSV).</p>
-<div class="section" id="loading">
-<h3>Loading<a class="headerlink" href="#loading" title="Permalink to this headline">¶</a></h3>
+<section id="loading">
+<h3>Loading<a class="headerlink" href="#loading" title="Permalink to this heading">¶</a></h3>
 <p>The first step is to create a <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a> object. When passing it
 the path of the cloned <a class="reference external" href="https://github.com/johentsch/ms3">Git</a>, it scans it for all MSCX files:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Parse</span>
@@ -398,9 +406,13 @@ Instead, we could assign all ten files to the same key and then add the ‘docs�
 <span class="go">doubly -&gt; {&#39;.mscx&#39;: 4}</span>
 </pre></div>
 </div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
 </div>
-<div class="section" id="parsing">
-<h3>Parsing<a class="headerlink" href="#parsing" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="parsing">
+<h3>Parsing<a class="headerlink" href="#parsing" title="Permalink to this heading">¶</a></h3>
 <p>… is as simple as</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
 <span class="go">WARNING Did03M-Son_regina-1762-Sarti -- bs4_measures.py (line 152) check_measure_numbers():</span>
@@ -427,9 +439,9 @@ Instead, we could assign all ten files to the same key and then add the ‘docs�
 <span class="go"> (&#39;doubly&#39;, 3): &#39;~/ms3/docs/stabat.mscx -&gt; 48 labels&#39;}</span>
 </pre></div>
 </div>
-</div>
-<div class="section" id="extracting-score-information">
-<h3>Extracting score information<a class="headerlink" href="#extracting-score-information" title="Permalink to this headline">¶</a></h3>
+</section>
+<section id="extracting-score-information">
+<h3>Extracting score information<a class="headerlink" href="#extracting-score-information" title="Permalink to this heading">¶</a></h3>
 <p>Each of the <a class="reference internal" href="#tabular-info"><span class="std std-ref">previously discussed DataFrames</span></a> can be automatically stored for every score. To select
 one or several aspects from <code class="docutils literal notranslate"><span class="pre">[notes,</span> <span class="pre">measures,</span> <span class="pre">rests,</span> <span class="pre">notes_and_rests,</span> <span class="pre">events,</span> <span class="pre">labels,</span> <span class="pre">chords,</span> <span class="pre">expanded]</span></code>, it is enough
 to pass the respective <code class="docutils literal notranslate"><span class="pre">_folder</span></code> parameter to <code class="xref py py-meth docutils literal notranslate"><span class="pre">store_lists()</span></code> distinguishing where to store
@@ -456,6 +468,10 @@ filenames. If the parameter <code class="docutils literal notranslate"><span cla
 <span class="go"> &#39;~/ms3/docs/rests/stabat.tsv&#39;,</span>
 <span class="go"> &#39;~/ms3/docs/notes_and_rests/stabat.tsv&#39;]</span>
 </pre></div>
+</div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
 </div>
 <p>In this variant, the different ways of specifying folders are exemplified. To demonstrate all subtleties we parse the
 same four files but this time from the perspective of <code class="docutils literal notranslate"><span class="pre">~/ms3</span></code>:</p>
@@ -490,6 +506,10 @@ same four files but this time from the perspective of <code class="docutils lite
 <span class="go"> &#39;~/labels/stabat_exp.tsv&#39;]</span>
 </pre></div>
 </div>
+<div class="admonition caution">
+<p class="admonition-title">Caution</p>
+<p>The parameter <code class="docutils literal notranslate"><span class="pre">key</span></code> will be deprecated from version 0.6.0 onwards. See <a class="reference internal" href="manual.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a>.</p>
+</div>
 <p>The rules for specifying the folders are as follows:</p>
 <ul class="simple">
 <li><p>absolute folder (e.g. <code class="docutils literal notranslate"><span class="pre">~/labels</span></code>): Store all files in this particular folder without creating subfolders.</p></li>
@@ -501,10 +521,10 @@ folders are created at the top level (of the original directory or the specified
 <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
 in each of them.</p></li>
 </ul>
-<p>To see examples for the three possibilities, see <a class="reference internal" href="manual.html#specifying-folders"><span class="std std-ref">Specifying folders</span></a>.</p>
-</div>
-</div>
-</div>
+<p>To see examples for the three possibilities, see <span class="xref std std-ref">specifying_folders</span>.</p>
+</section>
+</section>
+</section>
 
 
             <div class="clearer"></div>
@@ -567,12 +587,12 @@ in each of them.</p></li>
   <h3 id="searchlabel">Quick search</h3>
     <div class="searchformwrapper">
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <input type="submit" value="Go" />
     </form>
     </div>
 </div>
-<script>$('#searchbox').show(0);</script>
+<script>document.getElementById('searchbox').style.display = "block"</script>
         </div>
       </div>
     
@@ -611,7 +631,7 @@ in each of them.</p></li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.0+g73b2ab7.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -620,7 +640,7 @@ in each of them.</p></li>
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 3.2.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

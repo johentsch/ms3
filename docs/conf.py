@@ -11,7 +11,6 @@
 import os
 import sys
 import inspect
-import shutil
 
 __location__ = os.path.join(os.getcwd(), os.path.dirname(
     inspect.getfile(inspect.currentframe())))
@@ -67,7 +66,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.autosummary', 'sphinx.ext.viewcode', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax', 'sphinx.ext.githubpages',
               'sphinx.ext.napoleon', 'sphinxarg.ext', 'sphinxcontrib.programoutput']
-# pip install sphinxcontrib-programoutput
+# pip install -r requirements.txt
 
 # Napoleon settings
 napoleon_use_admonition_for_examples = True
