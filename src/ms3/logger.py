@@ -2,6 +2,9 @@ import logging, sys, os
 from collections import defaultdict
 from functools import wraps
 from enum import Enum
+from pathlib import Path
+import json
+import re
 
 
 LEVELS = {
@@ -35,7 +38,7 @@ class CustomFormatter(logging.Formatter):
         else:
             record.msg = '%-8s %s (%s, %s) %s -- %s (line %s) %s(): \n\t %s' % (
             record.levelname, record._message_type_full, record._message_type, record._info, record.name, record.pathname, record.lineno, record.funcName, record.msg)
-        return super(CustomFormatter , self).format(record)
+        return super(CustomFormatter, self).format(record)
 
 
 class LoggedClass():
@@ -103,17 +106,22 @@ def get_parent_level(logger):
     return parent
 
 class WarningFilter(logging.Filter):
-    def __init__(self, logger):
+    def __init__(self, logger, filter_path='unittest_metacorpus/mixed_files'):
         super().__init__()
         self.logger = logger
         self.ignore = defaultdict(lambda: [()])
-        self.ignore.update({2: [(96)], 1: [()]})
+        # get warnings from json
+        with open(os.path.join(str(Path.home()), filter_path, 'IGNORED_WARNINGS.json')) as f:
+            self.ignore.update(json.load(f))
 
     def filter(self, record):
-        if record._message_type != 0 and record._info in self.ignore[record._message_type]:
-            return False
+        if type(record._info) == str:
+            check_log = [record._message_type, *list(map(int, re.split("[, ]+", record._info)))]
         else:
-            return True
+            check_log = [record._message_type, record._info]
+        if check_log in self.ignore[record.name]:
+            record.levelname = "DEBUG"
+        return True
 
 def config_logger(name, level=None, path=None, propagate=True):
     """Configs the logger with name `name`. Overwrites existing config."""
@@ -126,12 +134,12 @@ def config_logger(name, level=None, path=None, propagate=True):
         record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
         record._message_type = extra["message_id"][0] if extra is not None else 0
         if extra is None:
-            record._info = ""
+            record._info = 0
         elif len(extra["message_id"][1:]) == 1:
             record._info = extra["message_id"][1]
         else:
             record._info = extra["message_id"][1:]
-        record._message_type_full = MessageType(extra["message_id"][0]).name if extra is not None else ""
+        record._message_type_full = MessageType(extra["message_id"][0]).name if extra is not None else MessageType(0).name
         return record
 
     logger.makeRecord = make_record_with_extra
