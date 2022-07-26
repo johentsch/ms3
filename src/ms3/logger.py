@@ -17,8 +17,6 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-DEFAULT_LOG_FORMAT = '%(levelname)-8s %(_message_type_full)s (%(_message_type)s, %(_info)s) %(name)s -- %(pathname)s (line %(lineno)s) %(funcName)s(): \n\t %(message)s'
-
 
 class MessageType(Enum):
     NO_TYPE = 0  # 0 is reserved as no type message
@@ -29,9 +27,15 @@ class MessageType(Enum):
     MISSING_END_REPEAT_WARNING = 5
     SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
 
-def get_default_formatter():
-    format = DEFAULT_LOG_FORMAT
-    return logging.Formatter(format)
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        if record._message_type == 0:
+            record.msg = '%-8s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, record.msg)
+        else:
+            record.msg = '%-8s %s (%s, %s) %s -- %s (line %s) %s(): \n\t %s' % (
+            record.levelname, record._message_type_full, record._message_type, record._info, record.name, record.pathname, record.lineno, record.funcName, record.msg)
+        return super(CustomFormatter , self).format(record)
 
 
 class LoggedClass():
@@ -120,9 +124,14 @@ def config_logger(name, level=None, path=None, propagate=True):
 
     def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
         record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
-        record._message_type = extra["message_type"] if extra is not None else 0
-        record._info = extra["info"] if extra is not None else ""
-        record._message_type_full = MessageType(extra["message_type"]).name if extra is not None else ""
+        record._message_type = extra["message_id"][0] if extra is not None else 0
+        if extra is None:
+            record._info = ""
+        elif len(extra["message_id"][1:]) == 1:
+            record._info = extra["message_id"][1]
+        else:
+            record._info = extra["message_id"][1:]
+        record._message_type_full = MessageType(extra["message_id"][0]).name if extra is not None else ""
         return record
 
     logger.makeRecord = make_record_with_extra
@@ -145,7 +154,7 @@ def config_logger(name, level=None, path=None, propagate=True):
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
         return logger
-    formatter = get_default_formatter()
+    formatter = CustomFormatter()
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = [h for h in existing_handlers if h.__class__ == logging.StreamHandler]
     n_stream_handlers = len(stream_handlers)
@@ -283,8 +292,7 @@ class LogCapturer(object):
     def __init__(self, level="W"):
         self._log_queue = list() # original example was using collections.deque() to set maxlength
         self._log_handler = LogCaptureHandler(self._log_queue)
-        formatter = get_default_formatter()
-        self._log_handler.setFormatter(formatter)
+        self._log_handler.setFormatter(CustomFormatter())
         self._log_handler.setLevel(resolve_level_param(level))
 
     @property

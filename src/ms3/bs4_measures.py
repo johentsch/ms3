@@ -182,7 +182,7 @@ class MeasureList(LoggedClass):
                     current_mn = mc2mn[mc]
                     if current_mn != mn:
                         self.logger.warning(
-                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, not MN {current_mn}.", extra={"info": (mc,), "message_type": 2})
+                            f"MC {mc}, the {ordinal(i)} measure of a {ordinal(j)} volta, should have MN {mn}, not MN {current_mn}.", extra={"message_id": (2, mc)})
 
         # Check measure numbers for split measures
         error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
@@ -193,7 +193,7 @@ class MeasureList(LoggedClass):
             context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
-                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"info": (mcs,), "message_type": 1})
+                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, mcs)})
 
 
 @function_logger
@@ -388,7 +388,7 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             if self.potential_ending is None:
                 self.logger.warning(f"""The startRepeat in MC {self.start} is missing its endRepeat.
 For correction, MC {mc - 1} is interpreted as such because it precedes the next startRepeat.""",
-                                    extra={"info": (self.start,), "message_type": 5})
+                                    extra={"message_id": (5, self.start)})
                 self.end_section(mc - 1)
             else:
                 ending, reason = self.potential_ending
@@ -704,7 +704,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
             if errors > 0:
                 logger.warning(
                     f"The incomplete MC {mc} (timesig {nom_durs[mc]}, act_dur {act_durs[mc]}) is completed by {errors} incorrect duration{'s' if errors > 1 else ''} (expected: {expected}):\n{completions}",
-                extra={"info": (mc,), "message_type": 3})
+                extra={"message_id": (3, mc)})
             for compl in completions.keys():
                 add_offset(compl)
         elif offsets[mc] == 0:
@@ -779,7 +779,7 @@ def treat_group(mc, group):
     if (lengths != frst).any():
         logger.warning(
             f"Volta group of MC {mc} contains voltas with different lengths: {lengths.tolist()} Check for correct computation of MNs.",
-        extra={"info": (mc,), "message_type": 4})
+        extra={"message_id": (4, mc)})
     # check for overlaps and holes
     boundaries = np.append(mcs, mcs[-1] + group[-1, 2])
     correct = {i: np.arange(fro, to).tolist() for i, (fro, to) in
