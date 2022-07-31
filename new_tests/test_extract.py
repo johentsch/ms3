@@ -1,5 +1,7 @@
 import pytest
 from collections import defaultdict
+import os
+from pathlib import Path
 
 def inspect_object(obj, no_magic=True):
     result = {}
@@ -113,14 +115,21 @@ class TestParsedParse():
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
+    @pytest.fixture()
+    def get_ignored_warnings(self, filter_path='unittest_metacorpus/mixed_files'):
+        # get warnings from file
+        with open(os.path.join(str(Path.home()), filter_path, 'IGNORED_WARNINGS')) as f:
+            ignored_messages = f.read()
+        return ignored_messages
+
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
 
-    def test_check(self, caplog):
+    def test_check(self, caplog, get_ignored_warnings):
         _ = self.parsed_parse_obj.get_dataframes(expanded=True)
         for record in caplog.records:
-            if record.levelname == 'WARNING':
-                print(inspect_object(record))
+            if " ".join(record.getMessage().split(sep="--")[0].split(sep=" ")) in get_ignored_warnings:
+                assert record.levelname == "DEBUG"
 
 # add_dir (different keys)
 # file_re
