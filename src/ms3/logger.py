@@ -22,6 +22,7 @@ LEVELS = {
 
 
 class MessageType(Enum):
+    """Enumerated constants of message types."""
     NO_TYPE = 0  # 0 is reserved as no type message
     MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING = 1
     INCORRECT_VOLTA_MN_WARNING = 2
@@ -32,8 +33,9 @@ class MessageType(Enum):
 
 
 class CustomFormatter(logging.Formatter):
+    """Formats message depending on whether there is a specified message type"""
     def format(self, record):
-        if record._message_type == 0:
+        if record._message_type == 0:  # if there is no message type
             record.msg = '%-8s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, record.msg)
         else:
             record.msg = '%-8s %s (%s, %s) %s -- %s (line %s) %s(): \n\t %s' % (
@@ -106,6 +108,7 @@ def get_parent_level(logger):
     return parent
 
 class WarningFilter(logging.Filter):
+    """Filters messages. If message is in json file, its level is changed to debug."""
     def __init__(self, logger, filter_path='unittest_metacorpus/mixed_files'):
         super().__init__()
         self.logger = logger
@@ -131,6 +134,14 @@ def config_logger(name, level=None, path=None, propagate=True):
     original_makeRecord = logger.makeRecord
 
     def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
+        """
+        Rewrites the method of record logging to pass extra parameter.
+        Returns
+        -------
+            record with fields: _info - label of message
+                                _message_type - index of message type accordingly to enum class MessageType
+                                _message_type_full - name of message type accordingly to enum class MessageType
+        """
         record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
         record._message_type = extra["message_id"][0] if extra is not None else 0
         if extra is None:
