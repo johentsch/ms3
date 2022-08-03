@@ -116,6 +116,23 @@ class TestParsedParse():
         return name2expected[name]
 
     @pytest.fixture()
+    def n_parsed_files(self, request):
+        name2expected = defaultdict(lambda: (0,0))
+        name2expected.update({
+            "parsed_all-chaotic_dirs": (9, 4),
+            "parsed_all-everything": (17, 29),
+            "parsed_all-regular_dirs": (8, 25),
+            "parsed_mscx-chaotic_dirs": (9, 0),
+            "parsed_mscx-everything": (17, 0),
+            "parsed_mscx-regular_dirs": (8, 0),
+            "parsed_tsv-chaotic_dirs": (0, 4),
+            "parsed_tsv-everything": (0, 29),
+            "parsed_tsv-regular_dirs": (0, 25),
+        })
+        name = node_name2cfg_name(request.node.name)
+        return name2expected[name]
+
+    @pytest.fixture()
     def get_ignored_warnings(self, filter_path='unittest_metacorpus/mixed_files'):
         # get warnings from file
         with open(os.path.join(str(Path.home()), filter_path, 'IGNORED_WARNINGS')) as f:
@@ -124,6 +141,11 @@ class TestParsedParse():
 
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
+
+    def test_n_parsed(self, n_parsed_files):
+        p = self.parsed_parse_obj
+        parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
+        assert parsed_files == n_parsed_files
 
     def test_check(self, caplog, get_ignored_warnings):
         _ = self.parsed_parse_obj.get_dataframes(expanded=True)
