@@ -82,9 +82,10 @@ class Parse(LoggedClass):
         ``{key: [path]}`` dictionary of the paths of all detected files (without file name).
         """
 
-        self.files = defaultdict(list)
-        """:obj:`collections.defaultdict`
-        ``{key: [file]}`` dictionary of file names with extensions of all detected files.
+        self.files = {}
+        """:obj:`dict`
+        ``{key: [file]}`` dictionary of file names with extensions of all detected files. Keys
+        serve as inventory of available corpora, e.g. in self.keys().
         """
 
         self.fnames = defaultdict(list)
@@ -244,6 +245,7 @@ class Parse(LoggedClass):
             for d in directory:
                 self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
+            assert key is not None, "When adding individual files, you need to specify a key. Consider using _.add_corpus() instead."
             if isinstance(paths, str):
                 paths = [paths]
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
@@ -565,28 +567,49 @@ class Parse(LoggedClass):
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
-        if key is None:
-            directories = sorted(iterate_subcorpora(directory, logger=self.logger))
-            n_subcorpora = len(directories)
-            if n_subcorpora == 0:
-                key = os.path.basename(directory)
-                self.logger.debug(f"No subcorpora detected. Grouping all files under the key {key}.")
-                paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                                              recursive=recursive, logger=self.logger))
-                _ = self.add_files(paths=paths, key=key)
-            else:
-                self.logger.debug(f"{n_subcorpora} subcorpora detected.")
-                for d in directories:
-                    if re.search(exclude_re, os.path.basename(d)) is not None:
-                        continue
-                    paths = sorted(scan_directory(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                                                  recursive=recursive, logger=self.logger))
-                    k = os.path.basename(d)
-                    _ = self.add_files(paths=paths, key=k)
+
+        if key is not None:
+            # contained files to be added to an existing corpus
+            paths = sorted(
+                scan_directory(directory, file_re=file_re, folder_re=folder_re,
+                               exclude_re=exclude_re,
+                               recursive=recursive, logger=self.logger))
+            _ = self.add_files(paths=paths, key=key) # makes sure that the key exists
+            return
+
+        # new corpus/corpora to be added
+        directories = sorted(iterate_subcorpora(directory, logger=self.logger))
+        n_subcorpora = len(directories)
+        self.logger.debug(f"{n_subcorpora} subcorpora detected.")
+        if n_subcorpora == 0:
+            directories = [directory]
         else:
-            self.logger.debug(f"Grouping all detected files under the key {key}.")
-            paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
-            _ = self.add_files(paths=paths, key=key)
+            directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
+        for d in directories:
+            self.add_corpus(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+
+
+    def add_corpus(self, directory, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+        paths = sorted(
+            scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
+                           recursive=recursive, logger=self.logger))
+        key = os.path.basename(directory)
+        self.logger.debug(f"Adding {directory} as corpus with key {key}.")
+        self.files[key] = []
+        added_ids = self.add_files(paths=paths, key=key)
+        ignored_warnings_files = self.files[key].count('IGNORED_WARNINGS')
+        if ignored_warnings_files == 0:
+            return
+        if ignored_warnings_files > 1:
+            self.logger.error(f"More than one IGNORED_WARNINGS file detected for '{key}'")
+            return
+        i = self.files[key].index('IGNORED_WARNINGS')
+        ignored_warnings = {} # parse self.full_paths[key][i] into a {logger_name -> [message_id]} dict
+        new_loggers = [self.logger_names[id] for id in added_ids]
+        for new_logger_name in new_loggers:
+            for to_be_configured, message_ids in ignored_warnings.items():
+                if to_be_configured.startswith(new_logger_name):
+                    pass # _ = get_logger(new_logger_name, ignore_warnings=message_ids)
 
 
     def add_files(self, paths, key=None, exclude_re=None):
