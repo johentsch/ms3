@@ -70,8 +70,26 @@ class TestEmptyParse():
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
+    @pytest.fixture()
+    def expected_tsv_lines(self, request):
+        name2expected = defaultdict(lambda: 0)
+        name2expected.update(dict(
+            chaotic_dirs = 8,
+            everything = 16,
+            files_with_correct_key = 1,
+            regular_dirs = 8
+        ))
+        name = node_name2cfg_name(request.node.name)
+        return name2expected[name]
+
     def test_keys(self, expected_keys):
         assert self.parse_obj.count_extensions(per_key=True) == expected_keys
+
+    def test_metadata(self, expected_tsv_lines):
+        p = self.parse_obj
+        metadata_tsv_lines = sum(len(p[k].metadata()) for k in p.keys())
+        assert metadata_tsv_lines == expected_tsv_lines
+        assert len(p.metadata()) == 0
 
     def test_empty(self):
         assert len(self.parse_obj._parsed_mscx) == 0
