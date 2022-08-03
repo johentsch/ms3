@@ -1,4 +1,5 @@
 import os
+from copy import deepcopy
 import pytest
 from ms3 import Parse
 from ms3.utils import first_level_subdirs
@@ -59,15 +60,16 @@ def parse_obj(directory, request):
     ],
 )
 def parsed_parse_obj(parse_obj, request):
+    p = deepcopy(parse_obj)
     if request.param == 0:
-        parse_obj.parse_tsv()
+        p.parse_tsv()
     elif request.param == 1:
-        parse_obj.parse_mscx()
+        p.parse_mscx()
     elif request.param == 2:
-        parse_obj.parse()
+        p.parse()
     else:
         assert False
-    return parse_obj
+    return p
 
 @pytest.fixture(scope="class")
 def parse_objects(parse_obj, request):
