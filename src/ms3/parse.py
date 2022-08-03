@@ -13,7 +13,7 @@ from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
     group_id_tuples, \
-    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, \
+    iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2key
@@ -545,7 +545,7 @@ class Parse(LoggedClass):
             Directory to scan for files.
         key : :obj:`str`, optional
             | Pass a string to identify the loaded files.
-            | By default, the function :py:func:`iterate_subcorpora` is used to detect subcorpora and use their folder
+            | By default, the function :py:func:`iterate_corpora` is used to detect corpora and use their folder
               names as keys.
         file_re : :obj:`str`, optional
             Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
@@ -578,12 +578,13 @@ class Parse(LoggedClass):
             return
 
         # new corpus/corpora to be added
-        directories = sorted(iterate_subcorpora(directory, logger=self.logger))
-        n_subcorpora = len(directories)
-        self.logger.debug(f"{n_subcorpora} subcorpora detected.")
-        if n_subcorpora == 0:
+        directories = sorted(iterate_corpora(directory, logger=self.logger))
+        n_corpora = len(directories)
+        if n_corpora == 0:
+            self.logger.debug(f"Treating {directory} as corpus.")
             directories = [directory]
         else:
+            self.logger.debug(f"{n_corpora} corpora detected.")
             directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
         for d in directories:
             self.add_corpus(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)

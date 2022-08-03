@@ -33,8 +33,8 @@ STANDARD_COLUMN_ORDER = [
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
                   'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
 """:obj:`list`
-Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
-considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
+Indicators for corpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
+considered to be a corpus by the function :py:func:`iterate_corpora`.
 """
 
 
@@ -1198,17 +1198,17 @@ def first_level_subdirs(path):
         return subdirs
 
 @function_logger
-def contains_subcorpus_indicator(path):
+def contains_corpus_indicator(path):
     for subdir in first_level_subdirs(path):
         for name in STANDARD_NAMES:
             if subdir == name:
-                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a subcorpus.")
+                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
                 return True
     return False
 
 
 @function_logger
-def iterate_subcorpora(path):
+def iterate_corpora(path):
     """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
     of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
     score file."""
@@ -1221,10 +1221,10 @@ def iterate_subcorpora(path):
             yield_subpaths = True
             break
     if not yield_subpaths:
-        if contains_subcorpus_indicator(path, logger=logger):
+        if contains_corpus_indicator(path, logger=logger):
             return path
         for subpath in subpaths:
-            if contains_subcorpus_indicator(subpath, logger=logger):
+            if contains_corpus_indicator(subpath, logger=logger):
                 yield_subpaths = True
                 break
     if not yield_subpaths:
