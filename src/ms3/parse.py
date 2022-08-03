@@ -611,8 +611,7 @@ class Parse(LoggedClass):
                 if to_be_configured.startswith(new_logger_name):
                     pass # _ = get_logger(new_logger_name, ignore_warnings=message_ids)
 
-
-    def add_files(self, paths, key=None, exclude_re=None):
+    def add_files(self, paths, key, exclude_re=None):
         """
 
         Parameters
@@ -629,6 +628,7 @@ class Parse(LoggedClass):
         :obj:`list`
             The IDs of the added files.
         """
+        assert key in self.files, f"'{key}' is not an existing key."
         if paths is None or len(paths) == 0:
             self.logger.debug(f"add_files() was called with paths = '{paths}'.")
             return []
