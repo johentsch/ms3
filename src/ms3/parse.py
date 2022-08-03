@@ -535,18 +535,16 @@ class Parse(LoggedClass):
 
     def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
         """
-        This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
-        to the Parse object without looking at them. It is recommended to add different types of files with different keys,
-        e.g. 'mscx' for score, 'harmonies' for chord labels, and 'form' for form labels.
+        This method decides if the directory ``directory`` contains several corpora or if it is a corpus
+        itself, and calls _.add_corpus() for every corpus.
 
         Parameters
         ----------
         directory : :obj:`str`
             Directory to scan for files.
         key : :obj:`str`, optional
-            | Pass a string to identify the loaded files.
-            | By default, the function :py:func:`iterate_corpora` is used to detect corpora and use their folder
-              names as keys.
+            By default, the folder names of the detected corpora are used as keys. If you pass a string,
+            you force ``directory`` to be treated as one corpus, identified by the given string.
         file_re : :obj:`str`, optional
             Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
             depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
@@ -568,35 +566,59 @@ class Parse(LoggedClass):
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
 
-        if key is not None:
-            # contained files to be added to an existing corpus
-            paths = sorted(
-                scan_directory(directory, file_re=file_re, folder_re=folder_re,
-                               exclude_re=exclude_re,
-                               recursive=recursive, logger=self.logger))
-            _ = self.add_files(paths=paths, key=key) # makes sure that the key exists
-            return
-
         # new corpus/corpora to be added
         directories = sorted(iterate_corpora(directory, logger=self.logger))
         n_corpora = len(directories)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
-            directories = [directory]
+            if key is not None:
+                self.logger.info(f"Using key '{key}' for corpus '{os.path.basename(directory)}'.")
+            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
             directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
-        for d in directories:
-            self.add_corpus(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            if key is not None:
+                self.logger.warning(f"The following corpora are grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
+                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            else:
+                for d in directories:
+                    self.add_corpus(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
 
-    def add_corpus(self, directory, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+    def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+        """
+        This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
+        under the same key, considering them as one corpus.
+        to the Parse object without looking at them. The
+
+        Parameters
+        ----------
+        directory : :obj:`str`
+            Directory to scan for files.
+        key : :obj:`str`, optional
+            By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to
+            use a different identifier.
+        file_re : :obj:`str`, optional
+            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
+            depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        folder_re : :obj:`str`, optional
+            Regular expression for filtering certain folder names.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        exclude_re : :obj:`str`, optional
+            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
+            whose file names include '_reviewed' or start with . or _ or 'concatenated_' are excluded.
+        recursive : :obj:`bool`, optional
+            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        """
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                            recursive=recursive, logger=self.logger))
-        key = os.path.basename(directory)
+        if key is None:
+            key = os.path.basename(directory)
         self.logger.debug(f"Adding {directory} as corpus with key {key}.")
-        self.files[key] = []
+        if key not in self.files:
+            self.files[key] = []
         added_ids = self.add_files(paths=paths, key=key)
         ignored_warnings_files = self.files[key].count('IGNORED_WARNINGS')
         if ignored_warnings_files == 0:
