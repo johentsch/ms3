@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 import pytest
 from ms3 import Parse
-from ms3.utils import first_level_subdirs
+from ms3.utils import first_level_subdirs, scan_directory
 
 # Directory holding your clone of DCMLab/unittest_metacorpus
 CORPUS_DIR = "~"
@@ -21,6 +21,9 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
+        "files_with_correct_key",
+        "files_without_key",
+        "files_with_wrong_key",
         "hidden_dirs",
         "regular_dirs",
         "everything",
@@ -44,6 +47,20 @@ def parse_obj(directory, request):
         for subdir in ['.git', '.github']:
             add_path = os.path.join(directory, subdir)
             p.add_dir(add_path)
+    if request.param.startswith('files_'):
+        add_path = os.path.join(directory, 'sweelinck_keyboard')
+        files = scan_directory(add_path, logger="ms3.tests")
+        if request.param == "files_without_key":
+            with pytest.raises(TypeError) as e_info:
+                p.add_files(files)
+        if request.param == "files_with_wrong_key":
+            with pytest.raises(AssertionError) as e_info:
+                p.add_files(files, key="test")
+        if request.param == "files_with_correct_key":
+            p.add_dir(add_path)
+            for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):
+                p.add_files(path, key='sweelinck_keyboard')
+
     return p
 
 @pytest.fixture(
