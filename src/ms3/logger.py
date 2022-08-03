@@ -78,7 +78,7 @@ class LoggedClass():
         self.logger = get_logger(self.logger_names['class'])
 
 
-def get_logger(name=None, level=None, path=None, propagate=True):
+def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings={}):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     assert name != 'ms3' # TODO: comment out before release
     if isinstance(name, logging.LoggerAdapter):
@@ -87,7 +87,7 @@ def get_logger(name=None, level=None, path=None, propagate=True):
         if level is None:
             level = level.level
         name = name.name
-    logger = config_logger(name, level=level, path=path, propagate=propagate)
+    logger = config_logger(name, level=level, path=path, propagate=propagate, ignored_warnings=ignored_warnings)
     if name is None:
         logging.critical("The root logger has been altered.")
     return logger
@@ -109,7 +109,7 @@ def get_parent_level(logger):
 
 class WarningFilter(logging.Filter):
     """Filters messages. If message is in json file, its level is changed to debug."""
-    def __init__(self, logger, filter_path='unittest_metacorpus/mixed_files'):
+    def __init__(self, logger, filter_path=None):
         super().__init__()
         self.logger = logger
         self.ignore = defaultdict(lambda: [()])
@@ -126,7 +126,7 @@ class WarningFilter(logging.Filter):
             record.levelname = "DEBUG"
         return True
 
-def config_logger(name, level=None, path=None, propagate=True):
+def config_logger(name, level=None, path=None, propagate=True, ignored_warnings={}):
     """Configs the logger with name `name`. Overwrites existing config."""
     assert name is not None, "I don't want to change the root logger."
     new_logger = name not in logging.root.manager.loggerDict
@@ -170,9 +170,14 @@ def config_logger(name, level=None, path=None, propagate=True):
             logger.debug(f"New logger '{name}' initialized with level {level}, inherited from parent {parent.name}.")
     else:
         level = logger.level
+
+    if len(ignored_warnings) > 0:
+        filter = WarningFilter(logger, ignored=ignored_warnings)
+        logger.addFilter(filter)
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
         return logger
+
     formatter = CustomFormatter()
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = [h for h in existing_handlers if h.__class__ == logging.StreamHandler]
@@ -182,7 +187,6 @@ def config_logger(name, level=None, path=None, propagate=True):
         streamHandler.setFormatter(formatter)
         streamHandler.setLevel(level)
         logger.addHandler(streamHandler)
-        streamHandler.addFilter(WarningFilter(logger))
     elif n_stream_handlers == 1:
         streamHandler = stream_handlers[0]
         streamHandler.setLevel(level)
@@ -217,7 +221,6 @@ def config_logger(name, level=None, path=None, propagate=True):
             #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
             fileHandler.setFormatter(formatter)
             logger.addHandler(fileHandler)
-            fileHandler.addFilter(WarningFilter(logger))
     return logger
 
 
