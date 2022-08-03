@@ -21,6 +21,8 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
+        "files_correct_without_metadata",
+        "file_re",
         "without_metadata",
         "redundant",
         "files_with_correct_key",
@@ -33,8 +35,11 @@ def directory():
     ]
 )
 def parse_obj(directory, request):
-    if request.param.startswith('everything'):
+    if request.param == 'everything':
         return Parse(directory=directory)
+    if request.param == 'file_re':
+        p = Parse(directory=directory, key='sweelinck', file_re="SwWV")
+        return p
     if request.param == "without_metadata":
         add_path = os.path.join(directory, "mixed_files", "keyboard")
         return Parse(add_path, key="custom_key")
@@ -63,9 +68,16 @@ def parse_obj(directory, request):
         if request.param == "files_with_wrong_key":
             with pytest.raises(AssertionError) as e_info:
                 p.add_files(files, key="custom_key")
-        if request.param == "files_with_correct_key":
-            p.add_dir(add_path)
+        if request.param == "files_correct_without_metadata":
+            files = [f for f in files if os.path.basename(f) != 'metadata.tsv']
+            key = "frankenstein"
+            p.files[key] = []
+            p.add_files(files, key=key)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):
+                p.add_files(path, key=key)
+        if request.param == "files_with_correct_key":
+            p.add_dir(os.path.join(directory, 'outputs'), key="sweelinck_keyboard")
+            for path in files:
                 p.add_files(path, key='sweelinck_keyboard')
 
     return p

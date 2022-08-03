@@ -60,7 +60,9 @@ class TestEmptyParse():
                              'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            file_re = {'sweelinck': {'.mscx': 2, '.tsv': 7}},
             files_with_correct_key = {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
+            files_correct_without_metadata = {'frankenstein': {'.mscx': 2, '.tsv': 6}},
             redundant = {'classic': {'.mscx': 1, '.mscz': 1}},
             regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
@@ -76,6 +78,7 @@ class TestEmptyParse():
         name2expected.update(dict(
             chaotic_dirs = 8,
             everything = 16,
+            file_re = 1,
             files_with_correct_key = 1,
             regular_dirs = 8
         ))
@@ -88,6 +91,7 @@ class TestEmptyParse():
     def test_metadata(self, expected_tsv_lines):
         p = self.parse_obj
         metadata_tsv_lines = sum(len(p[k].metadata()) for k in p.keys())
+        p._parsed_tsv = {}
         assert metadata_tsv_lines == expected_tsv_lines
         assert len(p.metadata()) == 0
 
@@ -126,6 +130,12 @@ class TestParsedParse():
                                          'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            "parsed_mscx-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            "parsed_tsv-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            "parsed_mscx-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            "parsed_tsv-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
             "parsed_all-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_mscx-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_tsv-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
@@ -155,6 +165,12 @@ class TestParsedParse():
             "parsed_all-chaotic_dirs": (10, 4),
             "parsed_mscx-chaotic_dirs": (10, 0),
             "parsed_tsv-chaotic_dirs": (0, 4),
+            "parsed_all-file_re": (2, 7),
+            "parsed_mscx-file_re": (2, 0),
+            "parsed_tsv-file_re": (0, 7),
+            "parsed_all-files_correct_without_metadata": (2, 6),
+            "parsed_mscx-files_correct_without_metadata": (2, 0),
+            "parsed_tsv-files_correct_without_metadata": (0, 6),
             "parsed_all-files_with_correct_key": (2, 7),
             "parsed_mscx-files_with_correct_key": (2, 0),
             "parsed_tsv-files_with_correct_key": (0, 7),
