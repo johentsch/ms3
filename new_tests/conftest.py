@@ -21,6 +21,8 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
+        "without_metadata",
+        "redundant",
         "files_with_correct_key",
         "files_without_key",
         "files_with_wrong_key",
@@ -32,8 +34,13 @@ def directory():
 )
 def parse_obj(directory, request):
     if request.param.startswith('everything'):
-        p = Parse(directory=directory)
-        return p
+        return Parse(directory=directory)
+    if request.param == "without_metadata":
+        add_path = os.path.join(directory, "mixed_files", "keyboard")
+        return Parse(add_path, key="custom_key")
+    if request.param == "redundant":
+        add_path = os.path.join(directory, "mixed_files", "keyboard", "classic")
+        return Parse(add_path)
     p = Parse()
     if request.param == "regular_dirs":
         for subdir in ['ravel_piano', 'sweelinck_keyboard', 'wagner_overtures']:
@@ -55,7 +62,7 @@ def parse_obj(directory, request):
                 p.add_files(files)
         if request.param == "files_with_wrong_key":
             with pytest.raises(AssertionError) as e_info:
-                p.add_files(files, key="test")
+                p.add_files(files, key="custom_key")
         if request.param == "files_with_correct_key":
             p.add_dir(add_path)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):

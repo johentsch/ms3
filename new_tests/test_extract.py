@@ -54,16 +54,18 @@ class TestEmptyParse():
     def expected_keys(self, request):
         name2expected = defaultdict(dict)
         name2expected.update(dict(
+            chaotic_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.mscx': 1, '.tsv': 3}},
             everything = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
                              'outputs': {'.mscx': 1, '.tsv': 3},
                              'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
             files_with_correct_key = {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
+            redundant = {'classic': {'.mscx': 1, '.mscz': 1}},
             regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            chaotic_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.mscx': 1, '.tsv': 3}},
+            without_metadata = {'custom_key': {'.mscx': 4, '.mscz': 1}},
         ))
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
@@ -109,6 +111,9 @@ class TestParsedParse():
             "parsed_all-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_mscx-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_tsv-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
+            "parsed_mscx-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
+            "parsed_tsv-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
             "parsed_all-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
@@ -118,6 +123,9 @@ class TestParsedParse():
             "parsed_tsv-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
+            "parsed_mscx-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
+            "parsed_tsv-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
@@ -135,9 +143,13 @@ class TestParsedParse():
             "parsed_all-everything": (18, 29),
             "parsed_mscx-everything": (18, 0),
             "parsed_tsv-everything": (0, 29),
+            "parsed_all-redundant": (2, 0),
+            "parsed_mscx-redundant": (2, 0),
             "parsed_all-regular_dirs": (8, 25),
             "parsed_mscx-regular_dirs": (8, 0),
             "parsed_tsv-regular_dirs": (0, 25),
+            "parsed_all-without_metadata": (5, 0),
+            "parsed_mscx-without_metadata": (5, 0),
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
