@@ -2048,7 +2048,7 @@ def scale_degree2name(sd, localkey, globalkey):
 
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=True):
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=False):
     """ Generator of file names in ``directory``.
 
     Parameters

@@ -578,11 +578,9 @@ class Parse(LoggedClass):
             self.logger.debug(f"{n_corpora} corpora detected.")
             directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
             if key is not None:
-                self.logger.warning(f"The following corpora are grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
-                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-            else:
-                for d in directories:
-                    self.add_corpus(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
+            for d in directories:
+                self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
 
     def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
@@ -614,12 +612,27 @@ class Parse(LoggedClass):
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                            recursive=recursive, logger=self.logger))
+        if len(paths) == 0:
+            self.logger.info(f"No matching files found in {directory}.")
+            return
         if key is None:
             key = os.path.basename(directory)
-        self.logger.debug(f"Adding {directory} as corpus with key {key}.")
         if key not in self.files:
+            self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
             self.files[key] = []
+        else:
+            self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
         added_ids = self.add_files(paths=paths, key=key)
+        if len(added_ids) == 0:
+            self.logger.debug(f"No files from {directory} have been added.")
+            return
+        _, first_i = added_ids[0]
+        if not any(file == 'metadata.tsv' for file in self.files[key][first_i:]):
+            # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
+            default_metadata_path = os.path.join(directory, 'metadata.tsv')
+            if os.path.isfile(default_metadata_path):
+                new_id = self.add_files(paths=default_metadata_path, key=key)
+                added_ids += new_id
         ignored_warnings_files = self.files[key].count('IGNORED_WARNINGS')
         if ignored_warnings_files == 0:
             return
