@@ -80,7 +80,7 @@ class LoggedClass():
 
 def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings={}):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
-    assert name != 'ms3' # TODO: comment out before release
+    assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
     if isinstance(name, logging.LoggerAdapter):
         name = name.logger
     if isinstance(name, logging.Logger):

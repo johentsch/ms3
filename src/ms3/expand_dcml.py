@@ -469,7 +469,7 @@ def propagate_keys(df, volta_structure=None, globalkey='globalkey', localkey='lo
         lm = f"{localkey}_is_minor"
         df[gm] = global_minor
         if df[localkey].str.contains('/').any():
-            lk = transform(df, resolve_relative_keys, [localkey, gm])
+            lk = transform(df, resolve_relative_keys, [localkey, gm], logger=logger)
         else:
             lk = df[localkey]
         local_minor = series_is_minor(lk)
