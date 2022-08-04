@@ -3144,3 +3144,36 @@ def path2key(path):
         return path2key(os.path.dirname(path))
     except Exception:
         return None
+
+
+@function_logger
+def chord2tpcs(chord, regex=None, **kwargs):
+    """
+    Split a chord label into its features and apply features2tpcs().
+
+    Uses: features2tpcs()
+
+    Parameters
+    ----------
+    chord : :obj:`str`
+        Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
+    regex : :obj:`re.Pattern`, optional
+        Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
+        annotation standard is used.
+    **kwargs :
+        arguments for features2tpcs (pass MC to show it in warnings!)
+    """
+    if regex is None:
+        regex = DCML_REGEX
+    chord_features = re.match(regex, chord)
+    assert chord_features is not None, f"{chord} does not match the regex."
+    chord_features = chord_features.groupdict()
+    numeral, form, figbass, changes, relativeroot = tuple(chord_features[f] for f in ('numeral', 'form', 'figbass', 'changes', 'relativeroot'))
+    return features2tpcs(numeral=numeral, form=form, figbass=figbass, changes=changes, relativeroot=relativeroot,
+                         logger=logger, **kwargs)
+
+
+def transpose(e, n):
+    """ Add `n` to all elements `e` recursively.
+    """
+    return map2elements(e, lambda x: x + n)

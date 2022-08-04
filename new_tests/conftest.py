@@ -63,10 +63,10 @@ def parse_obj(directory, request):
         add_path = os.path.join(directory, 'sweelinck_keyboard')
         files = scan_directory(add_path, logger="ms3.tests")
         if request.param == "files_without_key":
-            with pytest.raises(TypeError) as e_info:
+            with pytest.raises(TypeError):
                 p.add_files(files)
         if request.param == "files_with_wrong_key":
-            with pytest.raises(AssertionError) as e_info:
+            with pytest.raises(AssertionError):
                 p.add_files(files, key="custom_key")
         if request.param == "files_correct_without_metadata":
             files = [f for f in files if os.path.basename(f) != 'metadata.tsv']

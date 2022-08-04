@@ -7,9 +7,8 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, features2tpcs, fifths2iv, fifths2name, fifths2pc, fifths2rn, fifths2sd, \
-    map2elements, name2fifths, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
-    series_is_minor, split_alternatives, transform
+from .utils import abs2rel_key, changes2list, DCML_REGEX, name2fifths, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
+    series_is_minor, split_alternatives, transform, transpose
 from .transformations import compute_chord_tones, labels2global_tonic
 from .logger import function_logger
 
@@ -180,15 +179,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.index = ix
 
     return df
-
-
-
-def transpose(e, n):
-    """ Add `n` to all elements `e` recursively.
-    """
-    return map2elements(e, lambda x: x + n)
-
-
 
 
 @function_logger
@@ -565,135 +555,4 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
 #                                           MOMENTARILY NOT IN USE:
 ########################################################################################################################
 
-def transform_columns(df, func, columns=None, param2col=None, inplace=False, **kwargs):
-    """ Wrapper function to use transform() on df[columns], leaving the other columns untouched.
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame where columns (or column combinations) work as function arguments.
-    func : :obj:`callable`
-        Function you want to apply to all elements in `columns`.
-    columns : :obj:`list`
-        Columns to which you want to apply `func`.
-    param2col : :obj:`dict` or :obj:`list`, optional
-        Mapping from parameter names of `func` to column names.
-        If you pass a list of column names, the columns' values are passed as positional arguments.
-        Pass None if you want to use all columns as positional arguments.
-    inplace : :obj:`bool`, optional
-        Pass True if you want to mutate `df` rather than getting an altered copy.
-    **kwargs: keyword arguments for transform()
-    """
-    if not inplace:
-        df = df.copy()
-
-    param_cols = []
-    if columns is None:
-        columns = df.columns
-    elif param2col is None:
-        pass
-    elif param2col.__class__ == dict:
-        param_cols = list(param2col.values())
-    else:
-        param_cols = list(param2col)
-
-    tmp_index = not df.index.is_unique
-    if tmp_index:
-        ix = df.index
-        df.reset_index(drop=True, inplace=True)
-
-    df.loc[:, columns] = transform(df[columns + param_cols], func, param2col, **kwargs)
-
-    if tmp_index:
-        df.index = ix
-
-    if not inplace:
-        return df
-
-
-
-def transform_note_columns(df, to, note_cols=['chord_tones', 'added_tones', 'bass_note', 'root'], minor_col='localkey_is_minor', inplace=False, **kwargs):
-    """
-    Turns columns with line-of-fifth tonal pitch classes into another representation.
-
-    Uses: transform_columns()
-
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame where columns (or column combinations) work as function arguments.
-    to : {'name', 'iv', 'pc', 'sd', 'rn'}
-        The tone representation that you want to get from the `note_cols`.
-
-        * 'name': Note names. Should only be used if the stacked fifths actually represent
-                absolute tonal pitch classes rather than intervals over the local tonic.
-                In other words, make sure to use 'name' only if 0 means C rather than I.
-        * 'iv':   Intervals such that 0 = 'P1', 1 = 'P5', 4 = 'M3', -3 = 'm3', 6 = 'A4',
-                -6 = 'D5' etc.
-        * 'pc':   (Relative) chromatic pitch class, or distance from tonic in semitones.
-        * 'sd':   Scale degrees such that 0 = '1', -1 = '4', -2 = 'b7' in major, '7' in minor etc.
-                This representation requires a boolean column `minor_col` which is
-                True in those rows where the stacks of fifths occur in a local minor
-                context and False for the others. Alternatively, if all pitches are
-                in the same mode or you simply want to express them as degrees of
-                particular mode, you can pass the boolean keyword argument `minor`.
-        * 'rn':   Roman numerals such that 0 = 'I', -2 = 'bVII' in major, 'VII' in minor etc.
-                Requires boolean 'minor' values, see 'sd'.
-
-    note_cols : :obj:`list`, optional
-        List of columns that hold integers or collections of integers that represent
-        stacks of fifth (0 = tonal center, 1 = fifth above, -1 = fourth above, etc).
-    minor_col : :obj:`str`, optional
-        If `to` is 'sd' or 'rn', specify a boolean column where the value is
-        True in those rows where the stacks of fifths occur in a local minor
-        context and False for the others.
-
-    """
-    transformations = {
-        'name': fifths2name,
-        'names': fifths2name,
-        'iv': fifths2iv,
-        'pc': fifths2pc,
-        'sd': fifths2sd,
-        'rn': fifths2rn,
-    }
-    assert to in transformations, "Parameter to needs to be one of {'name', 'iv', 'pc', 'sd', 'rn'}"
-    cols = [col for col in note_cols if col in df.columns]
-    if len(cols) < len(note_cols):
-        logger.warning(f"Columns {[[col for col in note_cols if not col in df.columns]]}")
-    param2col = None
-    if to in ['sd', 'rn']:
-        assert minor_col in df.columns or 'minor' in kwargs, f"'{to} representation requires a boolean column for the 'minor' argument, e.g. 'globalkey_is_minor'."
-        if not 'minor' in kwargs:
-            param2col = {'minor': minor_col}
-    func = transformations[to]
-    res = transform_columns(df, func, columns=note_cols, inplace=inplace, param2col=param2col, column_wise=True, **kwargs)
-    if not inplace:
-        return res
-
-
-@function_logger
-def chord2tpcs(chord, regex=None, **kwargs):
-    """
-    Split a chord label into its features and apply features2tpcs().
-
-    Uses: features2tpcs()
-
-    Parameters
-    ----------
-    chord : :obj:`str`
-        Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
-    regex : :obj:`re.Pattern`, optional
-        Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
-        annotation standard is used.
-    **kwargs :
-        arguments for features2tpcs (pass MC to show it in warnings!)
-    """
-    if regex is None:
-        regex = DCML_REGEX
-    chord_features = re.match(regex, chord)
-    assert chord_features is not None, f"{chord} does not match the regex."
-    chord_features = chord_features.groupdict()
-    numeral, form, figbass, changes, relativeroot = tuple(chord_features[f] for f in ('numeral', 'form', 'figbass', 'changes', 'relativeroot'))
-    return features2tpcs(numeral=numeral, form=form, figbass=figbass, changes=changes, relativeroot=relativeroot,
-                         logger=logger, **kwargs)
