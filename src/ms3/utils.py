@@ -2357,9 +2357,8 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
                     var_arg) < 2, f"Name only one variable keyword argument as which {apply_cols} are used {'argument': None}."
                 var_arg = var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
                 param2col = {k: v for k, v in param2col.items() if v is not None}
-                result_cols = {col: transform(df, func, {**{var_arg: col}, **param2col}, **kwargs) for col in
+                result_cols = {col: transform(df, func, dict({var_arg: col}, **param2col), **kwargs) for col in
                                apply_cols}
-                param2col = param2col.values()
             else:
                 apply_cols = [col for col in df.columns if not col in param2col]
                 result_cols = {col: transform(df, func, [col] + param2col, **kwargs) for col in apply_cols}

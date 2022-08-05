@@ -7,9 +7,8 @@ from collections import defaultdict
 import pandas as pd
 import numpy as np
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, name2fifths, rel2abs_key, resolve_relative_keys, roman_numeral2fifths, \
-    series_is_minor, split_alternatives, transform, transpose
-from .transformations import compute_chord_tones, labels2global_tonic
+from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, series_is_minor, split_alternatives, transform
+from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
 
 
@@ -158,14 +157,9 @@ from several pieces. Apply expand_labels() to one piece at a time."""
 
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
-            if relative_to_global or absolute or all_in_c:
-                transpose_by = transform(df, roman_numeral2fifths, [cols['localkey'], global_minor])
-                if absolute:
-                    transpose_by += transform(df, name2fifths, [cols['globalkey']])
-                ct = pd.DataFrame([transpose(tpcs, fifths) for tpcs, fifths in
-                                   zip(ct.itertuples(index=False, name=None), transpose_by.values)], index=ct.index,
-                                  columns=ct.columns)
             df = pd.concat([df, ct], axis=1)
+            if relative_to_global or absolute or all_in_c:
+                df = transpose_chord_tones_by_localkey(df, by_global=absolute)
 
         if relative_to_global:
             labels2global_tonic(df, inplace=True, cols=cols, logger=logger)

@@ -11,7 +11,7 @@ from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, interval_overlap, interval_overlap_size, make_interval_index,\
     make_continuous_offset, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key,\
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose_changes, unfold_repeats
+    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -1236,3 +1236,39 @@ def transform_note_columns(df, to, note_cols=['chord_tones', 'added_tones', 'bas
     res = transform_columns(df, func, columns=note_cols, inplace=inplace, param2col=param2col, column_wise=True, **kwargs)
     if not inplace:
         return res
+
+
+def transpose_chord_tones_by_localkey(df, by_global=False):
+    """ Returns a copy of the expanded table where the scale degrees in the chord tone columns
+        have been transposed by localkey (i.e. they express all chord tones as scale degrees of
+        the globalkey) or, if ``by_global`` is set to True, additionally by globalkey (i.e., chord
+        tones as tonal pitch classes TPC).
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Expanded labels with chord tone columns.
+    by_global : :obj:`bool`
+        By default, the transformed chord tone columns express chord tones as scale degrees (or
+        intervals) of the global tonic. If set to True, they correspond to tonal pitch classes
+        and can be further transformed to note names using transform_note_columns().
+
+    Returns
+    -------
+    :obj:`pandas.DataFrame`
+    """
+    df = df.copy()
+    ct_cols = ['chord_tones', 'added_tones', 'root', 'bass_note']
+    ct = df[ct_cols]
+    transpose_by = transform(df, roman_numeral2fifths, ['localkey', 'globalkey_is_minor'])
+    if by_global:
+        transpose_by += transform(df, name2fifths, ['globalkey'])
+    transposed_row_tuples = [transpose(tpcs, fifths)
+                             for tpcs, fifths in
+                             zip(ct.itertuples(index=False, name=None),
+                                 transpose_by.values)]
+    ct = pd.DataFrame(transposed_row_tuples,
+                      index=df.index,
+                      columns=ct_cols)
+    df.loc[:, ct_cols] = ct
+    return df
