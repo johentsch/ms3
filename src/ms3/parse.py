@@ -634,18 +634,57 @@ class Parse(LoggedClass):
                 new_id = self.add_files(paths=default_metadata_path, key=key)
                 added_ids += new_id
         ignored_warnings_files = self.files[key].count('IGNORED_WARNINGS')
-        if ignored_warnings_files == 0:
-            return
         if ignored_warnings_files > 1:
             self.logger.error(f"More than one IGNORED_WARNINGS file detected for '{key}'")
             return
-        i = self.files[key].index('IGNORED_WARNINGS')
-        ignored_warnings = {} # parse self.full_paths[key][i] into a {logger_name -> [message_id]} dict
+        elif ignored_warnings_files == 0:
+            default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
+            if not os.path.isfile(default_ignored_warnings_path):
+                self.logger.info("There is no IGNORED_WARNINGS file")
+                return
+            else:
+                path = default_ignored_warnings_path
+        else:
+            i = self.files[key].index('IGNORED_WARNINGS')
+            path = self.full_paths[key][i]
+        ignored_warnings = self.parse_ignored_warnings(path) # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
         new_loggers = [self.logger_names[id] for id in added_ids]
         for new_logger_name in new_loggers:
             for to_be_configured, message_ids in ignored_warnings.items():
                 if to_be_configured.startswith(new_logger_name):
-                    pass # _ = get_logger(new_logger_name, ignore_warnings=message_ids)
+                    _ = get_logger(new_logger_name, ignored_warnings=message_ids)
+
+    def parse_ignored_warnings(self, path):
+        """Parse file with log messages that have to be ignored to the dict.
+        The expected structure of message: warning_type (warning_type_id, label) file
+        Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
+
+                Parameters
+                ----------
+                key : :obj:`str`
+                    | Path to IGNORED_WARNINGS
+
+                Returns
+                -------
+                :obj: dict
+                    {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+                """
+        ignored_warnings = {}
+        with open(path) as f:
+            file = f.read()
+        messages = file.split(sep="\n")  # split messages
+        split_msg = list(map(lambda k: (list(filter(None, re.split("[(, :)]+", k)))), messages))  # split parts of message
+        for msg in split_msg:
+            if msg[1] == "0":  # there is no type of message
+                info = (0,)
+            else:
+                info = (int(msg[1]), *list(map(int, msg[2:-1])))
+
+            if msg[-1] in ignored_warnings.keys():  # check file name in dict
+                ignored_warnings[msg[-1]].append(info)  # append to existing file info
+            else:
+                ignored_warnings[msg[-1]] = [info]  # add new file info
+        return ignored_warnings
 
     def add_files(self, paths, key, exclude_re=None):
         """
@@ -2178,7 +2217,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.subdirs[key].append(subdir)
         self.paths[key].append(file_path)
         self.files[key].append(file)
-        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}.{file_ext}"
+        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}"
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         return key, len(self.paths[key]) - 1

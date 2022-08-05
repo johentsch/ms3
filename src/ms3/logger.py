@@ -1,9 +1,6 @@
 import logging, sys, os
-from collections import defaultdict
 from functools import wraps
 from enum import Enum
-from pathlib import Path
-import json
 import re
 
 
@@ -78,7 +75,7 @@ class LoggedClass():
         self.logger = get_logger(self.logger_names['class'])
 
 
-def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings={}):
+def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings=[]):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
     if isinstance(name, logging.LoggerAdapter):
@@ -108,25 +105,22 @@ def get_parent_level(logger):
     return parent
 
 class WarningFilter(logging.Filter):
-    """Filters messages. If message is in json file, its level is changed to debug."""
-    def __init__(self, logger, filter_path=None):
+    """Filters messages. If message is in ignored_warnings, its level is changed to debug."""
+    def __init__(self, logger, ignored_warnings):
         super().__init__()
         self.logger = logger
-        self.ignore = defaultdict(lambda: [()])
-        # get warnings from json
-        with open(os.path.join(str(Path.home()), filter_path, 'IGNORED_WARNINGS.json')) as f:
-            self.ignore.update(json.load(f))
+        self.ignored_warnings = ignored_warnings
 
     def filter(self, record):
         if type(record._info) == str:
             check_log = [record._message_type, *list(map(int, re.split("[, ]+", record._info)))]
         else:
             check_log = [record._message_type, record._info]
-        if check_log in self.ignore[record.name]:
+        if check_log in self.ignored_warnings:
             record.levelname = "DEBUG"
         return True
 
-def config_logger(name, level=None, path=None, propagate=True, ignored_warnings={}):
+def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=[]):
     """Configs the logger with name `name`. Overwrites existing config."""
     assert name is not None, "I don't want to change the root logger."
     new_logger = name not in logging.root.manager.loggerDict
@@ -170,14 +164,11 @@ def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=
             logger.debug(f"New logger '{name}' initialized with level {level}, inherited from parent {parent.name}.")
     else:
         level = logger.level
-
     if len(ignored_warnings) > 0:
-        filter = WarningFilter(logger, ignored=ignored_warnings)
-        logger.addFilter(filter)
+        logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
         return logger
-
     formatter = CustomFormatter()
     existing_handlers = [h for h in logger.handlers]
     stream_handlers = [h for h in existing_handlers if h.__class__ == logging.StreamHandler]
