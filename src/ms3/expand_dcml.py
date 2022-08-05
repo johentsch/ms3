@@ -309,7 +309,7 @@ def replace_special(df, regex, merge=False, inplace=False, cols={}, special_map=
     special2label = {
         'It': 'viio6(b3)/V',
         'Ger': 'viio65(b3)/V',
-        'Fr': 'V7(b5)/V',
+        'Fr': 'V43(b5)/V',
     }
     special2label.update(special_map)
 
