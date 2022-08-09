@@ -711,7 +711,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(musescore_file)
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] = self.logger_names[extension]
+        #logger_cfg['name'] = self.logger_names[extension]
         musescore_file = resolve_dir(musescore_file)
 
         if extension in self.convertible_formats +  ('mscz', ):

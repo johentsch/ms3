@@ -2217,7 +2217,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.subdirs[key].append(subdir)
         self.paths[key].append(file_path)
         self.files[key].append(file)
-        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}"
+        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}{file_ext}"
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         return key, len(self.paths[key]) - 1
