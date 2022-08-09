@@ -33,8 +33,8 @@ STANDARD_COLUMN_ORDER = [
 STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
                   'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
 """:obj:`list`
-Indicators for subcorpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
-considered to be a subcorpus by the function :py:func:`iterate_subcorpora`.
+Indicators for corpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
+considered to be a corpus by the function :py:func:`iterate_corpora`.
 """
 
 
@@ -1129,71 +1129,107 @@ def iterable2str(iterable):
     except:
         return iterable
 
+# @function_logger
+# def iterate_subcorpora(path: str,
+#                        prefixes: Iterable = None, # Iterable[str] would require python>=3.9
+#                        suffixes: Iterable = None,
+#                        ignore_case: bool = True) -> Iterator:
+#     """ Recursively walk through subdirectory and files but stop and return path as soon as
+#     at least one file or at least one folder matches at least one prefix or at least one suffix.
+#
+#     Parameters
+#     ----------
+#     path : :obj:`str`
+#         Directory to scan.
+#     prefixes : :obj:`collections.abc.Iterable`, optional
+#         Current directory is returned if at least one contained item starts with one of the prefixes.
+#     suffixes : :obj:`collections.abc.Iterable`, optional
+#         Current directory is returned if at least one contained item ends with one of the suffixes.
+#         Files are tested against suffixes including and excluding file extensions.
+#         Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+#         'harmonies', 'cadences', 'form_labels', 'MS3']``
+#     ignore_case : :obj:`bool`, optional
+#         Defaults to True, meaning that file and folder names match prefixes and suffixes independent
+#         of capitalization.
+#
+#     Yields
+#     ------
+#     :obj:`str`
+#         Full path of the next subcorpus.
+#
+#     """
+#
+#     def check_fname(s):
+#         if ignore_case:
+#             return any(s.lower().startswith(p) for p in prefixes) or \
+#                    any(s.lower().endswith(suf) for suf in suffixes)
+#         return any(s.startswith(p) for p in prefixes) or \
+#                any(s.endswith(suf) for suf in suffixes)
+#
+#     if prefixes is None:
+#         prefixes = ['metadata.tsv'] + STANDARD_NAMES
+#     if suffixes is None:
+#         suffixes = []
+#
+#     if ignore_case:
+#         prefixes = [p.lower() for p in prefixes]
+#         suffixes = [s.lower() for s in suffixes]
+#
+#     for d, subdirs, files in os.walk(path):
+#         subdirs[:] = sorted(subdirs)
+#         if files != []:
+#             fnames, _ = zip(*[os.path.splitext(f) for f in files])
+#         else:
+#             fnames = []
+#         for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
+#             if any(check_fname(i) for i in items_to_check):
+#                 match = next(i for i in items_to_check if check_fname(i))
+#                 logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
+#                 del (subdirs[:])
+#                 yield d
+#                 break
+
+def contains_metadata(path):
+    for _, _, files in os.walk(path):
+        return any(f == 'metadata.tsv' for f in files)
+
+def first_level_subdirs(path):
+    for _, subdirs, _ in os.walk(path):
+        return subdirs
+
 @function_logger
-def iterate_subcorpora(path: str,
-                       prefixes: Iterable = None, # Iterable[str] would require python>=3.9
-                       suffixes: Iterable = None,
-                       ignore_case: bool = True) -> Iterator:
-    """ Recursively walk through subdirectory and files but stop and return path as soon as
-    at least one file or at least one folder matches at least one prefix or at least one suffix.
+def contains_corpus_indicator(path):
+    for subdir in first_level_subdirs(path):
+        for name in STANDARD_NAMES:
+            if subdir == name:
+                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
+                return True
+    return False
 
-    Parameters
-    ----------
-    path : :obj:`str`
-        Directory to scan.
-    prefixes : :obj:`collections.abc.Iterable`, optional
-        Current directory is returned if at least one contained item starts with one of the prefixes.
-    suffixes : :obj:`collections.abc.Iterable`, optional
-        Current directory is returned if at least one contained item ends with one of the suffixes.
-        Files are tested against suffixes including and excluding file extensions.
-        Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-        'harmonies', 'cadences', 'form_labels', 'MS3']``
-    ignore_case : :obj:`bool`, optional
-        Defaults to True, meaning that file and folder names match prefixes and suffixes independent
-        of capitalization.
 
-    Yields
-    ------
-    :obj:`str`
-        Full path of the next subcorpus.
-
-    """
-
-    def check_fname(s):
-        if ignore_case:
-            return any(s.lower().startswith(p) for p in prefixes) or \
-                   any(s.lower().endswith(suf) for suf in suffixes)
-        return any(s.startswith(p) for p in prefixes) or \
-               any(s.endswith(suf) for suf in suffixes)
-
-    if prefixes is None:
-        prefixes = ['metadata.tsv'] + STANDARD_NAMES
-    if suffixes is None:
-        suffixes = []
-
-    if ignore_case:
-        prefixes = [p.lower() for p in prefixes]
-        suffixes = [s.lower() for s in suffixes]
-
-    for d, subdirs, files in os.walk(path):
-        subdirs[:] = sorted(subdirs)
-        if files != []:
-            fnames, _ = zip(*[os.path.splitext(f) for f in files])
-        else:
-            fnames = []
-        for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
-            if any(check_fname(i) for i in items_to_check):
-                match = next(i for i in items_to_check if check_fname(i))
-                logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
-                del (subdirs[:])
-                yield d
+@function_logger
+def iterate_corpora(path):
+    """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
+    of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
+    score file."""
+    if contains_metadata(path):
+        return path
+    subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
+    yield_subpaths = False
+    for subpath in subpaths:
+        if contains_metadata(subpath):
+            yield_subpaths = True
+            break
+    if not yield_subpaths:
+        if contains_corpus_indicator(path, logger=logger):
+            return path
+        for subpath in subpaths:
+            if contains_corpus_indicator(subpath, logger=logger):
+                yield_subpaths = True
                 break
-        ### The inner for loop is equivalent to the following code but includes logging:
-        # if any(check_fname(f) for f in files) or \
-        #     any(check_fname(d) for d in subdirs) or \
-        #     any(check_fname(fn) for fn in fnames):
-        #     del(subdirs[:])
-        #     yield d
+    if not yield_subpaths:
+        return path
+    yield from subpaths
 
 
 @function_logger
@@ -2012,7 +2048,7 @@ def scale_degree2name(sd, localkey, globalkey):
 
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=True):
+def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=False):
     """ Generator of file names in ``directory``.
 
     Parameters
@@ -2321,9 +2357,8 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
                     var_arg) < 2, f"Name only one variable keyword argument as which {apply_cols} are used {'argument': None}."
                 var_arg = var_arg[0] if len(var_arg) > 0 else getfullargspec(func).args[0]
                 param2col = {k: v for k, v in param2col.items() if v is not None}
-                result_cols = {col: transform(df, func, {**{var_arg: col}, **param2col}, **kwargs) for col in
+                result_cols = {col: transform(df, func, dict({var_arg: col}, **param2col), **kwargs) for col in
                                apply_cols}
-                param2col = param2col.values()
             else:
                 apply_cols = [col for col in df.columns if not col in param2col]
                 result_cols = {col: transform(df, func, [col] + param2col, **kwargs) for col in apply_cols}
@@ -2534,7 +2569,7 @@ def write_metadata(df, path, markdown=True, index=False):
         md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
         md_table = str(df2md(md))
 
-        readme = os.path.join(path, 'README.md')
+        readme = os.path.join(path, 'README.rst.md')
         if os.path.isfile(readme):
             msg = 'Updated'
             with open(readme, 'r', encoding='utf-8') as f:
@@ -2542,7 +2577,7 @@ def write_metadata(df, path, markdown=True, index=False):
         else:
             msg = 'Created'
             lines = []
-        # in case the README exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
+        # in case the README.rst exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
         with open(readme, 'w', encoding='utf-8') as f:
             for line in lines:
                 if '# Overview' in line:
@@ -3082,7 +3117,8 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         if chord_tone != []:
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
-                logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.")
+                logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.",
+                               extra={"info": (mc, label), "message_type": 6})
         chord_tones.extend(replacing_tones)
 
     bass_tpc = chord_tones[0]
@@ -3107,3 +3143,36 @@ def path2key(path):
         return path2key(os.path.dirname(path))
     except Exception:
         return None
+
+
+@function_logger
+def chord2tpcs(chord, regex=None, **kwargs):
+    """
+    Split a chord label into its features and apply features2tpcs().
+
+    Uses: features2tpcs()
+
+    Parameters
+    ----------
+    chord : :obj:`str`
+        Chord label that can be split into the features ['numeral', 'form', 'figbass', 'changes', 'relativeroot'].
+    regex : :obj:`re.Pattern`, optional
+        Compiled regex with named groups for the five features. By default, the current version of the DCML harmony
+        annotation standard is used.
+    **kwargs :
+        arguments for features2tpcs (pass MC to show it in warnings!)
+    """
+    if regex is None:
+        regex = DCML_REGEX
+    chord_features = re.match(regex, chord)
+    assert chord_features is not None, f"{chord} does not match the regex."
+    chord_features = chord_features.groupdict()
+    numeral, form, figbass, changes, relativeroot = tuple(chord_features[f] for f in ('numeral', 'form', 'figbass', 'changes', 'relativeroot'))
+    return features2tpcs(numeral=numeral, form=form, figbass=figbass, changes=changes, relativeroot=relativeroot,
+                         logger=logger, **kwargs)
+
+
+def transpose(e, n):
+    """ Add `n` to all elements `e` recursively.
+    """
+    return map2elements(e, lambda x: x + n)

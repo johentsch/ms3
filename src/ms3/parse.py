@@ -13,7 +13,7 @@ from .logger import LoggedClass, get_logger
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
     group_id_tuples, \
-    iter_nested, iter_selection, iterate_subcorpora, join_tsvs, load_tsv, make_continuous_offset, \
+    iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2key
@@ -82,9 +82,10 @@ class Parse(LoggedClass):
         ``{key: [path]}`` dictionary of the paths of all detected files (without file name).
         """
 
-        self.files = defaultdict(list)
-        """:obj:`collections.defaultdict`
-        ``{key: [file]}`` dictionary of file names with extensions of all detected files.
+        self.files = {}
+        """:obj:`dict`
+        ``{key: [file]}`` dictionary of file names with extensions of all detected files. Keys
+        serve as inventory of available corpora, e.g. in self.keys().
         """
 
         self.fnames = defaultdict(list)
@@ -244,6 +245,7 @@ class Parse(LoggedClass):
             for d in directory:
                 self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
+            assert key is not None, "When adding individual files, you need to specify a key. Consider using _.add_corpus() instead."
             if isinstance(paths, str):
                 paths = [paths]
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
@@ -533,18 +535,16 @@ class Parse(LoggedClass):
 
     def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
         """
-        This method scans the directory ``dir`` for files matching the criteria and adds them (i.e. paths and file names)
-        to the Parse object without looking at them. It is recommended to add different types of files with different keys,
-        e.g. 'mscx' for score, 'harmonies' for chord labels, and 'form' for form labels.
+        This method decides if the directory ``directory`` contains several corpora or if it is a corpus
+        itself, and calls _.add_corpus() for every corpus.
 
         Parameters
         ----------
         directory : :obj:`str`
             Directory to scan for files.
         key : :obj:`str`, optional
-            | Pass a string to identify the loaded files.
-            | By default, the function :py:func:`iterate_subcorpora` is used to detect subcorpora and use their folder
-              names as keys.
+            By default, the folder names of the detected corpora are used as keys. If you pass a string,
+            you force ``directory`` to be treated as one corpus, identified by the given string.
         file_re : :obj:`str`, optional
             Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
             depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
@@ -565,31 +565,122 @@ class Parse(LoggedClass):
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
-        if key is None:
-            directories = sorted(iterate_subcorpora(directory, logger=self.logger))
-            n_subcorpora = len(directories)
-            if n_subcorpora == 0:
-                key = os.path.basename(directory)
-                self.logger.debug(f"No subcorpora detected. Grouping all files under the key {key}.")
-                paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                                              recursive=recursive, logger=self.logger))
-                _ = self.add_files(paths=paths, key=key)
-            else:
-                self.logger.debug(f"{n_subcorpora} subcorpora detected.")
-                for d in directories:
-                    if re.search(exclude_re, os.path.basename(d)) is not None:
-                        continue
-                    paths = sorted(scan_directory(d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                                                  recursive=recursive, logger=self.logger))
-                    k = os.path.basename(d)
-                    _ = self.add_files(paths=paths, key=k)
+
+        # new corpus/corpora to be added
+        directories = sorted(iterate_corpora(directory, logger=self.logger))
+        n_corpora = len(directories)
+        if n_corpora == 0:
+            self.logger.debug(f"Treating {directory} as corpus.")
+            if key is not None:
+                self.logger.info(f"Using key '{key}' for corpus '{os.path.basename(directory)}'.")
+            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
-            self.logger.debug(f"Grouping all detected files under the key {key}.")
-            paths = sorted(scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, logger=self.logger))
-            _ = self.add_files(paths=paths, key=key)
+            self.logger.debug(f"{n_corpora} corpora detected.")
+            directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
+            if key is not None:
+                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
+            for d in directories:
+                self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
 
 
-    def add_files(self, paths, key=None, exclude_re=None):
+    def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+        """
+        This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
+        under the same key, considering them as one corpus.
+        to the Parse object without looking at them. The
+
+        Parameters
+        ----------
+        directory : :obj:`str`
+            Directory to scan for files.
+        key : :obj:`str`, optional
+            By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to
+            use a different identifier.
+        file_re : :obj:`str`, optional
+            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
+            depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        folder_re : :obj:`str`, optional
+            Regular expression for filtering certain folder names.
+            The regEx is checked with search(), not match(), allowing for fuzzy search.
+        exclude_re : :obj:`str`, optional
+            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
+            whose file names include '_reviewed' or start with . or _ or 'concatenated_' are excluded.
+        recursive : :obj:`bool`, optional
+            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        """
+        paths = sorted(
+            scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
+                           recursive=recursive, logger=self.logger))
+        if len(paths) == 0:
+            self.logger.info(f"No matching files found in {directory}.")
+            return
+        if key is None:
+            key = os.path.basename(directory)
+        if key not in self.files:
+            self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
+            self.files[key] = []
+        else:
+            self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
+        added_ids = self.add_files(paths=paths, key=key)
+        if len(added_ids) == 0:
+            self.logger.debug(f"No files from {directory} have been added.")
+            return
+        _, first_i = added_ids[0]
+        if not any(file == 'metadata.tsv' for file in self.files[key][first_i:]):
+            # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
+            default_metadata_path = os.path.join(directory, 'metadata.tsv')
+            if os.path.isfile(default_metadata_path):
+                new_id = self.add_files(paths=default_metadata_path, key=key)
+                added_ids += new_id
+
+        default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
+        if os.path.isfile(default_ignored_warnings_path):
+            self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
+            self.load_ignored_warnings(default_ignored_warnings_path)
+
+    def load_ignored_warnings(self, path):
+        ignored_warnings = self.parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        logger_names = list(self.logger_names.values())
+        for to_be_configured, message_ids in ignored_warnings.items():
+            if to_be_configured not in logger_names:
+                self.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
+            configured = get_logger(to_be_configured, ignored_warnings=message_ids)
+            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+
+    def parse_ignored_warnings(self, path):
+        """Parse file with log messages that have to be ignored to the dict.
+        The expected structure of message: warning_type (warning_type_id, label) file
+        Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
+
+        Parameters
+        ----------
+        key : :obj:`str`
+            | Path to IGNORED_WARNINGS
+
+        Returns
+        -------
+        :obj: dict
+            {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+        """
+        ignored_warnings = {}
+        with open(path) as f:
+            file = f.read()
+        messages = file.split(sep="\n")  # split messages
+        split_msg = list(map(lambda k: (list(filter(None, re.split("[(, :)]+", k)))), messages))  # split parts of message
+        for msg in split_msg:
+            if msg[1] == "0":  # there is no type of message
+                info = (0,)
+            else:
+                info = (int(msg[1]), *list(map(int, msg[2:-1])))
+
+            if msg[-1] in ignored_warnings.keys():  # check file name in dict
+                ignored_warnings[msg[-1]].append(info)  # append to existing file info
+            else:
+                ignored_warnings[msg[-1]] = [info]  # add new file info
+        return ignored_warnings
+
+    def add_files(self, paths, key, exclude_re=None):
         """
 
         Parameters
@@ -606,6 +697,7 @@ class Parse(LoggedClass):
         :obj:`list`
             The IDs of the added files.
         """
+        assert key in self.files, f"'{key}' is not an existing key."
         if paths is None or len(paths) == 0:
             self.logger.debug(f"add_files() was called with paths = '{paths}'.")
             return []
@@ -1245,7 +1337,7 @@ Available keys: {available_keys}""")
             if unf_mcs is not None:
                 res[id] = unf_mcs
             # else:
-            #     self.id_logger(id).warning(f"Unable to unfold.")
+            #     self.id_logger(id).(f"Unable to unfold.")
         return res
 
     def _get_measure_list(self, id, unfold=False):
@@ -1724,7 +1816,7 @@ Available keys: {available_keys}""")
             self.logger.debug(f"No parseable scores found {reason}.")
             return
         if level is None:
-            level = self.logger.logger.level
+            level = self.logger.level  # logger if ContextAdapter
         configs = [dict(
             level=level,
             name=self.logger_names[id]
@@ -1900,7 +1992,7 @@ Available keys: {available_keys}""")
             Where to store an overview file with the MuseScore files' metadata.
             If no file name is specified, the file will be named ``metadata.tsv``.
         markdown : bool, optional
-            By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+            By default, when ``metadata_path`` is specified, a markdown file called ``README.rst.md`` containing
             the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
             this table will be appended or overwritten after the heading ``# Overview``.
         simulate : bool, optional
@@ -2119,7 +2211,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.subdirs[key].append(subdir)
         self.paths[key].append(file_path)
         self.files[key].append(file)
-        self.logger_names[(key, i)] = f"{self.logger.logger.name}.{key}.{file_name.replace('.', '')}"
+        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}{file_ext}"
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         return key, len(self.paths[key]) - 1
