@@ -633,42 +633,36 @@ class Parse(LoggedClass):
             if os.path.isfile(default_metadata_path):
                 new_id = self.add_files(paths=default_metadata_path, key=key)
                 added_ids += new_id
-        ignored_warnings_files = self.files[key].count('IGNORED_WARNINGS')
-        if ignored_warnings_files > 1:
-            self.logger.error(f"More than one IGNORED_WARNINGS file detected for '{key}'")
-            return
-        elif ignored_warnings_files == 0:
-            default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
-            if not os.path.isfile(default_ignored_warnings_path):
-                self.logger.info("There is no IGNORED_WARNINGS file")
-                return
-            else:
-                path = default_ignored_warnings_path
-        else:
-            i = self.files[key].index('IGNORED_WARNINGS')
-            path = self.full_paths[key][i]
-        ignored_warnings = self.parse_ignored_warnings(path) # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
-        new_loggers = [self.logger_names[id] for id in added_ids]
-        for new_logger_name in new_loggers:
-            for to_be_configured, message_ids in ignored_warnings.items():
-                if to_be_configured.startswith(new_logger_name):
-                    _ = get_logger(new_logger_name, ignored_warnings=message_ids)
+
+        default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
+        if os.path.isfile(default_ignored_warnings_path):
+            self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
+            self.load_ignored_warnings(default_ignored_warnings_path)
+
+    def load_ignored_warnings(self, path):
+        ignored_warnings = self.parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        logger_names = list(self.logger_names.values())
+        for to_be_configured, message_ids in ignored_warnings.items():
+            if to_be_configured not in logger_names:
+                self.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
+            configured = get_logger(to_be_configured, ignored_warnings=message_ids)
+            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
     def parse_ignored_warnings(self, path):
         """Parse file with log messages that have to be ignored to the dict.
         The expected structure of message: warning_type (warning_type_id, label) file
         Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
 
-                Parameters
-                ----------
-                key : :obj:`str`
-                    | Path to IGNORED_WARNINGS
+        Parameters
+        ----------
+        key : :obj:`str`
+            | Path to IGNORED_WARNINGS
 
-                Returns
-                -------
-                :obj: dict
-                    {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
-                """
+        Returns
+        -------
+        :obj: dict
+            {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+        """
         ignored_warnings = {}
         with open(path) as f:
             file = f.read()
