@@ -424,6 +424,7 @@ def color_name2rgba(n):
 @function_logger
 def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
     if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
+        logger.error(f"At least one of the parameters needs to be specified.")
         return None
     res = None
     if not pd.isnull(color_r):

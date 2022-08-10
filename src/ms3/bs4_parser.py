@@ -10,7 +10,7 @@ import numpy as np
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, sort_note_list
+    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 
 
 
@@ -1351,8 +1351,48 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
     def color_notes(self, from_mc, from_mc_onset, to_mc=None, to_mc_onset=None,
+                    midi=[], tpc=[], inverse=False,
                     color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
-                    midi=[], tpc=[], ms_tpc=[]):
+                    ):
+        """ Colors all notes occurring in a particular score segment in one particular color, or
+        only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
+
+        Parameters
+        ----------
+        from_mc : :obj:`int`
+            MC in which the score segment starts.
+        from_mc_onset : :obj:`fractions.Fraction`
+            mc_onset where the score segment starts.
+        to_mc : :obj:`int`, optional
+            MC in which the score segment ends. If not specified, the segment ends at the end of the score.
+        to_mc_onset : :obj:`fractions.Fraction`, optional
+            If ``to_mc`` is defined, the mc_onset where the score segment ends.
+        midi : :obj:`Collection[int]`, optional
+            Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
+        tpc : :obj:`Collection[int]`, optional
+            Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
+        inverse : :obj:`bool`, optional
+            By default, only notes where all specified filters (midi and/or tpc) apply are colored.
+            Set to True to color only those notes where none of the specified filters match.
+        color_name : :obj:`str`, optional
+            Specify the color either as a name, or as HTML color, or as RGB(A). As a name you can
+            use CSS colors or MuseScore colors.
+        color_html : :obj:`str`, optional
+            Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
+            needs to be string of length 6.
+        color_r : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_g and color_b.
+        color_g : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_r and color_b.
+        color_b : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_r and color_g.
+        color_a : :obj:`int`, optional
+            If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+
+        Returns
+        -------
+
+        """
         if len(self.tags) == 0:
             if self.read_only:
                 self.logger.error("Score is read_only.")
@@ -1366,10 +1406,12 @@ and {loc_after} before the subsequent {nxt_name}.""")
             return
         color_attrs = rgba2attrs(rgba)
 
-        midi = [str(m) for m in midi]
-        ms_tpc = [str(t) for t in ms_tpc] + [str(t + 14) for t in tpc]
+        str_midi = [str(m) for m in midi]
+        # MuseScore's TPCs are shifted such that C = 14:
+        ms_tpc = [str(t + 14) for t in tpc]
 
         until_end = pd.isnull(to_mc)
+        negation = ' not' if inverse else ''
         for mc, staves in self.tags.items():
             if mc < from_mc or (not until_end and mc > to_mc):
                 continue
@@ -1384,12 +1426,32 @@ and {loc_after} before the subsequent {nxt_name}.""")
                             if tag_dict['name'] != 'Chord':
                                 continue
                             for note_tag in tag_dict['tag'].find_all('Note'):
+                                reason = ""
                                 if len(midi) > 0:
                                     midi_val = note_tag.pitch.string
-                                    if midi_val not in midi:
+                                    if inverse and midi_val in str_midi:
                                         continue
+                                    if not inverse and midi_val not in str_midi:
+                                        continue
+                                    reason = f"MIDI pitch {midi_val} is{negation} in {midi}"
+                                if len(ms_tpc) > 0:
+                                    tpc_val = note_tag.tpc.string
+                                    if inverse and tpc_val in ms_tpc:
+                                        continue
+                                    if not inverse and tpc_val not in ms_tpc:
+                                        continue
+                                    if reason != "":
+                                        reason += " and "
+                                    reason += f"TPC {int(tpc_val) - 14} is{negation} in {tpc}"
+                                if reason == "":
+                                    reason = " because no filters were specified."
+                                else:
+                                    reason = " because " + reason
                                 first_inside = note_tag.find()
                                 _ = self.new_tag('color', attributes=color_attrs, before=first_inside)
+                                if color_name is None:
+                                    color_name = rgb_tuple2format(rgba[:3], format='name')
+                                self.logger.debug(f"MC {mc}, onset {onset}, staff {staff}, voice {voice}: Changed note color to {color_name}{reason}.")
 
     # def close_file_handlers(self):
     #     for h in self.logger.logger.handlers:
