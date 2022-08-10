@@ -421,7 +421,7 @@ def color_name2rgba(n):
     """ Converts a single CSS3 name into RGBA"""
     return color_name2format(n, format='rgba')
 
-
+@function_logger
 def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
     if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
         return None
@@ -431,7 +431,7 @@ def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=No
             color_a = 255
         if pd.isnull(color_g) or pd.isnull(color_b):
             if pd.isnull(color_name) and pd.isnull(color_html):
-                self.logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
+                logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
         else:
             res = (color_r, color_g, color_b, color_a)
     if res is None and not pd.isnull(color_html):

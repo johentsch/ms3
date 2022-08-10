@@ -1349,6 +1349,48 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
         return tag
 
+
+    def color_notes(self, from_mc, from_mc_onset, to_mc=None, to_mc_onset=None,
+                    color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
+                    midi=[], tpc=[], ms_tpc=[]):
+        if len(self.tags) == 0:
+            if self.read_only:
+                self.logger.error("Score is read_only.")
+            else:
+                self.logger.error(f"Score does not include any parsed tags.")
+            return
+
+        rgba = color_params2rgba(color_name, color_html, color_r, color_g, color_b, color_a)
+        if rgba is None:
+            self.logger.error(f"Pass a valid color value.")
+            return
+        color_attrs = rgba2attrs(rgba)
+
+        midi = [str(m) for m in midi]
+        ms_tpc = [str(t) for t in ms_tpc] + [str(t + 14) for t in tpc]
+
+        until_end = pd.isnull(to_mc)
+        for mc, staves in self.tags.items():
+            if mc < from_mc or (not until_end and mc > to_mc):
+                continue
+            for staff, voices in staves.items():
+                for voice, onsets in voices.items():
+                    for onset, tag_dicts in onsets.items():
+                        if mc == from_mc and onset < from_mc_onset:
+                            continue
+                        if not until_end and mc == to_mc and onset >= to_mc_onset:
+                            continue
+                        for tag_dict in tag_dicts:
+                            if tag_dict['name'] != 'Chord':
+                                continue
+                            for note_tag in tag_dict['tag'].find_all('Note'):
+                                if len(midi) > 0:
+                                    midi_val = note_tag.pitch.string
+                                    if midi_val not in midi:
+                                        continue
+                                first_inside = note_tag.find()
+                                _ = self.new_tag('color', attributes=color_attrs, before=first_inside)
+
     # def close_file_handlers(self):
     #     for h in self.logger.logger.handlers:
     #         if h.__class__ == logging.FileHandler:
