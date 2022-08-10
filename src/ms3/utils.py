@@ -1194,6 +1194,7 @@ def contains_metadata(path):
         return any(f == 'metadata.tsv' for f in files)
 
 def first_level_subdirs(path):
+    """Returns the directory names contained in path."""
     for _, subdirs, _ in os.walk(path):
         return subdirs
 
@@ -2076,6 +2077,11 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         List of full paths meeting the criteria.
 
     """
+    if file_re is None:
+        file_re = r".*"
+    if folder_re is None:
+        folder_re = r".*"
+
     def traverse(d):
         nonlocal counter
 

@@ -560,11 +560,6 @@ class Parse(LoggedClass):
         """
         directory = resolve_dir(directory)
         self.last_scanned_dir = directory
-        if file_re is None:
-            convertible = self.ms is not None
-            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
-        if exclude_re is None:
-            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
 
         # new corpus/corpora to be added
         directories = sorted(iterate_corpora(directory, logger=self.logger))
@@ -576,7 +571,8 @@ class Parse(LoggedClass):
             self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
-            directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
+            if exclude_re is not None:
+                directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
             if key is not None:
                 self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
             for d in directories:
@@ -609,6 +605,11 @@ class Parse(LoggedClass):
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
+        if file_re is None:
+            convertible = self.ms is not None
+            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
+        if exclude_re is None:
+            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                            recursive=recursive, logger=self.logger))
