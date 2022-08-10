@@ -1993,6 +1993,11 @@ def roman_numeral2fifths(rn, global_minor=False):
     """
     if pd.isnull(rn):
         return rn
+    if '/' in rn:
+        resolved = resolve_relative_keys(rn, global_minor)
+        mode = 'minor' if global_minor else 'major'
+        logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
+        rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
     accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
@@ -2009,6 +2014,11 @@ def roman_numeral2semitones(rn, global_minor=False):
     """
     if pd.isnull(rn):
         return rn
+    if '/' in rn:
+        resolved = resolve_relative_keys(rn, global_minor)
+        mode = 'minor' if global_minor else 'major'
+        logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
+        rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
     accidentals, rn_step = split_scale_degree(rn, count=True)
