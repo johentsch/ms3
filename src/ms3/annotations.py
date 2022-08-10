@@ -303,7 +303,7 @@ class Annotations(LoggedClass):
         return res
 
 
-    def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, **kwargs):
+    def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, chord_tones=True, relative_to_global=False, absolute=False, all_in_c=False,  **kwargs):
         """ Expands all labels where the label_type has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
         Parameters
@@ -315,6 +315,25 @@ class Annotations(LoggedClass):
             Is automatically set to False if ``drop_others`` is set to False.
         drop_empty_cols : :obj:`bool`, optional
             Return without unused columns
+        chord_tones : :obj:`bool`, optional
+            Pass True if you want to add four columns that contain information about each label's
+            chord, added, root, and bass tones. The pitches are expressed as intervals
+            relative to the respective chord's local key or, if ``relative_to_global=True``,
+            to the globalkey. The intervals are represented as integers that represent
+            stacks of fifths over the tonic, such that 0 = tonic, 1 = dominant, -1 = subdominant,
+            2 = supertonic etc.
+        relative_to_global : :obj:`bool`, optional
+            Pass True if you want all labels expressed with respect to the global key.
+            This levels and eliminates the features `localkey` and `relativeroot`.
+        absolute : :obj:`bool`, optional
+            Pass True if you want to transpose the relative `chord_tones` to the global
+            key, which makes them absolute so they can be expressed as actual note names.
+            This implies prior conversion of the chord_tones (but not of the labels) to
+            the global tonic.
+        all_in_c : :obj:`bool`, optional
+            Pass True to transpose `chord_tones` to C major/minor. This performs the same
+            transposition of chord tones as `relative_to_global` but without transposing
+            the labels, too. This option clashes with `absolute=True`.
         kwargs
             Additional arguments are passed to :py:meth:`.get_labels` to define the original representation.
 
@@ -337,12 +356,12 @@ class Annotations(LoggedClass):
             self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_type=True, logger=self.logger)[['mc', 'mn', 'label', 'label_type']].to_string()}")
         df = df[sel]
         try:
-            exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=True, logger=self.logger)
+            exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=chord_tones, relative_to_global=relative_to_global, absolute=absolute, all_in_c=all_in_c, logger=self.logger)
             if drop_others:
                 self._expanded = exp
             else:
                 df = self.df.copy()
-                df.loc[sel, exp.df.columns] = exp
+                df.loc[sel, exp.columns] = exp
                 self._expanded = df
             if 'label_type' in self._expanded.columns:
                 self._expanded.drop(columns='label_type', inplace=True)
