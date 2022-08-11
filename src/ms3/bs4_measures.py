@@ -193,7 +193,7 @@ class MeasureList(LoggedClass):
             context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
-                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, mcs)})
+                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, *tuple(map(int, mcs.split(", "))))})
 
 
 @function_logger
