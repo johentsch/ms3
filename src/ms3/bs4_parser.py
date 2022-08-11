@@ -1391,7 +1391,10 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
         Returns
         -------
-
+        :obj:`list`
+            List of durations (in fractions) of all notes that have been colored.
+        :obj:`list`
+            List of durations (in fractions) of all notes that have not been colored.
         """
         if len(self.tags) == 0:
             if self.read_only:
@@ -1404,6 +1407,8 @@ and {loc_after} before the subsequent {nxt_name}.""")
         if rgba is None:
             self.logger.error(f"Pass a valid color value.")
             return
+        if color_name is None:
+            color_name = rgb_tuple2format(rgba[:3], format='name')
         color_attrs = rgba2attrs(rgba)
 
         str_midi = [str(m) for m in midi]
@@ -1412,6 +1417,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
         until_end = pd.isnull(to_mc)
         negation = ' not' if inverse else ''
+        colored_durations, untouched_durations = [], []
         for mc, staves in self.tags.items():
             if mc < from_mc or (not until_end and mc > to_mc):
                 continue
@@ -1425,20 +1431,25 @@ and {loc_after} before the subsequent {nxt_name}.""")
                         for tag_dict in tag_dicts:
                             if tag_dict['name'] != 'Chord':
                                 continue
+                            duration = tag_dict['duration']
                             for note_tag in tag_dict['tag'].find_all('Note'):
                                 reason = ""
                                 if len(midi) > 0:
                                     midi_val = note_tag.pitch.string
                                     if inverse and midi_val in str_midi:
+                                        untouched_durations.append(duration)
                                         continue
                                     if not inverse and midi_val not in str_midi:
+                                        untouched_durations.append(duration)
                                         continue
                                     reason = f"MIDI pitch {midi_val} is{negation} in {midi}"
                                 if len(ms_tpc) > 0:
                                     tpc_val = note_tag.tpc.string
                                     if inverse and tpc_val in ms_tpc:
+                                        untouched_durations.append(duration)
                                         continue
                                     if not inverse and tpc_val not in ms_tpc:
+                                        untouched_durations.append(duration)
                                         continue
                                     if reason != "":
                                         reason += " and "
@@ -1449,9 +1460,9 @@ and {loc_after} before the subsequent {nxt_name}.""")
                                     reason = " because " + reason
                                 first_inside = note_tag.find()
                                 _ = self.new_tag('color', attributes=color_attrs, before=first_inside)
-                                if color_name is None:
-                                    color_name = rgb_tuple2format(rgba[:3], format='name')
+                                colored_durations.append(duration)
                                 self.logger.debug(f"MC {mc}, onset {onset}, staff {staff}, voice {voice}: Changed note color to {color_name}{reason}.")
+        return colored_durations, untouched_durations
 
     # def close_file_handlers(self):
     #     for h in self.logger.logger.handlers:
