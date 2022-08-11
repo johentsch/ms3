@@ -384,6 +384,21 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return checks[0]
 
 
+    def color_non_chord_tones(self, color_name='red'):
+        """ Goes through the attached labels, tries to interpret them as DCML harmony labels, and
+        colors the notes in the parsed score.
+
+        Returns
+        -------
+
+        """
+        if not self.mscx.has_annotations:
+            self.mscx.logger.debug("Score contains no Annotations.")
+            return
+        expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
+        self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+
+
 
     def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
         """ Compare detached labels ``key`` to the ones attached to the Score.
@@ -1167,6 +1182,56 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
 
+
+    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
+        """
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+        color_name : :obj:`str`, optional
+            Name the color that the non-chord tones should get, defaults to 'red'.
+        chord_tone_cols : :obj:`list`, optional
+            Names of the columns containing tuples of chord tones, expressed as TPC.
+        color_nan : :obj:`bool`, optional
+            By default, if one of the ``chord_tone_cols`` has a NaN value, all notes in the segment
+            will be colored. Pass False to add the segment to the previous one instead.
+
+        Returns
+        -------
+
+        """
+        for col in chord_tone_cols:
+            assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
+        # iterating backwards through the DataFrame; the first segment spans to the end of the score
+        to_mc, to_mc_onset = None, None
+        expand_segment = False # Flag allowing to add NaN segments to their preceding ones
+        for row_tuple in df[::-1].itertuples(index=False):
+            mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
+            chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
+            if any(pd.isnull(ctt) for ctt in chord_tone_tuples):
+                if color_nan:
+                    self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                              color_name=color_name)
+                    self.logger.warning(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
+                else:
+                    expand_segment = True
+            else:
+                chord_tones = sum(chord_tone_tuples, tuple())
+                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                          to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                          color_name=color_name, tpc=chord_tones, inverse=True)
+                n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+                count_ratio = n_colored / (n_colored + n_untouched)
+                dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
+                dur_ratio = dur_colored / (dur_colored + dur_untouched)
+                self.logger.info(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+            if expand_segment:
+                expand_segment = False
+            else:
+                to_mc, to_mc_onset = mc, mc_onset
 
 
     def delete_labels(self, df):
