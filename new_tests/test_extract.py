@@ -1,7 +1,6 @@
 import pytest
 from collections import defaultdict
 import os
-from pathlib import Path
 
 def inspect_object(obj, no_magic=True):
     result = {}
@@ -188,13 +187,6 @@ class TestParsedParse():
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
-    @pytest.fixture()
-    def get_ignored_warnings(self, filter_path='unittest_metacorpus/mixed_files'):
-        # get warnings from file
-        with open(os.path.join(str(Path.home()), filter_path, 'IGNORED_WARNINGS')) as f:
-            ignored_messages = f.read()
-        return ignored_messages
-
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
 
@@ -203,11 +195,21 @@ class TestParsedParse():
         parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
         assert parsed_files == n_parsed_files
 
-    def test_check(self, caplog, get_ignored_warnings):
+    @pytest.fixture()
+    def ignored_warnings(self):
+        return {"ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)],
+                 "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, 1, 40, 85, 97, 131, 139)]}
+
+    def test_parse_ignored_warnings_file(self, ignored_warnings):
+        assert self.parsed_parse_obj.parse_ignored_warnings(os.path.join(os.path.expanduser("~"),
+                'unittest_metacorpus/mixed_files/IGNORED_WARNINGS')) == ignored_warnings
+
+    def test_check(self, caplog, ignored_warnings):
         _ = self.parsed_parse_obj.get_dataframes(expanded=True)
         for record in caplog.records:
-            if " ".join(record.getMessage().split(sep="--")[0].split(sep=" ")) in get_ignored_warnings:
-                assert record.levelname == "DEBUG"
+            if record.name in ignored_warnings.keys():
+                if record._message_id == ignored_warnings[record.name]:
+                    assert record.levelname == "DEBUG"
 
 # add_dir (different keys)
 # file_re
