@@ -597,8 +597,9 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
         df.leftParen.replace('/', '(', inplace=True)
         compose_label.append('leftParen')
         drop_cols.append('leftParen')
-    if 'absolute_root' in df.columns:
-        df.absolute_root = fifths2name(df.absolute_root, ms=True, logger=logger)
+    if 'absolute_root' in df.columns and df.absolute_root.notna().any():
+        sel = df.absolute_root.notna()
+        df.loc[sel, 'absolute_root'] = fifths2name(df.loc[sel, 'absolute_root'].to_list(), ms=True, logger=logger)
         compose_label.append('absolute_root')
         drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
@@ -607,8 +608,10 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
             drop_cols.append('rootCase')
     if label_col in df.columns:
         compose_label.append(label_col)
-    if 'absolute_base' in df.columns:
-        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True, logger=logger)
+    if 'absolute_base' in df.columns and df.absolute_base.notna().any():
+        sel = df.absolute_base.notna()
+        df.loc[sel, 'absolute_base'] = fifths2name(df.loc[sel, 'absolute_base'].to_list(), ms=True, logger=logger)
+        df.absolute_base = '/' + df.absolute_base
         compose_label.append('absolute_base')
         drop_cols.append('absolute_base')
     if 'rightParen' in df.columns:
@@ -795,6 +798,8 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
     try:
         fifths = int(float(fifths))
     except:
+        if isinstance(fifths, pd.Series):
+            return fifths.apply(fifths2name, ms=ms, logger=logger)
         if isinstance(fifths, Iterable):
             return map2elements(fifths, fifths2name, ms=ms, logger=logger)
         return fifths
