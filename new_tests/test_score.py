@@ -6,6 +6,7 @@ import tempfile
 
 import pytest
 import ms3
+from ms3 import assert_dfs_equal
 
 
 def assert_stored_mscx_identical(sc_obj, suffix):
@@ -47,7 +48,10 @@ class TestScore:
     def test_removing_and_reinserting_labels(self, directory, score_object,):
         if not score_object.mscx.has_annotations:
             return
+        before = score_object.annotations.df
         score_object.detach_labels('labels')
+        after = score_object.labels.df
+        assert assert_dfs_equal(before, after)
         score_object.attach_labels('labels')
         assert_stored_mscx_identical(score_object, '_label_reinsertion')
 
