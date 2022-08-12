@@ -5,8 +5,7 @@ import shutil
 import tempfile
 
 import pytest
-import ms3
-from ms3 import assert_dfs_equal
+from ms3 import Score, assert_dfs_equal
 
 
 def assert_stored_mscx_identical(sc_obj, suffix):
@@ -52,10 +51,10 @@ class TestScore:
 
     test_folder = os.path.dirname(os.path.realpath(__file__))
 
-    def test_store_mscx(self, directory, score_object,):
+    def test_store_mscx(self, score_object,):
         assert_stored_mscx_identical(score_object, '_rewrite')
 
-    def test_removing_and_reinserting_labels(self, directory, score_object,):
+    def test_removing_and_reinserting_labels(self, score_object,):
         if not score_object.mscx.has_annotations:
             return
         before = score_object.annotations.df
@@ -67,5 +66,7 @@ class TestScore:
         assert_stored_mscx_identical(score_object, '_label_reinsertion')
 
 
-
+    def test_partially_removing_and_reinserting_labels(self, directory):
+        path = os.path.join(directory, 'mixed_files', 'stabat_03_coloured.mscx')
+        sc_obj = Score(path)
 

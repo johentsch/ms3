@@ -41,7 +41,7 @@ def parse_obj(directory, request):
         p = Parse(directory=directory, key='sweelinck', file_re="SwWV")
         return p
     if request.param == "without_metadata":
-        add_path = os.path.join(directory, "mixed_files", "keyboard")
+        add_path = os.path.join(directory, "mixed_files", "orchestral")
         return Parse(add_path, key="custom_key")
     if request.param == "redundant":
         add_path = os.path.join(directory, "mixed_files", "keyboard", "classic")
@@ -61,18 +61,19 @@ def parse_obj(directory, request):
             p.add_dir(add_path)
     if request.param.startswith('files_'):
         add_path = os.path.join(directory, 'sweelinck_keyboard')
-        files = scan_directory(add_path, logger="ms3.tests")
+        files = list(scan_directory(add_path, logger="ms3.tests"))
+        files_with_inferrable_metadata = [f for f in files if os.path.basename(f) != 'metadata.tsv']
+        files_without_inferrable_metadata = list(scan_directory(os.path.join(directory, 'mixed_files', 'orchestral')))
         if request.param == "files_without_key":
             with pytest.raises(TypeError):
-                p.add_files(files)
+                p.add_files(files_without_inferrable_metadata)
+        if request.param == "files_with_inferred_key":
+            p.add_files(files_with_inferrable_metadata)
         if request.param == "files_with_wrong_key":
-            with pytest.raises(AssertionError):
-                p.add_files(files, key="custom_key")
+            p.add_files(files, key="custom_key")
         if request.param == "files_correct_without_metadata":
-            files = [f for f in files if os.path.basename(f) != 'metadata.tsv']
             key = "frankenstein"
-            p.files[key] = []
-            p.add_files(files, key=key)
+            p.add_files(files_with_inferrable_metadata, key=key)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):
                 p.add_files(path, key=key)
         if request.param == "files_with_correct_key":
