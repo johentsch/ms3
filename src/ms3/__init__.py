@@ -22,3 +22,6 @@ from .annotations import Annotations
 from .parse import Parse
 from .utils import *
 from .transformations import *
+from .logger import config_logger
+
+_ = config_logger("ms3")
