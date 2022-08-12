@@ -1865,7 +1865,7 @@ def format_node(node, indent):
     node_name = node.name
     # The following tags are exceptionally not abbreviated when empty,
     # so for instance you get <metaTag></metaTag> and not <metaTag/>
-    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'programRevision', 'metaTag', 'trackName']:
+    if node_name in ['continueAt', 'continueText', 'endText', 'LayerTag', 'metaTag', 'name', 'programRevision', 'text', 'trackName']:
         return f"{space}{make_oneliner(node)}\n"
     children = node.find_all(recursive=False)
     if len(children) > 0:
