@@ -1278,7 +1278,8 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
     def new_label(self, label, label_type=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
                   leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
-                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
+                  placement=None, minDistance=None, style=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(label_type):
             try:
@@ -1296,9 +1297,18 @@ and {loc_after} before the subsequent {nxt_name}.""")
         if not pd.isnull(rootCase):
             _ = self.new_tag('rootCase', value=rootCase, within=tag)
         if not pd.isnull(label):
+            if label == '/':
+                label = ""
             _ = self.new_tag('name', value=label, within=tag)
         else:
             assert not pd.isnull(absolute_root), "Either label or root need to be specified."
+
+        if not pd.isnull(style):
+            _ = self.new_tag('style', value=style, within=tag)
+        if not pd.isnull(placement):
+            _ = self.new_tag('placement', value=placement, within=tag)
+        if not pd.isnull(minDistance):
+            _ = self.new_tag('minDistance', value=minDistance, within=tag)
         if not pd.isnull(nashville):
             _ = self.new_tag('function', value=nashville, within=tag)
         if not pd.isnull(absolute_base):

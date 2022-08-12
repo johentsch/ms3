@@ -1116,13 +1116,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if columns['decoded'] not in df.columns:
             df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True, logger=self.logger)
         #df = df[df[columns['label']].notna()]
-        existing_cols = {k: v for k, v in columns.items() if v in df.columns}
-        param2cols = {**existing_cols}
+        param2cols = {k: v for k, v in columns.items() if v in df.columns}
         parameters = list(param2cols.keys())
         clmns = list(param2cols.values())
         self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
-        tups = tuple(df[clmns].itertuples(index=False, name=None))
-        params = [{a: b for a, b in zip(parameters, t)} for t in tups]
+        value_tuples = tuple(df[clmns].itertuples(index=False, name=None))
+        params = [dict(zip(parameters, t)) for t in value_tuples]
         res = [self._parsed.add_label(**p) for p in params]
         changes = sum(res)
         # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
