@@ -1,8 +1,8 @@
 import os
 from copy import deepcopy
 import pytest
-from ms3 import Parse
-from ms3.utils import first_level_subdirs, scan_directory
+from ms3 import Parse, Score
+from ms3.utils import scan_directory
 
 # Directory holding your clone of DCMLab/unittest_metacorpus
 CORPUS_DIR = "~"
@@ -116,7 +116,41 @@ def parsed_parse_objects(parsed_parse_obj, request):
     request.cls.parsed_parse_obj = parsed_parse_obj
 
 
+### Creating path tuples for score_object():
+# for folder, subdirs, files in os.walk('.'):
+#     subdirs[:] = [s for s in subdirs if not s.startswith('.')]
+#     fldrs = tuple(['mixed_files'] + folder.split('/')[1:])
+#     for f in files:
+#         if f.endswith('.mscx'):
+#             print(f"{fldrs + (f,)},")
 
+@pytest.fixture(
+    params = [
+        ('mixed_files', '76CASM34A33UM.mscx'),
+        ('mixed_files', 'stabat_03_coloured.mscx'),
+        ('mixed_files', 'orchestral', '05_symph_fant.mscx'),
+        ('mixed_files', 'orchestral', 'Did03M-Son_regina-1762-Sarti.mscx'),
+        ('mixed_files', 'orchestral', 'caldara_form.mscx'),
+        ('mixed_files', 'keyboard', 'baroque', 'BWV_0815.mscx'),
+        ('mixed_files', 'keyboard', 'ancient', '12.16_Toccata_cromaticha_per_l’elevatione_phrygian.mscx'),
+        ('mixed_files', 'keyboard', 'nineteenth', 'D973deutscher01.mscx'),
+        ('mixed_files', 'keyboard', 'classic', 'K281-3.mscx'),
+          ],
+    ids = [
+        'monty',
+        'pergolesi',
+        'berlioz',
+        'sarti',
+        'caldara',
+        'bach',
+        'frescobaldi',
+        'schubert',
+        'mozart'
+       ])
+def score_object(directory, request):
+    mscx_path = os.path.join(directory, *request.param)
+    s = Score(mscx_path)
+    return s
 
 
 
