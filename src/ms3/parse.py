@@ -245,9 +245,6 @@ class Parse(LoggedClass):
             for d in directory:
                 self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
-            assert key is not None, "When adding individual files, you need to specify a key. Consider using _.add_corpus() instead."
-            if isinstance(paths, str):
-                paths = [paths]
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -698,7 +695,6 @@ class Parse(LoggedClass):
         :obj:`list`
             The IDs of the added files.
         """
-        assert key in self.files, f"'{key}' is not an existing key."
         if paths is None or len(paths) == 0:
             self.logger.debug(f"add_files() was called with paths = '{paths}'.")
             return []
@@ -713,8 +709,29 @@ class Parse(LoggedClass):
                     paths.extend(loaded_paths)
                     self.logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
                     del(paths[i])
-                except:
+                except Exception:
                     self.logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+        if key is None:
+            # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
+            for path in paths:
+                key = path2key(path)
+                if key is not None:
+                    self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv'.")
+                    break
+        if key is None:
+            # if only one key is available, pick that one
+            keys = self.keys()
+            if len(keys) == 1:
+                key = keys[0]
+                self.logger.info(f"Using key='{key}' because it is the only one currently in use.")
+            else:
+                self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.")
+                return []
+        if key not in self.files:
+            self.logger.debug(f"Adding '{key}' as new corpus.")
+            self.files[key] = []
+        if isinstance(paths, str):
+            paths = [paths]
         if exclude_re is not None:
             paths = [p for p in paths if re.search(exclude_re, p) is None]
         if self.last_scanned_dir is None:
@@ -2178,7 +2195,7 @@ Available keys: {available_keys}""")
                     del (self._parsed_mscx[id])
         self._annotations.update(updated)
 
-    def _handle_path(self, full_path, key=None):
+    def _handle_path(self, full_path, key):
         full_path = resolve_dir(full_path)
         if not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
@@ -2190,11 +2207,7 @@ Available keys: {available_keys}""")
             self.logger.debug(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
             return (None, None)
         rel_path = os.path.relpath(file_path, self.last_scanned_dir)
-        if key is None:
-            key = rel_path
-            subdir = rel_path
-        else:
-            subdir = get_path_component(rel_path, key)
+        subdir = get_path_component(rel_path, key)
         if file in self.files[key]:
             same_name = [i for i, f in enumerate(self.files[key]) if f == file]
             if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
