@@ -678,7 +678,7 @@ class Parse(LoggedClass):
                 ignored_warnings[msg[-1]] = [info]  # add new file info
         return ignored_warnings
 
-    def add_files(self, paths, key, exclude_re=None):
+    def add_files(self, paths, key=None, exclude_re=None):
         """
 
         Parameters
@@ -1957,7 +1957,8 @@ Available keys: {available_keys}""")
                         self._lists[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
                             if label_col in df.columns:
-                                logger_name = self.files[key][i]
+                                logger_cfg = dict(self.logger_cfg)
+                                logger_cfg['name'] = self.logger_names[(key, i)]
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg={'name': logger_name}, level=level)
                                 logger.debug(

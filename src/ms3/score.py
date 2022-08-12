@@ -517,7 +517,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += f"{self.mscx.logger.name}.{key}"
+        logger_cfg['name'] += f"{self.logger.name}.{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:
@@ -1502,7 +1502,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._parsed.has_annotations:
             self.has_annotations = True
             logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] += '.annotations'
+            #logger_cfg['name'] += '.annotations'
             self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
                                             logger_cfg=logger_cfg)
         else:
