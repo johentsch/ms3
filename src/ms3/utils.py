@@ -586,7 +586,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
 
 
 @function_logger
-def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
+def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
     """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
     the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
 
@@ -596,8 +596,8 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
         DataFrame with encoded harmony labels as stored in an :obj:`Annotations` object.
     label_col : :obj:`str`, optional
         Column name where the main components (<name> tag) are stored, defaults to 'label'
-    keep_type : :obj:`bool`, optional
-        Defaults to True, retaining the 'label_type' column and setting types 2 and 3 to 0.
+    keep_layer : :obj:`bool`, optional
+        Defaults to True, retaining the 'harmony_layer' column and setting types 2 and 3 to 0.
     return_series : :obj:`bool`, optional
         If set to True, only the decoded labels column is returned as a Series rather than a copy of ``df``.
     alt_cols : :obj:`str` or :obj:`list`, optional
@@ -658,11 +658,11 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
     if return_series:
         return new_label_col
 
-    if 'label_type' in df.columns:
-        if keep_type:
-            df.loc[df.label_type.isin([2, 3, '2', '3']), 'label_type'] == 0
+    if 'harmony_layer' in df.columns:
+        if keep_layer:
+            df.loc[df.harmony_layer.isin((2, 3)), 'harmony_layer'] == 0
         else:
-            drop_cols.append('label_type')
+            drop_cols.append('harmony_layer')
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -1406,6 +1406,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'globalkey': str,
         'gracenote': str,
         'harmonies_id': 'Int64',
+        'harmony_layer': object,
         'keysig': 'Int64',
         'label': str,
         'label_type': object,
@@ -1427,6 +1428,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'pedal': str,
         'playthrough': 'Int64',
         'phraseend': str,
+        'regex_match': object,
         'relativeroot': str,
         'repeats': str,
         'rightParen': str,
@@ -2544,7 +2546,7 @@ def unpack_mscz(mscz, tmp_dir=None):
 
 @function_logger
 def update_labels_cfg(labels_cfg):
-    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+    keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
     if 'logger' in labels_cfg:
         del(labels_cfg['logger'])
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)

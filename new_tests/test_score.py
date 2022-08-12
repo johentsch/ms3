@@ -51,7 +51,7 @@ class TestScore:
         before = score_object.annotations.df
         score_object.detach_labels('labels')
         after = score_object.labels.df
-        assert assert_dfs_equal(before, after)
+        assert_dfs_equal(before, after)
         score_object.attach_labels('labels')
         assert_stored_mscx_identical(score_object, '_label_reinsertion')
 

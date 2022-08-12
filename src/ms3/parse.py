@@ -199,7 +199,7 @@ class Parse(LoggedClass):
         self.labels_cfg = {
             'staff': None,
             'voice': None,
-            'label_type': None,
+            'harmony_layer': None,
             'positioning': True,
             'decode': False,
             'column_name': 'label',
@@ -251,7 +251,7 @@ class Parse(LoggedClass):
 
 
 
-    def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, label_type=1,
+    def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, harmony_layer=1,
                                 check_for_clashes=False):
         """ For each pair, adds the labels at tsv_id to the score at score_id.
 
@@ -265,11 +265,11 @@ class Parse(LoggedClass):
         voice : :obj:`int`, optional
             By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
             Pass an integer to specify a voice.
-        label_type : :obj:`int`, optional
+        harmony_layer : :obj:`int`, optional
             | By default, the labels are written into the staff's layer for Roman Numeral Analysis.
             | To change the behaviour pass
             | * None to instead attach them as absolute ('guitar') chords, meaning that when opened next time,
-            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
             | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
@@ -278,7 +278,7 @@ class Parse(LoggedClass):
         self._add_detached_annotations_by_ids(list_of_pairs, new_key='labels_to_attach')
         for score_id, tsv_id in list_of_pairs:
             score = self[score_id]
-            score.attach_labels('labels_to_attach', staff=staff, voice=voice, label_type=label_type,
+            score.attach_labels('labels_to_attach', staff=staff, voice=voice, harmony_layer=harmony_layer,
                                 check_for_clashes=check_for_clashes,
                                 remove_detached=True)
 
@@ -765,7 +765,7 @@ class Parse(LoggedClass):
 
 
 
-    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, label_type=None, check_for_clashes=True):
+    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
         respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
         MuseScore files where the annotations show in the score.
@@ -817,7 +817,7 @@ Continuing with {annotation_key}.""")
         for id in ids:
             for anno_key in annotation_key:
                 if anno_key in self._parsed_mscx[id]:
-                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
+                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
                     goal += g
@@ -825,17 +825,17 @@ Continuing with {annotation_key}.""")
         self._collect_annotations_objects_references(ids=ids)
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, label_type, positioning, decode, column_name
+        staff, voice, harmony_layer, positioning, decode, column_name
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
-        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
         for k in keys:
             val = locals()[k]
             if val is not None:
@@ -941,7 +941,7 @@ Available keys: {available_keys}""")
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
-        """ Counts the labels for each annotation layer defined as (staff, voice, label_type).
+        """ Counts the labels for each annotation layer defined as (staff, voice, harmony_layer).
         By default, only labels attached to a score are counted.
 
         Parameters
@@ -959,7 +959,7 @@ Available keys: {available_keys}""")
         Returns
         -------
         :obj:`dict` or :obj:`collections.Counter`
-            By default, the function returns a Counter of labels for every annotation layer (staff, voice, label_type)
+            By default, the function returns a Counter of labels for every annotation layer (staff, voice, harmony_layer)
             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
         """
         res_dict = defaultdict(Counter)
@@ -992,7 +992,7 @@ Available keys: {available_keys}""")
             data = counts.values()
             ks = list(counts.keys())
             #levels = len(ks[0])
-            names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
+            names = ['staff', 'voice', 'harmony_layer', 'color'] #<[:levels]
             ix = pd.MultiIndex.from_tuples(ks, names=names)
             return pd.Series(data, ix)
 
@@ -1049,7 +1049,7 @@ Available keys: {available_keys}""")
 
 
 
-    def count_label_types(self, keys=None, per_key=False):
+    def count_labels(self, keys=None, per_key=False):
         """ Count label types.
 
         Parameters
@@ -1069,7 +1069,7 @@ Available keys: {available_keys}""")
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
-            res_dict[key].update(self._annotations[(key, i)].label_types)
+            res_dict[key].update(self._annotations[(key, i)].harmony_layer_counts)
         if len(res_dict) == 0:
             if len(self._parsed_mscx) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
@@ -1108,7 +1108,7 @@ Available keys: {available_keys}""")
 
 
 
-    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
+    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, harmony_layer=None, delete=True):
         """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
@@ -1118,7 +1118,7 @@ Available keys: {available_keys}""")
         for id in ids:
             score = self._parsed_mscx[id]
             try:
-                score.detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
+                score.detach_labels(key=annotation_key, staff=staff, voice=voice, harmony_layer=harmony_layer, delete=delete)
             except:
                 score.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
         self._collect_annotations_objects_references(ids=ids)
@@ -1157,14 +1157,14 @@ Available keys: {available_keys}""")
 
 
 
-    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None,
+    def get_labels(self, keys=None, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, column_name=None,
                    color_format=None, concat=True):
         """ This function does not take into account self.labels_cfg """
         if len(self._annotations) == 0:
             self.logger.error("No labels available so far. Add files using add_dir() and parse them using parse().")
             return pd.DataFrame()
         keys = self._treat_key_param(keys)
-        label_type = self._treat_label_type_param(label_type)
+        harmony_layer = self._treat_harmony_layer_param(harmony_layer)
         self._extract_and_cache_dataframes(labels=True, only_new=True)
         l = locals()
         params = {p: l[p] for p in self.labels_cfg.keys()}
@@ -2240,7 +2240,7 @@ Load one of the identically named files with a different key using add_dir(key='
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
             'expanded': ['numeral'],
-            'labels': ['label_type'],
+            'labels': ['harmony_layer', 'label_type'],
             'cadences': ['cadence'],
             'metadata': ['last_mn', 'md5'],
         }
@@ -2486,13 +2486,13 @@ Load one of the identically named files with a different key using add_dir(key='
         return [k for k in sorted(set(keys)) if k in self.files]
 
 
-    def _treat_label_type_param(self, label_type):
-        if label_type is None:
+    def _treat_harmony_layer_param(self, harmony_layer):
+        if harmony_layer is None:
             return None
-        all_types = {str(k): k for k in self.count_label_types().keys()}
-        if isinstance(label_type, int) or isinstance(label_type, str):
-            label_type = [label_type]
-        lt = [str(t) for t in label_type]
+        all_types = {str(k): k for k in self.count_labels().keys()}
+        if isinstance(harmony_layer, int) or isinstance(harmony_layer, str):
+            harmony_layer = [harmony_layer]
+        lt = [str(t) for t in harmony_layer]
         def matches_any_type(user_input):
             return any(True for t in all_types if user_input in t)
         def get_matches(user_input):
@@ -2503,7 +2503,7 @@ Load one of the identically named files with a different key using add_dir(key='
             plural = len(not_found) > 1
             plural_s = 's' if plural else ''
             self.logger.warning(
-                f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
+                f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
     def update_metadata(self, allow_suffix=False):

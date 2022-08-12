@@ -608,7 +608,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`pandas.DataFrame`
 
         """
-        cols = {'label_type': 'Harmony/harmonyType',
+        cols = {'harmony_layer': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
                 'nashville': 'Harmony/function',
                 'absolute_root': 'Harmony/root',
@@ -622,14 +622,14 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'color_b': 'Harmony/color:b',
                 'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
+        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'harmony_layer', 'regex_match', 'color_r', 'color_g', 'color_b', 'color_a']
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
             return pd.DataFrame(columns=std_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
-        if 'label_type' in df.columns:
-            df.label_type.fillna(0, inplace=True)
+        if 'harmony_layer' in df.columns:
+            df.harmony_layer.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
         additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' and c not in cols.values()}
         df.rename(columns=additional_cols, inplace=True)
@@ -1276,20 +1276,20 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
 
-    def new_label(self, label, label_type=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
+    def new_label(self, label, harmony_layer=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
                   leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
                   color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
                   placement=None, minDistance=None, style=None):
         tag = self.new_tag('Harmony')
-        if not pd.isnull(label_type):
+        if not pd.isnull(harmony_layer):
             try:
-                label_type = int(label_type)
+                harmony_layer = int(harmony_layer)
             except:
-                if label_type[0] in ('1', '2'):
-                    label_type = int(label_type[0])
-            # only include <harmonyType> tag for label_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            if label_type in (1, 2):
-                _ = self.new_tag('harmonyType', value=label_type, within=tag)
+                if harmony_layer[0] in ('1', '2'):
+                    harmony_layer = int(harmony_layer[0])
+            # only include <harmonyType> tag for harmony_layer 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
+            if harmony_layer in (1, 2):
+                _ = self.new_tag('harmonyType', value=harmony_layer, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
         if not pd.isnull(absolute_root):
