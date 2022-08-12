@@ -21,28 +21,33 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
-        "files_correct_without_metadata",
-        "file_re",
+        "everything",
+        "file_re_with_key",
+        "file_re_without_key",
         "without_metadata",
         "redundant",
-        "files_with_correct_key",
-        "files_without_key",
-        "files_with_wrong_key",
-        "hidden_dirs",
         "regular_dirs",
-        "everything",
         "chaotic_dirs",
+        "hidden_dirs",
+        "files_without_key",
+        "files_with_inferred_key",
+        "files_with_wrong_key",
+        "files_correct_without_metadata",
+        "files_with_correct_key",
     ]
 )
 def parse_obj(directory, request):
     if request.param == 'everything':
         return Parse(directory=directory)
-    if request.param == 'file_re':
-        p = Parse(directory=directory, key='sweelinck', file_re="SwWV")
+    if request.param == 'file_re_with_key':
+        p = Parse(directory=directory, key = 'sweelinck', file_re="SwWV", logger_cfg=dict(level='d'))
+        return p
+    if request.param == 'file_re_without_key':
+        p = Parse(directory=directory, file_re="SwWV")
         return p
     if request.param == "without_metadata":
         add_path = os.path.join(directory, "mixed_files", "orchestral")
-        return Parse(add_path, key="custom_key")
+        return Parse(add_path)
     if request.param == "redundant":
         add_path = os.path.join(directory, "mixed_files", "keyboard", "classic")
         return Parse(add_path)
@@ -65,12 +70,12 @@ def parse_obj(directory, request):
         files_with_inferrable_metadata = [f for f in files if os.path.basename(f) != 'metadata.tsv']
         files_without_inferrable_metadata = list(scan_directory(os.path.join(directory, 'mixed_files', 'orchestral')))
         if request.param == "files_without_key":
-            with pytest.raises(TypeError):
-                p.add_files(files_without_inferrable_metadata)
+            p.add_files(files_without_inferrable_metadata)
         if request.param == "files_with_inferred_key":
             p.add_files(files_with_inferrable_metadata)
         if request.param == "files_with_wrong_key":
-            p.add_files(files, key="custom_key")
+            p.add_files(files_with_inferrable_metadata)
+            p.add_files(files_without_inferrable_metadata)
         if request.param == "files_correct_without_metadata":
             key = "frankenstein"
             p.add_files(files_with_inferrable_metadata, key=key)

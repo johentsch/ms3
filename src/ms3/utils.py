@@ -3181,15 +3181,15 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             'root': root,
         }
 
-def path2key(path):
+def path2parent_corpus(path):
     """Walk up the path and return the name of the superdirectory containing a 'metadata.tsv' file."""
     if path in ('', '/'):
         return None
     try:
         if os.path.isdir(path):
             if 'metadata.tsv' in os.listdir(path):
-                return os.path.basename(path)
-        return path2key(os.path.dirname(path))
+                return path
+        return path2parent_corpus(os.path.dirname(path))
     except Exception:
         return None
 

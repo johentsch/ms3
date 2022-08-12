@@ -517,7 +517,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += f"{self.logger.name}.{key}"
+        logger_cfg['name'] = f"{self.logger.name}.{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:

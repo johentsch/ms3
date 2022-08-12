@@ -16,7 +16,7 @@ from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_comp
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
     pretty_dict, resolve_dir, \
-    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2key
+    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 
 
@@ -558,22 +558,36 @@ class Parse(LoggedClass):
         directory = resolve_dir(directory)
         self.last_scanned_dir = directory
 
+        if not recursive:
+            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            return
+
         # new corpus/corpora to be added
         directories = sorted(iterate_corpora(directory, logger=self.logger))
         n_corpora = len(directories)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
             if key is not None:
-                self.logger.info(f"Using key '{key}' for corpus '{os.path.basename(directory)}'.")
+                corpus_name = os.path.basename(directory)
+                if key != corpus_name:
+                    self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
             self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
-            if exclude_re is not None:
-                directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
-            if key is not None:
-                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
-            for d in directories:
-                self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            if key is None:
+                if exclude_re is not None:
+                    directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
+                for d in directories:
+                    self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                mscx_files = [file for file in os.listdir(directory) if file.endswith('.mscx')]
+                if len(mscx_files) > 0:
+                    top_level = os.path.basename(directory)
+                    self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
+                                        f"\n{mscx_files}", extra={"message_id": (7, top_level)})
+            else:
+                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to unexpected behaviours:\n{', '.join(directories)}.")
+                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+
 
 
     def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
@@ -625,13 +639,22 @@ class Parse(LoggedClass):
             self.logger.debug(f"No files from {directory} have been added.")
             return
         _, first_i = added_ids[0]
-        if not any(file == 'metadata.tsv' for file in self.files[key][first_i:]):
+        if 'metadata.tsv' in self.files[key][first_i:]:
+            self.logger.debug(f"Found metadata.tsv for corpus '{key}'.")
+        elif 'metadata.tsv' in self.files[key]:
+            self.logger.debug(f"Had already found metadata.tsv for corpus '{key}'.")
+        else:
             # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
             default_metadata_path = os.path.join(directory, 'metadata.tsv')
             if os.path.isfile(default_metadata_path):
+                self.logger.info(f"'metadata.tsv' was detected and automatically added for corpus '{key}'.")
                 new_id = self.add_files(paths=default_metadata_path, key=key)
                 added_ids += new_id
+            else:
+                self.logger.info(f"No metadata found for corpus '{key}'.")
 
+        if 'IGNORED_WARNINGS' in self.files[key]:
+            return
         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
         if os.path.isfile(default_ignored_warnings_path):
             self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
@@ -642,7 +665,7 @@ class Parse(LoggedClass):
         logger_names = list(self.logger_names.values())
         for to_be_configured, message_ids in ignored_warnings.items():
             if to_be_configured not in logger_names:
-                self.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
+                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
@@ -714,9 +737,14 @@ class Parse(LoggedClass):
         if key is None:
             # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
             for path in paths:
-                key = path2key(path)
-                if key is not None:
+                parent_corpus = path2parent_corpus(path)
+                if parent_corpus is not None:
+                    key = os.path.basename(parent_corpus)
                     self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv'.")
+                    metadata_path = os.path.join(parent_corpus, 'metadata.tsv')
+                    if metadata_path not in paths:
+                        paths.append(metadata_path)
+                        self.logger.info(f"{metadata_path} was automatically added.")
                     break
         if key is None:
             # if only one key is available, pick that one
@@ -725,7 +753,8 @@ class Parse(LoggedClass):
                 key = keys[0]
                 self.logger.info(f"Using key='{key}' because it is the only one currently in use.")
             else:
-                self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.")
+                self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.",
+                                  extra=dict(message_id = (8,)))
                 return []
         if key not in self.files:
             self.logger.debug(f"Adding '{key}' as new corpus.")
@@ -743,7 +772,7 @@ class Parse(LoggedClass):
 
         self.logger.debug(f"Attempting to add {len(paths)} files...")
         if key is None:
-            ids = [self._handle_path(p, path2key(p)) for p in paths]
+            ids = [self._handle_path(p, path2parent_corpus(p)) for p in paths]
         else:
             ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
@@ -1960,7 +1989,7 @@ Available keys: {available_keys}""")
                                 logger_cfg = dict(self.logger_cfg)
                                 logger_cfg['name'] = self.logger_names[(key, i)]
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                          logger_cfg={'name': logger_name}, level=level)
+                                                                          logger_cfg=logger_cfg, level=level)
                                 logger.debug(
                                     f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
                             else:
