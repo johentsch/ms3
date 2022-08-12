@@ -12,14 +12,16 @@ def assert_stored_mscx_identical(sc_obj, suffix):
     original_mscx = sc_obj.full_paths['mscx']
     original_path = sc_obj.paths['mscx']
     original_fname = sc_obj.fnames['mscx']
+    fname = f"{original_fname}{suffix}.mscx"
+    tmp_persist = os.path.join(original_path, fname)
     try:
         tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=original_path, encoding='utf-8', delete=True)
         sc_obj.store_mscx(tmp_file.name)
         assert tmp_file.read() == open(original_mscx, encoding='utf-8').read()
+        if os.path.isfile(tmp_persist):
+            os.remove(tmp_persist)
     except AssertionError:
         # store the erroneous tmp_file
-        fname = f"{original_fname}{suffix}.mscx"
-        tmp_persist = os.path.join(original_path, fname)
         shutil.copy(tmp_file.name, tmp_persist)
         raise
     finally:
