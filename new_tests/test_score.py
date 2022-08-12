@@ -59,6 +59,7 @@ class TestScore:
         if not score_object.mscx.has_annotations:
             return
         before = score_object.annotations.df
+        assert len(before) == len(score_object.mscx.parsed.soup.find_all('Harmony')), "Not all <Harmony> tags appear in _.annotations.df !"
         score_object.detach_labels('labels')
         after = score_object.labels.df
         assert_dfs_equal(before, after)
