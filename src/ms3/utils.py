@@ -189,7 +189,8 @@ MS3_RGB = {(0, 85, 0): 'ms3_darkgreen',
            (255, 170, 255): 'ms3_lightpink',
            (85, 255, 255): 'ms3_aquamarine'}
 
-CSS2MS3 = {c[4:]: c for c in MS3_HTML.values()}
+MS3_COLORS = list(MS3_HTML.values())
+CSS2MS3 = {c[4:]: c for c in MS3_COLORS}
 CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
 COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
 rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
@@ -423,8 +424,31 @@ def color_name2rgba(n):
 
 @function_logger
 def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+    """ For functions where the color can be specified in four different ways (HTML string, CSS name,
+    RGB, or RGBA), convert the given parameters to RGBA.
+
+    Parameters
+    ----------
+    color_name : :obj:`str`, optional
+        As a name you can use CSS colors or MuseScore colors (see :py:attr:`.MS3_COLORS`).
+    color_html : :obj:`str`, optional
+        An HTML color needs to be string of length 6.
+    color_r : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_g and color_b.
+    color_g : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_r and color_b.
+    color_b : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_r and color_g.
+    color_a : :obj:`int`, optional
+        If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+
+    Returns
+    -------
+    :obj:`rgba`
+        :obj:`namedtuple` with four integers.
+    """
     if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
-        logger.error(f"At least one of the parameters needs to be specified.")
+        logger.debug(f"None of the parameters have been specified. Returning None.")
         return None
     res = None
     if not pd.isnull(color_r):
@@ -3156,6 +3180,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         }
 
 def path2key(path):
+    """Walk up the path and return the name of the superdirectory containing a 'metadata.tsv' file."""
     if path in ('', '/'):
         return None
     try:

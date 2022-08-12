@@ -1376,7 +1376,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
             Set to True to color only those notes where none of the specified filters match.
         color_name : :obj:`str`, optional
             Specify the color either as a name, or as HTML color, or as RGB(A). As a name you can
-            use CSS colors or MuseScore colors.
+            use CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
         color_html : :obj:`str`, optional
             Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
             needs to be string of length 6.
