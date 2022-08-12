@@ -207,8 +207,8 @@ def assert_all_lines_equal(before, after, original, tmp_file):
     diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
     if len(diff) > 0:
         line_n, left, _ = zip(*diff)
-        ln = len(str(max(line_n)))
-        left_col = max(len(s) for s in left)
+        ln = len(str(max(line_n))) # length of the longest line number
+        left_col = max(len(s) for s in left) # length of the longest line
         folder, file = os.path.split(original)
         tmp_persist = os.path.join(folder, '..', file)
         shutil.copy(tmp_file.name, tmp_persist)

@@ -1829,12 +1829,17 @@ def decode_harmony_tag(tag):
 
 ############ Functions for writing BeautifulSoup to MSCX file
 
+def escape_string(s):
+    return str(s).replace('&', '&amp;')\
+                 .replace('"', '&quot;')\
+                 .replace('<', '&lt;')\
+                 .replace('>', '&gt;')
 
 def opening_tag(node, closed=False):
     result = f"<{node.name}"
     attributes = node.attrs
     if len(attributes) > 0:
-        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes.items())
+        result += ' ' + ' '.join(f'{attr}="{escape_string(value)}"' for attr, value in attributes.items())
     closing = '/' if closed else ''
     return f"{result}{closing}>"
 
@@ -1850,10 +1855,7 @@ def make_oneliner(node):
         if isinstance(c, bs4.element.Tag):
             result += make_oneliner(c)
         else:
-            result += str(c).replace('&', '&amp;')\
-                            .replace('"', '&quot;')\
-                            .replace('<', '&lt;')\
-                            .replace('>', '&gt;')
+            result += escape_string(c)
     result += closing_tag(node.name)
     return result
 
