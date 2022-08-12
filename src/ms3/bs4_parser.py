@@ -1056,7 +1056,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             # insert before the first tag that is not in the tags_before_label list
             tags_before_label = ['BarLine', 'Clef', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
             try:
-                ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
+                ix, before = next((i, element['tag']) for i, element in enumerate(elements) if element['name'] not in
                               tags_before_label )
                 remember = self.insert_label(label=label, before=before, **kwargs)
             except:

@@ -18,7 +18,17 @@ def assert_stored_mscx_identical(sc_obj, suffix):
     try:
         tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=original_path, encoding='utf-8', delete=True)
         sc_obj.store_mscx(tmp_file.name)
-        assert tmp_file.read() == open(original_mscx, encoding='utf-8').read()
+        tmp_lines = open(tmp_file.name, encoding='utf-8').readlines()
+        expected_lines = open(original_mscx, encoding='utf-8').readlines()
+        try:
+            assert tmp_lines == expected_lines
+        except AssertionError:
+            if sorted(tmp_lines) == sorted(expected_lines):
+                print(f"The lines in {tmp_persist} come in a different order than in {original_path}.")
+                ### uncomment the following line to inspect tmp_persist
+                # raise
+            else:
+                raise
         if os.path.isfile(tmp_persist):
             os.remove(tmp_persist)
     except AssertionError:
