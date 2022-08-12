@@ -1107,6 +1107,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return 0
         main_cols = Annotations.main_cols
         columns = annotations_object.cols
+        del(columns['regex_match'])
         missing_main = {c for  c in main_cols if columns[c] not in df.columns}
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:

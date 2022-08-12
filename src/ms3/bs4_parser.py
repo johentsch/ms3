@@ -7,6 +7,7 @@ import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
 import numpy as np
 
+from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
@@ -622,7 +623,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'color_b': 'Harmony/color:b',
                 'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'harmony_layer', 'regex_match', 'color_r', 'color_g', 'color_b', 'color_a']
+        main_cols = std_cols + Annotations.additional_cols
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
@@ -1053,7 +1054,7 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             names = [e['name'] for e in elements]
             _, name = get_duration_event(elements)
             # insert before the first tag that is not in the tags_before_label list
-            tags_before_label = ['BarLine', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
+            tags_before_label = ['BarLine', 'Clef', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
             try:
                 ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
                               tags_before_label )
@@ -1279,7 +1280,7 @@ and {loc_after} before the subsequent {nxt_name}.""")
     def new_label(self, label, harmony_layer=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
                   leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
                   color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
-                  placement=None, minDistance=None, style=None):
+                  placement=None, minDistance=None, style=None, z=None):
         tag = self.new_tag('Harmony')
         if not pd.isnull(harmony_layer):
             try:
@@ -1303,6 +1304,8 @@ and {loc_after} before the subsequent {nxt_name}.""")
         else:
             assert not pd.isnull(absolute_root), "Either label or root need to be specified."
 
+        if not pd.isnull(z):
+            _ = self.new_tag('z', value=z, within=tag)
         if not pd.isnull(style):
             _ = self.new_tag('style', value=style, within=tag)
         if not pd.isnull(placement):

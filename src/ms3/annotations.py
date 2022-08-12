@@ -13,8 +13,8 @@ class Annotations(LoggedClass):
     """
 
     main_cols = ['label', 'mc', 'mc_onset', 'staff', 'voice']
-    additional_cols = ['harmony_layer', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
-                       'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'placement', 'minDistance', 'style']
+    additional_cols = ['harmony_layer', 'regex_match', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
+                       'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'placement', 'minDistance', 'style', 'z']
 
     def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
         """
