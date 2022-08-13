@@ -27,6 +27,8 @@ class MessageType(Enum):
     VOLTAS_WITH_DIFFERING_LENGTHS_WARNING = 4
     MISSING_END_REPEAT_WARNING = 5
     SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
+    OVERLOOKED_MSCX_FILES_WARNING = 7
+    KEY_NOT_SPECIFIED_ERROR = 8
 
 
 class CustomFormatter(logging.Formatter):
@@ -164,6 +166,8 @@ def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=
         logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
     if logger.parent.name != 'root':
         # go to the following setup of handlers only for the top level logger
+        if new_logger:
+            logger.debug(f"Configured {logger.name} for the first time.")
         return logger
     formatter = CustomFormatter()
     existing_handlers = [h for h in logger.handlers]

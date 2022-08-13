@@ -189,7 +189,8 @@ MS3_RGB = {(0, 85, 0): 'ms3_darkgreen',
            (255, 170, 255): 'ms3_lightpink',
            (85, 255, 255): 'ms3_aquamarine'}
 
-CSS2MS3 = {c[4:]: c for c in MS3_HTML.values()}
+MS3_COLORS = list(MS3_HTML.values())
+CSS2MS3 = {c[4:]: c for c in MS3_COLORS}
 CSS_COLORS = list(webcolors.CSS3_NAMES_TO_HEX.keys())
 COLORS = sum([[c, CSS2MS3[c]] if c in CSS2MS3 else [c] for c in CSS_COLORS], [])
 rgba = namedtuple('RGBA', ['r', 'g', 'b', 'a'])
@@ -206,8 +207,8 @@ def assert_all_lines_equal(before, after, original, tmp_file):
     diff = [(i, bef, aft) for i, (bef, aft) in enumerate(zip(before.splitlines(), after.splitlines()), 1) if bef != aft]
     if len(diff) > 0:
         line_n, left, _ = zip(*diff)
-        ln = len(str(max(line_n)))
-        left_col = max(len(s) for s in left)
+        ln = len(str(max(line_n))) # length of the longest line number
+        left_col = max(len(s) for s in left) # length of the longest line
         folder, file = os.path.split(original)
         tmp_persist = os.path.join(folder, '..', file)
         shutil.copy(tmp_file.name, tmp_persist)
@@ -421,9 +422,33 @@ def color_name2rgba(n):
     """ Converts a single CSS3 name into RGBA"""
     return color_name2format(n, format='rgba')
 
-
+@function_logger
 def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+    """ For functions where the color can be specified in four different ways (HTML string, CSS name,
+    RGB, or RGBA), convert the given parameters to RGBA.
+
+    Parameters
+    ----------
+    color_name : :obj:`str`, optional
+        As a name you can use CSS colors or MuseScore colors (see :py:attr:`.MS3_COLORS`).
+    color_html : :obj:`str`, optional
+        An HTML color needs to be string of length 6.
+    color_r : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_g and color_b.
+    color_g : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_r and color_b.
+    color_b : :obj:`int`, optional
+        If you specify the color as RGB(A), you also need to specify color_r and color_g.
+    color_a : :obj:`int`, optional
+        If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+
+    Returns
+    -------
+    :obj:`rgba`
+        :obj:`namedtuple` with four integers.
+    """
     if all(pd.isnull(param) for param in [color_name, color_html, color_r, color_g, color_b, color_a]):
+        logger.debug(f"None of the parameters have been specified. Returning None.")
         return None
     res = None
     if not pd.isnull(color_r):
@@ -431,7 +456,7 @@ def color_params2rgba(color_name=None, color_html=None, color_r=None, color_g=No
             color_a = 255
         if pd.isnull(color_g) or pd.isnull(color_b):
             if pd.isnull(color_name) and pd.isnull(color_html):
-                self.logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
+                logger.warning(f"Not a valid RGB color: {(color_r, color_g, color_b)}")
         else:
             res = (color_r, color_g, color_b, color_a)
     if res is None and not pd.isnull(color_html):
@@ -561,7 +586,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
 
 
 @function_logger
-def decode_harmonies(df, label_col='label', keep_type=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
+def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False, alt_cols='alt_label', alt_separator='-'):
     """MuseScore stores types 2 (Nashville) and 3 (absolute chords) in several columns. This function returns a copy of
     the DataFrame ``Annotations.df`` where the label column contains the strings corresponding to these columns.
 
@@ -571,8 +596,8 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
         DataFrame with encoded harmony labels as stored in an :obj:`Annotations` object.
     label_col : :obj:`str`, optional
         Column name where the main components (<name> tag) are stored, defaults to 'label'
-    keep_type : :obj:`bool`, optional
-        Defaults to True, retaining the 'label_type' column and setting types 2 and 3 to 0.
+    keep_layer : :obj:`bool`, optional
+        Defaults to True, retaining the 'harmony_layer' column and setting types 2 and 3 to 0.
     return_series : :obj:`bool`, optional
         If set to True, only the decoded labels column is returned as a Series rather than a copy of ``df``.
     alt_cols : :obj:`str` or :obj:`list`, optional
@@ -596,8 +621,9 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
         df.leftParen.replace('/', '(', inplace=True)
         compose_label.append('leftParen')
         drop_cols.append('leftParen')
-    if 'absolute_root' in df.columns:
-        df.absolute_root = fifths2name(df.absolute_root, ms=True, logger=logger)
+    if 'absolute_root' in df.columns and df.absolute_root.notna().any():
+        sel = df.absolute_root.notna()
+        df.loc[sel, 'absolute_root'] = fifths2name(df.loc[sel, 'absolute_root'].to_list(), ms=True, logger=logger)
         compose_label.append('absolute_root')
         drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
@@ -606,8 +632,10 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
             drop_cols.append('rootCase')
     if label_col in df.columns:
         compose_label.append(label_col)
-    if 'absolute_base' in df.columns:
-        df.absolute_base = '/' + fifths2name(df.absolute_base, ms=True, logger=logger)
+    if 'absolute_base' in df.columns and df.absolute_base.notna().any():
+        sel = df.absolute_base.notna()
+        df.loc[sel, 'absolute_base'] = fifths2name(df.loc[sel, 'absolute_base'].to_list(), ms=True, logger=logger)
+        df.absolute_base = '/' + df.absolute_base
         compose_label.append('absolute_base')
         drop_cols.append('absolute_base')
     if 'rightParen' in df.columns:
@@ -630,11 +658,11 @@ def decode_harmonies(df, label_col='label', keep_type=True, return_series=False,
     if return_series:
         return new_label_col
 
-    if 'label_type' in df.columns:
-        if keep_type:
-            df.loc[df.label_type.isin([2, 3, '2', '3']), 'label_type'] == 0
+    if 'harmony_layer' in df.columns:
+        if keep_layer:
+            df.loc[df.harmony_layer.isin((2, 3)), 'harmony_layer'] == 0
         else:
-            drop_cols.append('label_type')
+            drop_cols.append('harmony_layer')
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -794,6 +822,8 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
     try:
         fifths = int(float(fifths))
     except:
+        if isinstance(fifths, pd.Series):
+            return fifths.apply(fifths2name, ms=ms, logger=logger)
         if isinstance(fifths, Iterable):
             return map2elements(fifths, fifths2name, ms=ms, logger=logger)
         return fifths
@@ -1194,6 +1224,7 @@ def contains_metadata(path):
         return any(f == 'metadata.tsv' for f in files)
 
 def first_level_subdirs(path):
+    """Returns the directory names contained in path."""
     for _, subdirs, _ in os.walk(path):
         return subdirs
 
@@ -1375,6 +1406,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'globalkey': str,
         'gracenote': str,
         'harmonies_id': 'Int64',
+        'harmony_layer': object,
         'keysig': 'Int64',
         'label': str,
         'label_type': object,
@@ -1396,6 +1428,7 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'pedal': str,
         'playthrough': 'Int64',
         'phraseend': str,
+        'regex_match': object,
         'relativeroot': str,
         'repeats': str,
         'rightParen': str,
@@ -1992,6 +2025,11 @@ def roman_numeral2fifths(rn, global_minor=False):
     """
     if pd.isnull(rn):
         return rn
+    if '/' in rn:
+        resolved = resolve_relative_keys(rn, global_minor)
+        mode = 'minor' if global_minor else 'major'
+        logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
+        rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': -1, 'V': 1, 'VI': 3, 'VII': 5}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': -3, 'IV': -1, 'V': 1, 'VI': -4, 'VII': -2}
     accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
@@ -2008,6 +2046,11 @@ def roman_numeral2semitones(rn, global_minor=False):
     """
     if pd.isnull(rn):
         return rn
+    if '/' in rn:
+        resolved = resolve_relative_keys(rn, global_minor)
+        mode = 'minor' if global_minor else 'major'
+        logger.debug(f"Relative numeral {rn} in {mode} mode resolved to {resolved}.")
+        rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
     accidentals, rn_step = split_scale_degree(rn, count=True)
@@ -2076,6 +2119,11 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         List of full paths meeting the criteria.
 
     """
+    if file_re is None:
+        file_re = r".*"
+    if folder_re is None:
+        folder_re = r".*"
+
     def traverse(d):
         nonlocal counter
 
@@ -2498,7 +2546,7 @@ def unpack_mscz(mscz, tmp_dir=None):
 
 @function_logger
 def update_labels_cfg(labels_cfg):
-    keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+    keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
     if 'logger' in labels_cfg:
         del(labels_cfg['logger'])
     updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
@@ -3133,14 +3181,15 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             'root': root,
         }
 
-def path2key(path):
+def path2parent_corpus(path):
+    """Walk up the path and return the name of the superdirectory containing a 'metadata.tsv' file."""
     if path in ('', '/'):
         return None
     try:
         if os.path.isdir(path):
             if 'metadata.tsv' in os.listdir(path):
-                return os.path.basename(path)
-        return path2key(os.path.dirname(path))
+                return path
+        return path2parent_corpus(os.path.dirname(path))
     except Exception:
         return None
 

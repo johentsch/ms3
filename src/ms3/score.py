@@ -50,7 +50,7 @@ class Score(LoggedClass):
     Formats that ms3 can parse.
     """
 
-    def __init__(self, musescore_file=None, infer_label_types=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
+    def __init__(self, musescore_file=None, match_regex=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
         """
 
@@ -58,9 +58,8 @@ class Score(LoggedClass):
         ----------
         musescore_file : :obj:`str`, optional
             Path to the MuseScore file to be parsed.
-        infer_label_types : :obj:`list` or :obj:`dict`, optional
+        match_regex : :obj:`list` or :obj:`dict`, optional
             Determine which label types are determined automatically. Defaults to ['dcml'].
-            Pass ``[]`` to infer only main types 0 - 3.
             Pass ``{'type_name': r"^(regular)(Expression)$"}`` to call :meth:`ms3.Score.new_type`.
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
@@ -130,40 +129,38 @@ class Score(LoggedClass):
         """:obj:`list`
         Current order in which types are being recognized."""
 
-        self._label_types = {
+        self._harmony_layer_description = {
             0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
             1: "MuseScore's Roman Numeral Annotation format",
             2: "MuseScore's Nashville Number format",
             3: "Absolute chord encoded by MuseScore",
-            'dcml': "Latest version of the DCML harmonic annotation standard.",
         }
-        """:obj:`dict`
-        Mapping label types to their descriptions.
-        0: "Simple string (does not begin with a note name, otherwise MS3 will turn it into type 3; prevent through leading dot)",
-        1: "MuseScore's Roman Numeral Annotation format",
-        2: "MuseScore's Nashville Number format",
-        3: "Absolute chord encoded by MuseScore",
-        'dcml': "Latest version of the DCML harmonic annotation standard.",
-        """
 
-        self._label_regex = {
+        self._harmony_layer_regex = {
             1: self.RN_REGEX,
             2: self.NASHVILLE_REGEX,
             3: self.ABS_REGEX,
+        }
+
+        self._regex_name_description = {
+            'dcml': "Latest version of the DCML harmonic annotation standard.",
+        }
+        """:obj:`dict`
+        Mapping regex names to their descriptions.
+        """
+
+        self._name2regex = {
             'dcml': DCML_DOUBLE_REGEX,
         }
         """:obj:`dict`
-        Mapping label types to their corresponding regex. Managed via the property :py:meth:`infer_label_types`.
-        1: self.RN_REGEX,
-        2: self.NASHVILLE_REGEX,
-        3: self.ABS_REGEX,
+        Mapping names to their corresponding regex. Managed via the property :py:attr:`name2regex`.
         'dcml': utils.DCML_REGEX,
         """
 
         self.labels_cfg = {
             'staff': None,
             'voice': None,
-            'label_type': None,
+            'harmony_layer': None,
             'positioning': True,
             'decode': False,
             'column_name': 'label',
@@ -182,14 +179,14 @@ class Score(LoggedClass):
         Currently only one XML parser has been implemented which uses BeautifulSoup 4.
         """
 
-        self.infer_label_types = infer_label_types
+        self.name2regex = match_regex
         if musescore_file is not None:
             self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
-    def infer_label_types(self):
+    def name2regex(self):
         """:obj:`list` or :obj:`dict`, optional
         The order in which label types are to be inferred.
         Assigning a new value results in a call to :py:meth:`~.annotations.Annotations.infer_types`.
@@ -199,24 +196,24 @@ class Score(LoggedClass):
         """
         return self._types_to_infer
 
-    @infer_label_types.setter
-    def infer_label_types(self, val):
+    @name2regex.setter
+    def name2regex(self, val):
         if val is None:
             val = []
         before_inf, before_reg = self._types_to_infer, self.get_infer_regex()
         if isinstance(val, list):
-            exist = [v for v in val if v in self._label_regex]
+            exist = [v for v in val if v in self._name2regex]
             if len(exist) < len(val):
                 logger.warning(
-                    f"The following harmony types have not been added via the new_type() method:\n{[v for v in val if v not in self._label_regex]}")
+                    f"The following harmony types have not been added via the new_type() method:\n{[v for v in val if v not in self._name2regex]}")
             self._types_to_infer = exist
         elif isinstance(val, dict):
             for k, v in val.items():
-                if k in self._label_regex:
+                if k in self._name2regex:
                     if v is None:
-                        val[k] = self._label_regex[k]
+                        val[k] = self._name2regex[k]
                     else:
-                        self._label_regex[k] = v
+                        self._name2regex[k] = v
                 else:
                     self.new_type(name=k, regex=v)
             self._types_to_infer = list(val.keys())
@@ -244,10 +241,10 @@ class Score(LoggedClass):
     def types(self):
         """:obj:`dict`
         Shows the mapping of label types to their descriptions."""
-        return self._label_types
+        return self._regex_name_description
 
 
-    def attach_labels(self, key, staff=None, voice=None, label_type=None, check_for_clashes=True, remove_detached=True):
+    def attach_labels(self, key, staff=None, voice=None, harmony_layer=None, check_for_clashes=True, remove_detached=True):
         """ Insert detached labels ``key`` into this score's :obj:`MSCX` object.
 
         Parameters
@@ -260,11 +257,11 @@ class Score(LoggedClass):
         voice : :obj:`int`, optional
             By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
             Pass an integer to specify a voice.
-        label_type : :obj:`int`, optional
-            | By default, the labels are written to the layer specified as an integer in the column ``label_type``.
+        harmony_layer : :obj:`int`, optional
+            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
             | Pass an integer to select a particular layer:
             | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
-            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
             | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
             | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
@@ -293,7 +290,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if goal == 0:
             self.mscx.logger.warning(f"The Annotation object '{key}' does not contain any labels.")
             return 0, 0
-        df = annotations.prepare_for_attaching(staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
+        df = annotations.prepare_for_attaching(staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
         reached = len(df)
         if reached == 0:
             self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
@@ -309,7 +306,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self.mscx.logger.info(f"Only {reached} of the {goal} targeted labels could be attached, so '{key}' was not removed.")
         return reached, goal
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None,
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None,
                           column_name=None, color_format=None):
         """ Update :py:attr:`.Score.labels_cfg` and :py:attr:`.MSCX.labels_cfg`.
 
@@ -317,10 +314,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, label_type, positioning, decode
+        staff, voice, harmony_layer, positioning, decode
             Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
         """
-        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
         for k in keys:
             val = locals()[k]
             if val is not None:
@@ -330,8 +327,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         self.mscx.labels_cfg.update(updated)
 
 
-    def check_labels(self, keys='annotations', regex=None, label_type='dcml', **kwargs):
-        """ Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``label_type``.
+    def check_labels(self, keys='annotations', regex=None, regex_name='dcml', **kwargs):
+        """ Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``regex_name``.
         Returns wrong labels.
 
         Parameters
@@ -340,8 +337,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             The key(s) of the Annotation objects you want to check. Defaults to 'annotations', the attached labels.
         regex : :obj:`str`, optional
             Pass a regular expression against which to check the labels if you don't want to use the one of an existing
-            ``label_type`` or in order to register a new one on the fly by passing the new name as ``label_type``.
-        label_type : :obj:`str`, optional
+            ``regex_name`` or in order to register a new one on the fly by passing the new name as ``regex_name``.
+        regex_name : :obj:`str`, optional
             To use the regular expression of a registered type, pass its name, defaults to 'dcml'. Pass a new name and
             a ``regex`` to register a new label type on the fly.
         kwargs :
@@ -356,16 +353,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.debug("Score contains no Annotations.")
             return
         if regex is None:
-            if label_type in self._label_regex:
-                regex = self._label_regex[label_type]
+            if regex_name in self._name2regex:
+                regex = self._name2regex[regex_name]
             else:
-                self.logger.warning(f"Type {label_type} has not been registered. Pass a regular expression for it as argument 'regex'.")
+                self.logger.warning(f"Type {regex_name} has not been registered. Pass a regular expression for it as argument 'regex'.")
                 return
         else:
             if regex.__class__ != re.compile('').__class__:
                 regex = re.compile(regex, re.VERBOSE)
-            if label_type not in self._label_regex:
-                self._label_regex[label_type] = regex
+            if regex_name not in self._name2regex:
+                self._name2regex[regex_name] = regex
         if isinstance(keys, str):
             keys = [keys]
         existing, missing = [], []
@@ -382,6 +379,21 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return pd.concat(checks, keys=existing)
         else:
             return checks[0]
+
+
+    def color_non_chord_tones(self, color_name='red'):
+        """ Goes through the attached labels, tries to interpret them as DCML harmony labels, and
+        colors the notes in the parsed score.
+
+        Returns
+        -------
+
+        """
+        if not self.mscx.has_annotations:
+            self.mscx.logger.debug("Score contains no Annotations.")
+            return
+        expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
+        self.mscx.color_non_chord_tones(expanded, color_name=color_name)
 
 
 
@@ -450,11 +462,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
         for k, v in added_color_params.items():
             df[k] = v
         if add_to_rna:
-            df['label_type'] = 1
+            df['harmony_layer'] = 1
             anno = Annotations(df=df)
             anno.remove_initial_dots()
         else:
-            df['label_type'] = 0
+            df['harmony_layer'] = 0
             anno = Annotations(df=df)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
@@ -468,7 +480,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def detach_labels(self, key, staff=None, voice=None, label_type=None, delete=True):
+    def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
         By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_mscx` afterwards,
@@ -486,9 +498,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
         voice : {1, 2, 3, 4}, optional
             Can be used to select only labels from one of the four notational layers.
             Layer 1 is MuseScore's main, 'upper voice' layer, coloured in blue.
-        label_type : :obj:`int` or :obj:`str`, optional
-            Select one of the predefined or custom label types to select only labels of this type.
-            Predefined types are {0, 1, 2, 3, 'dcml'} (see :py:attr:`_label_types`).
+        harmony_layer : :obj:`int` or :obj:`str`, optional
+            Select one of the harmony layers {0,1,2,3} to select only these.
         delete : :obj:`bool`, optional
             By default, the labels are removed from the XML structure in :obj:`MSCX`.
             Pass False if you want them to remain. This could be useful if you only want to extract a subset
@@ -501,12 +512,12 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not key.isidentifier():
             self.logger.warning(
                 f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
-        df = self.annotations.get_labels(staff=staff, voice=voice, label_type=label_type, drop=delete)
+        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, drop=delete)
         if len(df) == 0:
-            self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, label_type {label_type}.")
+            self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
         logger_cfg = self.logger_cfg.copy()
-        logger_cfg['name'] += f"{self.mscx.logger.name}.{key}"
+        logger_cfg['name'] = f"{self.logger.name}.{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
                                                       logger_cfg=logger_cfg)
         if delete:
@@ -523,7 +534,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Mapping of label types to the corresponding regular expressions
             in the order in which they are currently set to be inferred.
         """
-        return {t: self._label_regex[t] for t in self._types_to_infer}
+        return {t: self._name2regex[t] for t in self._types_to_infer}
 
 
     def new_type(self, name, regex, description='', infer=True):
@@ -542,9 +553,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
             By default, the labels of all :py:class:`~.annotations.Annotations` objects are matched against the new type.
             Pass False to not change any label's type.
         """
-        assert name not in self._label_types, f"'{name}' already added to types: {self._label_types[name]}"
-        self._label_types[name] = description
-        self._label_regex[name] = regex
+        assert name not in self._regex_name_description, f"'{name}' already added to types: {self._regex_name_description[name]}"
+        self._regex_name_description[name] = description
+        self._name2regex[name] = regex
         if infer:
             self._types_to_infer.insert(0, name)
             for key in self:
@@ -569,7 +580,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
             pass a {standard name: custom name} dictionary.
         infer : :obj:`bool`, optional
-            By default, the label types are inferred in the currently configured order (see :py:attr:`infer_label_types`).
+            By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
             Pass False to not add and not change any label types.
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
@@ -1096,18 +1107,18 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return 0
         main_cols = Annotations.main_cols
         columns = annotations_object.cols
+        del(columns['regex_match'])
         missing_main = {c for  c in main_cols if columns[c] not in df.columns}
         assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
         if columns['decoded'] not in df.columns:
             df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True, logger=self.logger)
         #df = df[df[columns['label']].notna()]
-        existing_cols = {k: v for k, v in columns.items() if v in df.columns}
-        param2cols = {**existing_cols}
+        param2cols = {k: v for k, v in columns.items() if v in df.columns}
         parameters = list(param2cols.keys())
         clmns = list(param2cols.values())
         self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
-        tups = tuple(df[clmns].itertuples(index=False, name=None))
-        params = [{a: b for a, b in zip(parameters, t)} for t in tups]
+        value_tuples = tuple(df[clmns].itertuples(index=False, name=None))
+        params = [dict(zip(parameters, t)) for t in value_tuples]
         res = [self._parsed.add_label(**p) for p in params]
         changes = sum(res)
         # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
@@ -1148,7 +1159,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                               color_name=color_name, color_html=color_html, color_r=color_r,
                                               color_g=color_g, color_b=color_b, color_a=color_a)
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None,
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None,
                           column_name=None, color_format=None):
         """ Update :py:attr:`.MSCX.labels_cfg`.
 
@@ -1156,10 +1167,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, label_type, positioning, decode
+        staff, voice, harmony_layer, positioning, decode
             Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
         """
-        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
         for k in keys:
             val = locals()[k]
             if val is not None:
@@ -1167,6 +1178,56 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
 
+
+    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
+        """
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+        color_name : :obj:`str`, optional
+            Name the color that the non-chord tones should get, defaults to 'red'.
+        chord_tone_cols : :obj:`list`, optional
+            Names of the columns containing tuples of chord tones, expressed as TPC.
+        color_nan : :obj:`bool`, optional
+            By default, if one of the ``chord_tone_cols`` has a NaN value, all notes in the segment
+            will be colored. Pass False to add the segment to the previous one instead.
+
+        Returns
+        -------
+
+        """
+        for col in chord_tone_cols:
+            assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
+        # iterating backwards through the DataFrame; the first segment spans to the end of the score
+        to_mc, to_mc_onset = None, None
+        expand_segment = False # Flag allowing to add NaN segments to their preceding ones
+        for row_tuple in df[::-1].itertuples(index=False):
+            mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
+            chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
+            if any(pd.isnull(ctt) for ctt in chord_tone_tuples):
+                if color_nan:
+                    self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                              color_name=color_name)
+                    self.logger.warning(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
+                else:
+                    expand_segment = True
+            else:
+                chord_tones = sum(chord_tone_tuples, tuple())
+                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                          to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                          color_name=color_name, tpc=chord_tones, inverse=True)
+                n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+                count_ratio = n_colored / (n_colored + n_untouched)
+                dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
+                dur_ratio = dur_colored / (dur_colored + dur_untouched)
+                self.logger.info(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+            if expand_segment:
+                expand_segment = False
+            else:
+                to_mc, to_mc_onset = mc, mc_onset
 
 
     def delete_labels(self, df):
@@ -1441,7 +1502,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._parsed.has_annotations:
             self.has_annotations = True
             logger_cfg = self.logger_cfg.copy()
-            logger_cfg['name'] += '.annotations'
+            #logger_cfg['name'] += '.annotations'
             self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
                                             logger_cfg=logger_cfg)
         else:

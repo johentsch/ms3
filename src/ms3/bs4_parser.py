@@ -7,10 +7,11 @@ import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
 import numpy as np
 
+from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, sort_note_list
+    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 
 
 
@@ -608,7 +609,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`pandas.DataFrame`
 
         """
-        cols = {'label_type': 'Harmony/harmonyType',
+        cols = {'harmony_layer': 'Harmony/harmonyType',
                 'label': 'Harmony/name',
                 'nashville': 'Harmony/function',
                 'absolute_root': 'Harmony/root',
@@ -622,14 +623,14 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'color_b': 'Harmony/color:b',
                 'color_a': 'Harmony/color:a'}
         std_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'label',]
-        main_cols = std_cols + ['nashville', 'absolute_root', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y', 'label_type', 'color_r', 'color_g', 'color_b', 'color_a']
+        main_cols = std_cols + Annotations.additional_cols
         sel = self._events.event == 'Harmony'
         df = self.add_standard_cols(self._events[sel]).dropna(axis=1, how='all')
         if len(df.index) == 0:
             return pd.DataFrame(columns=std_cols)
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
-        if 'label_type' in df.columns:
-            df.label_type.fillna(0, inplace=True)
+        if 'harmony_layer' in df.columns:
+            df.harmony_layer.fillna(0, inplace=True)
         columns = [c for c in main_cols if c in df.columns]
         additional_cols = {c: c[8:] for c in df.columns if c[:8] == 'Harmony/' and c not in cols.values()}
         df.rename(columns=additional_cols, inplace=True)
@@ -1053,9 +1054,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
             names = [e['name'] for e in elements]
             _, name = get_duration_event(elements)
             # insert before the first tag that is not in the tags_before_label list
-            tags_before_label = ['BarLine', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
+            tags_before_label = ['BarLine', 'Clef', 'Dynamic', 'endTuplet', 'FiguredBass', 'KeySig', 'location', 'StaffText', 'Tempo', 'TimeSig']
             try:
-                ix, before = next((i, elements[i]['tag']) for i in range(len(elements)) if elements[i]['name'] not in
+                ix, before = next((i, element['tag']) for i, element in enumerate(elements) if element['name'] not in
                               tags_before_label )
                 remember = self.insert_label(label=label, before=before, **kwargs)
             except:
@@ -1276,19 +1277,20 @@ and {loc_after} before the subsequent {nxt_name}.""")
 
 
 
-    def new_label(self, label, label_type=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
+    def new_label(self, label, harmony_layer=None, after=None, before=None, within=None, absolute_root=None, rootCase=None, absolute_base=None,
                   leftParen=None, rightParen=None, offset_x=None, offset_y=None, nashville=None, decoded=None,
-                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None):
+                  color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
+                  placement=None, minDistance=None, style=None, z=None):
         tag = self.new_tag('Harmony')
-        if not pd.isnull(label_type):
+        if not pd.isnull(harmony_layer):
             try:
-                label_type = int(label_type)
+                harmony_layer = int(harmony_layer)
             except:
-                if label_type[0] in ('1', '2'):
-                    label_type = int(label_type[0])
-            # only include <harmonyType> tag for label_type 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
-            if label_type in (1, 2):
-                _ = self.new_tag('harmonyType', value=label_type, within=tag)
+                if harmony_layer[0] in ('1', '2'):
+                    harmony_layer = int(harmony_layer[0])
+            # only include <harmonyType> tag for harmony_layer 1 and 2 (MuseScore's Nashville Numbers and Roman Numerals)
+            if harmony_layer in (1, 2):
+                _ = self.new_tag('harmonyType', value=harmony_layer, within=tag)
         if not pd.isnull(leftParen):
             _ = self.new_tag('leftParen', within=tag)
         if not pd.isnull(absolute_root):
@@ -1296,9 +1298,20 @@ and {loc_after} before the subsequent {nxt_name}.""")
         if not pd.isnull(rootCase):
             _ = self.new_tag('rootCase', value=rootCase, within=tag)
         if not pd.isnull(label):
+            if label == '/':
+                label = ""
             _ = self.new_tag('name', value=label, within=tag)
         else:
             assert not pd.isnull(absolute_root), "Either label or root need to be specified."
+
+        if not pd.isnull(z):
+            _ = self.new_tag('z', value=z, within=tag)
+        if not pd.isnull(style):
+            _ = self.new_tag('style', value=style, within=tag)
+        if not pd.isnull(placement):
+            _ = self.new_tag('placement', value=placement, within=tag)
+        if not pd.isnull(minDistance):
+            _ = self.new_tag('minDistance', value=minDistance, within=tag)
         if not pd.isnull(nashville):
             _ = self.new_tag('function', value=nashville, within=tag)
         if not pd.isnull(absolute_base):
@@ -1348,6 +1361,121 @@ and {loc_after} before the subsequent {nxt_name}.""")
             within.append(tag)
 
         return tag
+
+
+    def color_notes(self, from_mc, from_mc_onset, to_mc=None, to_mc_onset=None,
+                    midi=[], tpc=[], inverse=False,
+                    color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
+                    ):
+        """ Colors all notes occurring in a particular score segment in one particular color, or
+        only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
+
+        Parameters
+        ----------
+        from_mc : :obj:`int`
+            MC in which the score segment starts.
+        from_mc_onset : :obj:`fractions.Fraction`
+            mc_onset where the score segment starts.
+        to_mc : :obj:`int`, optional
+            MC in which the score segment ends. If not specified, the segment ends at the end of the score.
+        to_mc_onset : :obj:`fractions.Fraction`, optional
+            If ``to_mc`` is defined, the mc_onset where the score segment ends.
+        midi : :obj:`Collection[int]`, optional
+            Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
+        tpc : :obj:`Collection[int]`, optional
+            Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
+        inverse : :obj:`bool`, optional
+            By default, only notes where all specified filters (midi and/or tpc) apply are colored.
+            Set to True to color only those notes where none of the specified filters match.
+        color_name : :obj:`str`, optional
+            Specify the color either as a name, or as HTML color, or as RGB(A). As a name you can
+            use CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+        color_html : :obj:`str`, optional
+            Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
+            needs to be string of length 6.
+        color_r : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_g and color_b.
+        color_g : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_r and color_b.
+        color_b : :obj:`int`, optional
+            If you specify the color as RGB(A), you also need to specify color_r and color_g.
+        color_a : :obj:`int`, optional
+            If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+
+        Returns
+        -------
+        :obj:`list`
+            List of durations (in fractions) of all notes that have been colored.
+        :obj:`list`
+            List of durations (in fractions) of all notes that have not been colored.
+        """
+        if len(self.tags) == 0:
+            if self.read_only:
+                self.logger.error("Score is read_only.")
+            else:
+                self.logger.error(f"Score does not include any parsed tags.")
+            return
+
+        rgba = color_params2rgba(color_name, color_html, color_r, color_g, color_b, color_a)
+        if rgba is None:
+            self.logger.error(f"Pass a valid color value.")
+            return
+        if color_name is None:
+            color_name = rgb_tuple2format(rgba[:3], format='name')
+        color_attrs = rgba2attrs(rgba)
+
+        str_midi = [str(m) for m in midi]
+        # MuseScore's TPCs are shifted such that C = 14:
+        ms_tpc = [str(t + 14) for t in tpc]
+
+        until_end = pd.isnull(to_mc)
+        negation = ' not' if inverse else ''
+        colored_durations, untouched_durations = [], []
+        for mc, staves in self.tags.items():
+            if mc < from_mc or (not until_end and mc > to_mc):
+                continue
+            for staff, voices in staves.items():
+                for voice, onsets in voices.items():
+                    for onset, tag_dicts in onsets.items():
+                        if mc == from_mc and onset < from_mc_onset:
+                            continue
+                        if not until_end and mc == to_mc and onset >= to_mc_onset:
+                            continue
+                        for tag_dict in tag_dicts:
+                            if tag_dict['name'] != 'Chord':
+                                continue
+                            duration = tag_dict['duration']
+                            for note_tag in tag_dict['tag'].find_all('Note'):
+                                reason = ""
+                                if len(midi) > 0:
+                                    midi_val = note_tag.pitch.string
+                                    if inverse and midi_val in str_midi:
+                                        untouched_durations.append(duration)
+                                        continue
+                                    if not inverse and midi_val not in str_midi:
+                                        untouched_durations.append(duration)
+                                        continue
+                                    reason = f"MIDI pitch {midi_val} is{negation} in {midi}"
+                                if len(ms_tpc) > 0:
+                                    tpc_val = note_tag.tpc.string
+                                    if inverse and tpc_val in ms_tpc:
+                                        untouched_durations.append(duration)
+                                        continue
+                                    if not inverse and tpc_val not in ms_tpc:
+                                        untouched_durations.append(duration)
+                                        continue
+                                    if reason != "":
+                                        reason += " and "
+                                    reason += f"TPC {int(tpc_val) - 14} is{negation} in {tpc}"
+                                if reason == "":
+                                    reason = " because no filters were specified."
+                                else:
+                                    reason = " because " + reason
+                                first_inside = note_tag.find()
+                                _ = self.new_tag('color', attributes=color_attrs, before=first_inside)
+                                colored_durations.append(duration)
+                                self.logger.debug(f"MC {mc}, onset {onset}, staff {staff}, voice {voice}: Changed note color to {color_name}{reason}.")
+        return colored_durations, untouched_durations
 
     # def close_file_handlers(self):
     #     for h in self.logger.logger.handlers:
@@ -1714,12 +1842,17 @@ def decode_harmony_tag(tag):
 
 ############ Functions for writing BeautifulSoup to MSCX file
 
+def escape_string(s):
+    return str(s).replace('&', '&amp;')\
+                 .replace('"', '&quot;')\
+                 .replace('<', '&lt;')\
+                 .replace('>', '&gt;')
 
 def opening_tag(node, closed=False):
     result = f"<{node.name}"
     attributes = node.attrs
     if len(attributes) > 0:
-        result += ' ' + ' '.join(f'{attr}="{value}"' for attr, value in attributes.items())
+        result += ' ' + ' '.join(f'{attr}="{escape_string(value)}"' for attr, value in attributes.items())
     closing = '/' if closed else ''
     return f"{result}{closing}>"
 
@@ -1735,10 +1868,7 @@ def make_oneliner(node):
         if isinstance(c, bs4.element.Tag):
             result += make_oneliner(c)
         else:
-            result += str(c).replace('&', '&amp;')\
-                            .replace('"', '&quot;')\
-                            .replace('<', '&lt;')\
-                            .replace('>', '&gt;')
+            result += escape_string(c)
     result += closing_tag(node.name)
     return result
 
@@ -1750,7 +1880,7 @@ def format_node(node, indent):
     node_name = node.name
     # The following tags are exceptionally not abbreviated when empty,
     # so for instance you get <metaTag></metaTag> and not <metaTag/>
-    if node_name in ['continueAt', 'continueText', 'endText', 'text', 'LayerTag', 'programRevision', 'metaTag', 'trackName']:
+    if node_name in ['continueAt', 'continueText', 'endText', 'LayerTag', 'metaTag', 'name', 'programRevision', 'text', 'trackName']:
         return f"{space}{make_oneliner(node)}\n"
     children = node.find_all(recursive=False)
     if len(children) > 0:

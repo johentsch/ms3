@@ -2,6 +2,9 @@ import pytest
 from collections import defaultdict
 import os
 
+from ms3.logger import MessageType
+
+
 def inspect_object(obj, no_magic=True):
     result = {}
     for attr in dir(obj):
@@ -50,35 +53,50 @@ class TestEmptyParse():
     """Tests Parse objects where no files have been parsed yet."""
 
     @pytest.fixture()
-    def expected_keys(self, request):
+    def expected_keys(self, request, caplog):
         name2expected = defaultdict(dict)
         name2expected.update(dict(
-            chaotic_dirs = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1}, 'outputs': {'.mscx': 1, '.tsv': 3}},
-            everything = {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+            everything = {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
                              'outputs': {'.mscx': 1, '.tsv': 3},
                              'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            file_re = {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            files_with_correct_key = {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
-            files_correct_without_metadata = {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            file_re_with_key = {'sweelinck': {'.mscx': 2, '.tsv': 6}},
+            file_re_without_key = {'outputs': {'.mscx': 1, '.tsv': 3},
+                                   'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            without_metadata = {'orchestral': {'.mscx': 3}},
             redundant = {'classic': {'.mscx': 1, '.mscz': 1}},
             regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            without_metadata = {'custom_key': {'.mscx': 4, '.mscz': 1}},
+            chaotic_dirs = {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
+                             'orchestral': {'.mscx': 3},
+                             'outputs': {'.mscx': 1, '.tsv': 3}},
+            files_without_key = {},
+            files_with_inferred_key = {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            files_with_wrong_key = {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
+            files_correct_without_metadata = {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            files_with_correct_key = {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
         ))
         name = node_name2cfg_name(request.node.name)
+        ## Check for particular log message types in particular test cases
+        if name == 'chaotic_dirs':
+            assert any(record._message_type == 7 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
+        if name == 'files_without_key':
+            assert any(record._message_type == 8 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
         return name2expected[name]
 
     @pytest.fixture()
     def expected_tsv_lines(self, request):
         name2expected = defaultdict(lambda: 0)
         name2expected.update(dict(
-            chaotic_dirs = 8,
-            everything = 16,
-            file_re = 1,
+            chaotic_dirs = 5,
+            everything = 13,
+            #file_re = 1,
+            file_re_without_key = 1,
             files_with_correct_key = 1,
+            files_with_inferred_key = 1,
+            files_with_wrong_key = 1,
             regular_dirs = 8
         ))
         name = node_name2cfg_name(request.node.name)
@@ -108,36 +126,51 @@ class TestParsedParse():
     def expected_keys(self, request):
         name2expected = defaultdict(dict)
         name2expected.update({
-            "parsed_all-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
-                                        'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_mscx-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+            "parsed_all-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
+                                         'orchestral': {'.mscx': 3},
                                          'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_tsv-chaotic_dirs": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
-                                        'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_all-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+            "parsed_mscx-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
+                                         'orchestral': {'.mscx': 3},
+                                         'outputs': {'.mscx': 1, '.tsv': 3}},
+            "parsed_tsv-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
+                                         'orchestral': {'.mscx': 3},
+                                         'outputs': {'.mscx': 1, '.tsv': 3}},
+            "parsed_all-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
                                          'outputs': {'.mscx': 1, '.tsv': 3},
                                          'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_mscx-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+            "parsed_mscx-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
                                          'outputs': {'.mscx': 1, '.tsv': 3},
                                          'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_tsv-everything": {'mixed_files': {'.mscx': 8, '.mscz': 1, '.tsv': 1},
+            "parsed_tsv-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
                                          'outputs': {'.mscx': 1, '.tsv': 3},
                                          'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_all-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            "parsed_mscx-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            "parsed_tsv-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            # "parsed_all-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            # "parsed_mscx-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            # "parsed_tsv-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
+            "parsed_mscx-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
+            "parsed_tsv-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
+            "parsed_all-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "parsed_mscx-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "parsed_tsv-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
             "parsed_all-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
             "parsed_mscx-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
             "parsed_tsv-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            "parsed_all-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "parsed_mscx-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "parsed_tsv-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
             "parsed_all-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_mscx-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
             "parsed_tsv-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
+            "parsed_all-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
+            "parsed_mscx-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
+            "parsed_tsv-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
             "parsed_all-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
             "parsed_mscx-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
             "parsed_tsv-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
@@ -150,9 +183,9 @@ class TestParsedParse():
             "parsed_tsv-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                          'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                                          'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_all-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
-            "parsed_mscx-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
-            "parsed_tsv-without_metadata": {'custom_key': {'.mscx': 4, '.mscz': 1}},
+            "parsed_all-without_metadata": {'orchestral': {'.mscx': 3}},
+            "parsed_mscx-without_metadata": {'orchestral': {'.mscx': 3}},
+            "parsed_tsv-without_metadata": {'orchestral': {'.mscx': 3}},
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
@@ -161,28 +194,37 @@ class TestParsedParse():
     def n_parsed_files(self, request):
         name2expected = defaultdict(lambda: (0,0))
         name2expected.update({
-            "parsed_all-chaotic_dirs": (10, 4),
-            "parsed_mscx-chaotic_dirs": (10, 0),
+            "parsed_all-chaotic_dirs": (9, 4),
+            "parsed_mscx-chaotic_dirs": (9, 0),
             "parsed_tsv-chaotic_dirs": (0, 4),
-            "parsed_all-file_re": (2, 7),
-            "parsed_mscx-file_re": (2, 0),
-            "parsed_tsv-file_re": (0, 7),
+            "parsed_all-file_re_with_key": (2, 6),
+            "parsed_mscx-file_re_with_key": (2, 0),
+            "parsed_tsv-file_re_with_key": (0, 6),
+            "parsed_all-file_re_without_key": (2, 7),
+            "parsed_mscx-file_re_without_key": (2, 0),
+            "parsed_tsv-file_re_without_key": (0, 7),
             "parsed_all-files_correct_without_metadata": (2, 6),
             "parsed_mscx-files_correct_without_metadata": (2, 0),
             "parsed_tsv-files_correct_without_metadata": (0, 6),
             "parsed_all-files_with_correct_key": (2, 7),
             "parsed_mscx-files_with_correct_key": (2, 0),
             "parsed_tsv-files_with_correct_key": (0, 7),
-            "parsed_all-everything": (18, 29),
-            "parsed_mscx-everything": (18, 0),
+            "parsed_all-files_with_wrong_key": (4, 4),
+            "parsed_mscx-files_with_wrong_key": (4, 0),
+            "parsed_tsv-files_with_wrong_key": (0, 4),
+            "parsed_all-files_with_inferred_key": (1, 4),
+            "parsed_mscx-files_with_inferred_key": (1, 0),
+            "parsed_tsv-files_with_inferred_key": (0, 4),
+            "parsed_all-everything": (19, 29),
+            "parsed_mscx-everything": (19, 0),
             "parsed_tsv-everything": (0, 29),
             "parsed_all-redundant": (2, 0),
             "parsed_mscx-redundant": (2, 0),
             "parsed_all-regular_dirs": (8, 25),
             "parsed_mscx-regular_dirs": (8, 0),
             "parsed_tsv-regular_dirs": (0, 25),
-            "parsed_all-without_metadata": (5, 0),
-            "parsed_mscx-without_metadata": (5, 0),
+            "parsed_all-without_metadata": (3, 0),
+            "parsed_mscx-without_metadata": (3, 0),
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]

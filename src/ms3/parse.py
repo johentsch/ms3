@@ -16,7 +16,7 @@ from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_comp
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
     pretty_dict, resolve_dir, \
-    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2key
+    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 
 
@@ -199,7 +199,7 @@ class Parse(LoggedClass):
         self.labels_cfg = {
             'staff': None,
             'voice': None,
-            'label_type': None,
+            'harmony_layer': None,
             'positioning': True,
             'decode': False,
             'column_name': 'label',
@@ -245,16 +245,13 @@ class Parse(LoggedClass):
             for d in directory:
                 self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
-            assert key is not None, "When adding individual files, you need to specify a key. Consider using _.add_corpus() instead."
-            if isinstance(paths, str):
-                paths = [paths]
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
 
 
-    def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, label_type=1,
+    def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, harmony_layer=1,
                                 check_for_clashes=False):
         """ For each pair, adds the labels at tsv_id to the score at score_id.
 
@@ -268,11 +265,11 @@ class Parse(LoggedClass):
         voice : :obj:`int`, optional
             By default, labels are added to voices (notational layers) as specified in the TSV or to 1 (main voice).
             Pass an integer to specify a voice.
-        label_type : :obj:`int`, optional
+        harmony_layer : :obj:`int`, optional
             | By default, the labels are written into the staff's layer for Roman Numeral Analysis.
             | To change the behaviour pass
             | * None to instead attach them as absolute ('guitar') chords, meaning that when opened next time,
-            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal label_type 3).
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
             | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             Defaults to True, meaning that the positions where the labels will be inserted will be checked for existing
@@ -281,7 +278,7 @@ class Parse(LoggedClass):
         self._add_detached_annotations_by_ids(list_of_pairs, new_key='labels_to_attach')
         for score_id, tsv_id in list_of_pairs:
             score = self[score_id]
-            score.attach_labels('labels_to_attach', staff=staff, voice=voice, label_type=label_type,
+            score.attach_labels('labels_to_attach', staff=staff, voice=voice, harmony_layer=harmony_layer,
                                 check_for_clashes=check_for_clashes,
                                 remove_detached=True)
 
@@ -560,11 +557,10 @@ class Parse(LoggedClass):
         """
         directory = resolve_dir(directory)
         self.last_scanned_dir = directory
-        if file_re is None:
-            convertible = self.ms is not None
-            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
-        if exclude_re is None:
-            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
+
+        if not recursive:
+            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            return
 
         # new corpus/corpora to be added
         directories = sorted(iterate_corpora(directory, logger=self.logger))
@@ -572,15 +568,26 @@ class Parse(LoggedClass):
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
             if key is not None:
-                self.logger.info(f"Using key '{key}' for corpus '{os.path.basename(directory)}'.")
+                corpus_name = os.path.basename(directory)
+                if key != corpus_name:
+                    self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
             self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
-            directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
-            if key is not None:
-                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to problems:\n{', '.join(directories)}.")
-            for d in directories:
-                self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            if key is None:
+                if exclude_re is not None:
+                    directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
+                for d in directories:
+                    self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                mscx_files = [file for file in os.listdir(directory) if file.endswith('.mscx')]
+                if len(mscx_files) > 0:
+                    top_level = os.path.basename(directory)
+                    self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
+                                        f"\n{mscx_files}", extra={"message_id": (7, top_level)})
+            else:
+                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to unexpected behaviours:\n{', '.join(directories)}.")
+                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+
 
 
     def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
@@ -609,6 +616,11 @@ class Parse(LoggedClass):
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
+        if file_re is None:
+            convertible = self.ms is not None
+            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
+        if exclude_re is None:
+            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                            recursive=recursive, logger=self.logger))
@@ -627,13 +639,22 @@ class Parse(LoggedClass):
             self.logger.debug(f"No files from {directory} have been added.")
             return
         _, first_i = added_ids[0]
-        if not any(file == 'metadata.tsv' for file in self.files[key][first_i:]):
+        if 'metadata.tsv' in self.files[key][first_i:]:
+            self.logger.debug(f"Found metadata.tsv for corpus '{key}'.")
+        elif 'metadata.tsv' in self.files[key]:
+            self.logger.debug(f"Had already found metadata.tsv for corpus '{key}'.")
+        else:
             # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
             default_metadata_path = os.path.join(directory, 'metadata.tsv')
             if os.path.isfile(default_metadata_path):
+                self.logger.info(f"'metadata.tsv' was detected and automatically added for corpus '{key}'.")
                 new_id = self.add_files(paths=default_metadata_path, key=key)
                 added_ids += new_id
+            else:
+                self.logger.info(f"No metadata found for corpus '{key}'.")
 
+        if 'IGNORED_WARNINGS' in self.files[key]:
+            return
         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
         if os.path.isfile(default_ignored_warnings_path):
             self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
@@ -644,7 +665,7 @@ class Parse(LoggedClass):
         logger_names = list(self.logger_names.values())
         for to_be_configured, message_ids in ignored_warnings.items():
             if to_be_configured not in logger_names:
-                self.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
+                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
@@ -680,7 +701,7 @@ class Parse(LoggedClass):
                 ignored_warnings[msg[-1]] = [info]  # add new file info
         return ignored_warnings
 
-    def add_files(self, paths, key, exclude_re=None):
+    def add_files(self, paths, key=None, exclude_re=None):
         """
 
         Parameters
@@ -697,7 +718,6 @@ class Parse(LoggedClass):
         :obj:`list`
             The IDs of the added files.
         """
-        assert key in self.files, f"'{key}' is not an existing key."
         if paths is None or len(paths) == 0:
             self.logger.debug(f"add_files() was called with paths = '{paths}'.")
             return []
@@ -712,8 +732,35 @@ class Parse(LoggedClass):
                     paths.extend(loaded_paths)
                     self.logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
                     del(paths[i])
-                except:
+                except Exception:
                     self.logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+        if key is None:
+            # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
+            for path in paths:
+                parent_corpus = path2parent_corpus(path)
+                if parent_corpus is not None:
+                    key = os.path.basename(parent_corpus)
+                    self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv'.")
+                    metadata_path = os.path.join(parent_corpus, 'metadata.tsv')
+                    if metadata_path not in paths:
+                        paths.append(metadata_path)
+                        self.logger.info(f"{metadata_path} was automatically added.")
+                    break
+        if key is None:
+            # if only one key is available, pick that one
+            keys = self.keys()
+            if len(keys) == 1:
+                key = keys[0]
+                self.logger.info(f"Using key='{key}' because it is the only one currently in use.")
+            else:
+                self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.",
+                                  extra=dict(message_id = (8,)))
+                return []
+        if key not in self.files:
+            self.logger.debug(f"Adding '{key}' as new corpus.")
+            self.files[key] = []
+        if isinstance(paths, str):
+            paths = [paths]
         if exclude_re is not None:
             paths = [p for p in paths if re.search(exclude_re, p) is None]
         if self.last_scanned_dir is None:
@@ -725,7 +772,7 @@ class Parse(LoggedClass):
 
         self.logger.debug(f"Attempting to add {len(paths)} files...")
         if key is None:
-            ids = [self._handle_path(p, path2key(p)) for p in paths]
+            ids = [self._handle_path(p, path2parent_corpus(p)) for p in paths]
         else:
             ids = [self._handle_path(p, key) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
@@ -747,7 +794,7 @@ class Parse(LoggedClass):
 
 
 
-    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, label_type=None, check_for_clashes=True):
+    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
         respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
         MuseScore files where the annotations show in the score.
@@ -799,7 +846,7 @@ Continuing with {annotation_key}.""")
         for id in ids:
             for anno_key in annotation_key:
                 if anno_key in self._parsed_mscx[id]:
-                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, label_type=label_type, check_for_clashes=check_for_clashes)
+                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
                     self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
                     reached += r
                     goal += g
@@ -807,17 +854,17 @@ Continuing with {annotation_key}.""")
         self._collect_annotations_objects_references(ids=ids)
 
 
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, label_type=None, positioning=None, decode=None, column_name=None, color_format=None):
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
         Parameters
         ----------
         labels_cfg : :obj:`dict`
             Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, label_type, positioning, decode, column_name
+        staff, voice, harmony_layer, positioning, decode, column_name
             Arguments as they will be passed to :py:meth:`~ms3.annotations.Annotations.get_labels`
         """
-        keys = ['staff', 'voice', 'label_type', 'positioning', 'decode', 'column_name', 'color_format']
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
         for k in keys:
             val = locals()[k]
             if val is not None:
@@ -923,7 +970,7 @@ Available keys: {available_keys}""")
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
-        """ Counts the labels for each annotation layer defined as (staff, voice, label_type).
+        """ Counts the labels for each annotation layer defined as (staff, voice, harmony_layer).
         By default, only labels attached to a score are counted.
 
         Parameters
@@ -941,7 +988,7 @@ Available keys: {available_keys}""")
         Returns
         -------
         :obj:`dict` or :obj:`collections.Counter`
-            By default, the function returns a Counter of labels for every annotation layer (staff, voice, label_type)
+            By default, the function returns a Counter of labels for every annotation layer (staff, voice, harmony_layer)
             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
         """
         res_dict = defaultdict(Counter)
@@ -974,7 +1021,7 @@ Available keys: {available_keys}""")
             data = counts.values()
             ks = list(counts.keys())
             #levels = len(ks[0])
-            names = ['staff', 'voice', 'label_type', 'color'] #<[:levels]
+            names = ['staff', 'voice', 'harmony_layer', 'color'] #<[:levels]
             ix = pd.MultiIndex.from_tuples(ks, names=names)
             return pd.Series(data, ix)
 
@@ -1031,7 +1078,7 @@ Available keys: {available_keys}""")
 
 
 
-    def count_label_types(self, keys=None, per_key=False):
+    def count_labels(self, keys=None, per_key=False):
         """ Count label types.
 
         Parameters
@@ -1051,7 +1098,7 @@ Available keys: {available_keys}""")
         annotated = [id for id in self._iterids(keys) if id in self._annotations]
         res_dict = defaultdict(Counter)
         for key, i in annotated:
-            res_dict[key].update(self._annotations[(key, i)].label_types)
+            res_dict[key].update(self._annotations[(key, i)].harmony_layer_counts)
         if len(res_dict) == 0:
             if len(self._parsed_mscx) == 0:
                 self.logger.error("No scores have been parsed so far. Use parse_mscx().")
@@ -1090,7 +1137,7 @@ Available keys: {available_keys}""")
 
 
 
-    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, label_type=None, delete=True):
+    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, harmony_layer=None, delete=True):
         """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
         """
         assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
@@ -1100,7 +1147,7 @@ Available keys: {available_keys}""")
         for id in ids:
             score = self._parsed_mscx[id]
             try:
-                score.detach_labels(key=annotation_key, staff=staff, voice=voice, label_type=label_type, delete=delete)
+                score.detach_labels(key=annotation_key, staff=staff, voice=voice, harmony_layer=harmony_layer, delete=delete)
             except:
                 score.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
         self._collect_annotations_objects_references(ids=ids)
@@ -1139,14 +1186,14 @@ Available keys: {available_keys}""")
 
 
 
-    def get_labels(self, keys=None, staff=None, voice=None, label_type=None, positioning=True, decode=False, column_name=None,
+    def get_labels(self, keys=None, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, column_name=None,
                    color_format=None, concat=True):
         """ This function does not take into account self.labels_cfg """
         if len(self._annotations) == 0:
             self.logger.error("No labels available so far. Add files using add_dir() and parse them using parse().")
             return pd.DataFrame()
         keys = self._treat_key_param(keys)
-        label_type = self._treat_label_type_param(label_type)
+        harmony_layer = self._treat_harmony_layer_param(harmony_layer)
         self._extract_and_cache_dataframes(labels=True, only_new=True)
         l = locals()
         params = {p: l[p] for p in self.labels_cfg.keys()}
@@ -1939,9 +1986,10 @@ Available keys: {available_keys}""")
                         self._lists[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
                             if label_col in df.columns:
-                                logger_name = self.files[key][i]
+                                logger_cfg = dict(self.logger_cfg)
+                                logger_cfg['name'] = self.logger_names[(key, i)]
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                          logger_cfg={'name': logger_name}, level=level)
+                                                                          logger_cfg=logger_cfg, level=level)
                                 logger.debug(
                                     f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
                             else:
@@ -2177,7 +2225,7 @@ Available keys: {available_keys}""")
                     del (self._parsed_mscx[id])
         self._annotations.update(updated)
 
-    def _handle_path(self, full_path, key=None):
+    def _handle_path(self, full_path, key):
         full_path = resolve_dir(full_path)
         if not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
@@ -2189,11 +2237,7 @@ Available keys: {available_keys}""")
             self.logger.debug(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
             return (None, None)
         rel_path = os.path.relpath(file_path, self.last_scanned_dir)
-        if key is None:
-            key = rel_path
-            subdir = rel_path
-        else:
-            subdir = get_path_component(rel_path, key)
+        subdir = get_path_component(rel_path, key)
         if file in self.files[key]:
             same_name = [i for i, f in enumerate(self.files[key]) if f == file]
             if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
@@ -2226,7 +2270,7 @@ Load one of the identically named files with a different key using add_dir(key='
             'rests': ['nominal_duration'],
             'measures': ['act_dur'],
             'expanded': ['numeral'],
-            'labels': ['label_type'],
+            'labels': ['harmony_layer', 'label_type'],
             'cadences': ['cadence'],
             'metadata': ['last_mn', 'md5'],
         }
@@ -2472,13 +2516,13 @@ Load one of the identically named files with a different key using add_dir(key='
         return [k for k in sorted(set(keys)) if k in self.files]
 
 
-    def _treat_label_type_param(self, label_type):
-        if label_type is None:
+    def _treat_harmony_layer_param(self, harmony_layer):
+        if harmony_layer is None:
             return None
-        all_types = {str(k): k for k in self.count_label_types().keys()}
-        if isinstance(label_type, int) or isinstance(label_type, str):
-            label_type = [label_type]
-        lt = [str(t) for t in label_type]
+        all_types = {str(k): k for k in self.count_labels().keys()}
+        if isinstance(harmony_layer, int) or isinstance(harmony_layer, str):
+            harmony_layer = [harmony_layer]
+        lt = [str(t) for t in harmony_layer]
         def matches_any_type(user_input):
             return any(True for t in all_types if user_input in t)
         def get_matches(user_input):
@@ -2489,7 +2533,7 @@ Load one of the identically named files with a different key using add_dir(key='
             plural = len(not_found) > 1
             plural_s = 's' if plural else ''
             self.logger.warning(
-                f"No labels found with {'these' if plural else 'this'} label{plural_s} label_type{plural_s}: {', '.join(not_found)}")
+                f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
     def update_metadata(self, allow_suffix=False):

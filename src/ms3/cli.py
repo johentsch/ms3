@@ -287,19 +287,19 @@ def update(args):
         if s.mscx.has_annotations:
             s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
             before = s.annotations.df
-            label_types = before.label_type.astype(str).str[0].unique()
-            if len(label_types) > 1 or label_types[0] != str(args.type):
+            harmony_layers = before.harmony_layer.astype(str).str[0].unique()
+            if len(harmony_layers) > 1 or harmony_layers[0] != str(args.type):
                 # If all labels have the target type already, nothing is changed, even if the staves don't meet the
                 # target staff: For that one would have to transform the default target -1 into the last staff number
                 s.detach_labels('old')
                 if 'old' not in s._detached_annotations:
                     continue
                 s.old.remove_initial_dots()
-                s.attach_labels('old', staff=int(args.staff), voice=1,  label_type=int(args.type))
+                s.attach_labels('old', staff=int(args.staff), voice=1, harmony_layer=int(args.type))
                 if args.safe:
                     after = s.annotations.df
                     try:
-                        assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'label_type'])
+                        assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
                         s.store_mscx(new)
                     except:
                         s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
@@ -307,7 +307,7 @@ def update(args):
                 else:
                     s.store_mscx(new)
             else:
-                s.logger.info(f"All labels are already of type {label_types[0]}; no labels changed")
+                s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
                 s.store_mscx(new)
         else:
             s.logger.debug(f"File has no labels to update.")

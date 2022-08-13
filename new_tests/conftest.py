@@ -1,8 +1,8 @@
 import os
 from copy import deepcopy
 import pytest
-from ms3 import Parse
-from ms3.utils import first_level_subdirs, scan_directory
+from ms3 import Parse, Score
+from ms3.utils import scan_directory
 
 # Directory holding your clone of DCMLab/unittest_metacorpus
 CORPUS_DIR = "~"
@@ -21,28 +21,33 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
-        "files_correct_without_metadata",
-        "file_re",
+        "everything",
+        "file_re_with_key",
+        "file_re_without_key",
         "without_metadata",
         "redundant",
-        "files_with_correct_key",
-        "files_without_key",
-        "files_with_wrong_key",
-        "hidden_dirs",
         "regular_dirs",
-        "everything",
         "chaotic_dirs",
+        "hidden_dirs",
+        "files_without_key",
+        "files_with_inferred_key",
+        "files_with_wrong_key",
+        "files_correct_without_metadata",
+        "files_with_correct_key",
     ]
 )
 def parse_obj(directory, request):
     if request.param == 'everything':
         return Parse(directory=directory)
-    if request.param == 'file_re':
-        p = Parse(directory=directory, key='sweelinck', file_re="SwWV")
+    if request.param == 'file_re_with_key':
+        p = Parse(directory=directory, key = 'sweelinck', file_re="SwWV", logger_cfg=dict(level='d'))
+        return p
+    if request.param == 'file_re_without_key':
+        p = Parse(directory=directory, file_re="SwWV")
         return p
     if request.param == "without_metadata":
-        add_path = os.path.join(directory, "mixed_files", "keyboard")
-        return Parse(add_path, key="custom_key")
+        add_path = os.path.join(directory, "mixed_files", "orchestral")
+        return Parse(add_path)
     if request.param == "redundant":
         add_path = os.path.join(directory, "mixed_files", "keyboard", "classic")
         return Parse(add_path)
@@ -61,18 +66,19 @@ def parse_obj(directory, request):
             p.add_dir(add_path)
     if request.param.startswith('files_'):
         add_path = os.path.join(directory, 'sweelinck_keyboard')
-        files = scan_directory(add_path, logger="ms3.tests")
+        files = list(scan_directory(add_path, logger="ms3.tests"))
+        files_with_inferrable_metadata = [f for f in files if os.path.basename(f) != 'metadata.tsv']
+        files_without_inferrable_metadata = list(scan_directory(os.path.join(directory, 'mixed_files', 'orchestral')))
         if request.param == "files_without_key":
-            with pytest.raises(TypeError):
-                p.add_files(files)
+            p.add_files(files_without_inferrable_metadata)
+        if request.param == "files_with_inferred_key":
+            p.add_files(files_with_inferrable_metadata)
         if request.param == "files_with_wrong_key":
-            with pytest.raises(AssertionError):
-                p.add_files(files, key="custom_key")
+            p.add_files(files_with_inferrable_metadata)
+            p.add_files(files_without_inferrable_metadata)
         if request.param == "files_correct_without_metadata":
-            files = [f for f in files if os.path.basename(f) != 'metadata.tsv']
             key = "frankenstein"
-            p.files[key] = []
-            p.add_files(files, key=key)
+            p.add_files(files_with_inferrable_metadata, key=key)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):
                 p.add_files(path, key=key)
         if request.param == "files_with_correct_key":
@@ -116,7 +122,41 @@ def parsed_parse_objects(parsed_parse_obj, request):
     request.cls.parsed_parse_obj = parsed_parse_obj
 
 
+### Creating path tuples for score_object():
+# for folder, subdirs, files in os.walk('.'):
+#     subdirs[:] = [s for s in subdirs if not s.startswith('.')]
+#     fldrs = tuple(['mixed_files'] + folder.split('/')[1:])
+#     for f in files:
+#         if f.endswith('.mscx'):
+#             print(f"{fldrs + (f,)},")
 
+@pytest.fixture(
+    params = [
+        ('mixed_files', '76CASM34A33UM.mscx'),
+        ('mixed_files', 'stabat_03_coloured.mscx'),
+        ('mixed_files', 'orchestral', '05_symph_fant.mscx'),
+        ('mixed_files', 'orchestral', 'Did03M-Son_regina-1762-Sarti.mscx'),
+        ('mixed_files', 'orchestral', 'caldara_form.mscx'),
+        ('mixed_files', 'keyboard', 'baroque', 'BWV_0815.mscx'),
+        ('mixed_files', 'keyboard', 'ancient', '12.16_Toccata_cromaticha_per_l’elevatione_phrygian.mscx'),
+        ('mixed_files', 'keyboard', 'nineteenth', 'D973deutscher01.mscx'),
+        ('mixed_files', 'keyboard', 'classic', 'K281-3.mscx'),
+          ],
+    ids = [
+        'monty',
+        'pergolesi',
+        'berlioz',
+        'sarti',
+        'caldara',
+        'bach',
+        'frescobaldi',
+        'schubert',
+        'mozart'
+       ])
+def score_object(directory, request):
+    mscx_path = os.path.join(directory, *request.param)
+    s = Score(mscx_path)
+    return s
 
 
 
