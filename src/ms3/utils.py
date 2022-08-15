@@ -3166,7 +3166,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
                 logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.",
-                               extra={"message_id": (6, mc, label)})
+                               extra={"message_id": (6, mc, label.replace("(", "[").replace(")", "]"))})
         chord_tones.extend(replacing_tones)
 
     bass_tpc = chord_tones[0]
