@@ -572,7 +572,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                     f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values} is lost.")
                 continue
             log_this(
-                f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.")
+                f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.", extra={"message_id": (9, *vals)})
         return keep_row
 
     result = result.groupby(compress_col, group_keys=False).apply(squash_staves)

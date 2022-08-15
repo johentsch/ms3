@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger
+from .logger import LoggedClass, get_logger, convert_to_int, LEVELS
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
     group_id_tuples, \
@@ -246,6 +246,10 @@ class Parse(LoggedClass):
                 self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         if paths is not None:
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
+
+        # set loggers level
+        logger_cfg["level"] = "d"
+        self.change_logger_cfg(logger_cfg["level"])
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -527,7 +531,14 @@ class Parse(LoggedClass):
         self._add_detached_annotations_by_ids(list_of_pairs, new_key=new_key)
 
 
-
+    def change_logger_cfg(self, level="D"):
+        for logger_name in self.logger_names.values():
+            logger = get_logger(logger_name)
+            if logger.level != LEVELS[level.upper()]:
+                logger.setLevel(LEVELS[level.upper()])
+            if logger.parent.name == 'root':
+                for handler in logger.handlers:
+                    handler.setLevel(LEVELS[level.upper()])
 
 
     def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
@@ -667,7 +678,7 @@ class Parse(LoggedClass):
             if to_be_configured not in logger_names:
                 self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
-            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+            configured.warning(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
     def parse_ignored_warnings(self, path):
         """Parse file with log messages that have to be ignored to the dict.
@@ -688,17 +699,19 @@ class Parse(LoggedClass):
         with open(path) as f:
             file = f.read()
         messages = file.split(sep="\n")  # split messages
-        split_msg = list(map(lambda k: (list(filter(None, re.split("[(, :)]+", k)))), messages))  # split parts of message
-        for msg in split_msg:
-            if msg[1] == "0":  # there is no type of message
+        for msg in messages:
+            split_info = re.split("[()]+", msg)
+            assert len(split_info) == 3, "Expected format of message: MESSAGE_TYPE (message_id, label..) FILE_NAME"
+            filename = split_info[-1].split()[0]
+            label = list(filter(None, re.split("[(, :')]+", split_info[1])))
+            if label == "0":  # there is no type of message
                 info = (0,)
             else:
-                info = (int(msg[1]), *list(map(int, msg[2:-1])))
-
-            if msg[-1] in ignored_warnings.keys():  # check file name in dict
-                ignored_warnings[msg[-1]].append(info)  # append to existing file info
+                info = tuple(map(convert_to_int, label))
+            if filename in ignored_warnings.keys():  # check file name in dict
+                ignored_warnings[filename].append(info)  # append to existing file info
             else:
-                ignored_warnings[msg[-1]] = [info]  # add new file info
+                ignored_warnings[filename] = [info]  # add new file info
         return ignored_warnings
 
     def add_files(self, paths, key=None, exclude_re=None):
@@ -3066,7 +3079,7 @@ class View(Parse):
         if not any((unfold, quarterbeats, interval_index)):
             for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
                 if any(df is None for df in dfs) and skip_missing:
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
+                    self.logger.warning(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (9, md['fnames'])})
                     continue
                 yield (md, *dfs)
         else:

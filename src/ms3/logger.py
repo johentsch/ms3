@@ -17,7 +17,6 @@ LEVELS = {
     'C': logging.CRITICAL,
 }
 
-
 class MessageType(Enum):
     """Enumerated constants of message types."""
     NO_TYPE = 0  # 0 is reserved as no type message
@@ -29,6 +28,7 @@ class MessageType(Enum):
     SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
     OVERLOOKED_MSCX_FILES_WARNING = 7
     KEY_NOT_SPECIFIED_ERROR = 8
+    IGNORE_TESTING_WARNING = 9
 
 
 class CustomFormatter(logging.Formatter):
@@ -37,7 +37,7 @@ class CustomFormatter(logging.Formatter):
         if record._message_type == 0:  # if there is no message type
             record.msg = '%-8s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, record.msg)
         else:
-            record.msg = '%s %s %s -- %s (line %s) %s(): \n\t %s' % (
+            record.msg = '%s %s %s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname,
             record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, record.msg)
         return super(CustomFormatter, self).format(record)
 
@@ -80,8 +80,8 @@ class LoggedClass():
 def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings=[]):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
-    if isinstance(name, logging.LoggerAdapter):
-        name = name.logger
+    # if isinstance(name, logging.LoggerAdapter):
+    #     name = name.logger
     if isinstance(name, logging.Logger):
         if level is None:
             level = level.level
@@ -140,7 +140,9 @@ def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=
             record._message_id = ()
             record._message_type = 0
         else:
-            record._message_id = extra["message_id"]
+            filter_function = lambda elem: list(map(convert_to_int, filter(None, re.split("[(, :')]+", elem)))) if type(
+                elem) == str else [elem]
+            record._message_id = tuple([elem_  for elem in extra["message_id"] for elem_ in filter_function(elem)])
             record._message_type = record._message_id[0]
         record._message_type_full = MessageType(record._message_type).name
         return record
@@ -319,3 +321,10 @@ class LogCapturer(object):
     @property
     def log_handler(self):
         return self._log_handler
+
+def convert_to_int(input_str: str):
+    """Convert list of strings to list of integer if possible"""
+    try:
+        return int(input_str)
+    except ValueError:
+        return input_str

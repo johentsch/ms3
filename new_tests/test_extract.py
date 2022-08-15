@@ -1,8 +1,9 @@
+import logging
+
 import pytest
 from collections import defaultdict
-import os
 
-from ms3.logger import MessageType
+from ms3.logger import MessageType, LEVELS
 
 
 def inspect_object(obj, no_magic=True):
@@ -229,6 +230,12 @@ class TestParsedParse():
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
+    @pytest.fixture()
+    def get_ignored_warnings(self):
+        return {"ms3.Parse.sweelinck": [(9, 'SwWV258_fantasia_cromatica')],"ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia.mscx": [(6, 87, 'V64(6b5)')],
+                "ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean.mscx": [(3, 45)], "ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes.mscx": [(3, 17), (1, '14, 16, 18, 20, 25, 28')],
+                "ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)], "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, '1, 40, 85, 97, 131, 139')]}
+
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
 
@@ -237,21 +244,19 @@ class TestParsedParse():
         parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
         assert parsed_files == n_parsed_files
 
-    @pytest.fixture()
-    def ignored_warnings(self):
-        return {"ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)],
-                 "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, 1, 40, 85, 97, 131, 139)]}
+    def test_loggers_level(self, level="D"):
+        p = self.parsed_parse_obj
+        _ = p.get_dataframes(expanded=True)
+        p.change_logger_cfg()
+        for logger_name in p.logger_names.values():
+            current_logger_level = logging.getLogger(logger_name).level
+            assert current_logger_level == LEVELS[level], f"Logger {logger_name} has level {current_logger_level}, not {LEVELS[level]}"
 
-    def test_parse_ignored_warnings_file(self, ignored_warnings):
-        assert self.parsed_parse_obj.parse_ignored_warnings(os.path.join(os.path.expanduser("~"),
-                'unittest_metacorpus/mixed_files/IGNORED_WARNINGS')) == ignored_warnings
-
-    def test_check(self, caplog, ignored_warnings):
+    def test_check(self, caplog, get_ignored_warnings):
         _ = self.parsed_parse_obj.get_dataframes(expanded=True)
         for record in caplog.records:
-            if record.name in ignored_warnings.keys():
-                if record._message_id == ignored_warnings[record.name]:
-                    assert record.levelname == "DEBUG"
+            if record.name in get_ignored_warnings and get_ignored_warnings[record.name] == record._message_id:
+                assert record.levelname == "DEBUG"
 
 # add_dir (different keys)
 # file_re
