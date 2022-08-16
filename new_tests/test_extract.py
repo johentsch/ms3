@@ -233,8 +233,8 @@ class TestParsedParse():
     @pytest.fixture()
     def get_ignored_warnings(self):
         return {"ms3.Parse.sweelinck": [(9, 'SwWV258_fantasia_cromatica')],"ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia.mscx": [(6, 87, 'V64(6b5)')],
-                "ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean.mscx": [(3, 45)], "ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes.mscx": [(3, 17), (1, '14, 16, 18, 20, 25, 28')],
-                "ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)], "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, '1, 40, 85, 97, 131, 139')]}
+                "ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean.mscx": [(3, 45)], "ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes.mscx": [(3, 17), (1, 14, 16, 18, 20, 25, 28)],
+                "ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)], "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, 1, 40, 85, 97, 131, 139)]}
 
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
@@ -255,8 +255,9 @@ class TestParsedParse():
     def test_check(self, caplog, get_ignored_warnings):
         _ = self.parsed_parse_obj.get_dataframes(expanded=True)
         for record in caplog.records:
-            if record.name in get_ignored_warnings and get_ignored_warnings[record.name] == record._message_id:
-                assert record.levelname == "DEBUG"
+            if record.name in get_ignored_warnings:
+                if record._message_id in get_ignored_warnings[record.name]:
+                    assert record.levelname == "DEBUG", f"IGNORED_WARNINGS not filtered for logger {record.name}"
 
 # add_dir (different keys)
 # file_re

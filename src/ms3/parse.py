@@ -666,10 +666,17 @@ class Parse(LoggedClass):
 
         if 'IGNORED_WARNINGS' in self.files[key]:
             return
-        default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
-        if os.path.isfile(default_ignored_warnings_path):
-            self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
-            self.load_ignored_warnings(default_ignored_warnings_path)
+        # manually adding ignored_warnings file
+        added_ignored_warnings = {"sweelinck": "IGNORED_WARNINGS_SWEELINCK",
+         "wagner_overtures": "IGNORED_WARNINGS_WAGNER",
+         "ravel_piano": "IGNORED_WARNINGS_RAVEL_PIANO",
+         "unittest_metacorpus": "IGNORED_WARNINGS"}
+        self.logger.warning(key)
+        if key in added_ignored_warnings:
+                ignored_warnings_path = os.path.join(os.path.expanduser("~"), "unittest_metacorpus/mixed_files", added_ignored_warnings[key])
+                if os.path.isfile(ignored_warnings_path):
+                    self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
+                    self.load_ignored_warnings(ignored_warnings_path)
 
     def load_ignored_warnings(self, path):
         ignored_warnings = self.parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
