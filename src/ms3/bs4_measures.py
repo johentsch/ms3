@@ -188,12 +188,14 @@ class MeasureList(LoggedClass):
         error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
         n_errors = error_mask.sum()
         if n_errors > 0:
-            mcs = ', '.join(self.ml.loc[error_mask, mc_col].astype(str))
+            mcs = self.ml.loc[error_mask, mc_col]
+            mcs_int = tuple(mcs.values)
+            mcs_str = ', '.join(mcs.astype(str))
             context_mask = error_mask | error_mask.shift(-1).fillna(False) | error_mask.shift().fillna(False)
             context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
-                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, *tuple(map(int, mcs.split(", "))))})
+                f"MC{'s' if plural else ''} {mcs_str} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, *mcs_int)})
 
 
 @function_logger
