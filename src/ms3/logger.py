@@ -37,8 +37,7 @@ class CustomFormatter(logging.Formatter):
         if record._message_type == 0:  # if there is no message type
             record.msg = '%-8s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, record.msg)
         else:
-            record.msg = '%s %s %s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname,
-            record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, record.msg)
+            record.msg = '%s %s %s -- %s (line %s) %s(): \n\t %s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, record.msg)
         return super(CustomFormatter, self).format(record)
 
 
