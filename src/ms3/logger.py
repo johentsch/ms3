@@ -28,7 +28,7 @@ class MessageType(Enum):
     SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
     OVERLOOKED_MSCX_FILES_WARNING = 7
     KEY_NOT_SPECIFIED_ERROR = 8
-    IGNORE_TESTING_WARNING = 9
+    COMPETING_MEASURE_INFO = 9
 
 
 class CustomFormatter(logging.Formatter):
