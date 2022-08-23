@@ -9,12 +9,11 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, convert_to_int, LEVELS
+from .logger import LoggedClass, get_logger, LEVELS
 from .score import Score
-from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
-    group_id_tuples, \
+from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
@@ -679,47 +678,13 @@ class Parse(LoggedClass):
                     self.load_ignored_warnings(ignored_warnings_path)
 
     def load_ignored_warnings(self, path):
-        ignored_warnings = self.parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        ignored_warnings = parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
         logger_names = list(self.logger_names.values())
         for to_be_configured, message_ids in ignored_warnings.items():
             if to_be_configured not in logger_names:
                 self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.warning(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
-
-    def parse_ignored_warnings(self, path):
-        """Parse file with log messages that have to be ignored to the dict.
-        The expected structure of message: warning_type (warning_type_id, label) file
-        Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
-
-        Parameters
-        ----------
-        key : :obj:`str`
-            | Path to IGNORED_WARNINGS
-
-        Returns
-        -------
-        :obj: dict
-            {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
-        """
-        ignored_warnings = {}
-        with open(path) as f:
-            file = f.read()
-        messages = file.split(sep="\n")  # split messages
-        for msg in messages:
-            split_info = re.split("[()]+", msg)
-            assert len(split_info) == 3, "Expected format of message: MESSAGE_TYPE (message_id, label..) FILE_NAME"
-            filename = split_info[-1].split()[0]
-            label = list(filter(None, re.split("[(, :')]+", split_info[1])))
-            if label == "0":  # there is no type of message
-                info = (0,)
-            else:
-                info = tuple(map(convert_to_int, label))
-            if filename in ignored_warnings.keys():  # check file name in dict
-                ignored_warnings[filename].append(info)  # append to existing file info
-            else:
-                ignored_warnings[filename] = [info]  # add new file info
-        return ignored_warnings
 
     def add_files(self, paths, key=None, exclude_re=None):
         """

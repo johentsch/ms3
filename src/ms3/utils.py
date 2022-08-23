@@ -16,7 +16,7 @@ from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 
-from .logger import function_logger, update_cfg
+from .logger import function_logger, update_cfg, convert_to_int
 
 METADATA_COLUMN_ORDER = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb',
                          'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions', 'TimeSig', 'KeySig',
@@ -3166,7 +3166,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
                 logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.",
-                               extra={"message_id": (6, mc, label.replace("(", "[").replace(")", "]"))})
+                               extra={"message_id": (6, mc, label)})
         chord_tones.extend(replacing_tones)
 
     bass_tpc = chord_tones[0]
@@ -3225,3 +3225,38 @@ def transpose(e, n):
     """ Add `n` to all elements `e` recursively.
     """
     return map2elements(e, lambda x: x + n)
+
+
+def parse_ignored_warnings(path):
+    """Parse file with log messages that have to be ignored to the dict.
+    The expected structure of message: warning_type (warning_type_id, label) file
+    Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
+
+    Parameters
+    ----------
+    key : :obj:`str`
+        | Path to IGNORED_WARNINGS
+
+    Returns
+    -------
+    :obj: dict
+        {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+    """
+    ignored_warnings = {}
+    with open(path) as f:
+        file = f.read()
+    messages = file.split(sep="\n")  # split messages
+    for msg in messages:
+        split_info = re.split("[()]+", msg)
+        assert len(split_info) == 3, "Expected format of message: MESSAGE_TYPE (message_id, label..) FILE_NAME"
+        filename = split_info[-1].split()[0]
+        label = list(filter(None, re.split("[(, :')]+", split_info[1])))
+        if label == "0":  # there is no type of message
+            info = (0,)
+        else:
+            info = tuple(map(convert_to_int, label))
+        if filename in ignored_warnings.keys():  # check file name in dict
+            ignored_warnings[filename].append(info)  # append to existing file info
+        else:
+            ignored_warnings[filename] = [info]  # add new file info
+    return ignored_warnings
