@@ -139,9 +139,7 @@ def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=
             record._message_id = ()
             record._message_type = 0
         else:
-            filter_function = lambda elem: list(map(convert_to_int, filter(None, re.split("[(, :')]+", elem)))) if type(
-                elem) == str else [elem]
-            record._message_id = tuple([elem_  for elem in extra["message_id"] for elem_ in filter_function(elem)])
+            record._message_id = extra["message_id"]
             record._message_type = record._message_id[0]
         record._message_type_full = MessageType(record._message_type).name
         return record
@@ -320,10 +318,3 @@ class LogCapturer(object):
     @property
     def log_handler(self):
         return self._log_handler
-
-def convert_to_int(input_str: str):
-    """Convert list of strings to list of integer if possible"""
-    try:
-        return int(input_str)
-    except ValueError:
-        return input_str
