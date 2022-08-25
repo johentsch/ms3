@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 import pytest
 from ms3 import Parse, Score
-from ms3.utils import scan_directory
+from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 # Directory holding your clone of DCMLab/unittest_metacorpus
 CORPUS_DIR = "~"
@@ -21,6 +21,7 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
+        "regular_dirs_at_once",
         "everything",
         "file_re_with_key",
         "file_re_without_key",
@@ -51,6 +52,10 @@ def parse_obj(directory, request):
     if request.param == "redundant":
         add_path = os.path.join(directory, "mixed_files", "keyboard", "classic")
         return Parse(add_path)
+    if request.param == "regular_dirs_at_once":
+        os.chdir(directory)
+        regular_dirs = ['ravel_piano', 'sweelinck_keyboard', 'wagner_overtures']
+        return Parse(regular_dirs)
     p = Parse()
     if request.param == "regular_dirs":
         for subdir in ['ravel_piano', 'sweelinck_keyboard', 'wagner_overtures']:
@@ -159,4 +164,29 @@ def score_object(directory, request):
     return s
 
 
+@pytest.fixture(scope='session')
+def get_all_warnings(directory):
+    p = Parse(directory)
+    with capture_parse_logs(p.logger) as captured_warnings:
+        p.parse()
+        _ = p.get_dataframes(expanded=True)
+        all_warnings = [msg.strip("\n\t ") for msg in captured_warnings.content_list]
+    return all_warnings
 
+
+@pytest.fixture(scope='session')
+def get_all_warnings_parsed(get_all_warnings):
+    return ignored_warnings2dict(get_all_warnings)
+
+@pytest.fixture(scope='session')
+def get_all_supressed_warnings(directory):
+    ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
+    p = Parse(directory, logger_cfg=dict(level='d'))
+    p.load_ignored_warnings(ignored_warnings_file)
+    with capture_parse_logs(p.logger, level='d') as captured_msgs:
+        p.parse()
+        _ = p.get_dataframes(expanded=True)
+        all_msgs = captured_msgs.content_list
+        assert any('ms3.Parse.mixed_files.BWV_0815.mscx' in msg for msg in all_msgs)
+    suppressed = [msg.split("\n\t ")[1:] for msg in all_msgs if msg.startswith('IGNORED')]
+    return ['\n\t '.join(l.strip("\n\t ") for l in lines) for lines in suppressed]

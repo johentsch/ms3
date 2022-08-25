@@ -46,7 +46,7 @@ def check(args):
         args.regex = r'\.mscx$'
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
               labels_cfg=labels_cfg, logger_cfg=logger_cfg)
-    logger_object = p.logger #.logger if ContextAdapter
+    logger_object = p.logger
     captured_warnings = LogCapturer()
     logger_object.addHandler(captured_warnings.log_handler)
     p.parse_mscx()

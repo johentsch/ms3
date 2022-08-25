@@ -1,4 +1,5 @@
 import logging
+from itertools import product
 
 import pytest
 from collections import defaultdict
@@ -54,7 +55,7 @@ class TestEmptyParse():
     """Tests Parse objects where no files have been parsed yet."""
 
     @pytest.fixture()
-    def expected_keys(self, request, caplog):
+    def expected_keys(self, request):
         name2expected = defaultdict(dict)
         name2expected.update(dict(
             everything = {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
@@ -70,6 +71,9 @@ class TestEmptyParse():
             regular_dirs = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            regular_dirs_at_once = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                             'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                             'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
             chaotic_dirs = {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
                              'orchestral': {'.mscx': 3},
                              'outputs': {'.mscx': 1, '.tsv': 3}},
@@ -80,11 +84,6 @@ class TestEmptyParse():
             files_with_correct_key = {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
         ))
         name = node_name2cfg_name(request.node.name)
-        ## Check for particular log message types in particular test cases
-        if name == 'chaotic_dirs':
-            assert any(record._message_type == 7 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
-        if name == 'files_without_key':
-            assert any(record._message_type == 8 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
         return name2expected[name]
 
     @pytest.fixture()
@@ -98,12 +97,18 @@ class TestEmptyParse():
             files_with_correct_key = 1,
             files_with_inferred_key = 1,
             files_with_wrong_key = 1,
-            regular_dirs = 8
+            regular_dirs = 8,
+            regular_dirs_at_once = 8
         ))
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
-    def test_keys(self, expected_keys):
+    def test_keys(self, expected_keys, caplog):
+        ## Check for particular log message types in particular test cases
+        # if name == 'chaotic_dirs':
+        #     assert any(record._message_type == 7 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
+        # if name == 'files_without_key':
+        #     assert any(record._message_type == 8 for record in caplog.records), print(f"Expected a {MessageType(7)}. Got {caplog.records}.")
         assert self.parse_obj.count_extensions(per_key=True) == expected_keys
 
     def test_metadata(self, expected_tsv_lines):
@@ -125,116 +130,78 @@ class TestParsedParse():
 
     @pytest.fixture()
     def expected_keys(self, request):
+        expected = {
+            "chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
+                                         'orchestral': {'.mscx': 3},
+                                         'outputs': {'.mscx': 1, '.tsv': 3}},
+            "everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
+                                      'outputs': {'.mscx': 1, '.tsv': 3},
+                                      'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                      'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                      'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
+            "file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
+            "files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
+            "files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
+            "files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
+            "redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
+            "regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "regular_dirs_at_once": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
+                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
+                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
+            "without_metadata": {'orchestral': {'.mscx': 3}},
+        }
         name2expected = defaultdict(dict)
         name2expected.update({
-            "parsed_all-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
-                                         'orchestral': {'.mscx': 3},
-                                         'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_mscx-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
-                                         'orchestral': {'.mscx': 3},
-                                         'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_tsv-chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
-                                         'orchestral': {'.mscx': 3},
-                                         'outputs': {'.mscx': 1, '.tsv': 3}},
-            "parsed_all-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
-                                         'outputs': {'.mscx': 1, '.tsv': 3},
-                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_mscx-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
-                                         'outputs': {'.mscx': 1, '.tsv': 3},
-                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_tsv-everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
-                                         'outputs': {'.mscx': 1, '.tsv': 3},
-                                         'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            # "parsed_all-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            # "parsed_mscx-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            # "parsed_tsv-file_re": {'sweelinck': {'.mscx': 2, '.tsv': 7}},
-            "parsed_all-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
-            "parsed_mscx-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
-            "parsed_tsv-file_re_with_key": {'sweelinck': {'.mscx': 2, '.tsv': 6}},
-            "parsed_all-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_mscx-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_tsv-file_re_without_key": {'outputs': {'.mscx': 1, '.tsv': 3}, 'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_all-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
-            "parsed_mscx-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
-            "parsed_tsv-files_correct_without_metadata": {'frankenstein': {'.mscx': 2, '.tsv': 6}},
-            "parsed_all-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_mscx-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_tsv-files_with_inferred_key": {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
-            "parsed_all-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
-            "parsed_mscx-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
-            "parsed_tsv-files_with_correct_key": {'sweelinck_keyboard': {'.mscx': 2, '.tsv': 7}},
-            "parsed_all-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
-            "parsed_mscx-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
-            "parsed_tsv-files_with_wrong_key": {'sweelinck_keyboard': {'.mscx': 4, '.tsv': 4}},
-            "parsed_all-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
-            "parsed_mscx-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
-            "parsed_tsv-redundant": {'classic': {'.mscx': 1, '.mscz': 1}},
-            "parsed_all-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_mscx-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_tsv-regular_dirs": {'ravel_piano': {'.mscx': 5, '.tsv': 14},
-                                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
-                                         'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            "parsed_all-without_metadata": {'orchestral': {'.mscx': 3}},
-            "parsed_mscx-without_metadata": {'orchestral': {'.mscx': 3}},
-            "parsed_tsv-without_metadata": {'orchestral': {'.mscx': 3}},
+            parse_mode+test_mode: expected_keys
+            for parse_mode, (test_mode, expected_keys) in product(["parsed_all-", "parsed_mscx-", "parsed_tsv-"],
+                                                                  expected.items()
+                                                                  )
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
     @pytest.fixture()
     def n_parsed_files(self, request):
+        expected = {
+            "chaotic_dirs": (9, 4),
+            "file_re_with_key": (2, 6),
+            "file_re_without_key": (2, 7),
+            "files_correct_without_metadata": (2, 6),
+            "files_with_correct_key": (2, 7),
+            "files_with_wrong_key": (4, 4),
+            "files_with_inferred_key": (1, 4),
+            "everything": (19, 29),
+            "redundant": (2, 0),
+            "regular_dirs": (8, 25),
+            "regular_dirs_at_once": (8, 25),
+            "without_metadata": (3, 0),
+        }
         name2expected = defaultdict(lambda: (0,0))
+        parse_modes = "parsed_all-", "parsed_mscx-", "parsed_tsv-"
+        mode2selector = dict(zip(parse_modes,
+                                 (
+                                     (True, True),
+                                     (True, False),
+                                     (False, True)
+                                 )
+                                )
+                            )
+        def mode_filter(expected_pair, selector):
+            (n_mscx, n_tsv), (a, b) = expected_pair, selector
+            return (n_mscx if a else 0, n_tsv if b else 0)
         name2expected.update({
-            "parsed_all-chaotic_dirs": (9, 4),
-            "parsed_mscx-chaotic_dirs": (9, 0),
-            "parsed_tsv-chaotic_dirs": (0, 4),
-            "parsed_all-file_re_with_key": (2, 6),
-            "parsed_mscx-file_re_with_key": (2, 0),
-            "parsed_tsv-file_re_with_key": (0, 6),
-            "parsed_all-file_re_without_key": (2, 7),
-            "parsed_mscx-file_re_without_key": (2, 0),
-            "parsed_tsv-file_re_without_key": (0, 7),
-            "parsed_all-files_correct_without_metadata": (2, 6),
-            "parsed_mscx-files_correct_without_metadata": (2, 0),
-            "parsed_tsv-files_correct_without_metadata": (0, 6),
-            "parsed_all-files_with_correct_key": (2, 7),
-            "parsed_mscx-files_with_correct_key": (2, 0),
-            "parsed_tsv-files_with_correct_key": (0, 7),
-            "parsed_all-files_with_wrong_key": (4, 4),
-            "parsed_mscx-files_with_wrong_key": (4, 0),
-            "parsed_tsv-files_with_wrong_key": (0, 4),
-            "parsed_all-files_with_inferred_key": (1, 4),
-            "parsed_mscx-files_with_inferred_key": (1, 0),
-            "parsed_tsv-files_with_inferred_key": (0, 4),
-            "parsed_all-everything": (19, 29),
-            "parsed_mscx-everything": (19, 0),
-            "parsed_tsv-everything": (0, 29),
-            "parsed_all-redundant": (2, 0),
-            "parsed_mscx-redundant": (2, 0),
-            "parsed_all-regular_dirs": (8, 25),
-            "parsed_mscx-regular_dirs": (8, 0),
-            "parsed_tsv-regular_dirs": (0, 25),
-            "parsed_all-without_metadata": (3, 0),
-            "parsed_mscx-without_metadata": (3, 0),
+            parse_mode + test_mode: mode_filter(expected_pair, mode2selector[parse_mode])
+            for parse_mode, (test_mode, expected_pair) in product(["parsed_all-", "parsed_mscx-", "parsed_tsv-"],
+                                                                  expected.items()
+                                                                  )
         })
         name = node_name2cfg_name(request.node.name)
         return name2expected[name]
 
-    @pytest.fixture()
-    def get_ignored_warnings(self):
-        return {"ms3.Parse.sweelinck": [(9, 'SwWV258_fantasia_cromatica')],"ms3.Parse.wagner_overtures.WWV090_Tristan_01_Vorspiel-Prelude_Ricordi1888Floridia.mscx": [(6, 87, 'V64(6b5)')],
-                "ms3.Parse.ravel_piano.Ravel_-_Miroirs_III_Une_Barque_sur_l'ocean.mscx": [(3, 45)], "ms3.Parse.ravel_piano.Ravel_-_Miroirs_II_Oiseaux_tristes.mscx": [(3, 17), (1, 14, 16, 18, 20, 25, 28)],
-                "ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx": [(2, 94)], "ms3.Parse.mixed_files.BWV_0815.mscx": [(1, 1, 40, 85, 97, 131, 139)]}
 
     def test_keys(self, expected_keys):
         assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
@@ -244,20 +211,21 @@ class TestParsedParse():
         parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
         assert parsed_files == n_parsed_files
 
-    def test_loggers_level(self, level="D"):
-        p = self.parsed_parse_obj
-        _ = p.get_dataframes(expanded=True)
-        p.change_logger_cfg()
-        for logger_name in p.logger_names.values():
-            current_logger_level = logging.getLogger(logger_name).level
-            assert current_logger_level == LEVELS[level], f"Logger {logger_name} has level {current_logger_level}, not {LEVELS[level]}"
 
-    def test_check(self, caplog, get_ignored_warnings):
-        _ = self.parsed_parse_obj.get_dataframes(expanded=True)
-        for record in caplog.records:
-            if record.name in get_ignored_warnings:
-                if record._message_id in get_ignored_warnings[record.name]:
-                    assert record.levelname == "DEBUG", f"IGNORED_WARNINGS not filtered for logger {record.name}"
+    # def test_check(self, caplog, all_ignored_warnings):
+    #     _ = self.parsed_parse_obj.get_dataframes(expanded=True)
+    #     for logger_name, message_ids in all_ignored_warnings.items():
+    #         eligible_records = [record for record in caplog.records if record.name == logger_name]
+    #         if len(eligible_records) == 0:
+    #             print(set(record.name for record in caplog.records))
+    #             assert False
+    #         for record in eligible_records:
+    #             assert record._message_id not in message_ids
+
+
+def test_fixture(get_all_warnings_parsed):
+    print(get_all_warnings_parsed)
+    assert len(get_all_warnings_parsed) > 0
 
 # add_dir (different keys)
 # file_re

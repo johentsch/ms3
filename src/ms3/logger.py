@@ -1,7 +1,7 @@
 import logging, sys, os
+import traceback
 from functools import wraps
 from enum import Enum
-import re
 
 
 LEVELS = {
@@ -10,11 +10,13 @@ LEVELS = {
     'WARNING': logging.WARNING,
     'ERROR': logging.ERROR,
     'CRITICAL': logging.CRITICAL,
+    'NOTSET': logging.NOTSET,
     'D': logging.DEBUG,
     'I': logging.INFO,
     'W': logging.WARNING,
     'E': logging.ERROR,
     'C': logging.CRITICAL,
+    'N': logging.NOTSET
 }
 
 class MessageType(Enum):
@@ -25,20 +27,33 @@ class MessageType(Enum):
     INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING = 3
     VOLTAS_WITH_DIFFERING_LENGTHS_WARNING = 4
     MISSING_END_REPEAT_WARNING = 5
-    SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
+    DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
     OVERLOOKED_MSCX_FILES_WARNING = 7
-    KEY_NOT_SPECIFIED_ERROR = 8
-    COMPETING_MEASURE_INFO = 9
+    DCML_HARMONY_KEY_NOT_SPECIFIED_ERROR = 8
+    COMPETING_MEASURE_INFO_WARNING = 9
+    IGNORED = 10
+    MISSING_FACET_WARNING = 11
+    DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_ERROR = 12
+    DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_ERROR = 13
+    LOGGER_NOT_IN_USE_WARNING = 14
+    DCML_HARMONY_SYNTAX_WARNING = 15
+    DCML_PHRASE_INCONGRUENCY_WARNING = 16
 
 
 class CustomFormatter(logging.Formatter):
     """Formats message depending on whether there is a specified message type"""
     def format(self, record):
+        if not hasattr(record, "_message_type"):
+            raise ValueError(f"Logger {record.name} has not been correctly defined and is missing the default _message_id field.")
+        msg = record.msg.replace('\n', '\n\t ')
         if record._message_type == 0:  # if there is no message type
-            record.msg = '%-8s %s -- %s (line %s) %s(): \n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, record.msg)
+            record.msg = '%-8s %s -- %s (line %s) %s():\n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, msg)
+        elif record._message_type == 10:
+            record.msg = 'IGNORED  %s -- %s (line %s) %s():\n\t %s' % (record.name, record.pathname, record.lineno, record.funcName, msg)
         else:
-            record.msg = '%s %s %s -- %s (line %s) %s(): \n\t %s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, record.msg)
+            record.msg = '%s %s %s -- %s (line %s) %s():\n\t %s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, msg)
         return super(CustomFormatter, self).format(record)
+
 
 
 class LoggedClass():
@@ -56,14 +71,17 @@ class LoggedClass():
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
             logger_cfg['name'] = name
-        if 'propagate' not in logger_cfg:
-            logger_cfg['propagate'] = True
         self.logger_cfg = logger_cfg
         self.logger_names = {}
         self.logger = get_logger(**self.logger_cfg)
         self.logger_names['class'] = self.logger.name
 
-
+    def change_logger_cfg(self, level):
+        level = resolve_level_param(level)
+        self.logger.setLevel(level)
+        for h in self.logger.handlers:
+            if not isinstance(h, LogCaptureHandler):
+                h.setLevel(level)
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
@@ -73,25 +91,25 @@ class LoggedClass():
     def __setstate__(self, state):
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
-        self.logger = get_logger(self.logger_names['class'])
+        self.logger = get_logger(**self.logger_cfg)
 
 
-def get_logger(name=None, level=None, path=None, propagate=True, ignored_warnings=[]):
+
+
+def get_logger(name=None, level=None, path=None, ignored_warnings=[]):
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
     # if isinstance(name, logging.LoggerAdapter):
     #     name = name.logger
     if isinstance(name, logging.Logger):
-        if level is None:
-            level = level.level
         name = name.name
-    logger = config_logger(name, level=level, path=path, propagate=propagate, ignored_warnings=ignored_warnings)
+    logger = config_logger(name, level=level, path=path, ignored_warnings=ignored_warnings)
     if name is None:
         logging.critical("The root logger has been altered.")
     return logger
 
 def resolve_level_param(level):
-    if level.__class__ == str:
+    if isinstance(level, str):
         level = LEVELS[level.upper()]
     assert isinstance(level, int), f"Logging level needs to be an integer, not {level.__class__}"
     return level
@@ -115,104 +133,9 @@ class WarningFilter(logging.Filter):
     def filter(self, record):
         ignored = record._message_id in self.ignored_warnings
         if ignored:
-            self.logger.debug(f"The following warning has been ignored through an IGNORED_WARNINGS file:\n{record.getMessage()}")
+            self.logger.debug(record.msg, #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
+                              extra={"message_id": (10,)})
         return not ignored
-
-def config_logger(name, level=None, path=None, propagate=True, ignored_warnings=[]):
-    """Configs the logger with name `name`. Overwrites existing config."""
-    assert name is not None, "I don't want to change the root logger."
-    new_logger = name not in logging.root.manager.loggerDict
-    logger = logging.getLogger(name)
-    original_makeRecord = logger.makeRecord
-
-    def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
-        """
-        Rewrites the method of record logging to pass extra parameter.
-        Returns
-        -------
-            record with fields: _info - label of message
-                                _message_type - index of message type accordingly to enum class MessageType
-                                _message_type_full - name of message type accordingly to enum class MessageType
-        """
-        record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
-        if extra is None:
-            record._message_id = ()
-            record._message_type = 0
-        else:
-            record._message_id = extra["message_id"]
-            record._message_type = record._message_id[0]
-        record._message_type_full = MessageType(record._message_type).name
-        return record
-
-    logger.makeRecord = make_record_with_extra
-    logger.propagate = propagate
-    if level is not None:
-        level = resolve_level_param(level)
-        logger.setLevel(level)
-    elif new_logger:
-        parent = get_parent_level(logger)
-        if parent is None:
-            level = 20
-            logger.setLevel(level)
-            logger.info(f"New logger '{name}' has no parent with level > 0. Using default level INFO.")
-        else:
-            level = parent.level
-            logger.setLevel(level)
-            logger.debug(f"New logger '{name}' initialized with level {level}, inherited from parent {parent.name}.")
-    else:
-        level = logger.level
-    if len(ignored_warnings) > 0:
-        logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
-    if logger.parent.name != 'root':
-        # go to the following setup of handlers only for the top level logger
-        if new_logger:
-            logger.debug(f"Configured {logger.name} for the first time.")
-        return logger
-    formatter = CustomFormatter()
-    existing_handlers = [h for h in logger.handlers]
-    stream_handlers = [h for h in existing_handlers if h.__class__ == logging.StreamHandler]
-    n_stream_handlers = len(stream_handlers)
-    if n_stream_handlers == 0:
-        streamHandler = logging.StreamHandler(sys.stdout)
-        streamHandler.setFormatter(formatter)
-        streamHandler.setLevel(level)
-        logger.addHandler(streamHandler)
-    elif n_stream_handlers == 1:
-        streamHandler = stream_handlers[0]
-        streamHandler.setLevel(level)
-    else:
-        logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
-    log_file = None
-    if path is not None:
-        path = resolve_dir(path)
-        if os.path.isdir(path):
-            fname = name + ".log"
-            log_file = os.path.join(path, fname)
-        else:
-            path_component, fname = os.path.split(path)
-            if os.path.isdir(path_component):
-                log_file = path
-            else:
-                logger.error(f"Log file output cannot be configured for '{name}' because '{path_component}' is "
-                             f"not an existing directory.")
-
-    if log_file is not None:
-        file_handlers = [h for h in existing_handlers if h.__class__ == logging.FileHandler]
-        n_file_handlers = len(file_handlers)
-        if n_file_handlers > 0:
-            logger.error(f"Logger '{name}' already has {n_file_handlers} FileHandlers attached.")
-        else:
-            # log_dir, _ = os.path.split(log_file)
-            # if not os.path.isdir(log_dir):
-            #     os.makedirs(log_dir, exist_ok=True)
-            logger.debug(f"Storing logs as {log_file}")
-            fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
-            fileHandler.setLevel(level)
-            #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
-            fileHandler.setFormatter(formatter)
-            logger.addHandler(fileHandler)
-    return logger
-
 
 def function_logger(f):
     """This decorator ensures that the decorated function can use the variable `logger` for logging and
@@ -268,6 +191,109 @@ def function_logger(f):
 
     return logger
 
+def resolve_log_path_argument(path, name, logger):
+    log_file = None
+    if path is not None:
+        path = resolve_dir(path)
+        if os.path.isdir(path):
+            fname = name + ".log"
+            log_file = os.path.join(path, fname)
+        else:
+            path_component, fname = os.path.split(path)
+            if os.path.isdir(path_component):
+                log_file = path
+            else:
+                logger.error(f"Log file output cannot be configured for '{name}' because '{path_component}' is "
+                             f"not an existing directory.")
+    return log_file
+
+def config_logger(name, level=None, path=None, ignored_warnings=[]):
+    """Configs the logger with name `name`. Overwrites existing config."""
+    assert name is not None, "I don't want to change the root logger."
+    is_new_logger = name not in logging.root.manager.loggerDict or isinstance(logging.root.manager.loggerDict[name], logging.PlaceHolder)
+    is_top_level = name == 'ms3'
+    logger = logging.getLogger(name)
+    if is_top_level:
+        logging.basicConfig(level=0)
+    is_head_logger = logger.parent.name == 'ms3'
+    adding_file_handler = path is not None
+    adding_any_handlers = is_head_logger or adding_file_handler
+
+    if level is not None:
+        level = resolve_level_param(level)
+        if level > 0:
+            logger.setLevel(level)
+    effective_level = logger.getEffectiveLevel()
+
+    if len(ignored_warnings) > 0:
+        logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
+
+    if not is_new_logger and not adding_any_handlers:
+        return logger
+
+    if is_new_logger:
+        logger.propagate = not (is_top_level or is_head_logger)
+        original_makeRecord = logger.makeRecord
+
+        def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
+            """
+            Rewrites the method of record logging to pass extra parameter.
+            Returns
+            -------
+                record with fields: _info - label of message
+                                    _message_type - index of message type accordingly to enum class MessageType
+                                    _message_type_full - name of message type accordingly to enum class MessageType
+            """
+            record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
+            if extra is None:
+                record._message_id = ()
+                record._message_type = 0
+            else:
+                record._message_id = extra["message_id"]
+                record._message_type = record._message_id[0]
+            record._message_type_full = MessageType(record._message_type).name
+            return record
+
+        logger.makeRecord = make_record_with_extra
+
+    if adding_any_handlers:
+        if level is not None:
+            if effective_level != level:
+                if level == 0 and (is_head_logger or is_top_level):
+                    logger.info(f"Cannot unset (i.e., set to 0) logging level of top-level logger. Use > 0 instead. Left level at {effective_level}")
+                else:
+                    logger.warning(f"The call to .setLevel() did not result in changing the level from {effective_level} to {level}")
+        level = effective_level
+        formatter = CustomFormatter()
+        diverging_level = [h for h in logger.handlers if h.level != level and not isinstance(h, LogCaptureHandler)]
+        for h in diverging_level:
+            h.setLevel(level)
+
+        if is_head_logger:
+            stream_handlers = [h for h in logger.handlers if h.__class__ == logging.StreamHandler]
+            n_stream_handlers = len(stream_handlers)
+            if n_stream_handlers == 0:
+                streamHandler = logging.StreamHandler(sys.stdout)
+                streamHandler.setFormatter(formatter)
+                streamHandler.setLevel(level)
+                logger.addHandler(streamHandler)
+            elif n_stream_handlers > 1:
+                    logger.warning(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
+
+        log_file = resolve_log_path_argument(path, name, logger)
+        if log_file is not None:
+            file_handlers = [h for h in logger.handlers if h.__class__ == logging.FileHandler]
+            n_file_handlers = len(file_handlers)
+            if n_file_handlers > 0:
+                logger.error(f"Logger '{name}' already has {n_file_handlers} FileHandlers attached.")
+            else:
+                logger.debug(f"Storing logs as {log_file}")
+                fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
+                fileHandler.setLevel(level)
+                #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
+                fileHandler.setFormatter(formatter)
+                logger.addHandler(fileHandler)
+    return logger
 
 def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
@@ -296,7 +322,9 @@ class LogCaptureHandler(logging.Handler):
         self.log_queue = log_queue
 
     def emit(self, record):
-        self.log_queue.append(self.format(record))
+        if self.level == 10 and not self.format(record).strip("\n\t ").startswith('IGNORED'):
+                return
+        self.log_queue.append(self.format(record).strip("\n\t "))
 
 
 class LogCapturer(object):
@@ -304,7 +332,7 @@ class LogCapturer(object):
     def __init__(self, level="W"):
         self._log_queue = list() # original example was using collections.deque() to set maxlength
         self._log_handler = LogCaptureHandler(self._log_queue)
-        self._log_handler.setFormatter(CustomFormatter())
+        #self._log_handler.setFormatter(CustomFormatter())
         self._log_handler.setLevel(resolve_level_param(level))
 
     @property
@@ -318,3 +346,10 @@ class LogCapturer(object):
     @property
     def log_handler(self):
         return self._log_handler
+
+
+def iter_ms3_loggers(exclude_placeholders=True):
+    for name, logger in logging.Logger.manager.loggerDict.items():
+        if name.startswith('ms3'):
+            if not exclude_placeholders or isinstance(logger, logging.Logger):
+                yield logger

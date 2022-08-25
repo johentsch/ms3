@@ -344,7 +344,8 @@ class Annotations(LoggedClass):
         if not drop_others:
             warn_about_others = False
         if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_layer=True, logger=self.logger)[['mc', 'mn', 'label', 'harmony_layer']].to_string()}")
+            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_layer=True, logger=self.logger)[['mc', 'mn', 'label', 'harmony_layer']].to_string()}",
+                                extra={"message_id": (15, )})
         df = df[sel]
         try:
             exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=chord_tones, relative_to_global=relative_to_global, absolute=absolute, all_in_c=all_in_c, logger=self.logger)
