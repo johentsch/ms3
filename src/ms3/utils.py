@@ -1231,10 +1231,9 @@ def first_level_subdirs(path):
 @function_logger
 def contains_corpus_indicator(path):
     for subdir in first_level_subdirs(path):
-        for name in STANDARD_NAMES:
-            if subdir == name:
-                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
-                return True
+        if subdir in STANDARD_NAMES + [".git"]:
+            logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
+            return True
     return False
 
 
