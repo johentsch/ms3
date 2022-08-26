@@ -32,7 +32,7 @@ class MessageType(Enum):
     DCML_HARMONY_KEY_NOT_SPECIFIED_ERROR = 8
     COMPETING_MEASURE_INFO_WARNING = 9
     IGNORED = 10
-    MISSING_FACET_WARNING = 11
+    MISSING_FACET_INFO = 11
     DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_ERROR = 12
     DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_ERROR = 13
     LOGGER_NOT_IN_USE_WARNING = 14
@@ -79,6 +79,7 @@ class LoggedClass():
     def change_logger_cfg(self, level):
         level = resolve_level_param(level)
         self.logger.setLevel(level)
+        self.logger_cfg['level'] = level
         for h in self.logger.handlers:
             if not isinstance(h, LogCaptureHandler):
                 h.setLevel(level)

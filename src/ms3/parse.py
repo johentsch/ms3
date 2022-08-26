@@ -50,6 +50,8 @@ class Parse(LoggedClass):
             and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
+        level: :obj:`str`
+            Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
         warn_overwritten_level = False
         if level is not None:
@@ -226,7 +228,7 @@ class Parse(LoggedClass):
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
-        self._lists = {
+        self._dataframes = {
             'notes': self._notelists,
             'rests': self._restlists,
             'notes_and_rests': self._noterestlists,
@@ -243,7 +245,7 @@ class Parse(LoggedClass):
         """
 
 
-        self._matches = pd.DataFrame(columns=['scores']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['scores']+list(self._dataframes.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -908,12 +910,12 @@ Continuing with {annotation_key}.""")
             only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
         scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
-        bool_params = list(self._lists.keys())
+        bool_params = list(self._dataframes.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
 
         for i, score in scores.items():
-            for param, li in self._lists.items():
+            for param, li in self._dataframes.items():
                 if params[param] and (i not in li or not only_new):
                     if self.simulate:
                         df = pd.DataFrame()
@@ -1258,9 +1260,9 @@ Available keys: {available_keys}""")
         else:
             keys = self._treat_key_param(keys)
             grouped_ids = {k: None for k in keys}
-        bool_params = list(self._lists.keys())
+        bool_params = list(self._dataframes.keys())
         l = locals()
-        columns = [tsv_type for tsv_type in self._lists.keys() if l[tsv_type]]
+        columns = [tsv_type for tsv_type in self._dataframes.keys() if l[tsv_type]]
         self.logger.debug(f"Looking up {columns} DataFrames for IDs {grouped_ids}")
         #self.collect_lists(ids=ids, only_new=True, **params)
         res = {} if flat else defaultdict(dict)
@@ -1347,7 +1349,7 @@ Available keys: {available_keys}""")
         if len(self._parsed_tsv) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
             return {}
-        bool_params = ['metadata'] + list(self._lists.keys())
+        bool_params = ['metadata'] + list(self._dataframes.keys())
         l = locals()
         types = [p for p in bool_params if l[p]]
         res = {}
@@ -1612,7 +1614,7 @@ Available keys: {available_keys}""")
             Those files that were matched. This is a subsection of self._matches
         """
         lists = {'scores': self._parsed_mscx}
-        lists.update(dict(self._lists))
+        lists.update(dict(self._dataframes))
         if what is None:
             what = list(lists.keys())
         elif isinstance(what, str):
@@ -1986,7 +1988,7 @@ Available keys: {available_keys}""")
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
                         logger.debug(f"{self.files[key][i]} parsed as metadata.")
                     else:
-                        self._lists[tsv_type][id] = self._parsed_tsv[id]
+                        self._dataframes[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
                             if label_col in df.columns:
                                 logger_cfg = dict(self.logger_cfg)
@@ -2066,24 +2068,24 @@ Available keys: {available_keys}""")
         else:
             self.simulate = simulate
         l = locals()
-        list_types = list(self._lists)
-        folder_vars = [t + '_folder' for t in list_types]
-        suffix_vars = [t + '_suffix' for t in list_types]
-        folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
+        df_types = list(self._dataframes)
+        folder_vars = [t + '_folder' for t in df_types]
+        suffix_vars = [t + '_suffix' for t in df_types]
+        folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
         if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
-        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
-        list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **list_params)
+        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
+        df_params = {p: True for p in folder_params.keys()}
+        dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
         modus = 'would ' if simulate else ''
-        if len(lists) == 0 and metadata_path is None:
+        if len(dataframes) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
             return [] if simulate else None
         paths = {}
         warnings, infos = [], []
         unf = 'Unfolded ' if unfold else ''
-        for (key, i, what), li in lists.items():
+        for (key, i, what), li in dataframes.items():
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
                                        root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
@@ -2094,7 +2096,7 @@ Available keys: {available_keys}""")
         if len(warnings) > 0:
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
-        l_target = len(lists)
+        l_target = len(dataframes)
         if l_target > 0:
             if l_infos == 0:
                 self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
@@ -2958,7 +2960,7 @@ class View(Parse):
         -------
 
         """
-        standard_cols = list(self.p._lists.keys())
+        standard_cols = list(self.p._dataframes.keys())
         piece_matrix = self.pieces(parsed_only=True)
         if fnames is not None:
             missing = [fn for fn in fnames if fn not in piece_matrix.fnames.values]
@@ -3069,7 +3071,7 @@ class View(Parse):
         if not any((unfold, quarterbeats, interval_index)):
             for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
                 if any(df is None for df in dfs) and skip_missing:
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
+                    self.logger.info(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                     continue
                 yield (md, *dfs)
         else:
@@ -3354,7 +3356,7 @@ class Piece(View):
 
     @lru_cache()
     def get_dataframe(self, what, unfold=False, quarterbeats=False, interval_index=False, disambiguation='auto', prefer_score=True, return_file_info=False):
-        available = list(self.p._lists.keys())
+        available = list(self.p._dataframes.keys())
         if what not in available:
             raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
         if self.score_available and (prefer_score or what not in self.matches):
