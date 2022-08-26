@@ -8,7 +8,7 @@ from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_
     get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
-from .logger import LoggedClass, LogCaptureHandler
+from .logger import LoggedClass, get_log_capture_handler
 
 
 class Score(LoggedClass):
@@ -807,12 +807,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
-        if len(self.logger.parent.handlers) > 0:
-            try:
-                log_capture_handler = next(h for h in self.logger.parent.handlers if isinstance(h, LogCaptureHandler))
-                self.captured_logs = log_capture_handler.log_queue
-            except StopIteration:
-                pass
+        log_capture_handler = get_log_capture_handler(self.logger)
+        if log_capture_handler is not None:
+            self.captured_logs = log_capture_handler.log_queue
         self.logger = None
         return self.__dict__
 

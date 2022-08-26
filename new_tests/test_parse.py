@@ -132,16 +132,23 @@ class TestLogging():
             all_msgs = captured_msgs.content_list
         assert len(all_msgs) == 0
 
+    def test_capturing_suppressed_warnings(self, get_all_warnings, get_all_supressed_warnings):
+        for usual_warning in get_all_warnings:
+            if usual_warning not in get_all_supressed_warnings:
+                print(("NOT FOUND:", usual_warning))
+                print(get_all_supressed_warnings)
+            assert usual_warning in get_all_supressed_warnings
+
     def test_seeing_ignored_warnings(self, directory, get_all_warnings_parsed):
         ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-        p = Parse(directory, logger_cfg=dict(level='d'))
+        p = Parse(directory)
         p.load_ignored_warnings(ignored_warnings_file)
+        p.change_logger_cfg(level='d')
         with capture_parse_logs(p.logger, level='d') as captured_msgs:
-            p.parse(parallel=False)
+            p.parse()
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
-        ignored = [msg for msg in all_msgs if msg.startswith('IGNORED')]
-        ignored = ['\n'.join(msg for msg in message.split('\n')[2:]).strip("\n\t ") for message in ignored]
+        ignored = ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
         ignored_parsed = ignored_warnings2dict(ignored)
         for logger_name, message_ids in get_all_warnings_parsed.items():
             assert logger_name in ignored_parsed
@@ -149,9 +156,7 @@ class TestLogging():
             for id in message_ids:
                 assert id in emitted_and_ignored
 
-    def test_suppressing_warning(self, get_all_warnings, get_all_supressed_warnings):
-        for usual_warning in get_all_warnings:
-            if usual_warning not in get_all_supressed_warnings:
-                print("NOT FOUND: ", usual_warning)
-                print(get_all_supressed_warnings)
-            assert usual_warning in get_all_supressed_warnings
+
+def test_fixture(get_all_supressed_warnings):
+    print(get_all_supressed_warnings)
+    assert len(get_all_supressed_warnings) > 0

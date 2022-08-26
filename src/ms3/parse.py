@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, LogCaptureHandler
+from .logger import LoggedClass, get_logger, get_log_capture_handler
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
@@ -25,7 +25,7 @@ class Parse(LoggedClass):
     """
 
     def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
+                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None):
         """
 
         Parameters
@@ -51,7 +51,17 @@ class Parse(LoggedClass):
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
         """
+        warn_overwritten_level = False
+        if level is not None:
+            warn_overwritten_level = 'level' in logger_cfg and logger_cfg['level'] is not None
+            if warn_overwritten_level:
+                previous_level_value = logger_cfg['level']
+            logger_cfg['level'] = level
+        if 'level' not in logger_cfg:
+            logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
+        if warn_overwritten_level:
+            self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths = defaultdict(list)
@@ -1815,6 +1825,8 @@ Available keys: {available_keys}""")
         None
 
         """
+        if level is not None:
+            self.change_logger_cfg(level=level)
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
@@ -1881,17 +1893,10 @@ Available keys: {available_keys}""")
                 self._parsed_mscx.update(successful_results)
                 with_captured_logs = [score for score in successful_results.values() if hasattr(score, 'captured_logs')]
                 if len(with_captured_logs) > 0:
-                    try:
-                        log_capture_handler = next(h for h in self.logger.handlers if isinstance(h, LogCaptureHandler))
+                    log_capture_handler = get_log_capture_handler(self.logger)
+                    if log_capture_handler is not None:
                         for score in with_captured_logs:
                             log_capture_handler.log_queue.extend(score.captured_logs)
-                            # log_capture_handler.log_queue.extend(score.mscx.captured_logs)
-                            # log_capture_handler.log_queue.extend(score.mscx.parsed.captured_logs)
-                            # log_capture_handler.log_queue.extend(score.mscx.parsed._ml.captured_logs)
-                            # for annotations in score:
-                            #     log_capture_handler.log_queue.extend(score[annotations].captured_logs)
-                    except StopIteration:
-                        pass
                 successful = len(successful_results)
             else:
                 for params in parse_this:
@@ -1939,6 +1944,8 @@ Available keys: {available_keys}""")
         -------
         None
         """
+        if level is not None:
+            self.change_logger_cfg(level=level)
         if self.simulate:
             return
         if ids is not None:

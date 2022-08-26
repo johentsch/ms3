@@ -170,8 +170,7 @@ def get_all_warnings(directory):
     with capture_parse_logs(p.logger) as captured_warnings:
         p.parse()
         _ = p.get_dataframes(expanded=True)
-        all_warnings = [msg.strip("\n\t ") for msg in captured_warnings.content_list]
-    return all_warnings
+    return captured_warnings.content_list
 
 
 @pytest.fixture(scope='session')
@@ -187,6 +186,4 @@ def get_all_supressed_warnings(directory):
         p.parse()
         _ = p.get_dataframes(expanded=True)
         all_msgs = captured_msgs.content_list
-        assert any('ms3.Parse.mixed_files.BWV_0815.mscx' in msg for msg in all_msgs)
-    suppressed = [msg.split("\n\t ")[1:] for msg in all_msgs if msg.startswith('IGNORED')]
-    return ['\n\t '.join(l.strip("\n\t ") for l in lines) for lines in suppressed]
+    return ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]

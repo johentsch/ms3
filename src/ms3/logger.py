@@ -45,13 +45,13 @@ class CustomFormatter(logging.Formatter):
     def format(self, record):
         if not hasattr(record, "_message_type"):
             raise ValueError(f"Logger {record.name} has not been correctly defined and is missing the default _message_id field.")
-        msg = record.msg.replace('\n', '\n\t ')
+        msg = record.msg.replace('\n', '\n\t')
         if record._message_type == 0:  # if there is no message type
-            record.msg = '%-8s %s -- %s (line %s) %s():\n\t %s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, msg)
+            record.msg = '%-8s %s -- %s (line %s) %s():\n\t%s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, msg)
         elif record._message_type == 10:
-            record.msg = 'IGNORED  %s -- %s (line %s) %s():\n\t %s' % (record.name, record.pathname, record.lineno, record.funcName, msg)
+            record.msg = 'IGNORED  %s -- %s (line %s) %s():\n\t%s' % (record.name, record.pathname, record.lineno, record.funcName, msg)
         else:
-            record.msg = '%s %s %s -- %s (line %s) %s():\n\t %s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, msg)
+            record.msg = '%s %s %s -- %s (line %s) %s():\n\t%s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, msg)
         return super(CustomFormatter, self).format(record)
 
 
@@ -122,6 +122,18 @@ def get_parent_level(logger):
     if parent.level == 0:
         return get_parent_level(parent)
     return parent
+
+
+def get_log_capture_handler(logger):
+    name = logger.name
+    if not name.startswith('ms3') or name == 'ms3':
+        return
+    head = '.'.join(name.split('.')[:2])
+    head_logger = get_logger(head)
+    try:
+        return next(h for h in head_logger.handlers if isinstance(h, LogCaptureHandler))
+    except StopIteration:
+        return
 
 class WarningFilter(logging.Filter):
     """Filters messages. If message is in ignored_warnings, its level is changed to debug."""
@@ -322,8 +334,6 @@ class LogCaptureHandler(logging.Handler):
         self.log_queue = log_queue
 
     def emit(self, record):
-        if self.level == 10 and not self.format(record).strip("\n\t ").startswith('IGNORED'):
-                return
         self.log_queue.append(self.format(record).strip("\n\t "))
 
 
