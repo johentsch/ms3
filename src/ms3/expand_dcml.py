@@ -142,18 +142,18 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
         c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        logger.warning(f"Phrase beginning and endings don't match:\n{compare}")
+        logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
 
     if propagate:
         key_cols = {col: cols[col] for col in ['localkey', 'globalkey']}
         try:
             df = propagate_keys(df, volta_structure=volta_structure, add_bool=True, **key_cols, logger=logger)
         except:
-            logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}")
+            logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}", extra={"message_id": (12, )})
         try:
             df = propagate_pedal(df, cols=cols, logger=logger)
         except:
-            logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}")
+            logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}", extra={"message_id": (13, )})
 
         if chord_tones:
             ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)

@@ -188,12 +188,14 @@ class MeasureList(LoggedClass):
         error_mask = (self.ml[mc_offset] > 0) & self.ml[dont_count].isna() & self.ml[numbering_offset].isna()
         n_errors = error_mask.sum()
         if n_errors > 0:
-            mcs = ', '.join(self.ml.loc[error_mask, mc_col].astype(str))
+            mcs = self.ml.loc[error_mask, mc_col]
+            mcs_int = tuple(mcs.values)
+            mcs_str = ', '.join(mcs.astype(str))
             context_mask = error_mask | error_mask.shift(-1).fillna(False) | error_mask.shift().fillna(False)
             context = self.ml.loc[context_mask, [mc_col, mn_col, act_dur, mc_offset, dont_count, numbering_offset]]
             plural = n_errors > 1
             self.logger.warning(
-                f"MC{'s' if plural else ''} {mcs} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, mcs)})
+                f"MC{'s' if plural else ''} {mcs_str} seem{'' if plural else 's'} to be offset from the MN's beginning but ha{'ve' if plural else 's'} not been excluded from barcount. Context:\n{context}", extra={"message_id": (1, *mcs_int)})
 
 
 @function_logger
@@ -551,7 +553,7 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
             remaining = df[~keep].drop_duplicates(subset=consider_for_duplicated)
         if len(remaining) == 1:
             return keep_row
-        which = keep_row[compress_col]
+        which = keep_row[compress_col].iloc[0]
         dont_warn = ['vspacerDown', 'vspacerUp', 'voice/BarLine', 'voice/BarLine/span',]
         for val, (col_name, col) in zip(*keep_row[consider_for_notna].itertuples(index=False, name=None),
                                         remaining[consider_for_notna].items()):
@@ -565,14 +567,14 @@ def keep_one_row_each(df, compress_col, differentiating_col, differentiating_val
                 new_val = vals[0]
                 if pd.isnull(val) and fillna:
                     keep_row[col_name] = new_val
-                    msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values}."
+                    msg = f"{compress_col} {which}: The missing value in '{col_name}' was replaced by '{new_val}', present in '{differentiating_col}' {remaining.loc[remaining[col_name] == new_val, differentiating_col].to_list()}."
                     log_this(msg)
                     continue
-                log_this(
-                    f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of {differentiating_col} {remaining.loc[remaining[col_name] == new_val, differentiating_col].values} is lost.")
+                msg = f"{compress_col} {which}: The value '{new_val}' in '{col_name}' of '{differentiating_col}' {remaining.loc[remaining[col_name] == new_val, differentiating_col].to_list()} is lost."
+                log_this(msg, extra={"message_id": (9, compress_col, which, col_name)})
                 continue
-            log_this(
-                f"{compress_col} {which}: The values {vals} in '{col_name}' of {differentiating_col} {remaining.loc[col.notna(), differentiating_col].values} are lost.")
+            msg = f"{compress_col} {which}: The values {vals} in '{col_name}' of \n '{differentiating_col}' {remaining.loc[col.notna(), differentiating_col].to_list()} are lost."
+            log_this(msg, extra={"message_id": (9, compress_col, which, col_name)})
         return keep_row
 
     result = result.groupby(compress_col, group_keys=False).apply(squash_staves)
@@ -702,9 +704,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
             expected = missing(mc)
             errors = sum(True for c in completions.values() if c != expected)
             if errors > 0:
-                logger.warning(
-                    f"The incomplete MC {mc} (timesig {nom_durs[mc]}, act_dur {act_durs[mc]}) is completed by {errors} incorrect duration{'s' if errors > 1 else ''} (expected: {expected}):\n{completions}",
-                extra={"message_id": (3, mc)})
+                logger.warning(f"The incomplete MC {mc} (timesig {nom_durs[mc]}, act_dur {act_durs[mc]}) is completed by {errors} incorrect duration{'s' if errors > 1 else ''} (expected: {expected}):\n{completions}", extra={"message_id": (3, mc)})
             for compl in completions.keys():
                 add_offset(compl)
         elif offsets[mc] == 0:

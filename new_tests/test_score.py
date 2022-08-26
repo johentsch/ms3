@@ -5,6 +5,7 @@ import shutil
 import tempfile
 
 import pytest
+import ms3
 from ms3 import Score, assert_dfs_equal
 
 
@@ -69,4 +70,5 @@ class TestScore:
     def test_partially_removing_and_reinserting_labels(self, directory):
         path = os.path.join(directory, 'mixed_files', 'stabat_03_coloured.mscx')
         sc_obj = Score(path)
+        # TODO
 

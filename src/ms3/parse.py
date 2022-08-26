@@ -9,12 +9,11 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger
+from .logger import LoggedClass, get_logger, get_log_capture_handler
 from .score import Score
-from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, \
-    group_id_tuples, \
+from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
@@ -26,7 +25,7 @@ class Parse(LoggedClass):
     """
 
     def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None):
+                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None):
         """
 
         Parameters
@@ -52,7 +51,17 @@ class Parse(LoggedClass):
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
         """
+        warn_overwritten_level = False
+        if level is not None:
+            warn_overwritten_level = 'level' in logger_cfg and logger_cfg['level'] is not None
+            if warn_overwritten_level:
+                previous_level_value = logger_cfg['level']
+            logger_cfg['level'] = level
+        if 'level' not in logger_cfg:
+            logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
+        if warn_overwritten_level:
+            self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths = defaultdict(list)
@@ -194,6 +203,12 @@ class Parse(LoggedClass):
         self._views = {}
         """:obj:`dict`
         {key -> View} This dictionary caches :obj:`.View` objects to keep their state.
+        """
+
+        self._ignored_warnings = defaultdict(list)
+        """:obj:`collections.defaultdict`
+        {'logger_name' -> [(message_id), ...]} This dictionary stores the warnings to be ignored
+        upon loading them from an IGNORED_WARNINGS file.
         """
 
         self.labels_cfg = {
@@ -528,8 +543,6 @@ class Parse(LoggedClass):
 
 
 
-
-
     def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
         """
         This method decides if the directory ``directory`` contains several corpora or if it is a corpus
@@ -580,8 +593,9 @@ class Parse(LoggedClass):
                 for d in directories:
                     self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
                 mscx_files = [file for file in os.listdir(directory) if file.endswith('.mscx')]
+                top_level = os.path.basename(directory)
+                self.look_for_ignored_warnings(directory, key=top_level)
                 if len(mscx_files) > 0:
-                    top_level = os.path.basename(directory)
                     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
                                         f"\n{mscx_files}", extra={"message_id": (7, top_level)})
             else:
@@ -653,53 +667,33 @@ class Parse(LoggedClass):
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
 
-        if 'IGNORED_WARNINGS' in self.files[key]:
-            return
+        self.look_for_ignored_warnings(directory, key)
+
+    def look_for_ignored_warnings(self, directory, key):
         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
         if os.path.isfile(default_ignored_warnings_path):
             self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
             self.load_ignored_warnings(default_ignored_warnings_path)
 
     def load_ignored_warnings(self, path):
-        ignored_warnings = self.parse_ignored_warnings(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
-        logger_names = list(self.logger_names.values())
+        ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        logger_names = set(self.logger_names.values())
+        all_logger_names = set()
+        for name in logger_names:
+            while name != '' and name not in all_logger_names:
+                all_logger_names.add(name)
+                try:
+                    split_pos = name.rindex('.')
+                    name = name[:split_pos]
+                except:
+                    name = ''
         for to_be_configured, message_ids in ignored_warnings.items():
-            if to_be_configured not in logger_names:
-                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}'.")
+            self._ignored_warnings[to_be_configured].extend(message_ids)
+            if to_be_configured not in all_logger_names:
+                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}', "
+                                    f"which was, however, indicated in {path}.", extra={"message_id": (14, to_be_configured)})
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
-
-    def parse_ignored_warnings(self, path):
-        """Parse file with log messages that have to be ignored to the dict.
-        The expected structure of message: warning_type (warning_type_id, label) file
-        Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
-
-        Parameters
-        ----------
-        key : :obj:`str`
-            | Path to IGNORED_WARNINGS
-
-        Returns
-        -------
-        :obj: dict
-            {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
-        """
-        ignored_warnings = {}
-        with open(path) as f:
-            file = f.read()
-        messages = file.split(sep="\n")  # split messages
-        split_msg = list(map(lambda k: (list(filter(None, re.split("[(, :)]+", k)))), messages))  # split parts of message
-        for msg in split_msg:
-            if msg[1] == "0":  # there is no type of message
-                info = (0,)
-            else:
-                info = (int(msg[1]), *list(map(int, msg[2:-1])))
-
-            if msg[-1] in ignored_warnings.keys():  # check file name in dict
-                ignored_warnings[msg[-1]].append(info)  # append to existing file info
-            else:
-                ignored_warnings[msg[-1]] = [info]  # add new file info
-        return ignored_warnings
 
     def add_files(self, paths, key=None, exclude_re=None):
         """
@@ -754,7 +748,7 @@ class Parse(LoggedClass):
                 self.logger.info(f"Using key='{key}' because it is the only one currently in use.")
             else:
                 self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.",
-                                  extra=dict(message_id = (8,)))
+                                  extra={"message_id": (8,)})
                 return []
         if key not in self.files:
             self.logger.debug(f"Adding '{key}' as new corpus.")
@@ -1831,6 +1825,8 @@ Available keys: {available_keys}""")
         None
 
         """
+        if level is not None:
+            self.change_logger_cfg(level=level)
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
@@ -1862,10 +1858,9 @@ Available keys: {available_keys}""")
             reason = 'in this Parse object' if keys is None else f"for '{keys}'"
             self.logger.debug(f"No parseable scores found {reason}.")
             return
-        if level is None:
-            level = self.logger.level  # logger if ContextAdapter
+        # if level is None:
+        #     level = self.logger.level  # logger if ContextAdapter
         configs = [dict(
-            level=level,
             name=self.logger_names[id]
         ) for id in ids]
 
@@ -1896,6 +1891,12 @@ Available keys: {available_keys}""")
                 pool.join()
                 successful_results = {id: score for id, score in zip(ids, res) if score is not None}
                 self._parsed_mscx.update(successful_results)
+                with_captured_logs = [score for score in successful_results.values() if hasattr(score, 'captured_logs')]
+                if len(with_captured_logs) > 0:
+                    log_capture_handler = get_log_capture_handler(self.logger)
+                    if log_capture_handler is not None:
+                        for score in with_captured_logs:
+                            log_capture_handler.log_queue.extend(score.captured_logs)
                 successful = len(successful_results)
             else:
                 for params in parse_this:
@@ -1943,6 +1944,8 @@ Available keys: {available_keys}""")
         -------
         None
         """
+        if level is not None:
+            self.change_logger_cfg(level=level)
         if self.simulate:
             return
         if ids is not None:
@@ -3066,7 +3069,7 @@ class View(Parse):
         if not any((unfold, quarterbeats, interval_index)):
             for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
                 if any(df is None for df in dfs) and skip_missing:
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.")
+                    self.logger.warning(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                     continue
                 yield (md, *dfs)
         else:

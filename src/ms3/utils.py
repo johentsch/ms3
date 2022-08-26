@@ -16,7 +16,7 @@ from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 
-from .logger import function_logger, update_cfg
+from .logger import function_logger, update_cfg, LogCapturer
 
 METADATA_COLUMN_ORDER = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb',
                          'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions', 'TimeSig', 'KeySig',
@@ -1317,16 +1317,21 @@ def join_tsvs(dfs, sort_cols=False):
     return column_order(res, sort=sort_cols).reset_index(drop=True)
 
 
-def str2inttuple(l):
+def str2inttuple(l, strict=True):
     if l == '':
         return tuple()
+    l = l.strip(',')
     res = []
     for s in l.split(', '):
         try:
             res.append(int(s))
-        except:
-            print(f"String value '{s}' could not be converted to a tuple.")
-            raise
+        except ValueError:
+            if strict:
+                print(f"String value '{s}' could not be converted to a tuple.")
+                raise
+            if s[0] == s[-1] and s[0] in ("\"", "\'"):
+                s = s[1:-1]
+            res.append(s)
     return tuple(res)
 
 
@@ -2522,6 +2527,7 @@ def unfold_repeats(df, playthrough2mc):
 
 
 @contextmanager
+@function_logger
 def unpack_mscz(mscz, tmp_dir=None):
     if tmp_dir is None:
         tmp_dir = os.path.dirname(mscz)
@@ -2542,6 +2548,15 @@ def unpack_mscz(mscz, tmp_dir=None):
         raise
     finally:
         os.remove(tmp_file.name)
+
+@contextmanager
+@function_logger
+def capture_parse_logs(logger_object, level='w'):
+    captured_warnings = LogCapturer(level=level)
+    logger_object.addHandler(captured_warnings.log_handler)
+    yield captured_warnings
+    logger_object.removeHandler(captured_warnings.log_handler)
+
 
 
 @function_logger
@@ -3166,7 +3181,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
                 logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.",
-                               extra={"info": (mc, label), "message_type": 6})
+                               extra={"message_id": (6, mc, label)})
         chord_tones.extend(replacing_tones)
 
     bass_tpc = chord_tones[0]
@@ -3225,3 +3240,68 @@ def transpose(e, n):
     """ Add `n` to all elements `e` recursively.
     """
     return map2elements(e, lambda x: x + n)
+
+
+def parse_ignored_warnings(messages):
+    if isinstance(messages, str):
+        yield from parse_ignored_warnings([messages])
+    else:
+        for message in messages:
+            if '\n' in message:
+                yield from parse_ignored_warnings(message.split('\n'))
+            elif message == '':
+                continue
+            elif message[0] in (' ', '\t', '#'):
+                # if several lines of a warning were copied, use only the first one
+                continue
+            else:
+                try:
+                    # if the annotator copied too much, cut off the redundant information at the end
+                    redundant =  message.index(' -- ')
+                    message = message[:redundant]
+                except ValueError:
+                    pass
+                message = message.strip()
+                split_re = r"^(.*) (\S+)$"
+                try:
+                    msg, logger_name = re.match(split_re, message).groups()
+                except AttributeError:
+                    print(f"The following message could not be split, apparently it does not end with the logger_name: {message}")
+                    raise
+                if msg[-1] != ')':
+                    if any(msg.startswith(level) for level in ('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL')):
+                        # message_id has not (yet) specified for this log message and is ignored;
+                        # a warning could be implemented at this point
+                        continue
+                    else:
+                        raise ValueError("Unexpected log message format: ", msg)
+                tuple_start = msg.index('(') + 1
+                tuple_str = msg[tuple_start:-1]
+                info = str2inttuple(tuple_str, strict=False)
+                yield logger_name, info
+
+def ignored_warnings2dict(messages):
+    ignored_warnings = defaultdict(list)
+    for logger_name, info in parse_ignored_warnings(messages):
+        ignored_warnings[logger_name].append(info)
+    return dict(ignored_warnings)
+
+def parse_ignored_warnings_file(path):
+    """Parse file with log messages that have to be ignored to the dict.
+    The expected structure of message: warning_type (warning_type_id, label) file
+    Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
+
+    Parameters
+    ----------
+    key : :obj:`str`
+        | Path to IGNORED_WARNINGS
+
+    Returns
+    -------
+    :obj: dict
+        {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+    """
+    messages = open(path, 'r', encoding='utf-8').readlines()
+    return ignored_warnings2dict(messages)
+
+
