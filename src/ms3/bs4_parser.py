@@ -987,11 +987,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
     def make_writeable(self):
         if self.read_only:
             self.read_only = False
-            prev_level = self.logger.getEffectiveLevel()
-            self.logger.setLevel(logging.CRITICAL)
-            # This is an automatic re-parse which does not have to be logged again
-            self.parse_measures()
-            self.logger.setLevel(prev_level)
+            with temporarily_suppress_warnings(self) as self:
+                # This is an automatic re-parse which does not have to be logged again
+                self.parse_measures()
 
 
     def add_label(self, label, mc, mc_onset, staff=1, voice=1, **kwargs):
