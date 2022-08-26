@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler
+from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
@@ -2026,7 +2026,8 @@ Available keys: {available_keys}""")
                           cadences_folder=None, cadences_suffix='',
                           form_labels_folder=None, form_labels_suffix='',
                           metadata_path=None, markdown=True,
-                          simulate=None, unfold=False, quarterbeats=False):
+                          simulate=None, unfold=False, quarterbeats=False,
+                          silence_label_warnings=False):
         """ Store score information as TSV files.
 
         Parameters
@@ -2077,7 +2078,11 @@ Available keys: {available_keys}""")
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
-        dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
+        if silence_label_warnings:
+            with temporarily_suppress_warnings(self) as self:
+                dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
+        else:
+            dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
         modus = 'would ' if simulate else ''
         if len(dataframes) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
@@ -2105,7 +2110,6 @@ Available keys: {available_keys}""")
             else:
                 msg = f"\n\nAll {l_infos} {modus}have been written."
             self.logger.info('\n'.join(infos) + msg)
-        #self.logger = prev_logger
         if metadata_path is not None:
             md = self.metadata()
             if len(md.index) > 0:
@@ -2124,8 +2128,6 @@ Available keys: {available_keys}""")
             else:
                 self.logger.debug(f"\n\nNo metadata to write.")
         return paths
-        # if simulate:
-        #     return list(set(paths.keys()))
 
 
 
