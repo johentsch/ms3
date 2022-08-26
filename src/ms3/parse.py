@@ -887,6 +887,19 @@ Continuing with {annotation_key}.""")
             return pd.concat(checks.values(), keys=idx, names=idx.names)
         return pd.DataFrame()
 
+    def color_non_chord_tones(self, keys=None, ids=None, color_name='red'):
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            return
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        else:
+            ids = [id for id in ids if id in self._parsed_mscx]
+        result = {}
+        for id in ids:
+            score = self._parsed_mscx[id]
+            result[id] = score.color_non_chord_tones(color_name=color_name)
+        return result
 
 
     def _extract_and_cache_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,

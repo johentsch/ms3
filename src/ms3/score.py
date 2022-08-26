@@ -393,7 +393,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.debug("Score contains no Annotations.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
-        self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        return self.mscx.color_non_chord_tones(expanded, color_name=color_name)
 
 
 
@@ -1206,11 +1206,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         -------
 
         """
+        if len(df) == 0:
+            return df
         for col in chord_tone_cols:
             assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
-        # iterating backwards through the DataFrame; the first segment spans to the end of the score
+        # iterating backwards through the DataFrame; the first (=last) segment spans to the end of the score
         to_mc, to_mc_onset = None, None
         expand_segment = False # Flag allowing to add NaN segments to their preceding ones
+        results = []
         for row_tuple in df[::-1].itertuples(index=False):
             mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
             chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
@@ -1219,9 +1222,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                     self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
                                               to_mc=to_mc, to_mc_onset=to_mc_onset,
                                               color_name=color_name)
-                    self.logger.warning(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
+                    self.logger.debug(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
                 else:
                     expand_segment = True
+                    self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
             else:
                 chord_tones = sum(chord_tone_tuples, tuple())
                 colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
@@ -1231,11 +1235,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 count_ratio = n_colored / (n_colored + n_untouched)
                 dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
                 dur_ratio = dur_colored / (dur_colored + dur_untouched)
-                self.logger.info(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
             if expand_segment:
                 expand_segment = False
             else:
                 to_mc, to_mc_onset = mc, mc_onset
+        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
+        return pd.concat([df, stats])
 
 
     def delete_labels(self, df):

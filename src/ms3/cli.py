@@ -155,6 +155,7 @@ def extract_cmd(args, parse_obj=None):
         p = make_parse_obj(args)
     else:
         p = parse_obj
+    silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
     extract(p, root_dir=args.out,
                 notes_folder=args.notes,
                 labels_folder=args.labels,
@@ -167,6 +168,7 @@ def extract_cmd(args, parse_obj=None):
                 simulate=args.test,
                 unfold=args.unfold,
                 quarterbeats=args.quarterbeats,
+                silence_label_warnings=silence_label_warnings,
                 **suffixes)
     return p
 
@@ -337,8 +339,33 @@ def check_dir(d):
 
 
 
-def review_cmd(args, parse_obj):
-    p = extract_cmd(args, parse_obj)
+def review_cmd(args, parse_obj=None):
+    if parse_obj is None:
+        args.raw = True
+        if args.regex is None:
+            args.regex = r'\.mscx$'
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    test_passes = True
+    scores_ok = check(p, scores_only=True)
+    if not args.ignore_score_warnings:
+        test_passes = scores_ok
+    labels_ok = check(p, labels_only=True)
+    test_passes = test_passes and labels_ok
+    p = extract_cmd(args, p)
+    result = p.color_non_chord_notes()
+    print(result)
+    # ids = list(p._iterids(keys, only_parsed_mscx=True))
+    # for id in ids:
+    #     score = self._parsed_mscx[id]
+    #     score.color_non_chord_tones(color_name=color_name)
+    #     res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
+    #                                                detached_is_newer=detached_is_newer)
+    #     if res and store_with_suffix is not None:
+    #         self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+    # self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+    print(test_passes)
 
 
 
@@ -583,6 +610,8 @@ To prevent the interaction, set this flag to use the first annotation table that
                                      "in which they are listed above (capital letter arguments).")
     review_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
         Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
+    review_parser.add_argument('-i', '--ignore_score_warnings', action='store_true',
+                                help="By default, tests also fail upon erroneous score encodings. Pass -i to prevent this.")
     review_parser.add_argument('-t', '--test', action='store_true',
                                 help="No data is written to disk.")
     review_parser.add_argument('-p', '--positioning', action='store_true',
