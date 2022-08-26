@@ -335,6 +335,10 @@ def check_dir(d):
 
 
 
+def review_cmd(args, parse_obj):
+    p = extract_cmd(args, parse_obj)
+
+
 
 
 
@@ -547,6 +551,48 @@ To prevent the interaction, set this flag to use the first annotation table that
     update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
     update_parser.set_defaults(func=update)
+
+    review_parser = subparsers.add_parser('review',
+                                         help="Extract facets, check labels, and create _reviewed files.",
+                                         parents=[input_args])
+    review_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
+                                const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    review_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+                                help="Folder where to store TSV files with information on all notes.")
+    review_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    review_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
+                                const='../labels',
+                                help="Folder where to store TSV files with information on all annotation labels.")
+    review_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
+                                const='../expanded',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    review_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    review_parser.add_argument('-C', '--chords', metavar='folder', nargs='?',
+                                const='../chord_events',
+                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+    review_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
+                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    review_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
+                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                                     "in which they are listed above (capital letter arguments).")
+    review_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
+        Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
+    review_parser.add_argument('-t', '--test', action='store_true',
+                                help="No data is written to disk.")
+    review_parser.add_argument('-p', '--positioning', action='store_true',
+                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
+    review_parser.add_argument('--raw', action='store_false',
+                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
+    review_parser.add_argument('-u', '--unfold', action='store_true',
+                                help="Unfold the repeats for all stored DataFrames.")
+    review_parser.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    review_parser.set_defaults(func=review_cmd)
 
     return parser
 
