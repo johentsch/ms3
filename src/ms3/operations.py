@@ -1,5 +1,5 @@
 from ms3.utils import capture_parse_logs
-from ms3.logger import get_logger
+from ms3.logger import get_logger, temporarily_suppress_warnings
 
 
 def extract(parse_obj,
@@ -18,6 +18,7 @@ def extract(parse_obj,
             simulate=None,
             unfold=False,
             quarterbeats=False,
+            silence_label_warnings=False,
             **suffixes):
     parse_obj.parse_mscx(simulate=simulate)
     parse_obj.output_dataframes(root_dir=root_dir,
@@ -36,13 +37,14 @@ def extract(parse_obj,
                         simulate=simulate,
                         unfold=unfold,
                         quarterbeats=quarterbeats,
+                        silence_label_warnings=silence_label_warnings,
                         **suffixes)
+
 
 
 def check(parse_obj, scores_only=False, labels_only=False, assertion=False, parallel=True):
     assert sum((scores_only, labels_only)) < 2, "Activate either scores_only or labels_only, not both."
     all_warnings = []
-
     check_logger = get_logger("ms3.check", level=parse_obj.logger.getEffectiveLevel())
     if not labels_only:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
@@ -52,9 +54,8 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
             all_warnings.extend(warnings)
             check_logger.warning("Warnings detected while parsing scores (see above).")
     else:
-        parse_obj.change_logger_cfg(level='c')
-        parse_obj.parse_mscx(parallel=parallel)
-        parse_obj.change_logger_cfg(level='w')
+        with temporarily_suppress_warnings(parse_obj) as parse_obj:
+            parse_obj.parse_mscx(parallel=parallel)
     if not scores_only:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
             expanded = parse_obj.get_dataframes(expanded=True)
@@ -70,5 +71,4 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
         check_logger.info(f"All good.")
         return True
     else:
-        check_logger.warning(f"Encountered warnings.")
         return False

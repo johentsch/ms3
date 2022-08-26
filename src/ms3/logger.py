@@ -1,5 +1,5 @@
 import logging, sys, os
-import traceback
+from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
 
@@ -364,3 +364,10 @@ def iter_ms3_loggers(exclude_placeholders=True):
         if name.startswith('ms3'):
             if not exclude_placeholders or isinstance(logger, logging.Logger):
                 yield logger
+
+@contextmanager
+def temporarily_suppress_warnings(parse_obj):
+    prev_level = parse_obj.logger_cfg['level']
+    parse_obj.change_logger_cfg(level='c')
+    yield parse_obj
+    parse_obj.change_logger_cfg(level=prev_level)
