@@ -3072,22 +3072,27 @@ class View(Parse):
     def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
         if not any((unfold, quarterbeats, interval_index)):
             for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs) and skip_missing:
-                    self.logger.info(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                    continue
+                if any(df is None for df in dfs):
+                    if skip_missing:
+                        continue
+                    else:
+                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                 yield (md, *dfs)
         else:
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
             for md, *dfs, measures in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs + [measures]) and skip_missing:
-                    if any(s.contains('measures') for s in columns):
-                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                if any(df is None for df in dfs + [measures]):
+                    if skip_missing:
+                        continue
                     else:
-                        missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
-                    self.logger.warning(f"No [{','.join(missing)}] available for {md['fnames']}.")
-                    continue
+                        if any(s.contains('measures') for s in columns):
+                            missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                        else:
+                            missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
+                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                 dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=self.logger)
                 md['paths'] = md['paths'][:-1]
                 yield (md, *dfs)
