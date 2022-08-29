@@ -9,7 +9,7 @@ import numpy as np
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
-from .logger import function_logger, LoggedClass
+from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
     get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 

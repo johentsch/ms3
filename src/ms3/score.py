@@ -393,7 +393,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.debug("Score contains no Annotations.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
-        return self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        expanded_with_stats = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+
 
 
 
@@ -1206,6 +1207,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         -------
 
         """
+        if self.read_only:
+            self.parsed.make_writeable()
         if len(df) == 0:
             return df
         for col in chord_tone_cols:
@@ -1228,9 +1231,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                     self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
             else:
                 chord_tones = sum(chord_tone_tuples, tuple())
-                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
-                                          to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                          color_name=color_name, tpc=chord_tones, inverse=True)
+                try:
+                    colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                              color_name=color_name, tpc=chord_tones, inverse=True)
+                except:
+                    self.logger.error(str(dict(from_mc=mc, from_mc_onset=mc_onset,
+                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                              color_name=color_name, tpc=chord_tones, inverse=True)))
+                    raise
                 n_colored, n_untouched = len(colored_durs), len(untouched_durs)
                 count_ratio = n_colored / (n_colored + n_untouched)
                 dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
@@ -1242,7 +1251,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             else:
                 to_mc, to_mc_onset = mc, mc_onset
         stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
-        return pd.concat([df, stats])
+        if (stats.n_colored > 0).any():
+            self.changed = True
+        return pd.concat([df, stats], axis=1)
 
 
     def delete_labels(self, df):

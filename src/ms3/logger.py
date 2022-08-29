@@ -367,7 +367,7 @@ def iter_ms3_loggers(exclude_placeholders=True):
 
 @contextmanager
 def temporarily_suppress_warnings(parse_obj):
-    prev_level = parse_obj.logger_cfg['level']
+    prev_level = parse_obj.logger.level
     parse_obj.change_logger_cfg(level='c')
     yield parse_obj
     parse_obj.change_logger_cfg(level=prev_level)

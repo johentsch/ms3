@@ -348,13 +348,13 @@ def review_cmd(args, parse_obj=None):
     else:
         p = parse_obj
     test_passes = True
-    scores_ok = check(p, scores_only=True)
+    scores_ok = check(p, scores_only=True, parallel=False)
     if not args.ignore_score_warnings:
         test_passes = scores_ok
     labels_ok = check(p, labels_only=True)
     test_passes = test_passes and labels_ok
     p = extract_cmd(args, p)
-    result = p.color_non_chord_notes()
+    result = p.color_non_chord_tones()
     print(result)
     # ids = list(p._iterids(keys, only_parsed_mscx=True))
     # for id in ids:

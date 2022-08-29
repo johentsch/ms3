@@ -68,7 +68,13 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
     if assertion:
         assert len(all_warnings) == 0, "Encountered warnings, check failed."
     if len(warnings) == 0:
-        check_logger.info(f"All good.")
+        if scores_only:
+            msg = 'All checked scores alright.'
+        elif labels_only:
+            msg = 'All checked labels alright.'
+        else:
+            msg = 'All checked scores and labels alright.'
+        check_logger.info(msg)
         return True
     else:
         return False
