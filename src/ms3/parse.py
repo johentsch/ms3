@@ -334,7 +334,32 @@ class Parse(LoggedClass):
             else:
                 self.logger.info(f"{score_id} has not been parsed yet.")
 
+    def _add_detached_annotations_by_commit_sha(self, commit_sha, key=None, ids=None):
+        """"""
 
+        assert list_of_pairs is not None, "list_of_pairs cannot be None"
+        for score_id, tsv_id in list_of_pairs:
+            if pd.isnull(score_id):
+                self.logger.info(f"No score found for labels {tsv_id}")
+            elif pd.isnull(tsv_id):
+                self.logger.info(f"No labels found for score {score_id}")
+            elif score_id in self._parsed_mscx:
+                if tsv_id in self._annotations:
+                    k = tsv_id[0] if pd.isnull(new_key) else new_key
+                    try:
+                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
+                    except:
+                        print(f"score_id: {score_id}, labels_id: {tsv_id}")
+                        raise
+                elif tsv_id in self._parsed_tsv:
+                    k, i = tsv_id
+                    self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object.
+        Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
+                else:
+                    self.logger.debug(
+                        f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
+            else:
+                self.logger.info(f"{score_id} has not been parsed yet.")
 
     def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
@@ -938,7 +963,7 @@ Continuing with {annotation_key}.""")
                         li[i] = df
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred',
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
                        detached_is_newer=False, store_with_suffix=None):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
@@ -3237,7 +3262,7 @@ class View(Parse):
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
-    def add_detached_annotations(self, use=None, new_key='old'):
+    def add_detached_annotations(self, use=None, sha=None, new_key='old'):
         id_pairs = self.match_scores_with_annotations(use=use)
         if len(id_pairs) > 0:
             self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)

@@ -16,11 +16,12 @@ def extract(parse_obj,
             form_labels_folder=None,
             metadata_path=None, markdown=True,
             simulate=None,
+            parallel=True,
             unfold=False,
             quarterbeats=False,
             silence_label_warnings=False,
             **suffixes):
-    parse_obj.parse_mscx(simulate=simulate)
+    parse_obj.parse_mscx(simulate=simulate, parallel=parallel)
     parse_obj.output_dataframes(root_dir=root_dir,
                         notes_folder=notes_folder,
                         notes_and_rests_folder=notes_and_rests_folder,
@@ -78,3 +79,15 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
         return True
     else:
         return False
+
+
+def compare(parse_obj, use=None, commit_sha=None):
+    parse_obj.parse_mscx(parallel=False)
+    if len(parse_obj._parsed_mscx) == 0:
+        parse_obj.logger.warning(f"Parse object does not include any scores.")
+        return
+    if commit_sha is None:
+        parse_obj.add_detached_annotations(use=use, new_key='old')
+        parse_obj.compare_labels('old', detached_is_newer=args.flip, store_with_suffix=args.suffix)
+    else:
+        pass

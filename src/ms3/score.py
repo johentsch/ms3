@@ -389,8 +389,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def color_non_chord_tones(self, color_name='red'):
-        """ Goes through the attached labels, tries to interpret them as DCML harmony labels, and
-        colors the notes in the parsed score.
+        """ Goes through the attached labels, tries to interpret them as DCML harmony labels,
+        colors the notes in the parsed score, and stores a report under :py:attr:`review_report`.
 
         Returns
         -------

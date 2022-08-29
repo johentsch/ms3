@@ -6,7 +6,7 @@ Command line interface for ms3.
 
 import argparse, os, sys
 from ms3 import Score, Parse
-from ms3.operations import extract, check
+from ms3.operations import extract, check, compare
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
 from ms3.logger import get_logger
 
@@ -94,21 +94,16 @@ def check_cmd(args, parse_obj=None):
     return p
 
 
-def compare(args):
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    if args.regex is None:
-        args.regex = r'\.mscx$'
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-                  logger_cfg=logger_cfg)
-    if len(p._score_ids()) == 0:
-        p.logger.warning(f"Your selection does not include any scores.")
-        return
-    p.parse()
-    p.add_detached_annotations(use=args.use)
-    p.compare_labels('old', detached_is_newer=args.flip, store_with_suffix=args.suffix)
+def compare_cmd(args):
+    if parse_obj is None:
+        args.raw = True
+        if args.regex is None:
+            args.regex = r'\.mscx$'
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    compare(args, p)
+
 
 
 def convert_cmd(args):
@@ -445,7 +440,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     compare_parser.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")
-    compare_parser.set_defaults(func=compare)
+    compare_parser.set_defaults(func=compare_cmd)
 
 
 
