@@ -73,9 +73,9 @@ def add(args):
     p.add_labels(use=args.use)
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
 
 
 def check_cmd(args, parse_obj=None):
@@ -141,9 +141,9 @@ def empty(args):
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
 
 
 def extract_cmd(args, parse_obj=None):
@@ -197,9 +197,9 @@ def metadata(args):
         p.logger.debug("Nothing to update.")
         return
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
     if args.out is not None:
         p.output_dataframes(metadata_path=args.out)
     elif args.dir is not None:
@@ -304,18 +304,18 @@ def update(args):
                     after = s.annotations.df
                     try:
                         assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
-                        s.store_mscx(new)
+                        s.output_mscx(new)
                     except:
                         s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
                         continue
                 else:
-                    s.store_mscx(new)
+                    s.output_mscx(new)
             else:
                 s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
-                s.store_mscx(new)
+                s.output_mscx(new)
         else:
             s.logger.debug(f"File has no labels to update.")
-            s.store_mscx(new)
+            s.output_mscx(new)
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
@@ -363,8 +363,8 @@ def review_cmd(args, parse_obj=None):
     #     res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
     #                                                detached_is_newer=detached_is_newer)
     #     if res and store_with_suffix is not None:
-    #         self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
-    # self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+    #         self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+    # self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
     print(test_passes)
 
 

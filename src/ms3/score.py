@@ -491,7 +491,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
     def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
-        By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_mscx` afterwards,
+        By default, ``delete`` is set to True, meaning that if you call :py:meth:`output_mscx` afterwards,
         the created MuseScore file will not contain the detached labels.
 
         Parameters
@@ -638,9 +638,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
-    def store_mscx(self, filepath):
+    def output_mscx(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
-        Just a shortcut for ``Score.mscx.store_mscx()``.
+        Just a shortcut for ``Score.mscx.output_mscx()``.
 
         Parameters
         ----------
@@ -648,7 +648,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Path of the newly created MuseScore file, including the file name ending on '.mscx'.
             Uncompressed files ('.mscz') are not supported.
         """
-        return self.mscx.store_mscx(filepath)
+        return self.mscx.output_mscx(filepath)
 
     def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
@@ -1431,8 +1431,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._update_annotations()
 
 
-    def store_mscx(self, filepath):
-        """Shortcut for ``MSCX.parsed.store_mscx()``.
+    def output_mscx(self, filepath):
+        """Shortcut for ``MSCX.parsed.output_mscx()``.
         Store the current XML structure as uncompressed MuseScore file.
 
         Parameters
@@ -1446,7 +1446,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`bool`
             Whether the file was successfully created.
         """
-        return self.parsed.store_mscx(filepath=filepath)
+        return self.parsed.output_mscx(filepath=filepath)
 
     def store_list(self, what='all', folder=None, suffix=None):
         """

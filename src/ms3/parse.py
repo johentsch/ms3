@@ -792,7 +792,7 @@ class Parse(LoggedClass):
 
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
+        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.output_mscx` will output
         MuseScore files where the annotations show in the score.
 
         Parameters
@@ -975,7 +975,7 @@ Available keys: {available_keys}""")
             res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
                                                  detached_is_newer=detached_is_newer)
             if res and store_with_suffix is not None:
-                self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+                self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
@@ -2140,7 +2140,7 @@ Available keys: {available_keys}""")
 
 
 
-    def store_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
+    def output_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
 
         Parameters
@@ -2173,7 +2173,7 @@ Available keys: {available_keys}""")
             ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
-            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
+            new_path = self._output_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path is not None:
                 if new_path in paths:
                     modus = 'would have' if simulate else 'has'
@@ -2417,7 +2417,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
+    def _output_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
         """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
 
         Parameters
@@ -2474,7 +2474,7 @@ Load one of the identically named files with a different key using add_dir(key='
             logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            self._parsed_mscx[id].store_mscx(file_path)
+            self._parsed_mscx[id].output_mscx(file_path)
             logger.debug(f"Score written to {file_path}.")
 
         return file_path

@@ -262,7 +262,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def store_mscx(self, filepath):
+    def output_mscx(self, filepath):
         try:
             mscx_string = bs4_to_mscx(self.soup)
         except:
