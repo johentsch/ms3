@@ -179,6 +179,13 @@ class Score(LoggedClass):
         Currently only one XML parser has been implemented which uses BeautifulSoup 4.
         """
 
+        self.review_report = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        After calling :py:meth:`color_non_chord_tones`, this DataFrame contains the expanded chord labels
+        plus the six additional columns ['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio']
+        representing the statistics of chord (untouched) vs. non-chord (colored) notes.
+        """
+
         self.name2regex = match_regex
         if musescore_file is not None:
             self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
@@ -393,7 +400,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.debug("Score contains no Annotations.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
-        expanded_with_stats = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
 
 
 
@@ -1252,6 +1259,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 to_mc, to_mc_onset = mc, mc_onset
         stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
         if (stats.n_colored > 0).any():
+            self.mscx.parsed.parse_measures()
             self.changed = True
         return pd.concat([df, stats], axis=1)
 
