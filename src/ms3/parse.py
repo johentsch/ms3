@@ -1803,17 +1803,16 @@ Available keys: {available_keys}""")
 
 
 
-    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
-              cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, simulate=None, **kwargs):
+    def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, simulate=None, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
         if simulate is not None:
             self.simulate = simulate
-        self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
+        self.parse_mscx(keys=keys, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
         self.parse_tsv(keys=keys, fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
 
 
 
-    def parse_mscx(self, keys=None, ids=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
+    def parse_mscx(self, keys=None, ids=None, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
         """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -1824,14 +1823,13 @@ Available keys: {available_keys}""")
             For which key(s) to parse all MSCX files.
         ids : :obj:`~collections.abc.Collection`
             To parse only particular files, pass their IDs. ``keys`` and ``fexts`` are ignored in this case.
-        read_only : :obj:`bool`, optional
-            If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
             Pass a level name for which (and above which) you want to see log records.
         parallel : :obj:`bool`, optional
             Defaults to True, meaning that all CPU cores are used simultaneously to speed up the parsing. It implies
             that the resulting Score objects are in read-only mode and that you might not be able to use the computer
-            during parsing. Set to False to parse one score after the other.
+            during parsing. Set to False to parse one score after the other, which uses more memory but will allow
+            making changes to the scores.
         only_new : :obj:`bool`, optional
             By default, score which already have been parsed, are not parsed again. Pass False to parse them, too.
 
@@ -1845,10 +1843,7 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
-        if parallel and not read_only:
-            read_only = True
-            self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
-        self.logger.debug(f"Parsing scores with parameters read_only={read_only}, parallel={parallel}, only_new={only_new}")
+        self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
 
         if ids is not None:
             pass
@@ -1880,16 +1875,16 @@ Available keys: {available_keys}""")
         ) for id in ids]
 
         ### collect argument tuples for calling self._parse
-        parse_this = [id + (conf, self.labels_cfg, read_only) for id, conf in zip(ids, configs)]
+        parse_this = [id + (conf, self.labels_cfg, parallel) for id, conf in zip(ids, configs)]
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''
         try:
             if self.simulate:
-                for key, i, logger_cfg, _, read_only in parse_this:
+                for key, i, logger_cfg, _, parallel in parse_this:
                     path = self.full_paths[key][i]
                     try:
-                        score_object = Score(path, read_only=read_only, logger_cfg=logger_cfg)
+                        score_object = Score(path, read_only=parallel, logger_cfg=logger_cfg)
                     except Exception:
                         self.logger.exception(traceback.format_exc())
                         score_object = None
@@ -1928,6 +1923,7 @@ Available keys: {available_keys}""")
                 self.logger.info(f"None of the {target} files {modus}have been parsed successfully.")
         except KeyboardInterrupt:
             self.logger.info("Parsing interrupted by user.")
+            raise
         finally:
             self._collect_annotations_objects_references(ids=ids)
 
