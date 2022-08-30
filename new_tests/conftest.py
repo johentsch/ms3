@@ -1,7 +1,10 @@
 import os
 from copy import deepcopy
 import pytest
+from git import Repo
+
 from ms3 import Parse, Score
+from ms3.logger import get_logger
 from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 
@@ -42,6 +45,7 @@ def directory():
     ]
 )
 def parse_obj(directory, request):
+    logger = get_logger('ms3.tests')
     if request.param == 'everything':
         return Parse(directory=directory)
     if request.param == 'file_re_with_key':
@@ -75,9 +79,9 @@ def parse_obj(directory, request):
             p.add_dir(add_path)
     if request.param.startswith('files_'):
         add_path = os.path.join(directory, 'sweelinck_keyboard')
-        files = list(scan_directory(add_path, logger="ms3.tests"))
+        files = list(scan_directory(add_path, logger=logger))
         files_with_inferrable_metadata = [f for f in files if os.path.basename(f) != 'metadata.tsv']
-        files_without_inferrable_metadata = list(scan_directory(os.path.join(directory, 'mixed_files', 'orchestral')))
+        files_without_inferrable_metadata = list(scan_directory(os.path.join(directory, 'mixed_files', 'orchestral'), logger=logger))
         if request.param == "files_without_key":
             p.add_files(files_without_inferrable_metadata)
         if request.param == "files_with_inferred_key":
@@ -88,7 +92,7 @@ def parse_obj(directory, request):
         if request.param == "files_correct_without_metadata":
             key = "frankenstein"
             p.add_files(files_with_inferrable_metadata, key=key)
-            for path in scan_directory(os.path.join(directory, 'outputs'), logger='ms3.tests'):
+            for path in scan_directory(os.path.join(directory, 'outputs'), logger=logger):
                 p.add_files(path, key=key)
         if request.param == "files_with_correct_key":
             p.add_dir(os.path.join(directory, 'outputs'), key="sweelinck_keyboard")

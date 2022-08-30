@@ -26,16 +26,17 @@ class TestEquivalence():
 
 def assert_all_loggers_level(level):
     for logger in iter_ms3_loggers():
-        expected_level = 30 if logger.name == 'ms3' else level
+        if not logger.name.startswith('ms3.Parse'):
+            continue
         eff_level = logger.getEffectiveLevel()
-        if eff_level != expected_level:
-            print(f"THIS LOGGER SHOULD HAVE LEVEL {expected_level}, not {eff_level}: {logger.name}")
-        assert eff_level == expected_level
+        if eff_level != level:
+            print(f"THIS LOGGER SHOULD HAVE LEVEL {level}, not {eff_level}: {logger.name}")
+        assert eff_level == level
         for h in logger.handlers:
             h_level = h.level
-            if eff_level != expected_level:
-                print(f"THE {h.__class__} of {logger.name} SHOULD HAVE LEVEL {expected_level}, not {h_level}.")
-            assert h_level == expected_level
+            if eff_level != level:
+                print(f"THE {h.__class__} of {logger.name} SHOULD HAVE LEVEL {level}, not {h_level}.")
+            assert h_level == level
 
 
 class TestLogging():

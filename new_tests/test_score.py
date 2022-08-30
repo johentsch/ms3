@@ -9,7 +9,7 @@ import ms3
 from ms3 import Score, assert_dfs_equal
 
 
-def assert_stored_mscx_identical(sc_obj, suffix):
+def assert_output_mscx_identical(sc_obj, suffix):
     original_mscx = sc_obj.full_paths['mscx']
     original_path = sc_obj.paths['mscx']
     original_fname = sc_obj.fnames['mscx']
@@ -17,7 +17,7 @@ def assert_stored_mscx_identical(sc_obj, suffix):
     tmp_persist = os.path.join(original_path, fname)
     try:
         tmp_file = tempfile.NamedTemporaryFile(mode='r', suffix='.mscx', dir=original_path, encoding='utf-8', delete=True)
-        sc_obj.store_mscx(tmp_file.name)
+        sc_obj.output_mscx(tmp_file.name)
         tmp_lines = open(tmp_file.name, encoding='utf-8').readlines()
         expected_lines = open(original_mscx, encoding='utf-8').readlines()
         try:
@@ -52,8 +52,8 @@ class TestScore:
 
     test_folder = os.path.dirname(os.path.realpath(__file__))
 
-    def test_store_mscx(self, score_object,):
-        assert_stored_mscx_identical(score_object, '_rewrite')
+    def test_output_mscx(self, score_object,):
+        assert_output_mscx_identical(score_object, '_rewrite')
 
     def test_removing_and_reinserting_labels(self, score_object,):
         if not score_object.mscx.has_annotations:
@@ -64,7 +64,7 @@ class TestScore:
         after = score_object.labels.df
         assert_dfs_equal(before, after)
         score_object.attach_labels('labels')
-        assert_stored_mscx_identical(score_object, '_label_reinsertion')
+        assert_output_mscx_identical(score_object, '_label_reinsertion')
 
 
     def test_partially_removing_and_reinserting_labels(self, directory):
