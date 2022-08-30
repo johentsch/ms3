@@ -19,9 +19,6 @@ def gather_extract_params(args):
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
               if arg is not None]
-    if len(params) == 0:
-        print("Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata) -F (form_labels)")
-        return None
     return params
 
 
@@ -142,14 +139,15 @@ def empty(args):
 
 
 def extract_cmd(args, parse_obj=None):
-    params = gather_extract_params(args)
-    if params is None:
-        return
-    suffixes = make_suffixes(args)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
         p = parse_obj
+    params = gather_extract_params(args)
+    if len(params) == 0:
+        print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata) -F (form_labels)")
+        return
+    suffixes = make_suffixes(args)
     silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
     extract(p, root_dir=args.out,
                 notes_folder=args.notes,
@@ -165,7 +163,6 @@ def extract_cmd(args, parse_obj=None):
                 quarterbeats=args.quarterbeats,
                 silence_label_warnings=silence_label_warnings,
                 **suffixes)
-    return p
 
 def metadata(args):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
@@ -335,6 +332,7 @@ def check_dir(d):
 
 
 def review_cmd(args, parse_obj=None):
+    review_logger = get_logger('ms3.review')
     if parse_obj is None:
         args.raw = True
         if args.regex is None:
@@ -348,19 +346,19 @@ def review_cmd(args, parse_obj=None):
         test_passes = scores_ok
     labels_ok = check(p, labels_only=True)
     test_passes = test_passes and labels_ok
-    p = extract_cmd(args, p)
+    extract_cmd(args, p)
     result = p.color_non_chord_tones()
-    print(result)
-    # ids = list(p._iterids(keys, only_parsed_mscx=True))
-    # for id in ids:
-    #     score = self._parsed_mscx[id]
-    #     score.color_non_chord_tones(color_name=color_name)
-    #     res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
-    #                                                detached_is_newer=detached_is_newer)
-    #     if res and store_with_suffix is not None:
-    #         self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
-    # self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
-    print(test_passes)
+    compare(p, use=args.use, revision_specifier=args.commit, root_dir=args.out)
+    if test_passes:
+        review_logger.info(f"Parsed scores passed all tests.")
+    else:
+        msg = "Not all tests have passed."
+        if args.assertion:
+            assert test_passes, msg
+        else:
+            review_logger.info(msg)
+
+
 
 
 
@@ -621,6 +619,14 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
+    review_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
+                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
+    review_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
+                                help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
+To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
+'expanded' or 'labels' to use only annotation tables that have the respective type.""")
+
+    review_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
     review_parser.set_defaults(func=review_cmd)
 
     return parser

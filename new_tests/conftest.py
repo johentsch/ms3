@@ -4,9 +4,9 @@ import pytest
 from ms3 import Parse, Score
 from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
-# Directory holding your clone of DCMLab/unittest_metacorpus
-CORPUS_DIR = "~"
 
+CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
+TEST_COMMIT = "bac7240" # commit of DCMLab/unittest_metacorpus for which the tests should pass
 
 @pytest.fixture(scope="session")
 def directory():
@@ -16,6 +16,10 @@ def directory():
         print(f"Directory does not exist: {path} Clone DCMLab/unittest_metacorpus, checkout ms3_tests branch, "
               f"and specify CORPUS_DIR above.")
     assert os.path.isdir(path)
+    repo = Repo(path)
+    commit = repo.commit('HEAD')
+    sha = commit.hexsha[:len(TEST_COMMIT)]
+    assert sha == TEST_COMMIT
     return path
 
 @pytest.fixture(

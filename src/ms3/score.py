@@ -406,6 +406,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
         self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        return self.review_report
 
 
 
@@ -1221,7 +1222,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         chord_tone_cols : :obj:`list`, optional
             Names of the columns containing tuples of chord tones, expressed as TPC.
         color_nan : :obj:`bool`, optional
-            By default, if one of the ``chord_tone_cols`` has a NaN value, all notes in the segment
+            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
             will be colored. Pass False to add the segment to the previous one instead.
 
         Returns
@@ -1241,39 +1242,36 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         for row_tuple in df[::-1].itertuples(index=False):
             mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
             chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
-            if any(pd.isnull(ctt) for ctt in chord_tone_tuples):
+            if all(pd.isnull(ctt) for ctt in chord_tone_tuples):
                 if color_nan:
-                    self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
-                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                              color_name=color_name)
-                    self.logger.debug(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
-                else:
-                    expand_segment = True
-                    self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
-            else:
-                chord_tones = sum(chord_tone_tuples, tuple())
-                try:
                     colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
                                               to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                              color_name=color_name, tpc=chord_tones, inverse=True)
-                except:
-                    self.logger.error(str(dict(from_mc=mc, from_mc_onset=mc_onset,
-                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                              color_name=color_name, tpc=chord_tones, inverse=True)))
-                    raise
-                n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+                                              color_name=color_name)
+                else:
+                    colored_durs, untouched_durs = [], []
+                    expand_segment = True
+            else:
+                chord_tones = tuple([ct for ctt in chord_tone_tuples for ct in ctt if not pd.isnull(ctt)])
+                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                          to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                          color_name=color_name, tpc=chord_tones, inverse=True)
+            n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+            if n_colored + n_untouched == 0:
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
+                results.append(())
+            else:
                 count_ratio = n_colored / (n_colored + n_untouched)
                 dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
                 dur_ratio = dur_colored / (dur_colored + dur_untouched)
-                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
                 self.logger.debug(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
             if expand_segment:
                 expand_segment = False
             else:
                 to_mc, to_mc_onset = mc, mc_onset
         stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
         if (stats.n_colored > 0).any():
-            self.mscx.parsed.parse_measures()
+            self.parsed.parse_measures()
             self.changed = True
         return pd.concat([df, stats], axis=1)
 
