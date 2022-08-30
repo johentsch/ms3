@@ -1,3 +1,4 @@
+import io
 import sys, os, re
 from functools import lru_cache
 import json
@@ -7,6 +8,8 @@ from collections import Counter, defaultdict, namedtuple
 
 import pandas as pd
 import numpy as np
+from git import Repo, InvalidGitRepositoryError
+from gitdb.exc import BadName
 
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
@@ -63,6 +66,7 @@ class Parse(LoggedClass):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         if warn_overwritten_level:
+            # warning emitted only here, after self.logger has been initialized
             self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
 
@@ -307,7 +311,7 @@ class Parse(LoggedClass):
 
 
 
-    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key):
+    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key, commit_sha=None):
         """ For each pair, adds the labels at tsv_id to the score at score_id as a detached
         :py:class:`~ms3.annotations.Annotations` object.
 
@@ -315,57 +319,44 @@ class Parse(LoggedClass):
         ----------
         list_of_pairs : list of (score_id, tsv_id)
             IDs of parsed files.
+        new_key : :obj:`str`
+            The key under which the detached annotations can be addressed using Score[new_key].
+        commit_sha : :obj:`str`, optional
+            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
+            using compare_labels()), pass the commit's SHA.
         """
         assert list_of_pairs is not None, "list_of_pairs cannot be None"
         for score_id, tsv_id in list_of_pairs:
             if pd.isnull(score_id):
-                self.logger.info(f"No score found for labels {tsv_id}")
-            elif pd.isnull(tsv_id):
+                self.logger.info(f"No score found for annotation table {tsv_id}")
+                continue
+            if pd.isnull(tsv_id):
                 self.logger.info(f"No labels found for score {score_id}")
-            elif score_id in self._parsed_mscx:
-                if tsv_id in self._annotations:
-                    k = tsv_id[0] if pd.isnull(new_key) else new_key
-                    try:
-                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
-                    except:
-                        print(f"score_id: {score_id}, labels_id: {tsv_id}")
-                        raise
-                elif tsv_id in self._parsed_tsv:
-                    k, i = tsv_id
-                    self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object.
-        Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
-                else:
-                    self.logger.debug(
-                        f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
-            else:
+                continue
+            if score_id not in self._parsed_mscx:
                 self.logger.info(f"{score_id} has not been parsed yet.")
-
-    def _add_detached_annotations_by_commit_sha(self, commit_sha, key=None, ids=None):
-        """"""
-
-        assert list_of_pairs is not None, "list_of_pairs cannot be None"
-        for score_id, tsv_id in list_of_pairs:
-            if pd.isnull(score_id):
-                self.logger.info(f"No score found for labels {tsv_id}")
-            elif pd.isnull(tsv_id):
-                self.logger.info(f"No labels found for score {score_id}")
-            elif score_id in self._parsed_mscx:
-                if tsv_id in self._annotations:
-                    k = tsv_id[0] if pd.isnull(new_key) else new_key
-                    try:
-                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
-                    except:
-                        print(f"score_id: {score_id}, labels_id: {tsv_id}")
-                        raise
-                elif tsv_id in self._parsed_tsv:
-                    k, i = tsv_id
-                    self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object.
-        Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
-                else:
-                    self.logger.debug(
-                        f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
+                continue
+            if tsv_id in self._annotations:
+                k = tsv_id[0] if pd.isnull(new_key) else new_key
+                try:
+                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
+                except:
+                    print(f"score_id: {score_id}, labels_id: {tsv_id}")
+                    raise
+            elif tsv_id in self._parsed_tsv:
+                k, i = tsv_id
+                self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object. Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
             else:
-                self.logger.info(f"{score_id} has not been parsed yet.")
+                self.logger.debug(
+                    f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
+
+
+    def _make_grouped_ids(self, keys=None, ids=None):
+        if ids is not None:
+            grouped_ids = group_id_tuples(ids)
+        else:
+            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+        return grouped_ids
 
     def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
@@ -699,7 +690,7 @@ class Parse(LoggedClass):
                 added_ids += new_id
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
-
+        self.corpus_paths[key] = resolve_dir(directory)
         self.look_for_ignored_warnings(directory, key)
 
     def look_for_ignored_warnings(self, directory, key):
@@ -1300,21 +1291,21 @@ Available keys: {available_keys}""")
             return {}
         if ids is not None:
             grouped_ids = group_id_tuples(ids)
-            grouped_ids = {key: [self.fnames[key][i] for i in ints] for key, ints in grouped_ids.items()}
+            key2fnames = {key: [self.fnames[key][i] for i in ints] for key, ints in grouped_ids.items()}
         else:
             keys = self._treat_key_param(keys)
-            grouped_ids = {k: None for k in keys}
+            key2fnames = {k: None for k in keys}
         bool_params = list(self._dataframes.keys())
         l = locals()
         columns = [tsv_type for tsv_type in self._dataframes.keys() if l[tsv_type]]
-        self.logger.debug(f"Looking up {columns} DataFrames for IDs {grouped_ids}")
+        self.logger.debug(f"Looking up {columns} DataFrames for IDs {key2fnames}")
         #self.collect_lists(ids=ids, only_new=True, **params)
         res = {} if flat else defaultdict(dict)
         # if unfold:
         #     playthrough2mcs = self.get_playthrough2mc(ids=ids)
         if interval_index:
             quarterbeats = True
-        for key, fnames in grouped_ids.items():
+        for key, fnames in key2fnames.items():
             for md, *dfs in self[key].iter_transformed(columns, skip_missing=True, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
                 for tsv_type, id, df in zip(columns, md['ids'], dfs):
                     if df is not None:
@@ -1834,7 +1825,7 @@ Available keys: {available_keys}""")
 
 
 
-    def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, simulate=None, **kwargs):
+    def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types=None, simulate=None, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
         if simulate is not None:
             self.simulate = simulate
@@ -1959,7 +1950,7 @@ Available keys: {available_keys}""")
             self._collect_annotations_objects_references(ids=ids)
 
 
-    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, level=None, **kwargs):
+    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -1970,10 +1961,10 @@ Available keys: {available_keys}""")
             To parse only particular files, pass there IDs. ``keys`` and ``fexts`` are ignored in this case.
         fexts :  :obj:`str` or :obj:`~collections.abc.Collection`, optional
             If you want to parse only files with one or several particular file extension(s), pass the extension(s)
-        annotations : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+        cols : :obj:`dict`, optional
             By default, if a column called ``'label'`` is found, the TSV is treated as an annotation table and turned into
             an Annotations object. Pass one or several column name(s) to treat *them* as label columns instead. If you
-            pass ``None`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
+            pass ``{}`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
         infer_types : :obj:`dict`, optional
             To recognize one or several custom label type(s), pass ``{name: regEx}``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
@@ -2036,7 +2027,7 @@ Available keys: {available_keys}""")
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg=logger_cfg, level=level)
                                 logger.debug(
-                                    f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
+                                    f"{self.files[key][i]} parsed as annotation table and an Annotations object was created.")
                             else:
                                 logger.info(
     f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
@@ -2047,6 +2038,71 @@ Available keys: {available_keys}""")
             except Exception:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
 
+    def _parse_tsv_from_commit_sha(self, tsv_id, commit_sha):
+        """ Takes the ID of an annotation table, and parses the same file's previous version at
+        commit_sha.
+
+        Parameters
+        ----------
+        tsv_id
+        commit_sha
+
+        Returns
+        -------
+        ID
+            (key, i) of the newly added annotation table.
+        """
+        key, i = tsv_id
+        short_sha = commit_sha[:7]
+        corpus_path = self.corpus_paths[key]
+        try:
+            repo = Repo(corpus_path, search_parent_directories=True)
+        except InvalidGitRepositoryError:
+            self.logger.error(f"{corpus_path} seems not to be (part of) a git repository.")
+            return
+        try:
+            commit = repo.commit(commit_sha)
+        except BadName:
+            self.logger.error(f"{commit_sha} does not resolve to a commit for repo {corpus_path}.")
+            return
+        tsv_type = self._tsv_types[tsv_id]
+        tsv_path = self.full_paths[key][i]
+        rel_path = os.path.relpath(tsv_path, corpus_path)
+        new_directory = os.path.join(corpus_path, short_sha)
+        new_path = os.path.join(new_directory, self.files[key][i])
+        if new_path in self.full_paths[key]:
+            existing_i = self.full_paths[key].index(new_path)
+            existing_tsv_type = self._tsv_types[(key, existing_i)]
+            if tsv_type == existing_tsv_type:
+                self.logger.error(f"Had already loaded a {tsv_type} table for commit SHA {commit_sha}.")
+                return
+        if not tsv_type in ('labels', 'expanded'):
+            raise NotImplementedError(f"Currently, only annotations are to be loaded from a commit SHA but {rel_path} is a {tsv_type}.")
+        targetfile = commit.tree / rel_path
+        try:
+            with io.BytesIO(targetfile.data_stream.read()) as f:
+                df = load_tsv(f)
+        except Exception:
+            self.logger.error(f"Parsing {rel_path} @ commit {commit_sha} of repo {corpus_path} failed with the following error:\n{sys.exc_info()[1]}")
+            return
+        new_id = self._handle_path(new_path, key, skip_checks=True)
+        self._parsed_tsv[new_id] = df
+        self._dataframes[tsv_type][new_id] = df
+        self._tsv_types[new_id] = tsv_type
+        logger_cfg = dict(self.logger_cfg)
+        logger_cfg['name'] = self.logger_names[(key, i)]
+        if tsv_id in self._annotations:
+            anno_obj = self._annotations[tsv_id] # get Annotation object's settings from the existing one
+            cols = anno_obj.cols
+            infer_types = anno_obj.regex_dict
+        else:
+            cols = dict(label='label')
+            infer_types = None
+        self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                            logger_cfg=logger_cfg)
+        self.logger.debug(
+            f"{rel_path} successfully parsed from commit SHA {commit_sha}.")
+        return new_id
 
 
     def pieces(self, parsed_only=False):
@@ -2272,14 +2328,14 @@ Available keys: {available_keys}""")
                     del (self._parsed_mscx[id])
         self._annotations.update(updated)
 
-    def _handle_path(self, full_path, key):
+    def _handle_path(self, full_path, key, skip_checks=False):
         full_path = resolve_dir(full_path)
-        if not os.path.isfile(full_path):
+        if not skip_checks and not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
             return (None, None)
         file_path, file = os.path.split(full_path)
         file_name, file_ext = os.path.splitext(file)
-        if file_ext[1:] not in Score.parseable_formats + ('tsv',):
+        if not skip_checks and file_ext[1:] not in Score.parseable_formats + ('tsv',):
             ext_string = "without extension" if file_ext == '' else f"with extension {file_ext}"
             self.logger.debug(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
             return (None, None)
@@ -2287,7 +2343,7 @@ Available keys: {available_keys}""")
         subdir = get_path_component(rel_path, key)
         if file in self.files[key]:
             same_name = [i for i, f in enumerate(self.files[key]) if f == file]
-            if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
+            if not skip_checks and any(True for i in same_name if self.rel_paths[key][i] == rel_path):
                 self.logger.debug(
                     f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
@@ -2378,10 +2434,7 @@ Load one of the identically named files with a different key using add_dir(key='
             The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.
 
         """
-        if ids is not None:
-            grouped_ids = group_id_tuples(ids)
-        else:
-            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+        grouped_ids = self._make_grouped_ids(keys, ids)
         for k, ixs in grouped_ids.items():
             subdirs = self.subdirs[k]
             for subdir in sorted(set(iter_selection(subdirs, ixs))):
@@ -3268,10 +3321,14 @@ class View(Parse):
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
-    def add_detached_annotations(self, use=None, sha=None, new_key='old'):
+    def add_detached_annotations(self, use=None, commit_sha=None, new_key='old'):
         id_pairs = self.match_scores_with_annotations(use=use)
+        if commit_sha is not None:
+            id_pairs = [(score, self.p._parse_tsv_from_commit_sha(tsv, commit_sha)) for score, tsv in id_pairs]
         if len(id_pairs) > 0:
             self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
+        else:
+            self.logger.info(f"No scores were matched with annotation tables.")
 
     def add_labels(self, use=None):
         id_pairs = self.match_scores_with_annotations(use=use)

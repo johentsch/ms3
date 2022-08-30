@@ -3201,7 +3201,8 @@ def path2parent_corpus(path):
         return None
     try:
         if os.path.isdir(path):
-            if 'metadata.tsv' in os.listdir(path):
+            listdir = os.listdir(path)
+            if 'metadata.tsv' in listdir or '.git' in listdir:
                 return path
         return path2parent_corpus(os.path.dirname(path))
     except Exception:
