@@ -99,7 +99,15 @@ def compare_cmd(args, parse_obj=None):
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    compare(p, use=args.use, revision_specifier=args.commit, flip=args.flip)
+    comparison_results = compare(p, use=args.use, revision_specifier=args.commit, flip=args.flip)
+    modified_ids = [id for id, res in comparison_results.items() if res > (0, 0)]
+    if args.out is None:
+        folder_args = {}
+    elif os.path.isabs(args.out):
+        folder_args = dict(root_dir=args.out)
+    else:
+        folder_args = dict(folder=args.out)
+    p.output_mscx(ids=modified_ids, suffix=args.suffix, overwrite=args.safe, **folder_args)
 
 
 
@@ -347,8 +355,10 @@ def review_cmd(args, parse_obj=None):
     labels_ok = check(p, labels_only=True)
     test_passes = test_passes and labels_ok
     extract_cmd(args, p)
-    result = p.color_non_chord_tones()
-    compare(p, use=args.use, revision_specifier=args.commit, root_dir=args.out)
+    review_report = p.color_non_chord_tones()
+    comparison = compare(p, use=args.use, revision_specifier=args.commit)
+    modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
+    p.output_mscx(ids=modified_ids, suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
     if test_passes:
         review_logger.info(f"Parsed scores passed all tests.")
     else:
@@ -440,6 +450,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     compare_parser.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")
+    compare_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     compare_parser.set_defaults(func=compare_cmd)
 
 
@@ -456,8 +467,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     convert_parser.add_argument('-p', '--nonparallel', action='store_false',
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
-    convert_parser.add_argument('--safe', action='store_false',
-                                help="Don't overwrite existing files.")
+    convert_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
 
 
@@ -627,6 +637,7 @@ To prevent the interaction, set this flag to use the first annotation table that
 'expanded' or 'labels' to use only annotation tables that have the respective type.""")
 
     review_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
+    review_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     review_parser.set_defaults(func=review_cmd)
 
     return parser

@@ -87,6 +87,4 @@ def compare(parse_obj, use=None, revision_specifier=None, flip=False, root_dir=N
         parse_obj.logger.warning(f"Parse object does not include any scores.")
         return
     parse_obj.add_detached_annotations(use=use, new_key='old', revision_specifier=revision_specifier)
-    comparison_results = parse_obj.compare_labels('old', detached_is_newer=flip)
-    modified_ids = [id for id, res in comparison_results.items() if res > (0,0)]
-    parse_obj.output_mscx(ids=modified_ids, root_dir=root_dir, folder=folder, suffix=suffix, overwrite=True, simulate=simulate)
+    return parse_obj.compare_labels('old', detached_is_newer=flip)

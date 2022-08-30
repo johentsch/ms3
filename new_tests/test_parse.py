@@ -1,7 +1,7 @@
 import os
 
-from ms3 import Parse, first_level_subdirs, capture_parse_logs, parse_ignored_warnings, ignored_warnings2dict
-from ms3.logger import iter_ms3_loggers
+from ms3 import Parse, first_level_subdirs, capture_parse_logs, ignored_warnings2dict
+from ms3.logger import iter_ms3_loggers, get_logger
 
 
 class TestEquivalence():
@@ -30,7 +30,8 @@ def assert_all_loggers_level(level):
             continue
         eff_level = logger.getEffectiveLevel()
         if eff_level != level:
-            print(f"THIS LOGGER SHOULD HAVE LEVEL {level}, not {eff_level}: {logger.name}")
+            head = get_logger('ms3.Parse')
+            print(f"LOGGER '{logger.name}' SHOULD HAVE LEVEL {level}, not {eff_level}. ms3.Parse: {head}")
         assert eff_level == level
         for h in logger.handlers:
             h_level = h.level
@@ -150,7 +151,11 @@ class TestLogging():
             _ = p.get_dataframes(expanded=True)
             all_msgs = captured_msgs.content_list
         ignored = ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
-        ignored_parsed = ignored_warnings2dict(ignored)
+        try:
+            ignored_parsed = ignored_warnings2dict(ignored)
+        except ValueError:
+            print(ignored)
+            raise
         for logger_name, message_ids in get_all_warnings_parsed.items():
             assert logger_name in ignored_parsed
             emitted_and_ignored = ignored_parsed[logger_name]

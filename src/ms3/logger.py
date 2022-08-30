@@ -146,7 +146,7 @@ class WarningFilter(logging.Filter):
     def filter(self, record):
         ignored = record._message_id in self.ignored_warnings
         if ignored:
-            self.logger.debug(record.msg, #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
+            self.logger.debug(CustomFormatter().format(record), #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
                               extra={"message_id": (10,)})
         return not ignored
 
@@ -236,6 +236,8 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         level = resolve_level_param(level)
         if level > 0:
             logger.setLevel(level)
+        elif is_head_logger:
+            logger.setLevel(30)
     effective_level = logger.getEffectiveLevel()
 
     if len(ignored_warnings) > 0:

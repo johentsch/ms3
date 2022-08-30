@@ -3274,7 +3274,7 @@ def parse_ignored_warnings(messages):
                         # a warning could be implemented at this point
                         continue
                     else:
-                        raise ValueError("Unexpected log message format: ", msg)
+                        raise ValueError(f"Unexpected log message format: {msg}")
                 tuple_start = msg.index('(') + 1
                 tuple_str = msg[tuple_start:-1]
                 info = str2inttuple(tuple_str, strict=False)
@@ -3301,6 +3301,7 @@ def parse_ignored_warnings_file(path):
     :obj: dict
         {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
     """
+    path = resolve_dir(path)
     messages = open(path, 'r', encoding='utf-8').readlines()
     return ignored_warnings2dict(messages)
 
