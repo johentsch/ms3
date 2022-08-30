@@ -528,7 +528,7 @@ class Parse(LoggedClass):
 
 
 
-    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old'):
+    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', commit_sha=None):
         """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
@@ -548,12 +548,15 @@ class Parse(LoggedClass):
             Note that passing ``tsv_key`` results in the deprecated use of Parse.match_files(). The preferred way
             is to parse the labels to be attached under the same key as the scores and use
             View.add_detached_labels().
+        commit_sha : :obj:`str`, optional
+            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
+            using compare_labels()), pass the commit's SHA.
         """
         keys = self._treat_key_param(keys)
         if tsv_key is None:
             for key in keys:
                 view = self._get_view(key)
-                view.add_detached_annotations(use=use, new_key=new_key)
+                view.add_detached_annotations(use=use, new_key=new_key, commit_sha=commit_sha)
             return
         matches = self.match_files(keys=keys + [tsv_key])
         matches = matches[matches.labels.notna() | matches.expanded.notna()]
@@ -3321,7 +3324,25 @@ class View(Parse):
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
-    def add_detached_annotations(self, use=None, commit_sha=None, new_key='old'):
+    def add_detached_annotations(self, use=None, new_key='old', commit_sha=None):
+        """
+
+        Parameters
+        ----------
+        use : :obj:`str`, optional
+            By default, if several sets of annotation files are found, the user is asked to input
+            in which order to pick them. Instead, they can specify the name of a column of
+            _.pieces(), especially 'expanded' or 'labels' to be using only these.
+        new_key : :obj:`str`
+            The key under which the detached annotations can be addressed using Score[new_key].
+        commit_sha : :obj:`str`, optional
+            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
+            using compare_labels()), pass the commit's SHA.
+
+        Returns
+        -------
+
+        """
         id_pairs = self.match_scores_with_annotations(use=use)
         if commit_sha is not None:
             id_pairs = [(score, self.p._parse_tsv_from_commit_sha(tsv, commit_sha)) for score, tsv in id_pairs]
