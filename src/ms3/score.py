@@ -186,6 +186,11 @@ class Score(LoggedClass):
         representing the statistics of chord (untouched) vs. non-chord (colored) notes.
         """
 
+        self.label_comparison = None
+        """:obj:`tuple`
+        Stores the result of :py:meth:`compare_labels`.
+        """
+
         self.name2regex = match_regex
         if musescore_file is not None:
             self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
@@ -421,15 +426,22 @@ Use one of the existing keys or load a new set with the method load_annotations(
             will turn ``old_color``, as opposed to the default.
         add_to_rna : :obj:`bool`, optional
             By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
+
+        Returns
+        -------
+        :obj:`int`
+            Number of attached labels that were not present in the old version and whose color has been changed.
+        :obj:`int`
+            Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
-            return
+            return (0, 0)
         if detached_key not in self._detached_annotations:
             self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
-            return
+            return (0, 0)
 
         old_obj = self._detached_annotations[detached_key]
         new_obj = self.mscx._annotations
@@ -437,7 +449,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
         old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
-        new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
+        new = decode_harmonies(new_obj.df, label_col=new_obj.cols['label'], logger=self.logger)
         assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
         assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
         old_vals = set(old[old_cols].itertuples(index=False, name=None))
@@ -447,7 +459,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         changes_new = new_vals - unchanged
         if len(changes_new) == 0 and len(changes_old) == 0:
             self.mscx.logger.info(f"Comparison yielded no changes.")
-            return False
+            return (0, 0)
 
         new_rgba =  color2rgba(new_color)
         new_color_params = rgba2params(new_rgba)
@@ -483,8 +495,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
             self.mscx.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
-            return True
-        return False
+        res = (color_changes, added_changes)
+        self.label_comparison = res
+        return res
 
 
 

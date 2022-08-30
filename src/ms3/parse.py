@@ -964,7 +964,7 @@ Continuing with {annotation_key}.""")
 
 
     def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
-                       detached_is_newer=False, store_with_suffix=None):
+                       detached_is_newer=False):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
@@ -980,6 +980,11 @@ Continuing with {annotation_key}.""")
             will turn ``old_color``, as opposed to the default.
         store_with_suffix : :obj:`str`, optional
             If you pass a suffix, the comparison MSCX files are stored with this suffix next to the originals.
+
+        Returns
+        -------
+        :obj:`dict`
+            {ID -> (n_new_labels, n_removed_labels)} dictionary.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         ids = list(self._iterids(None, only_detached_annotations=True))
@@ -996,11 +1001,11 @@ Available keys: {available_keys}""")
             return
         ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
+        comparison_results = {}
         for id in ids:
-            res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
+            comparison_results[id] = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
                                                  detached_is_newer=detached_is_newer)
-            if res and store_with_suffix is not None:
-                self.output_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+        return comparison_results
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
