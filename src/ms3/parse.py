@@ -65,6 +65,12 @@ class Parse(LoggedClass):
         if warn_overwritten_level:
             self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
+
+        self.corpus_paths = {}
+        """obj:`dict`
+        {key -> path} dictionary with each corpus's base directory.
+        """
+
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
