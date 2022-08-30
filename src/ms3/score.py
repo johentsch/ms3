@@ -186,9 +186,9 @@ class Score(LoggedClass):
         representing the statistics of chord (untouched) vs. non-chord (colored) notes.
         """
 
-        self.label_comparison = None
-        """:obj:`tuple`
-        Stores the result of :py:meth:`compare_labels`.
+        self.comparison_report = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        DataFrame showing the labels modified ('new') and added ('old') by :py:meth:`compare_labels`.
         """
 
         self.name2regex = match_regex
@@ -478,16 +478,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
             added_color_params = old_color_params
 
         color_changes = sum(self.mscx.change_label_color(*t, **change_to_params) for t in changes_new)
-        df = pd.DataFrame(changes_old, columns=compare_cols)
+        old_df = pd.DataFrame(changes_old, columns=compare_cols)
         for k, v in added_color_params.items():
-            df[k] = v
+            old_df[k] = v
         if add_to_rna:
-            df['harmony_layer'] = 1
-            anno = Annotations(df=df)
+            old_df['harmony_layer'] = 1
+            anno = Annotations(df=old_df)
             anno.remove_initial_dots()
         else:
-            df['harmony_layer'] = 0
-            anno = Annotations(df=df)
+            old_df['harmony_layer'] = 0
+            anno = Annotations(df=old_df)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
@@ -496,7 +496,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx._update_annotations()
             self.mscx.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
         res = (color_changes, added_changes)
-        self.label_comparison = res
+        new_df = pd.DataFrame(changes_new, columns=compare_cols)
+        self.comparison_report = pd.concat([old_df, new_df], keys=['old', 'new'])
         return res
 
 

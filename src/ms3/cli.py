@@ -94,7 +94,7 @@ def check_cmd(args, parse_obj=None):
     return p
 
 
-def compare_cmd(args):
+def compare_cmd(args, parse_obj=None):
     if parse_obj is None:
         args.raw = True
         if args.regex is None:
@@ -102,7 +102,7 @@ def compare_cmd(args):
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    compare(args, p)
+    compare(p, use=args.use, revision_specifier=args.commit, flip=args.flip)
 
 
 
@@ -437,6 +437,8 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
                                 help='Suffix of the newly created comparison files. Defaults to _reviewed')
+    compare_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
+                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
     compare_parser.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")

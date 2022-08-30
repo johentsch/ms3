@@ -311,7 +311,7 @@ class Parse(LoggedClass):
 
 
 
-    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key, commit_sha=None):
+    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key):
         """ For each pair, adds the labels at tsv_id to the score at score_id as a detached
         :py:class:`~ms3.annotations.Annotations` object.
 
@@ -321,9 +321,6 @@ class Parse(LoggedClass):
             IDs of parsed files.
         new_key : :obj:`str`
             The key under which the detached annotations can be addressed using Score[new_key].
-        commit_sha : :obj:`str`, optional
-            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-            using compare_labels()), pass the commit's SHA.
         """
         assert list_of_pairs is not None, "list_of_pairs cannot be None"
         for score_id, tsv_id in list_of_pairs:
@@ -528,7 +525,7 @@ class Parse(LoggedClass):
 
 
 
-    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', commit_sha=None):
+    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', revision_specifier=None):
         """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
@@ -548,7 +545,7 @@ class Parse(LoggedClass):
             Note that passing ``tsv_key`` results in the deprecated use of Parse.match_files(). The preferred way
             is to parse the labels to be attached under the same key as the scores and use
             View.add_detached_labels().
-        commit_sha : :obj:`str`, optional
+        revision_specifier : :obj:`str`, optional
             If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
             using compare_labels()), pass the commit's SHA.
         """
@@ -556,7 +553,7 @@ class Parse(LoggedClass):
         if tsv_key is None:
             for key in keys:
                 view = self._get_view(key)
-                view.add_detached_annotations(use=use, new_key=new_key, commit_sha=commit_sha)
+                view.add_detached_annotations(use=use, new_key=new_key, revision_specifier=revision_specifier)
             return
         matches = self.match_files(keys=keys + [tsv_key])
         matches = matches[matches.labels.notna() | matches.expanded.notna()]
@@ -990,15 +987,15 @@ Continuing with {annotation_key}.""")
         ids = list(self._iterids(None, only_detached_annotations=True))
         if len(ids) == 0:
             if len(self._parsed_mscx) == 0:
-                self.logger.warning("No scores have been parsed so far.")
-                return
-            self.logger.warning("None of the parsed score include detached labels to compare.")
-            return
+                self.logger.info("No scores have been parsed so far.")
+                return {}
+            self.logger.info("None of the parsed scores include detached labels to compare.")
+            return {}
         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
         if detached_key not in available_keys:
-            self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
+            self.logger.info(f"""None of the parsed scores include detached labels with the key '{detached_key}'.
 Available keys: {available_keys}""")
-            return
+            return {}
         ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
         comparison_results = {}
@@ -2046,14 +2043,16 @@ Available keys: {available_keys}""")
             except Exception:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
 
-    def _parse_tsv_from_commit_sha(self, tsv_id, commit_sha):
-        """ Takes the ID of an annotation table, and parses the same file's previous version at
-        commit_sha.
+    def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
+        """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
 
         Parameters
         ----------
         tsv_id
-        commit_sha
+            ID of the TSV file containing an annotation table, for which to parse a previous version.
+        revision_specifier : :obj:`str`
+            String used by git.Repo.commit() to find the desired git revision.
+            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
 
         Returns
         -------
@@ -2061,7 +2060,6 @@ Available keys: {available_keys}""")
             (key, i) of the newly added annotation table.
         """
         key, i = tsv_id
-        short_sha = commit_sha[:7]
         corpus_path = self.corpus_paths[key]
         try:
             repo = Repo(corpus_path, search_parent_directories=True)
@@ -2069,9 +2067,16 @@ Available keys: {available_keys}""")
             self.logger.error(f"{corpus_path} seems not to be (part of) a git repository.")
             return
         try:
-            commit = repo.commit(commit_sha)
+            git_repo = repo.remote("origin").url
+        except ValueError:
+            git_repo = os.path.basename()
+        try:
+            commit = repo.commit(revision_specifier)
+            commit_sha = commit.hexsha
+            short_sha = commit_sha[:7]
+            commit_info = f"{short_sha} with message '{commit.message}'"
         except BadName:
-            self.logger.error(f"{commit_sha} does not resolve to a commit for repo {corpus_path}.")
+            self.logger.error(f"{revision_specifier} does not resolve to a commit for repo {git_repo}.")
             return
         tsv_type = self._tsv_types[tsv_id]
         tsv_path = self.full_paths[key][i]
@@ -2082,16 +2087,20 @@ Available keys: {available_keys}""")
             existing_i = self.full_paths[key].index(new_path)
             existing_tsv_type = self._tsv_types[(key, existing_i)]
             if tsv_type == existing_tsv_type:
-                self.logger.error(f"Had already loaded a {tsv_type} table for commit SHA {commit_sha}.")
+                self.logger.error(f"Had already loaded a {tsv_type} table for commit {commit_info} of repo {git_repo}.")
                 return
         if not tsv_type in ('labels', 'expanded'):
-            raise NotImplementedError(f"Currently, only annotations are to be loaded from a commit SHA but {rel_path} is a {tsv_type}.")
-        targetfile = commit.tree / rel_path
+            raise NotImplementedError(f"Currently, only annotations are to be loaded from a git revision but {rel_path} is a {tsv_type}.")
+        try:
+            targetfile = commit.tree / rel_path
+        except KeyError:
+            self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
+            return
         try:
             with io.BytesIO(targetfile.data_stream.read()) as f:
                 df = load_tsv(f)
         except Exception:
-            self.logger.error(f"Parsing {rel_path} @ commit {commit_sha} of repo {corpus_path} failed with the following error:\n{sys.exc_info()[1]}")
+            self.logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following error:\n{sys.exc_info()[1]}")
             return
         new_id = self._handle_path(new_path, key, skip_checks=True)
         self._parsed_tsv[new_id] = df
@@ -2109,7 +2118,7 @@ Available keys: {available_keys}""")
         self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                             logger_cfg=logger_cfg)
         self.logger.debug(
-            f"{rel_path} successfully parsed from commit SHA {commit_sha}.")
+            f"{rel_path} successfully parsed from commit {short_sha}.")
         return new_id
 
 
@@ -3252,7 +3261,7 @@ class View(Parse):
             labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
         n_cols = len(labels_cols)
         if n_cols == 0:
-            self.logger.error(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
+            self.logger.info(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
             return []
         display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
         display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
@@ -3329,7 +3338,7 @@ class View(Parse):
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
-    def add_detached_annotations(self, use=None, new_key='old', commit_sha=None):
+    def add_detached_annotations(self, use=None, new_key='old', revision_specifier=None):
         """
 
         Parameters
@@ -3340,17 +3349,18 @@ class View(Parse):
             _.pieces(), especially 'expanded' or 'labels' to be using only these.
         new_key : :obj:`str`
             The key under which the detached annotations can be addressed using Score[new_key].
-        commit_sha : :obj:`str`, optional
+        revision_specifier : :obj:`str`, optional
             If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-            using compare_labels()), pass the commit's SHA.
+            using compare_labels()), pass a specifier for that git revision.
+            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
 
         Returns
         -------
 
         """
         id_pairs = self.match_scores_with_annotations(use=use)
-        if commit_sha is not None:
-            id_pairs = [(score, self.p._parse_tsv_from_commit_sha(tsv, commit_sha)) for score, tsv in id_pairs]
+        if revision_specifier is not None:
+            id_pairs = [(score, self.p._parse_tsv_from_git_revision(tsv, revision_specifier)) for score, tsv in id_pairs]
         if len(id_pairs) > 0:
             self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
         else:
