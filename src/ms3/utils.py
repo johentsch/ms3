@@ -1730,6 +1730,14 @@ def midi2octave(midi, fifths=None):
 
 
 def midi2name(midi):
+    try:
+        midi = int(float(midi))
+    except:
+        if isinstance(midi, pd.Series):
+            return midi.apply(midi2name)
+        if isinstance(midi, Iterable):
+            return map2elements(midi, midi2name)
+        return midi
     names = {0: 'C',
              1: 'C#/Db',
              2: 'D',
