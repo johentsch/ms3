@@ -1347,6 +1347,35 @@ def safe_frac(s):
     except:
         return s
 
+def safe_int(s):
+    try:
+        return int(float(s))
+    except Exception:
+        return s
+
+def parse_interval_index_column(df, column=None, closed='left'):
+    """ Turns a column of strings in the form '[0.0, 1.1)' into a :obj:`pandas.IntervalIndex`.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+    column : :obj:`str`, optional
+        Name of the column containing strings. If not specified, use the index.
+    closed : :obj:`str`, optional
+        On whot side the intervals should be closed. Defaults to 'left'.
+
+    Returns
+    -------
+    :obj:`pandas.IntervalIndex`
+    """
+    iv_regex = r"[\[\(]([0-9]*\.[0-9]+), ([0-9]*\.[0-9]+)[\)\]]"
+    if column is None:
+        iv_strings = df.index
+    else:
+        iv_strings = df[column]
+    values = iv_strings.str.extract(iv_regex).astype(float)
+    iix = pd.IntervalIndex.from_arrays(values[0], values[1], closed=closed)
+    return iix
 
 def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype=False, **kwargs):
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
@@ -1369,12 +1398,15 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
     CONVERTERS = {
         'added_tones': str2inttuple,
         'act_dur': safe_frac,
+        'composed_end': safe_int,
+        'composed_start': safe_int,
         'chord_tones': str2inttuple,
         'globalkey_is_minor': int2bool,
         'localkey_is_minor': int2bool,
         'mc_offset': safe_frac,
         'mc_onset': safe_frac,
         'mn_onset': safe_frac,
+        'movementNumber': safe_int,
         'next': str2inttuple,
         'nominal_duration': safe_frac,
         'quarterbeats': safe_frac,
@@ -1391,8 +1423,6 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'bass_note': 'Int64',
         'cadence': str,
         'cadences_id': 'Int64',
-        'composed_end': 'Int64',
-        'composed_start': 'Int64',
         'changes': str,
         'chord': str,
         'chord_id': 'Int64',
@@ -1418,7 +1448,6 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
         'localkey': str,
         'mc': 'Int64',
         'mc_playthrough': 'Int64',
-        'movementNumber': 'Int64',
         'midi': 'Int64',
         'mn': str,
         'offset:x': str,
@@ -1475,6 +1504,13 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
             if 'volta' not in df.columns:
                 df['volta'] = pd.Series(pd.NA, index=df.index).astype('Int64')
             df.volta.fillna(mn_volta.volta, inplace=True)
+    if 'interval' in df:
+        try:
+            iv_index = parse_interval_index_column(df, 'interval')
+            df.index = iv_index
+            df = df.drop(columns='interval')
+        except Exception:
+            pass
     return df
 
 
