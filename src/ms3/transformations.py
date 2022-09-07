@@ -108,8 +108,29 @@ def add_weighted_grace_durations(notes, weight=1/2):
     notes.loc[grace, 'duration'] = new_durations
     if 'duration_qb' in notes.columns:
         notes.loc[grace, 'duration_qb'] = (new_durations * 4).astype(float)
-        if isinstance(notes.index, pd.IntervalIndex):
-            notes = replace_index_by_intervals(notes, logger=logger)
+        idx = notes.index
+        if idx.nlevels == 1:
+            if isinstance(idx, pd.IntervalIndex):
+                notes = replace_index_by_intervals(notes, logger=logger)
+                logger.debug(f"Updated existing interval index.")
+            else:
+                logger.debug(f"No interval index present to be updated.")
+        else:
+            if 'interval' in idx.names:
+                interval_idx_levels = [i for i, name in enumerate(idx.names) if name == 'interval']
+            else:
+                interval_idx_levels = [i for i, dtype in enumerate(idx.dtypes) if isinstance(dtype, pd.IntervalDtype)]
+            if len(interval_idx_levels) == 0:
+                logger.debug(f"No interval index present to be updated.")
+            elif len(interval_idx_levels) == 1:
+                interval_idx_level = interval_idx_levels[0]
+                logger.debug(f"Updating the IntervalIndex at level {interval_idx_level} ('{idx.names[interval_idx_level]}').")
+                new_iv_idx = make_interval_index_from_durations(notes, logger=logger)
+                idx_df = idx.to_frame()
+                idx_df.iloc[:, interval_idx_level] = new_iv_idx
+                notes.index = pd.MultiIndex.from_frame(idx_df, names=idx.names)
+            else:
+                logger.warning(f"Found several IntervalIndex levels, none of which is called 'interval'.")
     return notes
 
 
