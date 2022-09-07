@@ -8,10 +8,11 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, interval_overlap, interval_overlap_size, make_interval_index,\
-    make_continuous_offset, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key,\
+from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, interval_overlap, interval_overlap_size, \
+    make_interval_index_from_breaks, \
+    make_continuous_offset, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats
+    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats, make_slices
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -59,20 +60,21 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         df.insert(insert_here, 'quarterbeats', quarterbeats)
         if 'duration_qb' not in df.columns:
             if 'duration' in df.columns:
-                dur = (df.duration * 4).astype(float).round(3)
+                dur = (df.duration * 4).astype(float).round(5)
                 df.insert(insert_here + 1, 'duration_qb', dur)
             elif 'end' in offset_dict:
                 present_qb = df.quarterbeats.notna()
                 try:
-                    ivs = make_interval_index(df.loc[present_qb, 'quarterbeats'].astype(float).round(3),
-                                              end_value=float(offset_dict['end']), logger=logger)
+                    ivs = make_interval_index_from_breaks(df.loc[present_qb, 'quarterbeats'].astype(float),
+                                                          end_value=float(offset_dict['end']), logger=logger)
                     df.insert(insert_here + 1, 'duration_qb', pd.NA)
                     df.loc[present_qb, 'duration_qb'] = ivs.length
+                    df.duration_qb = df.duration_qb.round(5)
                 except Exception:
                     logger.warning(
                         "Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
             else:
-                logger.warning("Column 'duration_qb' could not be created.")
+                logger.warning("Column 'duration_qb' could not be created because offset_.")
     else:
         logger.debug("quarterbeats column was already present.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
@@ -624,14 +626,14 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
         return pd.DataFrame()
 
     at.sort_values(position_col, inplace=True)
-    at.index = make_interval_index(at[position_col], end_value=last_val, logger=logger)
+    at.index = make_interval_index_from_breaks(at[position_col], end_value=last_val, logger=logger)
 
     at['localkey_resolved'] = transform(at, resolve_relative_keys, ['localkey', 'globalkey_is_minor'])
 
     key_groups = at.loc[at.localkey != at.localkey.shift(), [position_col, 'localkey', 'localkey_resolved', 'globalkey',
                                                              'globalkey_is_minor']] \
         .rename(columns={position_col: 'Start'})
-    iix = make_interval_index(key_groups.Start, end_value=last_val, logger=logger)
+    iix = make_interval_index_from_breaks(key_groups.Start, end_value=last_val, logger=logger)
     key_groups.index = iix
     fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
     semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename(
@@ -1001,18 +1003,9 @@ def slice_df(df, quarters_per_slice=None):
         start = min(df.index.left)
         lefts = np.arange(start, end, quarters_per_slice)
         rights = np.arange(start + quarters_per_slice, end + quarters_per_slice, quarters_per_slice)
-    slices = []
-    for i, j in zip(lefts, rights):
-        iv = pd.Interval(i, j, closed='left')
-        overlapping = df.index.overlaps(iv)
-        overlapping_elements = df[overlapping].copy()
-        overlapping_elements.loc[:, 'duration_qb'] = [interval_overlap_size(ix, iv) for ix in
-                                                      overlapping_elements.index]
-        N = overlapping.sum()
-        new_index = pd.IntervalIndex([iv] * N, name='slice')
-        overlapping_elements.index = new_index
-        slices.append(overlapping_elements)
-    return pd.concat(slices)
+    intervals = [pd.Interval(i, j, closed='left') for i, j in zip(lefts, rights)]
+    slices = make_slices(df, intervals)
+    return pd.concat(slices.values())
 
 
 @function_logger
