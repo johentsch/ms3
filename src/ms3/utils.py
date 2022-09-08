@@ -3403,34 +3403,55 @@ def parse_ignored_warnings_file(path):
     return ignored_warnings2dict(messages)
 
 
-def make_slices(df, intervals):
-    """
+def overlapping_chunk_per_interval(df, intervals, truncate=True):
+    """ For each interval, create a chunk of the given DataFrame based on its IntervalIndex.
+    This is an optimized algorithm compared to calling IntervalIndex.overlaps(interval) for each
+    given interval, with the additional advantage that it will not discard empty rows where the
+    interval is zero, such as [25.0, 25.0).
 
     Parameters
     ----------
-    df : :obj:`pandas.DataFrame`
+   df : :obj:`pandas.DataFrame`
         The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
         Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
         ``Parse.iter_transformed(interval_index=True)``.
     intervals : :obj:`list` of :obj:`pd.Interval`
-        The intervals defining the slices.
+        The intervals defining the chunks' dimensions. Expected to be non-overlapping and monotonically increasing.
+    truncate : :obj:`bool`, optional
+        Defaults to True, meaning that the interval index and the 'duration_qb' will be adapted for overlapping intervals.
+        Pass False to get chunks with all overlapping intervals as they are.
 
     Returns
     -------
     :obj:`dict`
-        {interval -> slice}
+        {interval -> chunk}
     """
-    if len(df.index) == 0:
-        return {iv: pd.DataFrame() for iv in intervals}
-    sliced = {}
+    lefts = df.index.left.values    # lefts and rights will get shorter (potentially) with every
+    rights = df.index.right.values  # interval, in order to reduce the time for comparing values
+    chunks = {}
+    current_start_mask = np.ones(len(df.index), dtype = bool) # length remains the same
     for iv in intervals:
-        overlapping = df.index.overlaps(iv)
-        chunk = df[overlapping].copy()
-        start, end = iv.left, iv.right
-        left_overlap = chunk.index.left < start
-        right_overlap = chunk.index.right > end
-        if left_overlap.sum() > 0 or right_overlap.sum() > 0:
-            chunk.index = chunk.index.map(lambda i: interval_overlap(i, iv, chunk.index.closed))
-            chunk.loc[:, "duration_qb"] = chunk.index.length.values.round(5)
-        sliced[iv] = chunk
-    return sliced
+        # assumes intervals are non-overlapping and monotonically increasing
+        l, r = iv.left, iv.right
+        # never again check events ending before the current interval's start
+        not_ending_before_l = (rights >= l)
+        lefts = lefts[not_ending_before_l]
+        rights = rights[not_ending_before_l]
+        current_start_mask[current_start_mask] = not_ending_before_l
+        starting_before_r = (r > lefts)
+        not_ending_on_l_except_empty = (rights != l) | (lefts == l)
+        overlapping = (starting_before_r & not_ending_on_l_except_empty)
+        bool_mask = current_start_mask.copy()
+        bool_mask[current_start_mask] = overlapping
+        chunk = df[bool_mask].copy()
+        if truncate:
+            new_lefts, new_rights = lefts[overlapping], rights[overlapping]
+            starting_before_l, ending_after_r = (new_lefts < l), (new_rights > r)
+            if starting_before_l.sum() > 0 or ending_after_r.sum() > 0:
+                new_lefts[starting_before_l] = l
+                new_rights[ending_after_r] = r
+                chunk.index = pd.IntervalIndex.from_arrays(new_lefts, new_rights, closed='left')
+                chunk.duration_qb = (new_rights - new_lefts)
+        chunks[iv] = chunk
+    return chunks
+

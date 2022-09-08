@@ -12,7 +12,7 @@ from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fift
     make_interval_index_from_breaks, \
     make_continuous_offset, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats, make_slices
+    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -60,7 +60,7 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         df.insert(insert_here, 'quarterbeats', quarterbeats)
         if 'duration_qb' not in df.columns:
             if 'duration' in df.columns:
-                dur = (df.duration * 4).astype(float).round(5)
+                dur = (df.duration * 4).astype(float)
                 df.insert(insert_here + 1, 'duration_qb', dur)
             elif 'end' in offset_dict:
                 present_qb = df.quarterbeats.notna()
@@ -68,8 +68,8 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
                     ivs = make_interval_index_from_breaks(df.loc[present_qb, 'quarterbeats'].astype(float),
                                                           end_value=float(offset_dict['end']), logger=logger)
                     df.insert(insert_here + 1, 'duration_qb', pd.NA)
-                    df.loc[present_qb, 'duration_qb'] = ivs.length
-                    df.duration_qb = df.duration_qb.round(5)
+                    df.loc[present_qb, 'duration_qb'] = ivs.right - ivs.left
+                    df.duration_qb = df.duration_qb
                 except Exception:
                     logger.warning(
                         "Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
@@ -907,7 +907,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
             end = max(idx.right)
             iv = pd.Interval(start, end, closed=idx.closed)
             row.index = pd.IntervalIndex([iv])
-            row.loc[iv, 'duration_qb'] = iv.length
+            row.loc[iv, 'duration_qb'] = iv.right - iv.left
         else:
             new_duration = df.duration_qb.sum()
             row.loc[first_loc, 'duration_qb'] = new_duration
@@ -958,20 +958,8 @@ def segment_by_interval_index(df, idx, truncate=True):
     if isinstance(iv_idx, pd.MultiIndex):
         iv_idx = iv_idx.get_level_values(0)
     assert isinstance(iv_idx, pd.IntervalIndex), f"idx needs to IntervalIndex, not {type(iv_idx)}"
-    chunks = []
-    for iv in iv_idx:
-        overlapping = df.index.overlaps(iv)
-        chunk = df[overlapping].copy()
-        if truncate:
-            start, end = iv.left, iv.right
-            chunk_index = chunk.index
-            left_overlap = chunk_index.left < start
-            right_overlap = chunk_index.right > end
-            if left_overlap.sum() > 0 or right_overlap.sum() > 0:
-                chunk.index = chunk_index.map(lambda i: interval_overlap(i, iv))
-                chunk.loc[:, 'duration_qb'] = chunk.index.length
-        chunks.append(chunk)
-    return pd.concat(chunks, keys=idx, levels=idx.levels)
+    chunks = overlapping_chunk_per_interval(df, iv_idx, truncate=truncate)
+    return pd.concat(chunks.values(), keys=idx, levels=idx.levels)
 
 
 def slice_df(df, quarters_per_slice=None):
@@ -1004,8 +992,7 @@ def slice_df(df, quarters_per_slice=None):
         lefts = np.arange(start, end, quarters_per_slice)
         rights = np.arange(start + quarters_per_slice, end + quarters_per_slice, quarters_per_slice)
     intervals = [pd.Interval(i, j, closed='left') for i, j in zip(lefts, rights)]
-    slices = make_slices(df, intervals)
-    return pd.concat(slices.values())
+    return overlapping_chunk_per_interval(df, intervals)
 
 
 @function_logger
