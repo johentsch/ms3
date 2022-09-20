@@ -62,7 +62,7 @@ ms3 uses keys for grouping files. The way how these keys are being used is trans
 * **0.5x** transitioning from the old to the new behaviour.
 
 IDs
-~~~
+^^^
 
 IDs are ``(key, i)`` pairs that identify one particular file (not piece) found by a Parse object. They are used as
 dictionary keys except for storing the information on file paths such as :py:attr:`~.parse.full_paths` or
