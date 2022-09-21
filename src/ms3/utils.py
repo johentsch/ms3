@@ -2875,6 +2875,52 @@ def rel2abs_key(rel, localkey, global_minor=False):
 
 
 @function_logger
+def make_interval_index_from_durations(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
+                               round=None, name='interval'):
+    """Given an annotations table with positions and durations, create an :obj:`pandas.IntervalIndex`.
+    Returns None if any row is underspecified.
+
+    Parameters
+    ----------
+    df : :obj:`pandas.DataFrame`
+        Annotation table containing the columns of ``position_col`` (default: 'quarterbeats') and ``duration_col``
+        default: 'duration_qb').
+    position_col : :obj:`str`, optional
+        Name of the column containing positions, used as left boundaries.
+    duration_col : :obj:`str`, optional
+        Name of the column containing durations which will be added to the positions to obtain right boundaries.
+    closed : :obj:`str`, optional
+        'left', 'right' or 'both' <- defining the interval boundaries
+    round : :obj:`int`, optional
+        To how many decimal places to round the intervals' boundary values.
+    name : :obj:`str`, optional
+        Name of the created index. Defaults to 'interval'.
+
+    Returns
+    -------
+    :obj:`pandas.IntervalIndex`
+        A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
+        could be coputed).
+    """
+    if not all(c in df.columns for c in (position_col, duration_col)):
+        missing = [c for c in (position_col, duration_col) if c not in df.columns]
+        plural = 's' if len(missing) > 1 else ''
+        logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
+        return
+    if df[position_col].isna().any() or df[duration_col].isna().any():
+        missing = df[df[[position_col, duration_col]].isna().any(axis=1)]
+        logger.warning(f"Could not make IntervalIndex because of missing values:\n{missing}")
+        return
+    try:
+        left = df[position_col].astype(float)
+        right = (left + df[duration_col]).astype(float)
+        if round is not None:
+            left, right = left.round(round), right.round(round)
+        return pd.IntervalIndex.from_arrays(left=left, right=right, closed=closed, name=name)
+    except Exception as e:
+        logger.warning(f"Creating IntervalIndex failed with exception {e}.")
+
+@function_logger
 def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
                                filter_zero_duration=False, round=3, name='interval'):
     """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.
@@ -3354,4 +3400,56 @@ def parse_ignored_warnings_file(path):
     messages = open(path, 'r', encoding='utf-8').readlines()
     return ignored_warnings2dict(messages)
 
+
+def overlapping_chunk_per_interval(df, intervals, truncate=True):
+    """ For each interval, create a chunk of the given DataFrame based on its IntervalIndex.
+    This is an optimized algorithm compared to calling IntervalIndex.overlaps(interval) for each
+    given interval, with the additional advantage that it will not discard rows where the
+    interval is zero, such as [25.0, 25.0).
+
+    Parameters
+    ----------
+   df : :obj:`pandas.DataFrame`
+        The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
+        Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
+        ``Parse.iter_transformed(interval_index=True)``.
+    intervals : :obj:`list` of :obj:`pd.Interval`
+        The intervals defining the chunks' dimensions. Expected to be non-overlapping and monotonically increasing.
+    truncate : :obj:`bool`, optional
+        Defaults to True, meaning that the interval index and the 'duration_qb' will be adapted for overlapping intervals.
+        Pass False to get chunks with all overlapping intervals as they are.
+
+    Returns
+    -------
+    :obj:`dict`
+        {interval -> chunk}
+    """
+    lefts = df.index.left.values    # lefts and rights will get shorter (potentially) with every
+    rights = df.index.right.values  # interval, in order to reduce the time for comparing values
+    chunks = {}
+    current_start_mask = np.ones(len(df.index), dtype = bool) # length remains the same
+    for iv in intervals:
+        # assumes intervals are non-overlapping and monotonically increasing
+        l, r = iv.left, iv.right
+        # never again check events ending before the current interval's start
+        not_ending_before_l = (rights >= l)
+        lefts = lefts[not_ending_before_l]
+        rights = rights[not_ending_before_l]
+        current_start_mask[current_start_mask] = not_ending_before_l
+        starting_before_r = (r > lefts)
+        not_ending_on_l_except_empty = (rights != l) | (lefts == l)
+        overlapping = (starting_before_r & not_ending_on_l_except_empty)
+        bool_mask = current_start_mask.copy()
+        bool_mask[current_start_mask] = overlapping
+        chunk = df[bool_mask].copy()
+        if truncate:
+            new_lefts, new_rights = lefts[overlapping], rights[overlapping]
+            starting_before_l, ending_after_r = (new_lefts < l), (new_rights > r)
+            if starting_before_l.sum() > 0 or ending_after_r.sum() > 0:
+                new_lefts[starting_before_l] = l
+                new_rights[ending_after_r] = r
+                chunk.index = pd.IntervalIndex.from_arrays(new_lefts, new_rights, closed='left')
+                chunk.duration_qb = (new_rights - new_lefts)
+        chunks[iv] = chunk
+    return chunks
 
