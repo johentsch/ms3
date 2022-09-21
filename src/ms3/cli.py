@@ -5,6 +5,9 @@ Command line interface for ms3.
 """
 
 import argparse, os, sys
+
+import pandas as pd
+
 from ms3 import Score, Parse
 from ms3.operations import extract, check, compare
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
@@ -356,6 +359,10 @@ def review_cmd(args, parse_obj=None):
     test_passes = test_passes and labels_ok
     extract_cmd(args, p)
     review_report = p.color_non_chord_tones()
+    filtered_report = pd.concat(review_report.values(), keys=[(key, p.files[key][i]) for (key, i) in review_report.keys()])
+    #filtered_report.to_csv('/home/hentsche/unittest_metacorpus/sweelinck_keyboard/MS3/report.tsv', sep='\t')
+    threshold = 0.5
+    print(filtered_report[filtered_report.dur_ratio > threshold])
     comparison = compare(p, use=args.use, revision_specifier=args.commit)
     modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     p.output_mscx(ids=modified_ids, suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
