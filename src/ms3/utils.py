@@ -826,7 +826,7 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
     """
     try:
         fifths = int(float(fifths))
-    except:
+    except Exception:
         if isinstance(fifths, pd.Series):
             return fifths.apply(fifths2name, ms=ms, logger=logger)
         if isinstance(fifths, Iterable):
@@ -852,7 +852,7 @@ def fifths2pc(fifths):
     """
     try:
         fifths = int(float(fifths))
-    except:
+    except Exception:
         if isinstance(fifths, Iterable):
             return map2elements(fifths, fifths2pc)
         return fifths
@@ -951,7 +951,7 @@ def get_musescore(MS):
         system = platform.system()
         try:
             MS = mapping[system]
-        except:
+        except Exception:
             logger.warning(f"System could not be inferred: {system}")
             MS = 'mscore'
     if MS == 'win':
@@ -1030,10 +1030,10 @@ def html_color2format(h, format='name'):
     if format == 'name':
         try:
             return webcolors.hex_to_name(h)
-        except:
+        except Exception:
             try:
                 return MS3_HTML[h]
-            except:
+            except Exception:
                 return h
     if format == 'rgb':
         return webcolors.hex_to_rgb(h)
@@ -1161,7 +1161,7 @@ def iter_selection(collectio, selector=None, opposite=False):
 def iterable2str(iterable):
     try:
         return ', '.join(str(s) for s in iterable)
-    except:
+    except Exception:
         return iterable
 
 # @function_logger
@@ -1236,10 +1236,9 @@ def first_level_subdirs(path):
 @function_logger
 def contains_corpus_indicator(path):
     for subdir in first_level_subdirs(path):
-        for name in STANDARD_NAMES:
-            if subdir == name:
-                logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
-                return True
+        if subdir in STANDARD_NAMES + [".git"]:
+            logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
+            return True
     return False
 
 
@@ -1323,16 +1322,16 @@ def join_tsvs(dfs, sort_cols=False):
 
 
 def str2inttuple(l, strict=True):
+    l = l.strip('(),')
     if l == '':
         return tuple()
-    l = l.strip(',')
     res = []
     for s in l.split(', '):
         try:
             res.append(int(s))
         except ValueError:
             if strict:
-                print(f"String value '{s}' could not be converted to a tuple.")
+                print(f"String value '{s}' could not be converted to an integer, '{l}' not to an integer tuple.")
                 raise
             if s[0] == s[-1] and s[0] in ("\"", "\'"):
                 s = s[1:-1]
@@ -1343,14 +1342,14 @@ def str2inttuple(l, strict=True):
 def int2bool(s):
     try:
         return bool(int(s))
-    except:
+    except Exception:
         return s
 
 
 def safe_frac(s):
     try:
         return frac(s)
-    except:
+    except Exception:
         return s
 
 def safe_int(s):
@@ -1577,7 +1576,7 @@ def make_id_tuples(key, n):
 
 
 @function_logger
-def make_interval_index(S, end_value=None, closed='left', name='interval'):
+def make_interval_index_from_breaks(S, end_value=None, closed='left', name='interval'):
     """ Interpret a Series as interval breaks and make an IntervalIndex out of it.
 
     Parameters
@@ -1605,12 +1604,12 @@ def make_interval_index(S, end_value=None, closed='left', name='interval'):
             breaks += [last]
     try:
         iix = pd.IntervalIndex.from_breaks(breaks, closed=closed, name=name)
-    except Exception:
+    except Exception as e:
         unsorted = [(a, b) for a, b in zip(breaks, breaks[1:]) if b < a]
         if len(unsorted) > 0:
             logger.error(f"Breaks are not sorted: {unsorted}")
         else:
-            logger.error(f"Cannot create IntervalIndex from these breaks:\n{breaks}")
+            logger.error(f"Cannot create IntervalIndex from these breaks:\n{breaks}\nException: {e}")
         raise
     return iix
 
@@ -1697,7 +1696,7 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
     new_dur = notna.groupby(['staff', 'midi'], group_keys=False).apply(merge_notes).sort_index()
     try:
         df.loc[new_dur.index, 'duration'] = new_dur.duration
-    except:
+    except Exception:
         print(new_dur)
     if return_dropped:
         df.loc[new_dur.index, 'dropped'] = new_dur.dropped
@@ -1745,7 +1744,7 @@ def midi2octave(midi, fifths=None):
     """
     try:
         midi = int(float(midi))
-    except:
+    except Exception:
         if isinstance(midi, Iterable):
             return map2elements(midi, midi2octave, logger=logger)
         return midi
@@ -1772,6 +1771,14 @@ def midi2octave(midi, fifths=None):
 
 
 def midi2name(midi):
+    try:
+        midi = int(float(midi))
+    except Exception:
+        if isinstance(midi, pd.Series):
+            return midi.apply(midi2name)
+        if isinstance(midi, Iterable):
+            return map2elements(midi, midi2name)
+        return midi
     names = {0: 'C',
              1: 'C#/Db',
              2: 'D',
@@ -1791,11 +1798,11 @@ def mn2int(mn_series):
     """ Turn a series of measure numbers parsed as strings into two integer columns 'mn' and 'volta'. """
     try:
         split = mn_series.fillna('').str.extract(r"(?P<mn>\d+)(?P<volta>[a-g])?")
-    except:
+    except Exception:
         mn_series = pd.DataFrame(mn_series, columns=['mn', 'volta'])
         try:
             return mn_series.astype('Int64')
-        except:
+        except Exception:
             return mn_series
     split.mn = pd.to_numeric(split.mn)
     split.volta = pd.to_numeric(split.volta.map({'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5}))
@@ -1888,7 +1895,7 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
         bool_cols += list(bool_columns)
     try:
         cc = [c for c in collection_cols if c in df.columns]
-    except:
+    except Exception:
         logger.error(f"df needs to be a DataFrame, not a {df.__class__}.")
         return df
     if len(cc) > 0:
@@ -2049,10 +2056,10 @@ def rgb_tuple2format(t, format='html'):
     if format == 'name':
         try:
             return webcolors.rgb_to_name(norm)
-        except:
+        except Exception:
             try:
                 return MS3_RGB[norm]
-            except:
+            except Exception:
                 return webcolors.rgb_to_hex(norm)
 
 
@@ -2185,7 +2192,7 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
         def check_regex(reg, s, excl=exclude_re):
             try:
                 res = re.search(reg, s) is not None and re.search(excl, s) is None
-            except:
+            except Exception:
                 print(reg)
                 raise
             return res
@@ -2593,7 +2600,7 @@ def unpack_mscz(mscz, tmp_dir=None):
                     tmp.write(line)
     try:
         yield tmp_file.name
-    except:
+    except Exception:
         logger.error(f"Error while dealing with the temporarily unpacked {os.path.basename(mscz)}")
         raise
     finally:
@@ -2922,7 +2929,7 @@ def make_interval_index_from_durations(df, position_col='quarterbeats', duration
 
 @function_logger
 def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='duration_qb', closed='left',
-                               filter_zero_duration=False, round=3, name='interval'):
+                               filter_zero_duration=False, round=None, name='interval'):
     """Given an annotations table with positions and durations, replaces its index with an :obj:`pandas.IntervalIndex`.
     Underspecified rows are removed.
 
@@ -2942,7 +2949,7 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     round : :obj:`int`, optional
         To how many decimal places to round the intervals' boundary values.
     name : :obj:`str`, optional
-        Name of the created index. Defaults to 'iv'.
+        Name of the created index. Defaults to 'interval'.
 
     Returns
     -------
@@ -2959,10 +2966,12 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     if filter_zero_duration:
         mask &= (df[duration_col] > 0)
     df = df[mask].copy()
-    left = df[position_col].astype(float)
-    right = left + df[duration_col].astype(float)
-    df.index = pd.IntervalIndex.from_arrays(left=left.round(round), right=right.round(round), closed=closed, name=name)
+    iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
+                    closed=closed, round=round, name=name)
+    assert iv_index is not None, "Creating IntervalIndex failed."
+    df.index = iv_index
     return df
+
 
 
 @function_logger
@@ -3103,7 +3112,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         try:
             minor = str_is_minor(key, is_name=True)
             logger.debug(f"Mode inferred from {key}.")
-        except:
+        except Exception:
             raise ValueError(f"If parameter 'minor' is not specified, 'key' needs to be a string, not {key}")
 
     key = name2fifths(key, logger=logger)
@@ -3371,7 +3380,7 @@ def parse_ignored_warnings(messages):
                         # a warning could be implemented at this point
                         continue
                     else:
-                        raise ValueError("Unexpected log message format: ", msg)
+                        raise ValueError(f"Unexpected log message format: {msg}")
                 tuple_start = msg.index('(') + 1
                 tuple_str = msg[tuple_start:-1]
                 info = str2inttuple(tuple_str, strict=False)
@@ -3398,6 +3407,7 @@ def parse_ignored_warnings_file(path):
     :obj: dict
         {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
     """
+    path = resolve_dir(path)
     messages = open(path, 'r', encoding='utf-8').readlines()
     return ignored_warnings2dict(messages)
 
