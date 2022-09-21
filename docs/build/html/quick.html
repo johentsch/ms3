@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Quick Reference &#8212; ms3 0.5.3 documentation</title>
+    <title>Quick Reference &#8212; ms3  documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -50,15 +50,12 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-        <li class="right" >
           <a href="manual.html" title="Manual"
              accesskey="N">next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3  documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -77,7 +74,7 @@
 <img alt="The archicture of ms3" src="_images/ms3_architecture.png" />
 </figure>
 <p>There are two ways of interacting with ms3, namely using the commands that it installs to your system (such as
-<code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>), or using its main objects, <a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> and <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a>, for example
+<code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>), or using its main objects, <code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code>, for example
 in an interactive Python interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
 <section id="parsing-a-single-score-working-with-the-score-object">
 <h2>Parsing a single score: Working with the Score object<a class="headerlink" href="#parsing-a-single-score-working-with-the-score-object" title="Permalink to this heading">¶</a></h2>
@@ -117,7 +114,7 @@ which can be stored anywhere on the system.</p>
 </section>
 <section id="storing-the-labels">
 <h3>Storing the labels<a class="headerlink" href="#storing-the-labels" title="Permalink to this heading">¶</a></h3>
-<p>The annotations contained in a score are stored in an <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object and can be accessed
+<p>The annotations contained in a score are stored in an <code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code> object and can be accessed
 and stored as a tab-separated file (TSV) like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">annotations</span>
 <span class="go">48 labels:</span>
@@ -154,7 +151,7 @@ and stored as a tab-separated file (TSV) like this:</p>
 </pre></div>
 </div>
 <p>Upon inspecting the object we see that the 48 labels are not attached to the score anymore. They are stored in a new
-<a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
 The warning <code class="docutils literal notranslate"><span class="pre">CHANGED!!!</span></code> does not mean that the file on disc has been changed, only the object. Overwriting
 the original file could mean a loss of the labels unless they are stored separately.</p>
 </section>
@@ -169,7 +166,7 @@ The output will always be uncompressed, so make sure to use <code class="docutil
 </section>
 <section id="adding-labels-to-score">
 <h3>Adding labels to score<a class="headerlink" href="#adding-labels-to-score" title="Permalink to this heading">¶</a></h3>
-<p>The method <a class="reference internal" href="reference.html#ms3.score.Score.attach_labels" title="ms3.score.Score.attach_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code></a> can be used to re-attach a set of labels that has been
+<p>The method <code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code> can be used to re-attach a set of labels that has been
 <a class="reference internal" href="#detaching"><span class="std std-ref">detached</span></a>. Similarly we can load the empty score and the stored labels to reunite them:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;stabat_empty.mscx&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">load_annotations</span><span class="p">(</span><span class="s1">&#39;stabat_chords.tsv&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;tsv_chords&#39;</span><span class="p">)</span>
@@ -217,7 +214,7 @@ you may open the new file <code class="docutils literal notranslate"><span class
 <section id="accessing-score-information">
 <h3>Accessing score information<a class="headerlink" href="#accessing-score-information" title="Permalink to this heading">¶</a></h3>
 <p>After parsing a score, all contained information is accessible in structured formats. Most information is returned as
-<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.4.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v1.5.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>, whereas a given set of metadata is accessible as dictionary.</p>
 <p>Since this information is attached to the parsed MSCX file (and not, say, to loaded annotations), it is accessible
 via <code class="docutils literal notranslate"><span class="pre">s.mscx</span></code>.</p>
 <section id="metadata">
@@ -313,7 +310,7 @@ standardized tables:</p>
 notes are part of the same notational layer and have the same onset. Every chord has a <code class="docutils literal notranslate"><span class="pre">chord_id</span></code> and every note
 is part of a chord. These tables are used to convey score information that is not attached to a particular note,
 such as lyrics, staff text, dynamics and other markup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">labels</span></code>: The annotation labels contained in the score, formatted according to <a class="reference internal" href="reference.html#ms3.score.MSCX.labels_cfg" title="ms3.score.MSCX.labels_cfg"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code></a>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">labels</span></code>: The annotation labels contained in the score, formatted according to <code class="xref py py-attr docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">expanded</span></code>: If the score contains <a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony labels</a>, return them split
 into the encoded features.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cadences</span></code>: If DCML harmony labels include cadence labels, return only those (simply a filter on <code class="docutils literal notranslate"><span class="pre">expanded</span></code>).</p></li>
@@ -384,7 +381,7 @@ into the encoded features.</p></li>
 a tab-separated values file (TSV).</p>
 <section id="loading">
 <h3>Loading<a class="headerlink" href="#loading" title="Permalink to this heading">¶</a></h3>
-<p>The first step is to create a <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a> object. When passing it
+<p>The first step is to create a <code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code> object. When passing it
 the path of the cloned <a class="reference external" href="https://github.com/johentsch/ms3">Git</a>, it scans it for all MSCX files:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Parse</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">)</span>
@@ -420,7 +417,7 @@ Instead, we could assign all ten files to the same key and then add the ‘docs�
 </pre></div>
 </div>
 <p>Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
-<a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a>) are stored in the dictionary
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a>) are stored in the dictionary
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">_parsed</span></code>, the state of which can be viewed like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parsed</span>
 <span class="go">{(&#39;all&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
@@ -623,15 +620,12 @@ in each of them.</p></li>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-        <li class="right" >
           <a href="manual.html" title="Manual"
              >next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.3 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3  documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
