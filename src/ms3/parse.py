@@ -1,3 +1,4 @@
+import io
 import sys, os, re
 from functools import lru_cache
 import json
@@ -7,9 +8,11 @@ from collections import Counter, defaultdict, namedtuple
 
 import pandas as pd
 import numpy as np
+from git import Repo, InvalidGitRepositoryError
+from gitdb.exc import BadName
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler
+from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
 from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
@@ -50,6 +53,8 @@ class Parse(LoggedClass):
             and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
+        level: :obj:`str`
+            Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
         warn_overwritten_level = False
         if level is not None:
@@ -61,8 +66,15 @@ class Parse(LoggedClass):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
         if warn_overwritten_level:
+            # warning emitted only here, after self.logger has been initialized
             self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
+
+        self.corpus_paths = {}
+        """obj:`dict`
+        {key -> path} dictionary with each corpus's base directory.
+        """
+
         # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
         self.full_paths = defaultdict(list)
         """:obj:`collections.defaultdict`
@@ -226,7 +238,7 @@ class Parse(LoggedClass):
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
-        self._lists = {
+        self._dataframes = {
             'notes': self._notelists,
             'rests': self._restlists,
             'notes_and_rests': self._noterestlists,
@@ -243,7 +255,7 @@ class Parse(LoggedClass):
         """
 
 
-        self._matches = pd.DataFrame(columns=['scores']+list(self._lists.keys()))
+        self._matches = pd.DataFrame(columns=['scores']+list(self._dataframes.keys()))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
@@ -307,32 +319,41 @@ class Parse(LoggedClass):
         ----------
         list_of_pairs : list of (score_id, tsv_id)
             IDs of parsed files.
+        new_key : :obj:`str`
+            The key under which the detached annotations can be addressed using Score[new_key].
         """
         assert list_of_pairs is not None, "list_of_pairs cannot be None"
         for score_id, tsv_id in list_of_pairs:
             if pd.isnull(score_id):
-                self.logger.info(f"No score found for labels {tsv_id}")
-            elif pd.isnull(tsv_id):
+                self.logger.info(f"No score found for annotation table {tsv_id}")
+                continue
+            if pd.isnull(tsv_id):
                 self.logger.info(f"No labels found for score {score_id}")
-            elif score_id in self._parsed_mscx:
-                if tsv_id in self._annotations:
-                    k = tsv_id[0] if pd.isnull(new_key) else new_key
-                    try:
-                        self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
-                    except:
-                        print(f"score_id: {score_id}, labels_id: {tsv_id}")
-                        raise
-                elif tsv_id in self._parsed_tsv:
-                    k, i = tsv_id
-                    self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object.
-        Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
-                else:
-                    self.logger.debug(
-                        f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
-            else:
+                continue
+            if score_id not in self._parsed_mscx:
                 self.logger.info(f"{score_id} has not been parsed yet.")
+                continue
+            if tsv_id in self._annotations:
+                k = tsv_id[0] if pd.isnull(new_key) else new_key
+                try:
+                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
+                except:
+                    print(f"score_id: {score_id}, labels_id: {tsv_id}")
+                    raise
+            elif tsv_id in self._parsed_tsv:
+                k, i = tsv_id
+                self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object. Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
+            else:
+                self.logger.debug(
+                    f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
 
 
+    def _make_grouped_ids(self, keys=None, ids=None):
+        if ids is not None:
+            grouped_ids = group_id_tuples(ids)
+        else:
+            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+        return grouped_ids
 
     def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
         """Concatenate DataFrames contained in a {ID -> df} dictionary.
@@ -504,7 +525,7 @@ class Parse(LoggedClass):
 
 
 
-    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old'):
+    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', revision_specifier=None):
         """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
         objects to which they are being matched based on their filenames or on ``match_dict``.
 
@@ -524,12 +545,15 @@ class Parse(LoggedClass):
             Note that passing ``tsv_key`` results in the deprecated use of Parse.match_files(). The preferred way
             is to parse the labels to be attached under the same key as the scores and use
             View.add_detached_labels().
+        revision_specifier : :obj:`str`, optional
+            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
+            using compare_labels()), pass the commit's SHA.
         """
         keys = self._treat_key_param(keys)
         if tsv_key is None:
             for key in keys:
                 view = self._get_view(key)
-                view.add_detached_annotations(use=use, new_key=new_key)
+                view.add_detached_annotations(use=use, new_key=new_key, revision_specifier=revision_specifier)
             return
         matches = self.match_files(keys=keys + [tsv_key])
         matches = matches[matches.labels.notna() | matches.expanded.notna()]
@@ -666,7 +690,7 @@ class Parse(LoggedClass):
                 added_ids += new_id
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
-
+        self.corpus_paths[key] = resolve_dir(directory)
         self.look_for_ignored_warnings(directory, key)
 
     def look_for_ignored_warnings(self, directory, key):
@@ -790,7 +814,7 @@ class Parse(LoggedClass):
 
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_mscx` will output
+        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.output_mscx` will output
         MuseScore files where the annotations show in the score.
 
         Parameters
@@ -885,6 +909,19 @@ Continuing with {annotation_key}.""")
             return pd.concat(checks.values(), keys=idx, names=idx.names)
         return pd.DataFrame()
 
+    def color_non_chord_tones(self, keys=None, ids=None, color_name='red'):
+        if len(self._parsed_mscx) == 0:
+            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            return
+        if ids is None:
+            ids = list(self._iterids(keys, only_parsed_mscx=True))
+        else:
+            ids = [id for id in ids if id in self._parsed_mscx]
+        result = {}
+        for id in ids:
+            score = self._parsed_mscx[id]
+            result[id] = score.color_non_chord_tones(color_name=color_name)
+        return result
 
 
     def _extract_and_cache_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
@@ -908,12 +945,12 @@ Continuing with {annotation_key}.""")
             only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
         scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
-        bool_params = list(self._lists.keys())
+        bool_params = list(self._dataframes.keys())
         l = locals()
         params = {p: l[p] for p in bool_params}
 
         for i, score in scores.items():
-            for param, li in self._lists.items():
+            for param, li in self._dataframes.items():
                 if params[param] and (i not in li or not only_new):
                     if self.simulate:
                         df = pd.DataFrame()
@@ -923,8 +960,8 @@ Continuing with {annotation_key}.""")
                         li[i] = df
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred',
-                       detached_is_newer=False, store_with_suffix=None):
+    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
+                       detached_is_newer=False):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
@@ -940,27 +977,32 @@ Continuing with {annotation_key}.""")
             will turn ``old_color``, as opposed to the default.
         store_with_suffix : :obj:`str`, optional
             If you pass a suffix, the comparison MSCX files are stored with this suffix next to the originals.
+
+        Returns
+        -------
+        :obj:`dict`
+            {ID -> (n_new_labels, n_removed_labels)} dictionary.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         ids = list(self._iterids(None, only_detached_annotations=True))
         if len(ids) == 0:
             if len(self._parsed_mscx) == 0:
-                self.logger.warning("No scores have been parsed so far.")
-                return
-            self.logger.warning("None of the parsed score include detached labels to compare.")
-            return
+                self.logger.info("No scores have been parsed so far.")
+                return {}
+            self.logger.info("None of the parsed scores include detached labels to compare.")
+            return {}
         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
         if detached_key not in available_keys:
-            self.logger.warning(f"""None of the parsed score include detached labels with the key '{detached_key}'.
+            self.logger.info(f"""None of the parsed scores include detached labels with the key '{detached_key}'.
 Available keys: {available_keys}""")
-            return
+            return {}
         ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
+        comparison_results = {}
         for id in ids:
-            res = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
+            comparison_results[id] = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
                                                  detached_is_newer=detached_is_newer)
-            if res and store_with_suffix is not None:
-                self.store_mscx(ids=[id], suffix=store_with_suffix, overwrite=True, simulate=self.simulate)
+        return comparison_results
 
 
     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
@@ -1254,21 +1296,21 @@ Available keys: {available_keys}""")
             return {}
         if ids is not None:
             grouped_ids = group_id_tuples(ids)
-            grouped_ids = {key: [self.fnames[key][i] for i in ints] for key, ints in grouped_ids.items()}
+            key2fnames = {key: [self.fnames[key][i] for i in ints] for key, ints in grouped_ids.items()}
         else:
             keys = self._treat_key_param(keys)
-            grouped_ids = {k: None for k in keys}
-        bool_params = list(self._lists.keys())
+            key2fnames = {k: None for k in keys}
+        bool_params = list(self._dataframes.keys())
         l = locals()
-        columns = [tsv_type for tsv_type in self._lists.keys() if l[tsv_type]]
-        self.logger.debug(f"Looking up {columns} DataFrames for IDs {grouped_ids}")
+        columns = [tsv_type for tsv_type in self._dataframes.keys() if l[tsv_type]]
+        self.logger.debug(f"Looking up {columns} DataFrames for IDs {key2fnames}")
         #self.collect_lists(ids=ids, only_new=True, **params)
         res = {} if flat else defaultdict(dict)
         # if unfold:
         #     playthrough2mcs = self.get_playthrough2mc(ids=ids)
         if interval_index:
             quarterbeats = True
-        for key, fnames in grouped_ids.items():
+        for key, fnames in key2fnames.items():
             for md, *dfs in self[key].iter_transformed(columns, skip_missing=True, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
                 for tsv_type, id, df in zip(columns, md['ids'], dfs):
                     if df is not None:
@@ -1347,7 +1389,7 @@ Available keys: {available_keys}""")
         if len(self._parsed_tsv) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
             return {}
-        bool_params = ['metadata'] + list(self._lists.keys())
+        bool_params = ['metadata'] + list(self._dataframes.keys())
         l = locals()
         types = [p for p in bool_params if l[p]]
         res = {}
@@ -1612,7 +1654,7 @@ Available keys: {available_keys}""")
             Those files that were matched. This is a subsection of self._matches
         """
         lists = {'scores': self._parsed_mscx}
-        lists.update(dict(self._lists))
+        lists.update(dict(self._dataframes))
         if what is None:
             what = list(lists.keys())
         elif isinstance(what, str):
@@ -1788,17 +1830,16 @@ Available keys: {available_keys}""")
 
 
 
-    def parse(self, keys=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None,
-              cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, simulate=None, **kwargs):
+    def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types=None, simulate=None, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time."""
         if simulate is not None:
             self.simulate = simulate
-        self.parse_mscx(keys=keys, read_only=read_only, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
+        self.parse_mscx(keys=keys, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
         self.parse_tsv(keys=keys, fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
 
 
 
-    def parse_mscx(self, keys=None, ids=None, read_only=True, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
+    def parse_mscx(self, keys=None, ids=None, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
         """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -1809,14 +1850,13 @@ Available keys: {available_keys}""")
             For which key(s) to parse all MSCX files.
         ids : :obj:`~collections.abc.Collection`
             To parse only particular files, pass their IDs. ``keys`` and ``fexts`` are ignored in this case.
-        read_only : :obj:`bool`, optional
-            If ``parallel=False``, you can increase speed and lower memory requirements by passing ``read_only=True``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
             Pass a level name for which (and above which) you want to see log records.
         parallel : :obj:`bool`, optional
             Defaults to True, meaning that all CPU cores are used simultaneously to speed up the parsing. It implies
             that the resulting Score objects are in read-only mode and that you might not be able to use the computer
-            during parsing. Set to False to parse one score after the other.
+            during parsing. Set to False to parse one score after the other, which uses more memory but will allow
+            making changes to the scores.
         only_new : :obj:`bool`, optional
             By default, score which already have been parsed, are not parsed again. Pass False to parse them, too.
 
@@ -1830,10 +1870,7 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
-        if parallel and not read_only:
-            read_only = True
-            self.logger.info("When pieces are parsed in parallel, the resulting objects are always in read_only mode.")
-        self.logger.debug(f"Parsing scores with parameters read_only={read_only}, parallel={parallel}, only_new={only_new}")
+        self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
 
         if ids is not None:
             pass
@@ -1865,16 +1902,16 @@ Available keys: {available_keys}""")
         ) for id in ids]
 
         ### collect argument tuples for calling self._parse
-        parse_this = [id + (conf, self.labels_cfg, read_only) for id, conf in zip(ids, configs)]
+        parse_this = [id + (conf, self.labels_cfg, parallel) for id, conf in zip(ids, configs)]
         target = len(parse_this)
         successful = 0
         modus = 'would ' if self.simulate else ''
         try:
             if self.simulate:
-                for key, i, logger_cfg, _, read_only in parse_this:
+                for key, i, logger_cfg, _, parallel in parse_this:
                     path = self.full_paths[key][i]
                     try:
-                        score_object = Score(path, read_only=read_only, logger_cfg=logger_cfg)
+                        score_object = Score(path, read_only=parallel, logger_cfg=logger_cfg)
                     except Exception:
                         self.logger.exception(traceback.format_exc())
                         score_object = None
@@ -1913,11 +1950,12 @@ Available keys: {available_keys}""")
                 self.logger.info(f"None of the {target} files {modus}have been parsed successfully.")
         except KeyboardInterrupt:
             self.logger.info("Parsing interrupted by user.")
+            raise
         finally:
             self._collect_annotations_objects_references(ids=ids)
 
 
-    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types={'dcml': DCML_DOUBLE_REGEX}, level=None, **kwargs):
+    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -1928,10 +1966,10 @@ Available keys: {available_keys}""")
             To parse only particular files, pass there IDs. ``keys`` and ``fexts`` are ignored in this case.
         fexts :  :obj:`str` or :obj:`~collections.abc.Collection`, optional
             If you want to parse only files with one or several particular file extension(s), pass the extension(s)
-        annotations : :obj:`str` or :obj:`~collections.abc.Collection`, optional
+        cols : :obj:`dict`, optional
             By default, if a column called ``'label'`` is found, the TSV is treated as an annotation table and turned into
             an Annotations object. Pass one or several column name(s) to treat *them* as label columns instead. If you
-            pass ``None`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
+            pass ``{}`` or no label column is found, the TSV is parsed as a "normal" table, i.e. a DataFrame.
         infer_types : :obj:`dict`, optional
             To recognize one or several custom label type(s), pass ``{name: regEx}``.
         level : {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}, optional
@@ -1986,7 +2024,7 @@ Available keys: {available_keys}""")
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
                         logger.debug(f"{self.files[key][i]} parsed as metadata.")
                     else:
-                        self._lists[tsv_type][id] = self._parsed_tsv[id]
+                        self._dataframes[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
                             if label_col in df.columns:
                                 logger_cfg = dict(self.logger_cfg)
@@ -1994,7 +2032,7 @@ Available keys: {available_keys}""")
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg=logger_cfg, level=level)
                                 logger.debug(
-                                    f"{self.files[key][i]} parsed as a list of labels and an Annotations object was created.")
+                                    f"{self.files[key][i]} parsed as annotation table and an Annotations object was created.")
                             else:
                                 logger.info(
     f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
@@ -2005,6 +2043,83 @@ Available keys: {available_keys}""")
             except Exception:
                 self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
 
+    def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
+        """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
+
+        Parameters
+        ----------
+        tsv_id
+            ID of the TSV file containing an annotation table, for which to parse a previous version.
+        revision_specifier : :obj:`str`
+            String used by git.Repo.commit() to find the desired git revision.
+            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
+
+        Returns
+        -------
+        ID
+            (key, i) of the newly added annotation table.
+        """
+        key, i = tsv_id
+        corpus_path = self.corpus_paths[key]
+        try:
+            repo = Repo(corpus_path, search_parent_directories=True)
+        except InvalidGitRepositoryError:
+            self.logger.error(f"{corpus_path} seems not to be (part of) a git repository.")
+            return
+        try:
+            git_repo = repo.remote("origin").url
+        except ValueError:
+            git_repo = os.path.basename()
+        try:
+            commit = repo.commit(revision_specifier)
+            commit_sha = commit.hexsha
+            short_sha = commit_sha[:7]
+            commit_info = f"{short_sha} with message '{commit.message}'"
+        except BadName:
+            self.logger.error(f"{revision_specifier} does not resolve to a commit for repo {git_repo}.")
+            return
+        tsv_type = self._tsv_types[tsv_id]
+        tsv_path = self.full_paths[key][i]
+        rel_path = os.path.relpath(tsv_path, corpus_path)
+        new_directory = os.path.join(corpus_path, short_sha)
+        new_path = os.path.join(new_directory, self.files[key][i])
+        if new_path in self.full_paths[key]:
+            existing_i = self.full_paths[key].index(new_path)
+            existing_tsv_type = self._tsv_types[(key, existing_i)]
+            if tsv_type == existing_tsv_type:
+                self.logger.error(f"Had already loaded a {tsv_type} table for commit {commit_info} of repo {git_repo}.")
+                return
+        if not tsv_type in ('labels', 'expanded'):
+            raise NotImplementedError(f"Currently, only annotations are to be loaded from a git revision but {rel_path} is a {tsv_type}.")
+        try:
+            targetfile = commit.tree / rel_path
+        except KeyError:
+            self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
+            return
+        try:
+            with io.BytesIO(targetfile.data_stream.read()) as f:
+                df = load_tsv(f)
+        except Exception:
+            self.logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following error:\n{sys.exc_info()[1]}")
+            return
+        new_id = self._handle_path(new_path, key, skip_checks=True)
+        self._parsed_tsv[new_id] = df
+        self._dataframes[tsv_type][new_id] = df
+        self._tsv_types[new_id] = tsv_type
+        logger_cfg = dict(self.logger_cfg)
+        logger_cfg['name'] = self.logger_names[(key, i)]
+        if tsv_id in self._annotations:
+            anno_obj = self._annotations[tsv_id] # get Annotation object's settings from the existing one
+            cols = anno_obj.cols
+            infer_types = anno_obj.regex_dict
+        else:
+            cols = dict(label='label')
+            infer_types = None
+        self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                            logger_cfg=logger_cfg)
+        self.logger.debug(
+            f"{rel_path} successfully parsed from commit {short_sha}.")
+        return new_id
 
 
     def pieces(self, parsed_only=False):
@@ -2024,7 +2139,8 @@ Available keys: {available_keys}""")
                           cadences_folder=None, cadences_suffix='',
                           form_labels_folder=None, form_labels_suffix='',
                           metadata_path=None, markdown=True,
-                          simulate=None, unfold=False, quarterbeats=False):
+                          simulate=None, unfold=False, quarterbeats=False,
+                          silence_label_warnings=False):
         """ Store score information as TSV files.
 
         Parameters
@@ -2066,24 +2182,28 @@ Available keys: {available_keys}""")
         else:
             self.simulate = simulate
         l = locals()
-        list_types = list(self._lists)
-        folder_vars = [t + '_folder' for t in list_types]
-        suffix_vars = [t + '_suffix' for t in list_types]
-        folder_params = {t: l[p] for t, p in zip(list_types, folder_vars) if l[p] is not None}
+        df_types = list(self._dataframes)
+        folder_vars = [t + '_folder' for t in df_types]
+        suffix_vars = [t + '_suffix' for t in df_types]
+        folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
         if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
-        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(list_types, suffix_vars) if t in folder_params}
-        list_params = {p: True for p in folder_params.keys()}
-        lists = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **list_params)
+        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
+        df_params = {p: True for p in folder_params.keys()}
+        if silence_label_warnings:
+            with temporarily_suppress_warnings(self) as self:
+                dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
+        else:
+            dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
         modus = 'would ' if simulate else ''
-        if len(lists) == 0 and metadata_path is None:
+        if len(dataframes) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
             return [] if simulate else None
         paths = {}
         warnings, infos = [], []
         unf = 'Unfolded ' if unfold else ''
-        for (key, i, what), li in lists.items():
+        for (key, i, what), li in dataframes.items():
             new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
                                        root_dir=root_dir, what=what, simulate=simulate)
             if new_path in paths:
@@ -2094,7 +2214,7 @@ Available keys: {available_keys}""")
         if len(warnings) > 0:
             self.logger.warning('\n'.join(warnings))
         l_infos = len(infos)
-        l_target = len(lists)
+        l_target = len(dataframes)
         if l_target > 0:
             if l_infos == 0:
                 self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
@@ -2103,7 +2223,6 @@ Available keys: {available_keys}""")
             else:
                 msg = f"\n\nAll {l_infos} {modus}have been written."
             self.logger.info('\n'.join(infos) + msg)
-        #self.logger = prev_logger
         if metadata_path is not None:
             md = self.metadata()
             if len(md.index) > 0:
@@ -2122,12 +2241,10 @@ Available keys: {available_keys}""")
             else:
                 self.logger.debug(f"\n\nNo metadata to write.")
         return paths
-        # if simulate:
-        #     return list(set(paths.keys()))
 
 
 
-    def store_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
+    def output_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
 
         Parameters
@@ -2160,7 +2277,7 @@ Available keys: {available_keys}""")
             ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
-            new_path = self._store_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
+            new_path = self._output_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path is not None:
                 if new_path in paths:
                     modus = 'would have' if simulate else 'has'
@@ -2228,14 +2345,14 @@ Available keys: {available_keys}""")
                     del (self._parsed_mscx[id])
         self._annotations.update(updated)
 
-    def _handle_path(self, full_path, key):
+    def _handle_path(self, full_path, key, skip_checks=False):
         full_path = resolve_dir(full_path)
-        if not os.path.isfile(full_path):
+        if not skip_checks and not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
             return (None, None)
         file_path, file = os.path.split(full_path)
         file_name, file_ext = os.path.splitext(file)
-        if file_ext[1:] not in Score.parseable_formats + ('tsv',):
+        if not skip_checks and file_ext[1:] not in Score.parseable_formats + ('tsv',):
             ext_string = "without extension" if file_ext == '' else f"with extension {file_ext}"
             self.logger.debug(f"ms3 does not handle files {ext_string} -> discarding" + full_path)
             return (None, None)
@@ -2243,7 +2360,7 @@ Available keys: {available_keys}""")
         subdir = get_path_component(rel_path, key)
         if file in self.files[key]:
             same_name = [i for i, f in enumerate(self.files[key]) if f == file]
-            if any(True for i in same_name if self.rel_paths[key][i] == rel_path):
+            if not skip_checks and any(True for i in same_name if self.rel_paths[key][i] == rel_path):
                 self.logger.debug(
                     f"""The file name {file} is already registered for key '{key}' and both files have the relative path {rel_path}.
 Load one of the identically named files with a different key using add_dir(key='KEY').""")
@@ -2334,10 +2451,7 @@ Load one of the identically named files with a different key using add_dir(key='
             The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.
 
         """
-        if ids is not None:
-            grouped_ids = group_id_tuples(ids)
-        else:
-            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+        grouped_ids = self._make_grouped_ids(keys, ids)
         for k, ixs in grouped_ids.items():
             subdirs = self.subdirs[k]
             for subdir in sorted(set(iter_selection(subdirs, ixs))):
@@ -2404,7 +2518,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _store_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
+    def _output_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
         """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
 
         Parameters
@@ -2461,7 +2575,7 @@ Load one of the identically named files with a different key using add_dir(key='
             logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            self._parsed_mscx[id].store_mscx(file_path)
+            self._parsed_mscx[id].output_mscx(file_path)
             logger.debug(f"Score written to {file_path}.")
 
         return file_path
@@ -2958,7 +3072,7 @@ class View(Parse):
         -------
 
         """
-        standard_cols = list(self.p._lists.keys())
+        standard_cols = list(self.p._dataframes.keys())
         piece_matrix = self.pieces(parsed_only=True)
         if fnames is not None:
             missing = [fn for fn in fnames if fn not in piece_matrix.fnames.values]
@@ -3068,22 +3182,27 @@ class View(Parse):
     def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
         if not any((unfold, quarterbeats, interval_index)):
             for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs) and skip_missing:
-                    self.logger.warning(f"Not all requested data available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                    continue
+                if any(df is None for df in dfs):
+                    if skip_missing:
+                        continue
+                    else:
+                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                 yield (md, *dfs)
         else:
             if isinstance(columns, str):
                 columns = [columns]
             columns.append('measures*')
             for md, *dfs, measures in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs + [measures]) and skip_missing:
-                    if any(s.contains('measures') for s in columns):
-                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                if any(df is None for df in dfs + [measures]):
+                    if skip_missing:
+                        continue
                     else:
-                        missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
-                    self.logger.warning(f"No [{','.join(missing)}] available for {md['fnames']}.")
-                    continue
+                        if any(s.contains('measures') for s in columns):
+                            missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
+                        else:
+                            missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
+                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
                 dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=self.logger)
                 md['paths'] = md['paths'][:-1]
                 yield (md, *dfs)
@@ -3142,7 +3261,7 @@ class View(Parse):
             labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
         n_cols = len(labels_cols)
         if n_cols == 0:
-            self.logger.error(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
+            self.logger.info(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
             return []
         display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
         display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
@@ -3219,10 +3338,33 @@ class View(Parse):
         id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
         return id_pairs
 
-    def add_detached_annotations(self, use=None, new_key='old'):
+    def add_detached_annotations(self, use=None, new_key='old', revision_specifier=None):
+        """
+
+        Parameters
+        ----------
+        use : :obj:`str`, optional
+            By default, if several sets of annotation files are found, the user is asked to input
+            in which order to pick them. Instead, they can specify the name of a column of
+            _.pieces(), especially 'expanded' or 'labels' to be using only these.
+        new_key : :obj:`str`
+            The key under which the detached annotations can be addressed using Score[new_key].
+        revision_specifier : :obj:`str`, optional
+            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
+            using compare_labels()), pass a specifier for that git revision.
+            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
+
+        Returns
+        -------
+
+        """
         id_pairs = self.match_scores_with_annotations(use=use)
+        if revision_specifier is not None:
+            id_pairs = [(score, self.p._parse_tsv_from_git_revision(tsv, revision_specifier)) for score, tsv in id_pairs]
         if len(id_pairs) > 0:
             self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
+        else:
+            self.logger.info(f"No scores were matched with annotation tables.")
 
     def add_labels(self, use=None):
         id_pairs = self.match_scores_with_annotations(use=use)
@@ -3354,7 +3496,7 @@ class Piece(View):
 
     @lru_cache()
     def get_dataframe(self, what, unfold=False, quarterbeats=False, interval_index=False, disambiguation='auto', prefer_score=True, return_file_info=False):
-        available = list(self.p._lists.keys())
+        available = list(self.p._dataframes.keys())
         if what not in available:
             raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
         if self.score_available and (prefer_score or what not in self.matches):

@@ -68,8 +68,7 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
                     ivs = make_interval_index_from_breaks(df.loc[present_qb, 'quarterbeats'].astype(float),
                                                           end_value=float(offset_dict['end']), logger=logger)
                     df.insert(insert_here + 1, 'duration_qb', pd.NA)
-                    df.loc[present_qb, 'duration_qb'] = ivs.right - ivs.left
-                    #df.duration_qb = df.duration_qb
+                    df.loc[present_qb, 'duration_qb'] = ivs.length
                 except Exception:
                     logger.warning(
                         "Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict needs to be larger than the last quarterbeat).")
@@ -907,7 +906,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
             end = max(idx.right)
             iv = pd.Interval(start, end, closed=idx.closed)
             row.index = pd.IntervalIndex([iv])
-            row.loc[iv, 'duration_qb'] = iv.right - iv.left
+            row.loc[iv, 'duration_qb'] = iv.length
         else:
             new_duration = df.duration_qb.sum()
             row.loc[first_loc, 'duration_qb'] = new_duration

@@ -1,4 +1,5 @@
 import sys, re
+from functools import lru_cache
 
 import pandas as pd
 
@@ -16,7 +17,7 @@ class Annotations(LoggedClass):
     additional_cols = ['harmony_layer', 'regex_match', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
                        'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'placement', 'minDistance', 'style', 'z']
 
-    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types={}, read_only=False, logger_cfg={}, **kwargs):
+    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types=None, read_only=False, logger_cfg={}, **kwargs):
         """
 
         Parameters
@@ -34,7 +35,10 @@ class Annotations(LoggedClass):
         index_col
         sep
         mscx_obj
-        infer_types
+        infer_types : :obj:`dict`, optional
+            If you want to check all labels against one or several regular expressions, pass them as a {label_type -> regEx} dictionary.
+            The column regex_match will display the label_type of the last matched regEx. If you pass None, the default behaviour
+            is detecting labels of the DCML harmony annotation standard's current version.
         read_only
         logger_cfg : :obj:`dict`, optional
             The following options are available:
@@ -44,7 +48,10 @@ class Annotations(LoggedClass):
         kwargs :
         """
         super().__init__(subclass='Annotations', logger_cfg=logger_cfg)
-        self.regex_dict = infer_types
+        if infer_types is None:
+            self.regex_dict = {'dcml': DCML_DOUBLE_REGEX}
+        else:
+            self.regex_dict = infer_types
         self._expanded = None
         self.changed = False
         self.read_only = read_only
@@ -293,7 +300,7 @@ class Annotations(LoggedClass):
             res = column_order(self.mscx_obj.parsed.add_standard_cols(res))
         return res
 
-
+    @lru_cache()
     def expand_dcml(self, drop_others=True, warn_about_others=True, drop_empty_cols=False, chord_tones=True, relative_to_global=False, absolute=False, all_in_c=False,  **kwargs):
         """ Expands all labels where the regex_match has been inferred as 'dcml' and stores the DataFrame in self._expanded.
 
@@ -381,7 +388,6 @@ class Annotations(LoggedClass):
 
 
     def infer_types(self, regex_dict=None):
-        recognized = [0, 1, 2, 3, '0', '1', '2', '3']
         if 'harmony_layer' not in self.df.columns:
             type_col = pd.Series(0, index=self.df.index, dtype='object', name='harmony_layer')
             self.df = pd.concat([self.df, type_col], axis=1)
@@ -391,16 +397,16 @@ class Annotations(LoggedClass):
             self.df.loc[self.df.absolute_root.notna(), 'harmony_layer'] = 3
 
 
-        if regex_dict is not None:
-            self.regex_dict = regex_dict
-        if len(self.regex_dict) > 0:
+        if regex_dict is None:
+            regex_dict = self.regex_dict
+        if len(regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True, logger=self.logger)
             sel = decoded.notna()
             if 'regex_match' not in self.df.columns and sel.any():
                 regex_col = pd.Series(index=self.df.index, dtype='object')
                 column_position = self.df.columns.get_loc('harmony_layer') + 1
                 self.df.insert(column_position, 'regex_match', regex_col)
-            for name, regex in self.regex_dict.items():
+            for name, regex in regex_dict.items():
                 mtch = decoded[sel].str.match(regex)
                 self.df.loc[sel & mtch, 'regex_match'] = name
 

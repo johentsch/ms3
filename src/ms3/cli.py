@@ -6,13 +6,53 @@ Command line interface for ms3.
 
 import argparse, os, sys
 from ms3 import Score, Parse
+from ms3.operations import extract, check, compare
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
-from ms3.logger import LogCapturer, get_logger
+from ms3.logger import get_logger
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
 __license__ = "gpl3"
 
+def gather_extract_params(args):
+    params = [name for name, arg in zip(
+        ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'),
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
+              if arg is not None]
+    return params
+
+
+def make_parse_obj(args):
+    labels_cfg = {}
+    if hasattr(args, 'positioning'):
+        labels_cfg['positioning'] = args.positioning
+    if hasattr(args, 'raw'):
+        labels_cfg['decode'] = args.raw
+
+    logger_cfg = {
+        'level': args.level,
+        'path': args.log,
+    }
+    simulate = args.test if hasattr(args, 'test') else False
+    ms = args.musescore if hasattr(args, 'musescore') else None
+    return Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
+              logger_cfg=logger_cfg, simulate=simulate, ms=ms)
+
+
+def make_suffixes(args):
+    if args.suffix is None:
+        suffixes = {}
+    else:
+        l_suff = len(args.suffix)
+        if l_suff == 0:
+            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
+        elif l_suff == 1:
+            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
+        else:
+            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
+    if "metadata_suffix" in suffixes:
+        del (suffixes["metadata_suffix"])
+    return suffixes
 
 
 def add(args):
@@ -30,59 +70,45 @@ def add(args):
     p.add_labels(use=args.use)
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
 
 
-
-def check(args):
-    labels_cfg = {'decode': True}
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    if args.regex is None:
-        args.regex = r'\.mscx$'
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              labels_cfg=labels_cfg, logger_cfg=logger_cfg)
-    logger_object = p.logger
-    captured_warnings = LogCapturer()
-    logger_object.addHandler(captured_warnings.log_handler)
-    p.parse_mscx()
-    if not args.scores_only:
-        expanded = p.get_dataframes(expanded=True)
-        if len(expanded) == 0:
-            p.logger.info(f"No DCML labels could be detected.")
-            return
-    logger_object.removeHandler(captured_warnings.log_handler)
-    warnings = captured_warnings.content_list
-    if args.assertion:
-        assert len(warnings) == 0, "Warnings found."
-    check_logger = get_logger("ms3.check", level=args.level)
-    if len(warnings) == 0:
-        check_logger.info(f"All good.")
-        return True
+def check_cmd(args, parse_obj=None):
+    if parse_obj is None:
+        args.raw = True
+        if args.regex is None:
+            args.regex = r'\.mscx$'
+        p = make_parse_obj(args)
     else:
-        check_logger.warning(f"Warnings detected.")
-        return False
+        p = parse_obj
+
+    _ = check(p,
+                 scores_only=args.scores_only,
+                 labels_only=args.labels_only,
+                 assertion=args.assertion)
+    return p
 
 
-def compare(args):
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    if args.regex is None:
-        args.regex = r'\.mscx$'
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-                  logger_cfg=logger_cfg)
-    if len(p._score_ids()) == 0:
-        p.logger.warning(f"Your selection does not include any scores.")
-        return
-    p.parse()
-    p.add_detached_annotations(use=args.use)
-    p.compare_labels('old', detached_is_newer=args.flip, store_with_suffix=args.suffix)
+def compare_cmd(args, parse_obj=None):
+    if parse_obj is None:
+        args.raw = True
+        if args.regex is None:
+            args.regex = r'\.mscx$'
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    comparison_results = compare(p, use=args.use, revision_specifier=args.commit, flip=args.flip)
+    modified_ids = [id for id, res in comparison_results.items() if res > (0, 0)]
+    if args.out is None:
+        folder_args = {}
+    elif os.path.isabs(args.out):
+        folder_args = dict(root_dir=args.out)
+    else:
+        folder_args = dict(folder=args.out)
+    p.output_mscx(ids=modified_ids, suffix=args.suffix, overwrite=args.safe, **folder_args)
+
 
 
 def convert_cmd(args):
@@ -115,58 +141,36 @@ def empty(args):
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
 
 
-def extract(args):
-    labels_cfg = {
-        'positioning': args.positioning,    # default=False
-        'decode': args.raw,                 # default=True
-    }
-    params = [name for name, arg in zip(
-                                ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata'),
-                                (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
-                        if arg is not None]
+def extract_cmd(args, parse_obj=None):
+    if parse_obj is None:
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    params = gather_extract_params(args)
     if len(params) == 0:
-        print("Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata)")
+        print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata) -F (form_labels)")
         return
-    if args.suffix is None:
-        suffixes = {}
-    else:
-        l_suff = len(args.suffix)
-        if l_suff == 0:
-            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
-        elif l_suff == 1:
-            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
-        else:
-            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    if "metadata_suffix" in suffixes:
-        del(suffixes["metadata_suffix"])
-
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
-              logger_cfg=logger_cfg, simulate=args.test, ms=args.musescore)
-    p.parse_mscx(simulate=args.test)
-    p.output_dataframes(root_dir=args.out,
-                        notes_folder=args.notes,
-                        labels_folder=args.labels,
-                        measures_folder=args.measures,
-                        rests_folder=args.rests,
-                        events_folder=args.events,
-                        chords_folder=args.chords,
-                        expanded_folder=args.expanded,
-                        metadata_path=resolve_dir(args.metadata),
-                        simulate=args.test,
-                        unfold=args.unfold,
-                        quarterbeats=args.quarterbeats,
-                        **suffixes)
-
+    suffixes = make_suffixes(args)
+    silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
+    extract(p, root_dir=args.out,
+                notes_folder=args.notes,
+                labels_folder=args.labels,
+                measures_folder=args.measures,
+                rests_folder=args.rests,
+                events_folder=args.events,
+                chords_folder=args.chords,
+                expanded_folder=args.expanded,
+                metadata_path=resolve_dir(args.metadata),
+                simulate=args.test,
+                unfold=args.unfold,
+                quarterbeats=args.quarterbeats,
+                silence_label_warnings=silence_label_warnings,
+                **suffixes)
 
 def metadata(args):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
@@ -193,9 +197,9 @@ def metadata(args):
         p.logger.debug("Nothing to update.")
         return
     if args.out is not None:
-        p.store_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.store_mscx(ids=ids, overwrite=True)
+        p.output_mscx(ids=ids, overwrite=True)
     if args.out is not None:
         p.output_dataframes(metadata_path=args.out)
     elif args.dir is not None:
@@ -300,18 +304,18 @@ def update(args):
                     after = s.annotations.df
                     try:
                         assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
-                        s.store_mscx(new)
+                        s.output_mscx(new)
                     except:
                         s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
                         continue
                 else:
-                    s.store_mscx(new)
+                    s.output_mscx(new)
             else:
                 s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
-                s.store_mscx(new)
+                s.output_mscx(new)
         else:
             s.logger.debug(f"File has no labels to update.")
-            s.store_mscx(new)
+            s.output_mscx(new)
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
@@ -331,6 +335,38 @@ def check_dir(d):
         if not os.path.isdir(d):
             raise argparse.ArgumentTypeError(d + ' needs to be an existing directory')
     return resolve_dir(d)
+
+
+
+
+def review_cmd(args, parse_obj=None):
+    review_logger = get_logger('ms3.review')
+    if parse_obj is None:
+        args.raw = True
+        if args.regex is None:
+            args.regex = r'\.mscx$'
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    test_passes = True
+    scores_ok = check(p, scores_only=True, parallel=False)
+    if not args.ignore_score_warnings:
+        test_passes = scores_ok
+    labels_ok = check(p, labels_only=True)
+    test_passes = test_passes and labels_ok
+    extract_cmd(args, p)
+    review_report = p.color_non_chord_tones()
+    comparison = compare(p, use=args.use, revision_specifier=args.commit)
+    modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
+    p.output_mscx(ids=modified_ids, suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
+    if test_passes:
+        review_logger.info(f"Parsed scores passed all tests.")
+    else:
+        msg = "Not all tests have passed."
+        if args.assertion:
+            assert test_passes, msg
+        else:
+            review_logger.info(msg)
 
 
 
@@ -390,10 +426,12 @@ show detected files are to be used.""")
 
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
 In particular, check DCML harmony labels for syntactic correctness.""", parents=[input_args])
-    check_parser.add_argument('-s', '--scores_only', action='store_true',
+    check_parser.add_argument('--labels_only', action='store_true',
+                              help="Don't check scores for encoding errors.")
+    check_parser.add_argument('--scores_only', action='store_true',
                               help="Don't check DCML labels for syntactic correctness.")
     check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
-    check_parser.set_defaults(func=check)
+    check_parser.set_defaults(func=check_cmd)
 
 
 
@@ -407,10 +445,13 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
                                 help='Suffix of the newly created comparison files. Defaults to _reviewed')
+    compare_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
+                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
     compare_parser.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")
-    compare_parser.set_defaults(func=compare)
+    compare_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
+    compare_parser.set_defaults(func=compare_cmd)
 
 
 
@@ -426,8 +467,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     convert_parser.add_argument('-p', '--nonparallel', action='store_false',
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
-    convert_parser.add_argument('--safe', action='store_false',
-                                help="Don't overwrite existing files.")
+    convert_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
 
 
@@ -454,19 +494,18 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Folder where to store TSV files with information on all notes.")
     extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
                                 help="Folder where to store TSV files with information on all rests.")
-    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
-                                const='../labels',
+    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
-                                const='../expanded',
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../expanded',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
-    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?',
-                                const='../chord_events',
+    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chords',
                                 help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
     extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
                                 help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
     extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
@@ -484,7 +523,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
                                      "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
                                      "positions. If repetitions are being unfolded, all endings are taken into account.")
-    extract_parser.set_defaults(func=extract)
+    extract_parser.set_defaults(func=extract_cmd)
 
 
 
@@ -547,6 +586,59 @@ To prevent the interaction, set this flag to use the first annotation table that
     update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
     update_parser.set_defaults(func=update)
+
+    review_parser = subparsers.add_parser('review',
+                                         help="Extract facets, check labels, and create _reviewed files.",
+                                         parents=[input_args])
+    review_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
+                                const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    review_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+                                help="Folder where to store TSV files with information on all notes.")
+    review_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    review_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
+                                const='../labels',
+                                help="Folder where to store TSV files with information on all annotation labels.")
+    review_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
+                                const='../expanded',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    review_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    review_parser.add_argument('-C', '--chords', metavar='folder', nargs='?',
+                                const='../chord_events',
+                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+    review_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
+                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+    review_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
+                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                                     "in which they are listed above (capital letter arguments).")
+    review_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
+        Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
+    review_parser.add_argument('-i', '--ignore_score_warnings', action='store_true',
+                                help="By default, tests also fail upon erroneous score encodings. Pass -i to prevent this.")
+    review_parser.add_argument('-t', '--test', action='store_true',
+                                help="No data is written to disk.")
+    review_parser.add_argument('-p', '--positioning', action='store_true',
+                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
+    review_parser.add_argument('--raw', action='store_false',
+                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
+    review_parser.add_argument('-u', '--unfold', action='store_true',
+                                help="Unfold the repeats for all stored DataFrames.")
+    review_parser.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    review_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
+                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
+    review_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
+                                help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
+To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
+'expanded' or 'labels' to use only annotation tables that have the respective type.""")
+
+    review_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
+    review_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
+    review_parser.set_defaults(func=review_cmd)
 
     return parser
 

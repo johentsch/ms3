@@ -179,6 +179,18 @@ class Score(LoggedClass):
         Currently only one XML parser has been implemented which uses BeautifulSoup 4.
         """
 
+        self.review_report = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        After calling :py:meth:`color_non_chord_tones`, this DataFrame contains the expanded chord labels
+        plus the six additional columns ['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio']
+        representing the statistics of chord (untouched) vs. non-chord (colored) notes.
+        """
+
+        self.comparison_report = pd.DataFrame()
+        """:obj:`pandas.DataFrame`
+        DataFrame showing the labels modified ('new') and added ('old') by :py:meth:`compare_labels`.
+        """
+
         self.name2regex = match_regex
         if musescore_file is not None:
             self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
@@ -382,8 +394,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def color_non_chord_tones(self, color_name='red'):
-        """ Goes through the attached labels, tries to interpret them as DCML harmony labels, and
-        colors the notes in the parsed score.
+        """ Goes through the attached labels, tries to interpret them as DCML harmony labels,
+        colors the notes in the parsed score, and stores a report under :py:attr:`review_report`.
 
         Returns
         -------
@@ -393,7 +405,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.debug("Score contains no Annotations.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
-        self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        return self.review_report
+
 
 
 
@@ -413,15 +427,22 @@ Use one of the existing keys or load a new set with the method load_annotations(
             will turn ``old_color``, as opposed to the default.
         add_to_rna : :obj:`bool`, optional
             By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
+
+        Returns
+        -------
+        :obj:`int`
+            Number of attached labels that were not present in the old version and whose color has been changed.
+        :obj:`int`
+            Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
-            return
+            return (0, 0)
         if detached_key not in self._detached_annotations:
             self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
-            return
+            return (0, 0)
 
         old_obj = self._detached_annotations[detached_key]
         new_obj = self.mscx._annotations
@@ -429,7 +450,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         old_cols = [old_obj.cols[c] for c in compare_cols]
         new_cols = [new_obj.cols[c] for c in compare_cols]
         old = decode_harmonies(old_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
-        new = decode_harmonies(new_obj.df, label_col=old_obj.cols['label'], logger=self.logger)
+        new = decode_harmonies(new_obj.df, label_col=new_obj.cols['label'], logger=self.logger)
         assert all(c in old.columns for c in old_cols), f"DataFrame needs to have columns {old_cols} but has only {old.columns}"
         assert all(c in new.columns for c in new_cols), f"DataFrame needs to have columns {new_cols} but has only {new.columns}"
         old_vals = set(old[old_cols].itertuples(index=False, name=None))
@@ -439,7 +460,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         changes_new = new_vals - unchanged
         if len(changes_new) == 0 and len(changes_old) == 0:
             self.mscx.logger.info(f"Comparison yielded no changes.")
-            return False
+            return (0, 0)
 
         new_rgba =  color2rgba(new_color)
         new_color_params = rgba2params(new_rgba)
@@ -458,16 +479,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
             added_color_params = old_color_params
 
         color_changes = sum(self.mscx.change_label_color(*t, **change_to_params) for t in changes_new)
-        df = pd.DataFrame(changes_old, columns=compare_cols)
+        old_df = pd.DataFrame(changes_old, columns=compare_cols)
         for k, v in added_color_params.items():
-            df[k] = v
+            old_df[k] = v
         if add_to_rna:
-            df['harmony_layer'] = 1
-            anno = Annotations(df=df)
+            old_df['harmony_layer'] = 1
+            anno = Annotations(df=old_df)
             anno.remove_initial_dots()
         else:
-            df['harmony_layer'] = 0
-            anno = Annotations(df=df)
+            old_df['harmony_layer'] = 0
+            anno = Annotations(df=old_df)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
@@ -475,15 +496,17 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.parsed.parse_measures()
             self.mscx._update_annotations()
             self.mscx.logger.info(f"{color_changes} attached labels changed to {change_to}, {added_changes} labels added in {added_color}.")
-            return True
-        return False
+        res = (color_changes, added_changes)
+        new_df = pd.DataFrame(changes_new, columns=compare_cols)
+        self.comparison_report = pd.concat([old_df, new_df], keys=['old', 'new'])
+        return res
 
 
 
     def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
-        By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_mscx` afterwards,
+        By default, ``delete`` is set to True, meaning that if you call :py:meth:`output_mscx` afterwards,
         the created MuseScore file will not contain the detached labels.
 
         Parameters
@@ -630,9 +653,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
-    def store_mscx(self, filepath):
+    def output_mscx(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
-        Just a shortcut for ``Score.mscx.store_mscx()``.
+        Just a shortcut for ``Score.mscx.output_mscx()``.
 
         Parameters
         ----------
@@ -640,7 +663,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Path of the newly created MuseScore file, including the file name ending on '.mscx'.
             Uncompressed files ('.mscz') are not supported.
         """
-        return self.mscx.store_mscx(filepath)
+        return self.mscx.output_mscx(filepath)
 
     def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
@@ -1199,43 +1222,58 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         chord_tone_cols : :obj:`list`, optional
             Names of the columns containing tuples of chord tones, expressed as TPC.
         color_nan : :obj:`bool`, optional
-            By default, if one of the ``chord_tone_cols`` has a NaN value, all notes in the segment
+            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
             will be colored. Pass False to add the segment to the previous one instead.
 
         Returns
         -------
 
         """
+        if self.read_only:
+            self.parsed.make_writeable()
+        if len(df) == 0:
+            return df
         for col in chord_tone_cols:
             assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
-        # iterating backwards through the DataFrame; the first segment spans to the end of the score
+        # iterating backwards through the DataFrame; the first (=last) segment spans to the end of the score
         to_mc, to_mc_onset = None, None
         expand_segment = False # Flag allowing to add NaN segments to their preceding ones
+        results = []
         for row_tuple in df[::-1].itertuples(index=False):
             mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
             chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
-            if any(pd.isnull(ctt) for ctt in chord_tone_tuples):
+            if all(pd.isnull(ctt) for ctt in chord_tone_tuples):
                 if color_nan:
-                    self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                    colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
                                               to_mc=to_mc, to_mc_onset=to_mc_onset,
                                               color_name=color_name)
-                    self.logger.warning(f"MC {mc}, onset {mc_onset}: All the notes have been colored.")
                 else:
+                    colored_durs, untouched_durs = [], []
                     expand_segment = True
             else:
-                chord_tones = sum(chord_tone_tuples, tuple())
+                chord_tones = tuple([ct for ctt in chord_tone_tuples for ct in ctt if not pd.isnull(ctt)])
                 colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
                                           to_mc=to_mc, to_mc_onset=to_mc_onset,
                                           color_name=color_name, tpc=chord_tones, inverse=True)
-                n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+            n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+            if n_colored + n_untouched == 0:
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
+                results.append(())
+            else:
                 count_ratio = n_colored / (n_colored + n_untouched)
                 dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
                 dur_ratio = dur_colored / (dur_colored + dur_untouched)
-                self.logger.info(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
             if expand_segment:
                 expand_segment = False
             else:
                 to_mc, to_mc_onset = mc, mc_onset
+        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
+        if (stats.n_colored > 0).any():
+            self.parsed.parse_measures()
+            self.changed = True
+        return pd.concat([df, stats], axis=1)
 
 
     def delete_labels(self, df):
@@ -1405,8 +1443,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._update_annotations()
 
 
-    def store_mscx(self, filepath):
-        """Shortcut for ``MSCX.parsed.store_mscx()``.
+    def output_mscx(self, filepath):
+        """Shortcut for ``MSCX.parsed.output_mscx()``.
         Store the current XML structure as uncompressed MuseScore file.
 
         Parameters
@@ -1420,7 +1458,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`bool`
             Whether the file was successfully created.
         """
-        return self.parsed.store_mscx(filepath=filepath)
+        return self.parsed.output_mscx(filepath=filepath)
 
     def store_list(self, what='all', folder=None, suffix=None):
         """

@@ -9,7 +9,7 @@ import numpy as np
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
-from .logger import function_logger, LoggedClass
+from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
     get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 
@@ -262,7 +262,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def store_mscx(self, filepath):
+    def output_mscx(self, filepath):
         try:
             mscx_string = bs4_to_mscx(self.soup)
         except:
@@ -987,11 +987,9 @@ but the keys of _MSCX_bs4.tags[{mc}][{staff}] are {dict_keys}."""
     def make_writeable(self):
         if self.read_only:
             self.read_only = False
-            prev_level = self.logger.getEffectiveLevel()
-            self.logger.setLevel(logging.CRITICAL)
-            # This is an automatic re-parse which does not have to be logged again
-            self.parse_measures()
-            self.logger.setLevel(prev_level)
+            with temporarily_suppress_warnings(self) as self:
+                # This is an automatic re-parse which does not have to be logged again
+                self.parse_measures()
 
 
     def add_label(self, label, mc, mc_onset, staff=1, voice=1, **kwargs):

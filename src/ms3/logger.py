@@ -1,5 +1,5 @@
 import logging, sys, os
-import traceback
+from contextlib import contextmanager
 from functools import wraps
 from enum import Enum
 
@@ -32,7 +32,7 @@ class MessageType(Enum):
     DCML_HARMONY_KEY_NOT_SPECIFIED_ERROR = 8
     COMPETING_MEASURE_INFO_WARNING = 9
     IGNORED = 10
-    MISSING_FACET_WARNING = 11
+    MISSING_FACET_INFO = 11
     DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_ERROR = 12
     DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_ERROR = 13
     LOGGER_NOT_IN_USE_WARNING = 14
@@ -79,6 +79,7 @@ class LoggedClass():
     def change_logger_cfg(self, level):
         level = resolve_level_param(level)
         self.logger.setLevel(level)
+        self.logger_cfg['level'] = level
         for h in self.logger.handlers:
             if not isinstance(h, LogCaptureHandler):
                 h.setLevel(level)
@@ -145,7 +146,7 @@ class WarningFilter(logging.Filter):
     def filter(self, record):
         ignored = record._message_id in self.ignored_warnings
         if ignored:
-            self.logger.debug(record.msg, #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
+            self.logger.debug(CustomFormatter().format(record), #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
                               extra={"message_id": (10,)})
         return not ignored
 
@@ -235,6 +236,8 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         level = resolve_level_param(level)
         if level > 0:
             logger.setLevel(level)
+        elif is_head_logger:
+            logger.setLevel(30)
     effective_level = logger.getEffectiveLevel()
 
     if len(ignored_warnings) > 0:
@@ -363,3 +366,10 @@ def iter_ms3_loggers(exclude_placeholders=True):
         if name.startswith('ms3'):
             if not exclude_placeholders or isinstance(logger, logging.Logger):
                 yield logger
+
+@contextmanager
+def temporarily_suppress_warnings(parse_obj):
+    prev_level = parse_obj.logger.level
+    parse_obj.change_logger_cfg(level='c')
+    yield parse_obj
+    parse_obj.change_logger_cfg(level=prev_level)
