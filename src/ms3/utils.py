@@ -1956,8 +1956,17 @@ def path2type(path):
     comp2type = {comp: comp for comp in STANDARD_NAMES}
     comp2type['MS3'] = 'scores'
     comp2type['harmonies'] = 'expanded'
-    found_components = [comp for comp in comp2type.keys() if comp in path]
-    n_found = len(found_components)
+    def find_components(s):
+        res = [comp for comp in comp2type.keys() if comp in s]
+        return res, len(res)
+    if os.path.isfile(path):
+        # give preference to folder names before file names
+        directory, fname = os.path.split(path)
+        found_components, n_found = find_components(directory)
+        if n_found == 0:
+            found_components, n_found = find_components(fname)
+    else:
+        found_components, n_found = find_components(path)
     if n_found == 0:
         score_extensions = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
         _, fext = os.path.splitext(path)
