@@ -604,10 +604,11 @@ class Parse(LoggedClass):
         n_corpora = len(directories)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
-            if key is not None:
-                corpus_name = os.path.basename(directory)
-                if key != corpus_name:
-                    self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
+            corpus_name = os.path.basename(directory)
+            if key is None:
+                key = corpus_name
+            elif key != corpus_name:
+                self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
             self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
