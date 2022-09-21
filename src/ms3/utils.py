@@ -763,42 +763,47 @@ def fifths2acc(fifths):
 
 
 @function_logger
-def fifths2iv(fifths, smallest=False):
-    """ Return interval name of a stack of fifths such that
-       0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass ``smallest=True``, intervals of a fifth or greater
-       will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
-       Uses: map2elements()
+def fifths2iv(fifths: int,
+             smallest: bool = False,
+             perfect: str = 'P',
+             major: str = 'M',
+             minor: str = 'm',
+             augmented: str = 'a',
+             diminished: str = 'd') -> str:
+    """ Return interval name of a stack of fifths such that 0 = 'P1', -1 = 'P4', -2 = 'm7', 4 = 'M3' etc. If you pass
+    ``smallest=True``, intervals of a fifth or greater will be inverted (e.g. 'm6' => '-M3' and 'D5' => '-A4').
+
+
+    Args:
+        fifths: Number of fifths representing the inveral
+        smallest: Pass True if you want to wrap intervals of a fifths and larger to the downward counterpart.
+        perfect: String representing the perfect interval quality, defaults to 'P'.
+        major: String representing the major interval quality, defaults to 'M'.
+        minor: String representing the minor interval quality, defaults to 'm'.
+        augmented: String representing the augmented interval quality, defaults to 'a'.
+        diminished: String representing the diminished interval quality, defaults to 'd'.
+
+    Returns:
+        Name of the interval as a string.
     """
-    if isinstance(fifths, Iterable):
-        return map2elements(fifths, fifths2iv, logger=logger)
-    if pd.isnull(fifths):
-        return fifths
-    interval_qualities = {0: ['P', 'P', 'P', 'M', 'M', 'M', 'M'],
-                          -1: ['D', 'D', 'D', 'm', 'm', 'm', 'm']}
-    interval_qualities_inverted = {0: ['P', 'P', 'P', 'm', 'm', 'm', 'm'],
-                                   -1: ['A', 'A', 'A', 'M', 'M', 'M', 'M']}
-    fifths += 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
-    pos = fifths % 7
-    int_num = [4, 1, 5, 2, 6, 3, 7][pos]
-    qual_region = fifths // 7
-    if smallest and int_num > 4:
-        # interval is of a fifth or larger and is to be inverted
-        int_num = 9 - int_num
-        if qual_region in interval_qualities_inverted:
-            int_qual = interval_qualities_inverted[qual_region][pos]
-        elif qual_region < 0:
-            int_qual = (abs(qual_region) - 1) * 'A'
-        else:
-            int_qual = qual_region * 'D'
-        int_qual = '-' + int_qual
+    fifths_plus_one = fifths + 1  # making 0 = fourth, 1 = unison, 2 = fifth etc.
+    int_num = ["4", "1", "5", "2", "6", "3", "7"][fifths_plus_one % 7]
+    sharp_wise_quality = augmented
+    flat_wise_quality = diminished
+    qualities = (minor, minor, minor, minor, perfect, perfect, perfect, major, major, major, major)
+    quality = ""
+    if smallest and int(int_num) > 4:
+        int_num = str(9 - int(int_num))
+        sharp_wise_quality, flat_wise_quality = flat_wise_quality, sharp_wise_quality
+        qualities = tuple(reversed(qualities))
+        quality = "-"
+    if -5 <= fifths <= 5:
+        quality += qualities[fifths + 5]
+    elif fifths > 5:
+        quality += sharp_wise_quality * (fifths_plus_one // 7)
     else:
-        if qual_region in interval_qualities:
-            int_qual = interval_qualities[qual_region][pos]
-        elif qual_region < 0:
-            int_qual = (abs(qual_region) - 1) * 'D'
-        else:
-            int_qual = qual_region * 'A'
-    return int_qual + str(int_num)
+        quality += flat_wise_quality * ((-fifths + 1) // 7)
+    return quality + int_num
 
 
 @function_logger
