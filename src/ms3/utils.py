@@ -3464,3 +3464,22 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
         chunks[iv] = chunk
     return chunks
 
+
+def infer_tsv_type(df):
+    type2cols = {
+        'notes': ['tpc', 'midi'],
+        'events': ['event'],
+        'chords': ['chord_id'],
+        'rests': ['nominal_duration'],
+        'measures': ['act_dur'],
+        'expanded': ['numeral'],
+        'labels': ['harmony_layer', 'label_type'],
+        'cadences': ['cadence'],
+        'metadata': ['last_mn', 'md5'],
+    }
+    for t, columns in type2cols.items():
+        if any(True for c in columns if c in df.columns):
+            return t
+    if any(True for c in ['mc', 'mn'] if c in df.columns):
+        return 'labels'
+    return

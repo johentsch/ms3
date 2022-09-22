@@ -14,7 +14,7 @@ from gitdb.exc import BadName
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
-from .utils import column_order, DCML_DOUBLE_REGEX, get_musescore, get_path_component, group_id_tuples, \
+from .utils import column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
     iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
@@ -2013,7 +2013,7 @@ Available keys: {available_keys}""")
                 if 'label' in cols and label_col in df.columns:
                     tsv_type = 'labels'
                 else:
-                    tsv_type = self._infer_tsv_type(df)
+                    tsv_type = infer_tsv_type(df)
 
                 if tsv_type is None:
                     logger.debug(
@@ -2380,27 +2380,6 @@ Load one of the identically named files with a different key using add_dir(key='
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         return key, len(self.paths[key]) - 1
-
-
-
-    def _infer_tsv_type(self, df):
-        type2cols = {
-            'notes': ['tpc', 'midi'],
-            'events': ['event'],
-            'chords': ['chord_id'],
-            'rests': ['nominal_duration'],
-            'measures': ['act_dur'],
-            'expanded': ['numeral'],
-            'labels': ['harmony_layer', 'label_type'],
-            'cadences': ['cadence'],
-            'metadata': ['last_mn', 'md5'],
-        }
-        for t, columns in type2cols.items():
-            if any(True for c in columns if c in df.columns):
-                return t
-        if any(True for c in ['mc', 'mn'] if c in df.columns):
-            return 'labels'
-        return
 
     def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
