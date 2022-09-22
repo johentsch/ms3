@@ -11,6 +11,696 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler
 
 
+class MSCX(LoggedClass):
+    """ Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a
+    :obj:`Score` object and exposed as ``Score.mscx``.
+    An object is only created if a score was successfully parsed.
+    """
+
+    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None, parent_score=None):
+        """ Object for interacting with the XML structure of a MuseScore 3 file.
+
+        Parameters
+        ----------
+        mscx_src : :obj:`str`
+            Uncompressed MuseScore 3 file to parse.
+        read_only : :obj:`bool`, optional
+            Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+            of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.
+        parser : :obj:`str`, optional
+            Which XML parser to use.
+        labels_cfg : :obj:`dict`, optional
+            Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+            object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
+        logger_cfg : :obj:`dict`, optional
+            The following options are available:
+            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
+            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
+            'file': PATH_TO_LOGFILE to store all log messages under the given path.
+        level : :obj:`str` or :obj:`int`
+            Quick way to change the logging level which defaults to the one of the parent :obj:`Score`.
+        parent_score : :obj:`Score`, optional
+            Store the Score object to which this MSCX object is attached.
+        """
+        if level is not None:
+            logger_cfg['level'] = level
+        super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
+        if os.path.isfile(mscx_src):
+            self.mscx_src = mscx_src
+            """:obj:`str`
+            Full path of the parsed MuseScore file."""
+
+        else:
+            raise ValueError(f"File does not exist: {mscx_src}")
+
+        self.changed = False
+        """:obj:`bool`
+        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
+        """
+
+        self.read_only = read_only
+        """:obj:`bool`, optional
+        Shortcut for ``MSCX.parsed.read_only``.
+        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+        of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information."""
+
+        self._annotations = None
+        """:py:class:`~.annotations.Annotations` or None
+        If the score contains at least one <Harmony> tag, this attribute points to the object representing all
+        annotations, otherwise it is None."""
+
+        self.parent_score = parent_score
+        """:obj:`Score`
+        The Score object to which this MSCX object is attached."""
+
+        self.parser = parser
+        """{'bs4'}
+        The currently used parser."""
+
+        self._parsed = None
+        """{:obj:`_MSCX_bs4`}
+        Holds the MSCX score parsed by the selected parser (currently only BeautifulSoup 4 available)."""
+
+        self.labels_cfg = labels_cfg
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
+        object representing the labels that are attached to a score (stored as :py:attr:`._annotations``). 
+        The options correspond to the parameters of
+        :py:meth:`Annotations.get_labels()<.annotations.Annotations.get_labels>`.
+        """
+
+        ms_version = get_ms_version(self.mscx_src)
+        if ms_version is None:
+            raise ValueError(f"MuseScore version could not be read from {self.mscx_src}")
+        if ms_version[0] == '3':
+            self.parse_mscx()
+        else:
+            if self.parent_score.ms is None:
+                raise ValueError(f"""In order to parse a version {ms_version} file,
+use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
+            with self.parent_score._tmp_convert(self.mscx_src) as tmp:
+                self.logger.debug(f"Using temporally converted file {os.path.basename(tmp)} for parsing the version {ms_version} file.")
+                self.mscx_src = tmp
+                self.parse_mscx()
+
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+    @property
+    def cadences(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all cadence annotations in the score.
+        """
+        exp = self.expanded
+        if exp is None or 'cadence' not in exp.columns:
+            return None
+        return exp[exp.cadence.notna()]
+
+    @property
+    def chords(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all <Chord> tags in the score. A chord in that sense is a grouping of all
+        synchronous notes occurring in the same notational layer of the same staff. The DataFrame contains
+        all kinds of score markup that is not attached to particular notes but to a <Chord>, such as
+        slurs, lyrics, staff text, ottava lines etc.
+        """
+        return self.parsed.chords
+
+    @property
+    def events(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representating a raw skeleton of the score's XML structure and contains all score events,
+        i.e. <Chord>, <Rest>, <Harmony> and markup tags such as <Beam> together with, in the columns the values of their
+        XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`
+        (and therefore :obj:`.expanded`, too)."""
+        return self.parsed.events
+
+    @property
+    def expanded(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame of labels that have been split into various features using a regular expression."""
+        if self._annotations is None:
+            return None
+        # labels_cfg = self.labels_cfg.copy()
+        # labels_cfg['decode'] = False
+        return self._annotations.expand_dcml(**self.labels_cfg)
+
+    @property
+    def has_annotations(self):
+        """:obj:`bool`
+        Shortcut for ``MSCX.parsed.has_annotations``.
+        Is True as long as at least one label is attached to the current XML."""
+        return self.parsed.has_annotations
+
+    @has_annotations.setter
+    def has_annotations(self, val):
+        self.parsed.has_annotations = val
+
+    @property
+    def n_form_labels(self):
+        """:obj:`int`
+        Shortcut for ``MSCX.parsed.n_form_labels``.
+        Is True if at least one StaffText seems to constitute a form label."""
+        return self.parsed.n_form_labels
+
+    @property
+    def form_labels(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing a filtered event list containing only StaffTexts that include the regular expression
+        :py:const:`.utils.FORM_DETECTION_REGEX`
+        """
+        return self.parsed.fl
+
+    @property
+    def labels(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all <Harmony> tags in the score as returned by calling :py:meth:`~.annotations.Annotations.get_labels`
+        on the object at :obj:`._annotations` with the current :obj:`._labels_cfg`."""
+        if self._annotations is None:
+            self.logger.info("The score does not contain any annotations.")
+            return None
+        return self._annotations.get_labels(**self.labels_cfg)
+
+    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures). Comes with
+        the columns :ref:`mc <mc>` :ref:`mn <mn>` :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>`
+        :ref:`keysig <keysig>` :ref:`timesig <timesig>` :ref:`act_dur <act_dur>` :ref:`mc_offset <mc_offset>`
+        :ref:`volta <volta>` :ref:`numbering_offset <numbering_offset>` :ref:`dont_count <dont_count>`
+        :ref:`barline <barline>` :ref:`breaks <breaks>` :ref:`repeats <repeats>` :ref:`next <next>`
+
+        Args:
+            interval_index: Try to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`
+
+        Returns:
+            DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
+        """
+        return self.parsed.measures(interval_index=interval_index)
+
+    @property
+    def offset_dict(self) -> dict:
+        """ {mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
+        return self.parsed.offset_dict
+
+    @property
+    def metadata(self):
+        """:obj:`dict`
+        Shortcut for ``MSCX.parsed.metadata``.
+        Metadata from and about the MuseScore file."""
+        return self.parsed.metadata
+
+    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
+        :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>` :ref:`mc <mc>` :ref:`mn <mn>`
+        :ref:`mc_onset <mc_onset>` :ref:`mn_onset <mn_onset>` :ref:`timesig <timesig>` :ref:`staff <staff>`
+        :ref:`voice <voice>` :ref:`duration <duration>` :ref:`gracenote <gracenote>` :ref:`tremolo <tremolo>`
+        :ref:`nominal_duration <nominal_duration>` :ref:`scalar <scalar>` :ref:`tied <tied>` :ref:`tpc <tpc>`
+        :ref:`midi <midi>` :ref:`volta <volta>` :ref:`chord_id <chord_id>`
+
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing the :ref:`notes` of the MuseScore file.
+        """
+        return self.parsed.notes(interval_index=interval_index)
+
+    @property
+    def notes_and_rests(self):
+        """:obj:`pandas.DataFrame`
+        The union of :obj:`.notes` and :obj:`.rests`."""
+        return self.parsed.notes_and_rests
+
+    @property
+    def parsed(self):
+        """:obj:`~._MSCX_bs4`
+        Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object's
+        interface for requesting manipulations of and information from the source XML."""
+        if self._parsed is None:
+            self.logger.error("Score has not been parsed yet.")
+            return None
+        return self._parsed
+
+    @property
+    def rests(self):
+        """:obj:`pandas.DataFrame`
+        DataFrame representing all <Rest> tags."""
+        return self.parsed.rl
+
+    @property
+    def staff_ids(self):
+        """:obj:`list` of :obj:`int`
+        The staff IDs contained in the score, usually just a list of increasing numbers starting at 1."""
+        return self.parsed.staff_ids
+
+    @property
+    def style(self):
+        """:obj:`Style`
+        Can be used like a dictionary to change the information within the score's <Style> tag."""
+        return self.parsed.style
+
+    @property
+    def version(self):
+        """:obj:`str`
+        MuseScore version that the file was created with."""
+        return self.parsed.version
+
+    @property
+    def volta_structure(self):
+        """:obj:`dict`
+        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary."""
+        return self.parsed.volta_structure
+
+    def add_labels(self, annotations_object):
+        """ Receives the labels from an :py:class:`~.annotations.Annotations` object and adds them to the XML structure
+        representing the MuseScore file that might be written to a file afterwards.
+
+        Parameters
+        ----------
+        annotations_object : :py:class:`~.annotations.Annotations`
+            Object of labels to be added.
+
+        Returns
+        -------
+        :obj:`int`
+            Number of actually added labels.
+
+        """
+        df = annotations_object.df
+        if len(df) == 0:
+            self.logger.info("Nothing to add.")
+            return 0
+        main_cols = Annotations.main_cols
+        columns = annotations_object.cols
+        del (columns['regex_match'])
+        missing_main = {c for c in main_cols if columns[c] not in df.columns}
+        assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
+        if columns['decoded'] not in df.columns:
+            df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True, logger=self.logger)
+        # df = df[df[columns['label']].notna()]
+        param2cols = {k: v for k, v in columns.items() if v in df.columns}
+        parameters = list(param2cols.keys())
+        clmns = list(param2cols.values())
+        self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
+        value_tuples = tuple(df[clmns].itertuples(index=False, name=None))
+        params = [dict(zip(parameters, t)) for t in value_tuples]
+        res = [self._parsed.add_label(**p) for p in params]
+        changes = sum(res)
+        # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
+        #               for t
+        #               in df[columns].itertuples(index=False, name=None)
+        #               )
+        if changes > 0:
+            self.changed = True
+            self._parsed.parse_measures()
+            self._update_annotations()
+            self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
+        return changes
+
+    def change_label_color(self, mc, mc_onset, staff, voice, label, color_name=None, color_html=None, color_r=None,
+                           color_g=None, color_b=None, color_a=None):
+        """  Shortcut for :py:meth:``MSCX.parsed.change_label_color``
+
+        Parameters
+        ----------
+        mc : :obj:`int`
+            Measure count of the label
+        mc_onset : :obj:`fractions.Fraction`
+            Onset position to which the label is attached.
+        staff : :obj:`int`
+            Staff to which the label is attached.
+        voice : :obj:`int`
+            Notational layer to which the label is attached.
+        label : :obj:`str`
+            (Decoded) label.
+        color_name, color_html : :obj:`str`, optional
+            Two ways of specifying the color.
+        color_r, color_g, color_b, color_a : :obj:`int` or :obj:`str`, optional
+            To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
+            to 255.
+        """
+        return self.parsed.change_label_color(mc=mc, mc_onset=mc_onset, staff=staff, voice=voice, label=label,
+                                              color_name=color_name, color_html=color_html, color_r=color_r,
+                                              color_g=color_g, color_b=color_b, color_a=color_a)
+
+    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None,
+                          column_name=None, color_format=None):
+        """ Update :py:attr:`.MSCX.labels_cfg`.
+
+        Parameters
+        ----------
+        labels_cfg : :obj:`dict`
+            Using an entire dictionary or, to change only particular options, choose from:
+        staff, voice, harmony_layer, positioning, decode
+            Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
+        """
+        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
+        for k in keys:
+            val = locals()[k]
+            if val is not None:
+                labels_cfg[k] = val
+        updated = update_labels_cfg(labels_cfg, logger=self.logger)
+        self.labels_cfg.update(updated)
+
+    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
+        """
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+        color_name : :obj:`str`, optional
+            Name the color that the non-chord tones should get, defaults to 'red'.
+        chord_tone_cols : :obj:`list`, optional
+            Names of the columns containing tuples of chord tones, expressed as TPC.
+        color_nan : :obj:`bool`, optional
+            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
+            will be colored. Pass False to add the segment to the previous one instead.
+
+        Returns
+        -------
+
+        """
+        if self.read_only:
+            self.parsed.make_writeable()
+        if len(df) == 0:
+            return df
+        for col in chord_tone_cols:
+            assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
+        # iterating backwards through the DataFrame; the first (=last) segment spans to the end of the score
+        to_mc, to_mc_onset = None, None
+        expand_segment = False  # Flag allowing to add NaN segments to their preceding ones
+        results = []
+        for row_tuple in df[::-1].itertuples(index=False):
+            mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
+            chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
+            if all(pd.isnull(ctt) for ctt in chord_tone_tuples):
+                if color_nan:
+                    colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                                                           to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                                                           color_name=color_name)
+                else:
+                    colored_durs, untouched_durs = [], []
+                    expand_segment = True
+            else:
+                chord_tones = tuple([ct for ctt in chord_tone_tuples for ct in ctt if not pd.isnull(ctt)])
+                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
+                                                                       to_mc=to_mc, to_mc_onset=to_mc_onset,
+                                                                       color_name=color_name, tpc=chord_tones, inverse=True)
+            n_colored, n_untouched = len(colored_durs), len(untouched_durs)
+            if n_colored + n_untouched == 0:
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
+                results.append(())
+            else:
+                count_ratio = n_colored / (n_colored + n_untouched)
+                dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
+                dur_ratio = dur_colored / (dur_colored + dur_untouched)
+                self.logger.debug(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
+                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
+            if expand_segment:
+                expand_segment = False
+            else:
+                to_mc, to_mc_onset = mc, mc_onset
+        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
+        if (stats.n_colored > 0).any():
+            self.parsed.parse_measures()
+            self.changed = True
+        return pd.concat([df, stats], axis=1)
+
+    def delete_labels(self, df):
+        """ Delete a set of labels from the current XML.
+
+        Parameters
+        ----------
+        df : :obj:`pandas.DataFrame`
+            A DataFrame with the columns ['mc', 'mc_onset', 'staff', 'voice']
+        """
+        cols = ['mc', 'staff', 'voice', 'mc_onset']
+        positions = set(df[cols].itertuples(name=None, index=False))
+        changed = {ix: self._parsed.delete_label(mc, staff, voice, mc_onset)
+                   for ix, mc, staff, voice, mc_onset
+                   in reversed(
+                list(df[cols].drop_duplicates().itertuples(name=None, index=True)))}
+        changed = pd.Series(changed, index=df.index).fillna(method='ffill')
+        changes = changed.sum()
+        if changes > 0:
+            self.changed = True
+            self._parsed.parse_measures()
+            self._update_annotations()
+            target = len(df)
+            self.logger.debug(f"{changes}/{target} labels successfully deleted.")
+            if changes < target:
+                self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
+
+    def replace_labels(self, annotations_object):
+        """
+
+        Parameters
+        ----------
+        annotations_object : :py:class:`~.annotations.Annotations`
+            Object of labels to be added.
+
+        Returns
+        -------
+
+        """
+        self.delete_labels(annotations_object.df)
+        self.add_labels(annotations_object)
+
+    def delete_empty_labels(self):
+        """ Remove all empty labels from the attached annotations. """
+        if self._annotations is None:
+            self.logger.info("No annotations attached.")
+            return
+        df = self._annotations.get_labels(decode=True)
+        label_col = self._annotations.cols['label']
+        sel = df[label_col] == 'empty_harmony'
+        if sel.sum() == 0:
+            self.logger.info("Score contains no empty labels.")
+            return
+        cols = ['mc', 'staff', 'voice', 'mc_onset']
+        changed = [self._parsed.delete_label(mc, staff, voice, mc_onset, empty_only=True)
+                   for mc, staff, voice, mc_onset
+                   in df.loc[sel, cols].itertuples(name=None, index=False)]
+        if sum(changed) > 0:
+            self.changed = True
+            self._parsed.parse_measures()
+            self._update_annotations()
+            self.logger.info(f"Successfully deleted {sum(changed)} empty labels.")
+        else:
+            self.logger.info("No empty labels were deleted.")
+
+    def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False,
+                   articulation=False, spanners=False, **kwargs):
+        """ Retrieve a customized chord list, e.g. one including less of the processed features or additional,
+        unprocessed ones compared to the standard chord list.
+
+        Parameters
+        ----------
+        staff : :obj:`int`
+            Get information from a particular staff only (1 = upper staff)
+        voice : :obj:`int`
+            Get information from a particular voice only (1 = only the first layer of every staff)
+        mode : {'auto', 'all', 'strict'}, optional
+            * 'auto' (default), meaning that those aspects are automatically included that occur in the score; the resulting
+              DataFrame has no empty columns except for those parameters that are set to True.
+            * 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+            * 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+        lyrics : :obj:`bool`, optional
+            Include lyrics.
+        staff_text : :obj:`bool`, optional
+            Include staff text such as tempo markings.
+        dynamics : :obj:`bool`, optional
+            Include dynamic markings such as f or p.
+        articulation : :obj:`bool`, optional
+            Include articulation such as arpeggios.
+        spanners : :obj:`bool`, optional
+            Include spanners such as slurs, 8va lines, pedal lines etc.
+        **kwargs : :obj:`bool`, optional
+            Set a particular keyword to True in order to include all columns from the _events DataFrame
+            whose names include that keyword. Column names include the tag names from the MSCX source code.
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            DataFrame representing all <Chord> tags in the score with the selected features.
+        """
+        return self.parsed.get_chords(staff=staff, voice=voice, mode=mode, lyrics=lyrics, staff_text=staff_text,
+                                      dynamics=dynamics,
+                                      articulation=articulation, spanners=spanners, **kwargs)
+
+    def get_raw_labels(self):
+        """Shortcut for ``MSCX.parsed.get_raw_labels()``.
+        Retrieve a "raw" list of labels, meaning that label types reflect only those defined within <Harmony> tags
+        which can be 1 (MuseScore's Roman Numeral display), 2 (Nashville) or undefined (in the case of 'normal'
+        chord labels, defaulting to 0).
+
+        Returns
+        -------
+        :obj:`pandas.DataFrame`
+            DataFrame with raw label features (i.e. as encoded in XML)
+        """
+        return self.parsed.get_raw_labels()
+
+    def infer_mc(self, mn, mn_onset=0, volta=None):
+        """ Shortcut for ``MSCX.parsed.infer_mc()``.
+        Tries to convert a ``(mn, mn_onset)`` into a ``(mc, mc_onset)`` tuple on the basis of this MuseScore file.
+        In other words, a human readable score position such as "measure number 32b (i.e., a second ending), beat
+        3" needs to be converted to ``(32, 1/2, 2)`` if "beat" has length 1/4, or--if the meter is, say 9/8 and "beat"
+        has a length of 3/8-- to ``(32, 6/8, 2)``. The resulting ``(mc, mc_onset)`` tuples are required for attaching
+        a label to a score. This is only necessary for labels that were not originally extracted by ms3.
+
+        Parameters
+        ----------
+        mn : :obj:`int` or :obj:`str`
+            Measure number as in a reference print edition.
+        mn_onset : :obj:`fractions.Fraction`, optional
+            Distance of the requested position from beat 1 of the complete measure (MN), expressed as
+            fraction of a whole note. Defaults to 0, i.e. the position of beat 1.
+        volta : :obj:`int`, optional
+            In the case of first and second endings, which bear the same measure number, a MN might have to be
+            disambiguated by passing 1 for first ending, 2 for second, and so on. Alternatively, the MN
+            can be disambiguated traditionally by passing it as string with a letter attached. In other words,
+            ``infer_mc(mn=32, volta=1)`` is equivalent to ``infer_mc(mn='32a')``.
+
+        Returns
+        -------
+        :obj:`int`
+            Measure count (MC), denoting particular <Measure> tags in the score.
+        :obj:`fractions.Fraction`
+
+        """
+        return self.parsed.infer_mc(mn=mn, mn_onset=mn_onset, volta=volta)
+
+    def parse_mscx(self):
+        implemented_parsers = ['bs4']
+        if self.parser in implemented_parsers:
+            try:
+                self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
+            except:
+                self.logger.error(f"Failed parsing {self.mscx_src}.")
+                raise
+        else:
+            raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
+
+        self._update_annotations()
+
+    def output_mscx(self, filepath):
+        """Shortcut for ``MSCX.parsed.output_mscx()``.
+        Store the current XML structure as uncompressed MuseScore file.
+
+        Parameters
+        ----------
+        filepath : :obj:`str`
+            Path of the newly created MuseScore file, including the file name ending on '.mscx'.
+            Uncompressed files ('.mscz') are not supported.
+
+        Returns
+        -------
+        :obj:`bool`
+            Whether the file was successfully created.
+        """
+        return self.parsed.output_mscx(filepath=filepath)
+
+    def store_list(self, what='all', folder=None, suffix=None):
+        """
+        Store one or several several lists as TSV files(s).
+
+        Parameters
+        ----------
+        what : :obj:`str` or :obj:`Collection`, optional
+            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
+        folder : :obj:`str`, optional
+            Where to store. Defaults to the directory of the parsed MSCX file.
+        suffix : :obj:`str` or :obj:`Collection`, optional
+            Suffix appended to the file name of the parsed MSCX file to create a new file name.
+            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
+            Number of suffixes needs to be equal to the number of ``what``.
+
+        Returns
+        -------
+        None
+
+        """
+        folder = resolve_dir(folder)
+        mscx_path, file = os.path.split(self.mscx_src)
+        fname, _ = os.path.splitext(file)
+        if folder is None:
+            folder = mscx_path
+        if not os.path.isdir(folder):
+            if input(folder + ' does not exist. Create? (y|n)') == "y":
+                os.makedirs(folder)
+            else:
+                return
+        what, suffix = self._treat_storing_params(what, suffix)
+        self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
+        if what is None:
+            self.logger.error("Tell me 'what' to store.")
+            return
+
+        for w, s in zip(what, suffix):
+            df = self.__getattribute__(w)
+            if len(df.index) > 0:
+                new_name = f"{fname}{s}{ext}"
+                full_path = os.path.join(folder, new_name)
+                write_tsv(df, full_path, logger=self.logger)
+            else:
+                self.logger.debug(f"{w} empty, no file written.")
+
+    def _treat_storing_params(self, what, suffix):
+        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
+        if what == 'all':
+            if suffix is None:
+                return tables, [f"_{t}" for t in tables]
+            elif len(suffix) < len(tables) or isinstance(suffix, str):
+                self.logger.error(
+                    f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
+                return None, None
+            elif len(suffix) > len(tables):
+                suffix = suffix[:len(tables)]
+            return tables, [str(s) for s in suffix]
+
+        if isinstance(what, str):
+            what = [what]
+        if isinstance(suffix, str):
+            suffix = [suffix]
+
+        correct = [(i, w) for i, w in enumerate(what) if w in tables]
+        if suffix is None:
+            suffix = [f"_{w}" for _, w in correct]
+        if len(correct) < len(what):
+            if len(correct) == 0:
+                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
+                return None, None
+            else:
+                incorrect = [w for w in what if w not in tables]
+                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
+                suffix = [suffix[i] for i, _ in correct]
+        if len(correct) < len(suffix):
+            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
+            return None, None
+        elif len(suffix) > len(correct):
+            suffix = suffix[:len(correct)]
+        return what, [str(s) for s in suffix]
+
+    def _update_annotations(self, infer_types={}):
+        if len(infer_types) == 0 and self._annotations is not None:
+            infer_types = self._annotations.regex_dict
+        if self._parsed.has_annotations:
+            self.has_annotations = True
+            logger_cfg = self.logger_cfg.copy()
+            # logger_cfg['name'] += '.annotations'
+            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
+                                            logger_cfg=logger_cfg)
+        else:
+            self._annotations = None
+
+########################################################################################################################
+########################################################################################################################
+################################################ End of MSCX() ########################################################
+########################################################################################################################
+########################################################################################################################
+
 class Score(LoggedClass):
     """ Object representing a score.
     """
@@ -115,10 +805,8 @@ class Score(LoggedClass):
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
 
-        self._mscx = None
-        """:obj:`MSCX`
-        The object representing the parsed MuseScore file.
-        """
+        self._mscx : MSCX = None
+        """ The object representing the parsed MuseScore file."""
 
         self._detached_annotations = {}
         """:obj:`dict`
@@ -242,9 +930,8 @@ class Score(LoggedClass):
         return len(self._detached_annotations) > 0
 
     @property
-    def mscx(self):
-        """:obj:`MSCX`
-        Standard way of accessing the parsed MuseScore file."""
+    def mscx(self) -> MSCX:
+        """Standard way of accessing the parsed MuseScore file."""
         if self._mscx is None:
             raise LookupError("No XML has been parsed so far. Use the method parse_mscx().")
         return self._mscx
@@ -859,695 +1546,4 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-class MSCX(LoggedClass):
-    """ Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a
-    :obj:`Score` object and exposed as ``Score.mscx``.
-    An object is only created if a score was successfully parsed.
-    """
 
-    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None, parent_score=None):
-        """ Object for interacting with the XML structure of a MuseScore 3 file.
-
-        Parameters
-        ----------
-        mscx_src : :obj:`str`
-            Uncompressed MuseScore 3 file to parse.
-        read_only : :obj:`bool`, optional
-            Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
-            of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information.
-        parser : :obj:`str`, optional
-            Which XML parser to use.
-        labels_cfg : :obj:`dict`, optional
-            Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
-            object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
-        logger_cfg : :obj:`dict`, optional
-            The following options are available:
-            'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
-            'level': {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}
-            'file': PATH_TO_LOGFILE to store all log messages under the given path.
-        level : :obj:`str` or :obj:`int`
-            Quick way to change the logging level which defaults to the one of the parent :obj:`Score`.
-        parent_score : :obj:`Score`, optional
-            Store the Score object to which this MSCX object is attached.
-        """
-        if level is not None:
-            logger_cfg['level'] = level
-        super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
-        if os.path.isfile(mscx_src):
-            self.mscx_src = mscx_src
-            """:obj:`str`
-            Full path of the parsed MuseScore file."""
-
-        else:
-            raise ValueError(f"File does not exist: {mscx_src}")
-
-
-        self.changed = False
-        """:obj:`bool`
-        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.
-        """
-
-        self.read_only = read_only
-        """:obj:`bool`, optional
-        Shortcut for ``MSCX.parsed.read_only``.
-        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
-        of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information."""
-
-        self._annotations = None
-        """:py:class:`~.annotations.Annotations` or None
-        If the score contains at least one <Harmony> tag, this attribute points to the object representing all
-        annotations, otherwise it is None."""
-
-        self.parent_score = parent_score
-        """:obj:`Score`
-        The Score object to which this MSCX object is attached."""
-
-        self.parser = parser
-        """{'bs4'}
-        The currently used parser."""
-
-        self._parsed = None
-        """{:obj:`_MSCX_bs4`}
-        Holds the MSCX score parsed by the selected parser (currently only BeautifulSoup 4 available)."""
-
-
-        self.labels_cfg = labels_cfg
-        """:obj:`dict`
-        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
-        object representing the labels that are attached to a score (stored as :py:attr:`._annotations``). 
-        The options correspond to the parameters of
-        :py:meth:`Annotations.get_labels()<.annotations.Annotations.get_labels>`.
-        """
-
-        ms_version = get_ms_version(self.mscx_src)
-        if ms_version is None:
-            raise ValueError(f"MuseScore version could not be read from {self.mscx_src}")
-        if ms_version[0] == '3':
-            self.parse_mscx()
-        else:
-            if self.parent_score.ms is None:
-                raise ValueError(f"""In order to parse a version {ms_version} file,
-use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
-            with self.parent_score._tmp_convert(self.mscx_src) as tmp:
-                self.logger.debug(f"Using temporally converted file {os.path.basename(tmp)} for parsing the version {ms_version} file.")
-                self.mscx_src = tmp
-                self.parse_mscx()
-    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-
-
-    @property
-    def cadences(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all cadence annotations in the score.
-        """
-        exp = self.expanded
-        if exp is None or 'cadence' not in exp.columns:
-            return None
-        return exp[exp.cadence.notna()]
-
-
-    @property
-    def chords(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Chord> tags in the score. A chord in that sense is a grouping of all
-        synchronous notes occurring in the same notational layer of the same staff. The DataFrame contains
-        all kinds of score markup that is not attached to particular notes but to a <Chord>, such as
-        slurs, lyrics, staff text, ottava lines etc.
-        """
-        return self.parsed.chords
-
-
-    @property
-    def events(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representating a raw skeleton of the score's XML structure and contains all score events,
-        i.e. <Chord>, <Rest>, <Harmony> and markup tags such as <Beam> together with, in the columns the values of their
-        XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`
-        (and therefore :obj:`.expanded`, too)."""
-        return self.parsed.events
-
-
-    @property
-    def expanded(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame of labels that have been split into various features using a regular expression."""
-        if self._annotations is None:
-            return None
-        #labels_cfg = self.labels_cfg.copy()
-        #labels_cfg['decode'] = False
-        return self._annotations.expand_dcml(**self.labels_cfg)
-
-
-    @property
-    def has_annotations(self):
-        """:obj:`bool`
-        Shortcut for ``MSCX.parsed.has_annotations``.
-        Is True as long as at least one label is attached to the current XML."""
-        return self.parsed.has_annotations
-
-    @has_annotations.setter
-    def has_annotations(self, val):
-        self.parsed.has_annotations = val
-
-
-    @property
-    def n_form_labels(self):
-        """:obj:`int`
-        Shortcut for ``MSCX.parsed.n_form_labels``.
-        Is True if at least one StaffText seems to constitute a form label."""
-        return self.parsed.n_form_labels
-
-
-    @property
-    def form_labels(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing a filtered event list containing only StaffTexts that include the regular expression
-        :py:const:`.utils.FORM_DETECTION_REGEX`
-        """
-        return self.parsed.fl
-
-
-    @property
-    def labels(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Harmony> tags in the score as returned by calling :py:meth:`~.annotations.Annotations.get_labels`
-        on the object at :obj:`._annotations` with the current :obj:`._labels_cfg`."""
-        if self._annotations is None:
-            self.logger.info("The score does not contain any annotations.")
-            return None
-        return self._annotations.get_labels(**self.labels_cfg)
-
-    def measures(self) -> pd.DataFrame:
-        """:obj:`pandas.DataFrame`
-        DataFrame representing the measures of the MuseScore file (which can be incomplete measures).
-        The potentially incomplete measure units are numbered starting from one, which corresponds to the
-        "bar count" displayed in MuseScore 3's status bar. This numbering is represented in the column :ref:`mc<mc>`.
-        (measure count). The columns represent for every MC its :ref:`actual duration<act_dur>`, its
-        :ref:`time signature<timesig>`, how it is to be considered when computing measure numbers (:ref:`mn<mn>`),
-        and which other MCs can "come :ref:`next`" according to the score's repeat structure."""
-        return self.parsed.measures()
-
-
-    @property
-    def metadata(self):
-        """:obj:`dict`
-        Shortcut for ``MSCX.parsed.metadata``.
-        Metadata from and about the MuseScore file."""
-        return self.parsed.metadata
-
-
-    @property
-    def notes(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Note> tags within the score."""
-        return self.parsed.nl
-
-
-    @property
-    def notes_and_rests(self):
-        """:obj:`pandas.DataFrame`
-        The union of :obj:`.notes` and :obj:`.rests`."""
-        return self.parsed.notes_and_rests
-
-
-    @property
-    def parsed(self):
-        """:obj:`~._MSCX_bs4`
-        Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object's
-        interface for requesting manipulations of and information from the source XML."""
-        if self._parsed is None:
-            self.logger.error("Score has not been parsed yet.")
-            return None
-        return self._parsed
-
-
-    @property
-    def rests(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Rest> tags."""
-        return self.parsed.rl
-
-
-    @property
-    def staff_ids(self):
-        """:obj:`list` of :obj:`int`
-        The staff IDs contained in the score, usually just a list of increasing numbers starting at 1."""
-        return self.parsed.staff_ids
-
-    @property
-    def style(self):
-        """:obj:`Style`
-        Can be used like a dictionary to change the information within the score's <Style> tag."""
-        return self.parsed.style
-
-
-    @property
-    def version(self):
-        """:obj:`str`
-        MuseScore version that the file was created with."""
-        return self.parsed.version
-
-    @property
-    def volta_structure(self):
-        """:obj:`dict`
-        {first_mc -> {volta_number -> [mc1, mc2...]} } dictionary."""
-        return self.parsed.volta_structure
-
-
-    def add_labels(self, annotations_object):
-        """ Receives the labels from an :py:class:`~.annotations.Annotations` object and adds them to the XML structure
-        representing the MuseScore file that might be written to a file afterwards.
-
-        Parameters
-        ----------
-        annotations_object : :py:class:`~.annotations.Annotations`
-            Object of labels to be added.
-
-        Returns
-        -------
-        :obj:`int`
-            Number of actually added labels.
-
-        """
-        df = annotations_object.df
-        if len(df) == 0:
-            self.logger.info("Nothing to add.")
-            return 0
-        main_cols = Annotations.main_cols
-        columns = annotations_object.cols
-        del(columns['regex_match'])
-        missing_main = {c for  c in main_cols if columns[c] not in df.columns}
-        assert len(missing_main) == 0, f"The specified columns for the following main parameters are missing:\n{missing_main}"
-        if columns['decoded'] not in df.columns:
-            df[columns['decoded']] = decode_harmonies(df, label_col=columns['label'], return_series=True, logger=self.logger)
-        #df = df[df[columns['label']].notna()]
-        param2cols = {k: v for k, v in columns.items() if v in df.columns}
-        parameters = list(param2cols.keys())
-        clmns = list(param2cols.values())
-        self.logger.debug(f"add_label() will be called with this param2col mapping:\n{param2cols}")
-        value_tuples = tuple(df[clmns].itertuples(index=False, name=None))
-        params = [dict(zip(parameters, t)) for t in value_tuples]
-        res = [self._parsed.add_label(**p) for p in params]
-        changes = sum(res)
-        # changes = sum(self.parsed.add_label(**{a: b for a, b in zip(parameters, t)})
-        #               for t
-        #               in df[columns].itertuples(index=False, name=None)
-        #               )
-        if changes > 0:
-            self.changed = True
-            self._parsed.parse_measures()
-            self._update_annotations()
-            self.logger.debug(f"{changes}/{len(df)} labels successfully added to score.")
-        return changes
-
-
-    def change_label_color(self, mc, mc_onset, staff, voice, label, color_name=None, color_html=None, color_r=None,
-                           color_g=None, color_b=None, color_a=None):
-        """  Shortcut for :py:meth:``MSCX.parsed.change_label_color``
-
-        Parameters
-        ----------
-        mc : :obj:`int`
-            Measure count of the label
-        mc_onset : :obj:`fractions.Fraction`
-            Onset position to which the label is attached.
-        staff : :obj:`int`
-            Staff to which the label is attached.
-        voice : :obj:`int`
-            Notational layer to which the label is attached.
-        label : :obj:`str`
-            (Decoded) label.
-        color_name, color_html : :obj:`str`, optional
-            Two ways of specifying the color.
-        color_r, color_g, color_b, color_a : :obj:`int` or :obj:`str`, optional
-            To specify a RGB color instead, pass at least, the first three. ``color_a`` (alpha = opacity) defaults
-            to 255.
-        """
-        return self.parsed.change_label_color(mc=mc, mc_onset=mc_onset, staff=staff, voice=voice, label=label,
-                                              color_name=color_name, color_html=color_html, color_r=color_r,
-                                              color_g=color_g, color_b=color_b, color_a=color_a)
-
-    def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None,
-                          column_name=None, color_format=None):
-        """ Update :py:attr:`.MSCX.labels_cfg`.
-
-        Parameters
-        ----------
-        labels_cfg : :obj:`dict`
-            Using an entire dictionary or, to change only particular options, choose from:
-        staff, voice, harmony_layer, positioning, decode
-            Arguments as they will be passed to :py:meth:`~.annotations.Annotations.get_labels`
-        """
-        keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
-        for k in keys:
-            val = locals()[k]
-            if val is not None:
-                labels_cfg[k] = val
-        updated = update_labels_cfg(labels_cfg, logger=self.logger)
-        self.labels_cfg.update(updated)
-
-
-    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
-        """
-
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame`
-            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
-        color_name : :obj:`str`, optional
-            Name the color that the non-chord tones should get, defaults to 'red'.
-        chord_tone_cols : :obj:`list`, optional
-            Names of the columns containing tuples of chord tones, expressed as TPC.
-        color_nan : :obj:`bool`, optional
-            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
-            will be colored. Pass False to add the segment to the previous one instead.
-
-        Returns
-        -------
-
-        """
-        if self.read_only:
-            self.parsed.make_writeable()
-        if len(df) == 0:
-            return df
-        for col in chord_tone_cols:
-            assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
-        # iterating backwards through the DataFrame; the first (=last) segment spans to the end of the score
-        to_mc, to_mc_onset = None, None
-        expand_segment = False # Flag allowing to add NaN segments to their preceding ones
-        results = []
-        for row_tuple in df[::-1].itertuples(index=False):
-            mc, mc_onset = row_tuple.mc, row_tuple.mc_onset
-            chord_tone_tuples = [row_tuple.__getattribute__(col) for col in chord_tone_cols]
-            if all(pd.isnull(ctt) for ctt in chord_tone_tuples):
-                if color_nan:
-                    colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
-                                              to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                              color_name=color_name)
-                else:
-                    colored_durs, untouched_durs = [], []
-                    expand_segment = True
-            else:
-                chord_tones = tuple([ct for ctt in chord_tone_tuples for ct in ctt if not pd.isnull(ctt)])
-                colored_durs, untouched_durs = self.parsed.color_notes(from_mc=mc, from_mc_onset=mc_onset,
-                                          to_mc=to_mc, to_mc_onset=to_mc_onset,
-                                          color_name=color_name, tpc=chord_tones, inverse=True)
-            n_colored, n_untouched = len(colored_durs), len(untouched_durs)
-            if n_colored + n_untouched == 0:
-                self.logger.debug(f"MC {mc}, onset {mc_onset}: NaN segment to be merged with the preceding one.")
-                results.append(())
-            else:
-                count_ratio = n_colored / (n_colored + n_untouched)
-                dur_colored, dur_untouched = float(sum(colored_durs)), float(sum(untouched_durs))
-                dur_ratio = dur_colored / (dur_colored + dur_untouched)
-                self.logger.debug(f"MC {mc}, onset {mc_onset}: {count_ratio:.1%} of all notes have been coloured, making up for {dur_ratio:.1%} of the summed durations.")
-                results.append((n_colored, n_untouched, count_ratio, dur_colored, dur_untouched, dur_ratio))
-            if expand_segment:
-                expand_segment = False
-            else:
-                to_mc, to_mc_onset = mc, mc_onset
-        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
-        if (stats.n_colored > 0).any():
-            self.parsed.parse_measures()
-            self.changed = True
-        return pd.concat([df, stats], axis=1)
-
-
-    def delete_labels(self, df):
-        """ Delete a set of labels from the current XML.
-
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame`
-            A DataFrame with the columns ['mc', 'mc_onset', 'staff', 'voice']
-        """
-        cols = ['mc', 'staff', 'voice', 'mc_onset']
-        positions = set(df[cols].itertuples(name=None, index=False))
-        changed = {ix: self._parsed.delete_label(mc, staff, voice, mc_onset)
-                   for ix, mc, staff, voice, mc_onset
-                   in reversed(
-                        list(df[cols].drop_duplicates().itertuples(name=None, index=True)))}
-        changed = pd.Series(changed, index=df.index).fillna(method='ffill')
-        changes = changed.sum()
-        if changes > 0:
-            self.changed = True
-            self._parsed.parse_measures()
-            self._update_annotations()
-            target = len(df)
-            self.logger.debug(f"{changes}/{target} labels successfully deleted.")
-            if changes < target:
-                self.logger.warning(f"{target - changes} labels could not be deleted:\n{df.loc[~changed]}")
-
-
-    def replace_labels(self, annotations_object):
-        """
-
-        Parameters
-        ----------
-        annotations_object : :py:class:`~.annotations.Annotations`
-            Object of labels to be added.
-
-        Returns
-        -------
-
-        """
-        self.delete_labels(annotations_object.df)
-        self.add_labels(annotations_object)
-
-
-
-    def delete_empty_labels(self):
-        """ Remove all empty labels from the attached annotations. """
-        if self._annotations is None:
-            self.logger.info("No annotations attached.")
-            return
-        df = self._annotations.get_labels(decode=True)
-        label_col = self._annotations.cols['label']
-        sel = df[label_col] == 'empty_harmony'
-        if sel.sum() == 0:
-            self.logger.info("Score contains no empty labels.")
-            return
-        cols = ['mc', 'staff', 'voice', 'mc_onset']
-        changed = [self._parsed.delete_label(mc, staff, voice, mc_onset, empty_only=True)
-                   for mc, staff, voice, mc_onset
-                   in df.loc[sel, cols].itertuples(name=None, index=False)]
-        if sum(changed) > 0:
-            self.changed = True
-            self._parsed.parse_measures()
-            self._update_annotations()
-            self.logger.info(f"Successfully deleted {sum(changed)} empty labels.")
-        else:
-            self.logger.info("No empty labels were deleted.")
-
-
-
-
-    def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, staff_text=False, dynamics=False,
-                   articulation=False, spanners=False, **kwargs):
-        """ Retrieve a customized chord list, e.g. one including less of the processed features or additional,
-        unprocessed ones compared to the standard chord list.
-
-        Parameters
-        ----------
-        staff : :obj:`int`
-            Get information from a particular staff only (1 = upper staff)
-        voice : :obj:`int`
-            Get information from a particular voice only (1 = only the first layer of every staff)
-        mode : {'auto', 'all', 'strict'}, optional
-            * 'auto' (default), meaning that those aspects are automatically included that occur in the score; the resulting
-              DataFrame has no empty columns except for those parameters that are set to True.
-            * 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            * 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
-        lyrics : :obj:`bool`, optional
-            Include lyrics.
-        staff_text : :obj:`bool`, optional
-            Include staff text such as tempo markings.
-        dynamics : :obj:`bool`, optional
-            Include dynamic markings such as f or p.
-        articulation : :obj:`bool`, optional
-            Include articulation such as arpeggios.
-        spanners : :obj:`bool`, optional
-            Include spanners such as slurs, 8va lines, pedal lines etc.
-        **kwargs : :obj:`bool`, optional
-            Set a particular keyword to True in order to include all columns from the _events DataFrame
-            whose names include that keyword. Column names include the tag names from the MSCX source code.
-
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
-            DataFrame representing all <Chord> tags in the score with the selected features.
-        """
-        return self.parsed.get_chords(staff=staff, voice=voice, mode=mode, lyrics=lyrics, staff_text=staff_text,
-                                      dynamics=dynamics,
-                                      articulation=articulation, spanners=spanners, **kwargs)
-
-
-    def get_raw_labels(self):
-        """Shortcut for ``MSCX.parsed.get_raw_labels()``.
-        Retrieve a "raw" list of labels, meaning that label types reflect only those defined within <Harmony> tags
-        which can be 1 (MuseScore's Roman Numeral display), 2 (Nashville) or undefined (in the case of 'normal'
-        chord labels, defaulting to 0).
-
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
-            DataFrame with raw label features (i.e. as encoded in XML)
-        """
-        return self.parsed.get_raw_labels()
-
-
-    def infer_mc(self, mn, mn_onset=0, volta=None):
-        """ Shortcut for ``MSCX.parsed.infer_mc()``.
-        Tries to convert a ``(mn, mn_onset)`` into a ``(mc, mc_onset)`` tuple on the basis of this MuseScore file.
-        In other words, a human readable score position such as "measure number 32b (i.e., a second ending), beat
-        3" needs to be converted to ``(32, 1/2, 2)`` if "beat" has length 1/4, or--if the meter is, say 9/8 and "beat"
-        has a length of 3/8-- to ``(32, 6/8, 2)``. The resulting ``(mc, mc_onset)`` tuples are required for attaching
-        a label to a score. This is only necessary for labels that were not originally extracted by ms3.
-
-        Parameters
-        ----------
-        mn : :obj:`int` or :obj:`str`
-            Measure number as in a reference print edition.
-        mn_onset : :obj:`fractions.Fraction`, optional
-            Distance of the requested position from beat 1 of the complete measure (MN), expressed as
-            fraction of a whole note. Defaults to 0, i.e. the position of beat 1.
-        volta : :obj:`int`, optional
-            In the case of first and second endings, which bear the same measure number, a MN might have to be
-            disambiguated by passing 1 for first ending, 2 for second, and so on. Alternatively, the MN
-            can be disambiguated traditionally by passing it as string with a letter attached. In other words,
-            ``infer_mc(mn=32, volta=1)`` is equivalent to ``infer_mc(mn='32a')``.
-
-        Returns
-        -------
-        :obj:`int`
-            Measure count (MC), denoting particular <Measure> tags in the score.
-        :obj:`fractions.Fraction`
-
-        """
-        return self.parsed.infer_mc(mn=mn, mn_onset=mn_onset, volta=volta)
-
-    def parse_mscx(self):
-        implemented_parsers = ['bs4']
-        if self.parser in implemented_parsers:
-            try:
-                self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
-            except:
-                self.logger.error(f"Failed parsing {self.mscx_src}.")
-                raise
-        else:
-            raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
-
-        self._update_annotations()
-
-
-    def output_mscx(self, filepath):
-        """Shortcut for ``MSCX.parsed.output_mscx()``.
-        Store the current XML structure as uncompressed MuseScore file.
-
-        Parameters
-        ----------
-        filepath : :obj:`str`
-            Path of the newly created MuseScore file, including the file name ending on '.mscx'.
-            Uncompressed files ('.mscz') are not supported.
-
-        Returns
-        -------
-        :obj:`bool`
-            Whether the file was successfully created.
-        """
-        return self.parsed.output_mscx(filepath=filepath)
-
-    def store_list(self, what='all', folder=None, suffix=None):
-        """
-        Store one or several several lists as TSV files(s).
-        
-        Parameters
-        ----------
-        what : :obj:`str` or :obj:`Collection`, optional
-            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
-        folder : :obj:`str`, optional
-            Where to store. Defaults to the directory of the parsed MSCX file.
-        suffix : :obj:`str` or :obj:`Collection`, optional
-            Suffix appended to the file name of the parsed MSCX file to create a new file name.
-            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
-            Number of suffixes needs to be equal to the number of ``what``.
-
-        Returns
-        -------
-        None
-
-        """
-        folder = resolve_dir(folder)
-        mscx_path, file = os.path.split(self.mscx_src)
-        fname, _ = os.path.splitext(file)
-        if folder is None:
-            folder = mscx_path
-        if not os.path.isdir(folder):
-            if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.makedirs(folder)
-            else:
-                return
-        what, suffix = self._treat_storing_params(what, suffix)
-        self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
-        if what is None:
-            self.logger.error("Tell me 'what' to store.")
-            return
-
-        for w, s in zip(what, suffix):
-            df = self.__getattribute__(w)
-            if len(df.index) > 0:
-                new_name = f"{fname}{s}{ext}"
-                full_path = os.path.join(folder, new_name)
-                write_tsv(df, full_path, logger=self.logger)
-            else:
-                self.logger.debug(f"{w} empty, no file written.")
-
-    def _treat_storing_params(self, what, suffix):
-        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
-        if what == 'all':
-            if suffix is None:
-                return tables, [f"_{t}" for t in tables]
-            elif len(suffix) < len(tables) or isinstance(suffix, str):
-                self.logger.error(
-                    f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
-                return None, None
-            elif len(suffix) > len(tables):
-                suffix = suffix[:len(tables)]
-            return tables, [str(s) for s in suffix]
-
-        if isinstance(what, str):
-            what = [what]
-        if isinstance(suffix, str):
-            suffix = [suffix]
-
-        correct = [(i, w) for i, w in enumerate(what) if w in tables]
-        if suffix is None:
-            suffix = [f"_{w}" for _, w in correct]
-        if len(correct) < len(what):
-            if len(correct) == 0:
-                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
-                return None, None
-            else:
-                incorrect = [w for w in what if w not in tables]
-                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
-                suffix = [suffix[i] for i, _ in correct]
-        if len(correct) < len(suffix):
-            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
-            return None, None
-        elif len(suffix) > len(correct):
-            suffix = suffix[:len(correct)]
-        return what, [str(s) for s in suffix]
-
-
-    def _update_annotations(self, infer_types={}):
-        if len(infer_types) == 0 and self._annotations is not None:
-            infer_types = self._annotations.regex_dict
-        if self._parsed.has_annotations:
-            self.has_annotations = True
-            logger_cfg = self.logger_cfg.copy()
-            #logger_cfg['name'] += '.annotations'
-            self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
-        else:
-            self._annotations = None
