@@ -253,9 +253,11 @@ class Annotations(LoggedClass):
             harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
             sel = sel & self.df.harmony_layer.isin(harmony_layer)
         res = self.df[sel].copy()
-        if not positioning:
-            pos_cols = [c for c in ['minDistance',  'offset', 'offset_x', 'offset_y'] if c in res.columns]
-            res.drop(columns=pos_cols, inplace=True)
+        if positioning:
+            pos_cols = [c for c in ('offset',) if c in res.columns]
+        else:
+            pos_cols = [c for c in ('minDistance',  'offset', 'offset_x', 'offset_y') if c in res.columns]
+        res.drop(columns=pos_cols, inplace=True)
         if drop:
             self.df = self.df[~sel]
         label_col = self.cols['label']
