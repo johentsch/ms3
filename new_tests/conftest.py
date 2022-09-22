@@ -156,14 +156,14 @@ def parsed_parse_objects(parsed_parse_obj, request):
         ('mixed_files', 'keyboard', 'classic', 'K281-3.mscx'),
           ],
     ids = [
-        'monty',
+        'monty[tremolo]',
         'pergolesi',
-        'berlioz',
+        'berlioz[tremolo]',
         'sarti[endings]',
         'caldara',
         'bach[endings]',
         'frescobaldi',
-        'schubert[endings]',
+        'schubert[endings][tremolo]',
         'mozart'
        ])
 def score_object(directory, request):
