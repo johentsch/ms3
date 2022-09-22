@@ -37,6 +37,8 @@ Indicators for corpora: If a folder contains any file or folder beginning or end
 considered to be a corpus by the function :py:func:`iterate_corpora`.
 """
 
+STANDARD_NAMES_OR_GIT = STANDARD_NAMES + [".git"]
+
 
 DCML_REGEX = re.compile(r"""
 ^(\.?
@@ -1236,8 +1238,8 @@ def first_level_subdirs(path):
 @function_logger
 def contains_corpus_indicator(path):
     for subdir in first_level_subdirs(path):
-        if subdir in STANDARD_NAMES + [".git"]:
-            logger.debug(f"{path} contains a subdirectory called {name} and is assumed to be a corpus.")
+        if subdir in STANDARD_NAMES_OR_GIT:
+            logger.debug(f"{path} contains a subdirectory called {subdir} and is assumed to be a corpus.")
             return True
     return False
 
