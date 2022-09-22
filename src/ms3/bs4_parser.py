@@ -310,12 +310,30 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._fl = self.add_standard_cols(form_labels)[cols]
         return self._fl
 
-    @property
     def measures(self):
-        """ Retrieve a standard measure list from the parsed score.
+        """ Retrieve a standard measure table from the parsed score.
         """
-        self._ml = self._make_measure_list()
-        return self._ml.ml
+        measures = self.ml
+        duration_qb = (measures.act_dur * 4).astype(float)
+        measures.insert(2, "duration_qb", duration_qb)
+        # add quarterbeats column
+        # functionality adapted from utils.make_continuous_offset()
+        filter_voltas = measures.volta.notna().any()
+        qb_column_name = "quarterbeats_all_endings" if filter_voltas else "quarterbeats"
+        quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
+        measures.insert(2, qb_column_name, quarterbeats_col)
+        if filter_voltas:
+            self.logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
+                         f"compute quarterbeats for a full playthrough.")
+            if 3 in measures.volta.values:
+                self.logger.info(
+                    f"Piece contains third endings, note that only second endings are taken into account.")
+            quarterbeats_col = measures.loc[measures.volta.fillna(2) != 2, 'act_dur']\
+                .cumsum()\
+                .shift(fill_value=0)\
+                .reindex(measures)
+            measures.insert(2, "quarterbeats", quarterbeats_col * 4)
+        return measures.copy()
 
     @property
     def metatags(self):
@@ -327,10 +345,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     @property
     def ml(self):
-        """Like property `measures` but without recomputing."""
+        """Get the raw measure list without adding quarterbeat columns."""
         if self._ml is None:
-            return self.measures
-        return self._ml.ml
+            self._ml = self._make_measure_list()
+        return self._ml.ml.copy()
 
     @property
     def notes(self):

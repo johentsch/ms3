@@ -215,6 +215,11 @@ class TestParsedParse():
         parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
         assert parsed_files == n_parsed_files
 
+    def test_extracting_dataframes(self):
+        p = self.parsed_parse_obj
+        measures = p.measures()
+
+        print(measures)
 
     # def test_check(self, caplog, all_ignored_warnings):
     #     _ = self.parsed_parse_obj.get_dataframes(expanded=True)

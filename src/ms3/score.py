@@ -1038,9 +1038,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return None
         return self._annotations.get_labels(**self.labels_cfg)
 
-
-    @property
-    def measures(self):
+    def measures(self) -> pd.DataFrame:
         """:obj:`pandas.DataFrame`
         DataFrame representing the measures of the MuseScore file (which can be incomplete measures).
         The potentially incomplete measure units are numbered starting from one, which corresponds to the
@@ -1048,7 +1046,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         (measure count). The columns represent for every MC its :ref:`actual duration<act_dur>`, its
         :ref:`time signature<timesig>`, how it is to be considered when computing measure numbers (:ref:`mn<mn>`),
         and which other MCs can "come :ref:`next`" according to the score's repeat structure."""
-        return self.parsed.ml
+        return self.parsed.measures()
 
 
     @property

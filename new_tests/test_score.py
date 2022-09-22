@@ -66,6 +66,26 @@ class TestScore:
         score_object.attach_labels('labels')
         assert_output_mscx_identical(score_object, '_label_reinsertion')
 
+    def test_measures(self, score_object):
+        mscx = score_object.mscx.parsed
+        raw_measures = mscx.ml
+        effective_measures = score_object.mscx.measures()
+        qb_cols = ('quarterbeats', 'duration_qb')
+        assert all(col in effective_measures for col in qb_cols)
+        assert all(col not in raw_measures for col in qb_cols)
+        if raw_measures.volta.notna().any():
+            assert 'quarterbeats_all_endings' in effective_measures
+            assert 'quarterbeats_all_endings' not in raw_measures
+            assert effective_measures.quarterbeats.isna().any()
+        else:
+            assert effective_measures.quarterbeats.notna().all()
+        assert_dfs_equal(raw_measures, effective_measures)
+
+    def test_notes(self, score_object):
+        mscx = score_object.mscx.parsed
+        notelist = score_object.mscx.notes
+        print()
+
 
     def test_partially_removing_and_reinserting_labels(self, directory):
         path = os.path.join(directory, 'mixed_files', 'stabat_03_coloured.mscx')

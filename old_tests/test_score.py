@@ -80,7 +80,7 @@ class TestScore:
         fpath = os.path.join(score_object.paths['mscx'], '..')
         old_path = os.path.join(fpath, 'measures', fname + '.tsv')
         old_measurelist = load_tsv(old_path, index_col=None)
-        new_measurelist = score_object.mscx.measures
+        new_measurelist = score_object.mscx.measures()
         # Exclude 'repeat' column because the old parser used startRepeat, endRepeat and newSection
         # Exclude 'offset' and 'next' because the new parser does them more correctly
         excl = ['repeats', 'offset', 'next']

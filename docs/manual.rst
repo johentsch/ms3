@@ -315,7 +315,7 @@ Measures
 
 .. code-block:: python
 
-    >>> s.mscx.measures   # access through a Score object
+    >>> s.mscx.measures()   # access through a Score object
     >>> p.measures()      # access through a Parse object
 
 
