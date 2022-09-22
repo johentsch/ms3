@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>ms3 - Parsing MuseScore 3 &#8212; ms3  documentation</title>
+    <title>ms3 - Parsing MuseScore 3 &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,9 +49,12 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="N">next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3  documentation</a> &#187;</li>
+    <li><a href="#">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
       </ul>
@@ -180,10 +183,11 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#mc-offset-offset-of-a-mc"><strong>mc_offset</strong> Offset of a MC</a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#next"><strong>next</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#numbering-offset-offsetting-mns"><strong>numbering_offset</strong> Offsetting MNs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="manual.html#quarterbeats-all-endings"><strong>quarterbeats_all_endings</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#repeats"><strong>repeats</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id29">Notes and Rests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id30">Notes and Rests</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#chord-id"><strong>chord_id</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#gracenote"><strong>gracenote</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#midi-piano-key"><strong>midi</strong> Piano key</a></li>
@@ -193,7 +197,7 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#tpc-tonal-pitch-class"><strong>tpc</strong> Tonal pitch class</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id35">Chords</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id36">Chords</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#articulation"><strong>articulation</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#dynamics"><strong>dynamics</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#lyrics-1"><strong>lyrics:1</strong></a></li>
@@ -204,11 +208,11 @@
 <li class="toctree-l4"><a class="reference internal" href="manual.html#spanners">Spanners</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id46">Labels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id47">Labels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#label"><strong>label</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id48">Expanded</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="manual.html#id49">Expanded</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#bass-note"><strong>bass_note</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#cadence"><strong>cadence</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="manual.html#chord"><strong>chord</strong></a></li>
@@ -235,12 +239,30 @@
 <li class="toctree-l3"><a class="reference internal" href="reference.html#the-mscx-class">The MSCX class</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-annotations-class">The Annotations class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-parse-class">The Parse class</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-beautifulsoup-parser">The BeautifulSoup parser</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-expand-dcml-module">The expand_dcml module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#utils">Utils</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-commandline-interface">The commandline interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.annotations">The Annotations class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.parse">The Parse class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.bs4_parser">The BeautifulSoup parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.expand_dcml">The expand_dcml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.utils">Utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#the-commandline-interface">The commandline interface</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="reference.html#Positional Arguments">Positional Arguments</a></li>
+<li class="toctree-l3"><a class="reference internal" href="reference.html#Sub-commands:">Sub-commands:</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#add">add</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#check">check</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#compare">compare</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#convert">convert</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#empty">empty</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#extract">extract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#metadata">metadata</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#repair">repair</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#transform">transform</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#update">update</a></li>
+<li class="toctree-l4"><a class="reference internal" href="reference.html#review">review</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="reference.html#developing-a-new-parser">Developing a new parser</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="reference.html#methods">Methods</a></li>
 </ul>
@@ -250,6 +272,7 @@
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-5-4">Version 0.5.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-5-3">Version 0.5.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-5-2">Version 0.5.2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-0-5-1">Version 0.5.1</a></li>
@@ -354,9 +377,12 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
           <a href="install.html" title="Installing ms3"
              >next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3  documentation</a> &#187;</li>
+    <li><a href="#">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3</a></li> 
       </ul>
@@ -365,7 +391,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

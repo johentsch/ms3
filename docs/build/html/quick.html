@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Quick Reference &#8212; ms3  documentation</title>
+    <title>Quick Reference &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -50,12 +50,15 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
           <a href="manual.html" title="Manual"
              accesskey="N">next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3  documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -74,7 +77,7 @@
 <img alt="The archicture of ms3" src="_images/ms3_architecture.png" />
 </figure>
 <p>There are two ways of interacting with ms3, namely using the commands that it installs to your system (such as
-<code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>), or using its main objects, <code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code>, for example
+<code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>), or using its main objects, <a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> and <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a>, for example
 in an interactive Python interpreter such as IPython, Jupyter, Google Colab, or just the console.</p>
 <section id="parsing-a-single-score-working-with-the-score-object">
 <h2>Parsing a single score: Working with the Score object<a class="headerlink" href="#parsing-a-single-score-working-with-the-score-object" title="Permalink to this heading">¶</a></h2>
@@ -114,7 +117,7 @@ which can be stored anywhere on the system.</p>
 </section>
 <section id="storing-the-labels">
 <h3>Storing the labels<a class="headerlink" href="#storing-the-labels" title="Permalink to this heading">¶</a></h3>
-<p>The annotations contained in a score are stored in an <code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code> object and can be accessed
+<p>The annotations contained in a score are stored in an <a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object and can be accessed
 and stored as a tab-separated file (TSV) like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">annotations</span>
 <span class="go">48 labels:</span>
@@ -151,7 +154,7 @@ and stored as a tab-separated file (TSV) like this:</p>
 </pre></div>
 </div>
 <p>Upon inspecting the object we see that the 48 labels are not attached to the score anymore. They are stored in a new
-<code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
+<a class="reference internal" href="reference.html#ms3.annotations.Annotations" title="ms3.annotations.Annotations"><code class="xref py py-class docutils literal notranslate"><span class="pre">Annotations</span></code></a> object which can be accessed via <code class="docutils literal notranslate"><span class="pre">s.chords</span></code>, i.e. the key we’ve chosen.
 The warning <code class="docutils literal notranslate"><span class="pre">CHANGED!!!</span></code> does not mean that the file on disc has been changed, only the object. Overwriting
 the original file could mean a loss of the labels unless they are stored separately.</p>
 </section>
@@ -166,7 +169,7 @@ The output will always be uncompressed, so make sure to use <code class="docutil
 </section>
 <section id="adding-labels-to-score">
 <h3>Adding labels to score<a class="headerlink" href="#adding-labels-to-score" title="Permalink to this heading">¶</a></h3>
-<p>The method <code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code> can be used to re-attach a set of labels that has been
+<p>The method <a class="reference internal" href="reference.html#ms3.score.Score.attach_labels" title="ms3.score.Score.attach_labels"><code class="xref py py-meth docutils literal notranslate"><span class="pre">attach_labels()</span></code></a> can be used to re-attach a set of labels that has been
 <a class="reference internal" href="#detaching"><span class="std std-ref">detached</span></a>. Similarly we can load the empty score and the stored labels to reunite them:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Score</span><span class="p">(</span><span class="s1">&#39;stabat_empty.mscx&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">e</span><span class="o">.</span><span class="n">load_annotations</span><span class="p">(</span><span class="s1">&#39;stabat_chords.tsv&#39;</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;tsv_chords&#39;</span><span class="p">)</span>
@@ -310,7 +313,7 @@ standardized tables:</p>
 notes are part of the same notational layer and have the same onset. Every chord has a <code class="docutils literal notranslate"><span class="pre">chord_id</span></code> and every note
 is part of a chord. These tables are used to convey score information that is not attached to a particular note,
 such as lyrics, staff text, dynamics and other markup.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">labels</span></code>: The annotation labels contained in the score, formatted according to <code class="xref py py-attr docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">labels</span></code>: The annotation labels contained in the score, formatted according to <a class="reference internal" href="reference.html#ms3.score.MSCX.labels_cfg" title="ms3.score.MSCX.labels_cfg"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MSCX.labels_cfg</span></code></a>.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">expanded</span></code>: If the score contains <a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony labels</a>, return them split
 into the encoded features.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cadences</span></code>: If DCML harmony labels include cadence labels, return only those (simply a filter on <code class="docutils literal notranslate"><span class="pre">expanded</span></code>).</p></li>
@@ -321,55 +324,57 @@ into the encoded features.</p></li>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">labels</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>    mc  mn mc_onset mn_onset timesig  staff  voice  volta     label label_type
-0    1   1        0        0     4/4      3      2   &lt;NA&gt;      .f.i   0 (dcml)
-1    1   1      1/4      1/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-2    1   1      1/2      1/2     4/4      3      2   &lt;NA&gt;      V(4)   0 (dcml)
-3    1   1      3/4      3/4     4/4      3      2   &lt;NA&gt;        V6   0 (dcml)
-4    2   2        0        0     4/4      3      2   &lt;NA&gt;      i(9)   0 (dcml)
-5    2   2      1/4      1/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-6    2   2      1/2      1/2     4/4      3      2   &lt;NA&gt;  V(4)/III   0 (dcml)
-7    2   2      3/4      3/4     4/4      3      2   &lt;NA&gt;    V6/III   0 (dcml)
-8    3   3        0        0     4/4      3      2   &lt;NA&gt;    III(9)   0 (dcml)
-9    3   3      1/4      1/4     4/4      3      2   &lt;NA&gt;      III6   0 (dcml)
-10   3   3      1/2      1/2     4/4      3      2   &lt;NA&gt;     iv(9)   0 (dcml)
-11   3   3      3/4      3/4     4/4      3      2   &lt;NA&gt;       iv6   0 (dcml)
-12   4   4        0        0     4/4      3      2   &lt;NA&gt;      V(9)   0 (dcml)
-13   4   4      3/8      3/8     4/4      3      2   &lt;NA&gt;     viio6   0 (dcml)
-14   4   4      1/2      1/2     4/4      3      2   &lt;NA&gt;     V7/iv   0 (dcml)
-15   4   4      3/4      3/4     4/4      3      2   &lt;NA&gt;      V/iv   0 (dcml)
-16   5   5        0        0     4/4      3      2   &lt;NA&gt;     iv(9)   0 (dcml)
-17   5   5      1/4      1/4     4/4      3      2   &lt;NA&gt;       iv6   0 (dcml)
-18   5   5      1/2      1/2     4/4      3      2   &lt;NA&gt;      V7\\   0 (dcml)
-19   6   6      1/2      1/2     4/4      3      2   &lt;NA&gt;     V(64)   0 (dcml)
-20   7   7      1/2      1/2     4/4      3      2   &lt;NA&gt;         V   0 (dcml)
-21   7   7      5/8      5/8     4/4      3      2   &lt;NA&gt;     viio2   0 (dcml)
-22   7   7      3/4      3/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-23   7   7      7/8      7/8     4/4      3      2   &lt;NA&gt;       iv7   0 (dcml)
-24   8   8        0        0     4/4      3      2   &lt;NA&gt;     V(64)   0 (dcml)
-25   8   8      1/4      1/4     4/4      3      2   &lt;NA&gt;         V   0 (dcml)
-26   8   8      1/2      1/2     4/4      3      2   &lt;NA&gt;      VI\\   0 (dcml)
-27   8   8      3/4      3/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-28   9   9        0        0     4/4      3      2   &lt;NA&gt;        iv   0 (dcml)
-29   9   9      1/4      1/4     4/4      3      2   &lt;NA&gt;        V+   0 (dcml)
-30   9   9      1/2      1/2     4/4      3      2   &lt;NA&gt;        VI   0 (dcml)
-31   9   9      3/4      3/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-32  10  10        0        0     4/4      3      2   &lt;NA&gt;        iv   0 (dcml)
-33  10  10      1/4      1/4     4/4      3      2   &lt;NA&gt;        V+   0 (dcml)
-34  10  10      1/2      1/2     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-35  10  10      5/8      5/8     4/4      3      2   &lt;NA&gt;    viio65   0 (dcml)
-36  10  10      3/4      3/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-37  10  10      7/8      7/8     4/4      3      2   &lt;NA&gt;       ii6   0 (dcml)
-38  11  11        0        0     4/4      3      2   &lt;NA&gt;     V7(4)   0 (dcml)
-39  11  11      1/4      1/4     4/4      3      2   &lt;NA&gt;        V7   0 (dcml)
-40  11  11      1/2      1/2     4/4      3      2   &lt;NA&gt;       i\\   0 (dcml)
-41  12  12      1/4      1/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-42  12  12      1/2      1/2     4/4      3      2   &lt;NA&gt;      V(4)   0 (dcml)
-43  12  12      3/4      3/4     4/4      3      2   &lt;NA&gt;         V   0 (dcml)
-44  13  13        0        0     4/4      3      2   &lt;NA&gt;      i(9)   0 (dcml)
-45  13  13      1/4      1/4     4/4      3      2   &lt;NA&gt;        i6   0 (dcml)
-46  13  13      1/2      1/2     4/4      3      2   &lt;NA&gt;  V(4)/III   0 (dcml)
-47  13  13      3/4      3/4     4/4      3      2   &lt;NA&gt;      III6   0 (dcml)
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>    mc  mn mc_onset mn_onset  ... volta  harmony_layer     label  regex_match
+0    1   1        0        0  ...  &lt;NA&gt;              0      .f.i         dcml
+1    1   1      1/4      1/4  ...  &lt;NA&gt;              0        i6         dcml
+2    1   1      1/2      1/2  ...  &lt;NA&gt;              0      V(4)         dcml
+3    1   1      3/4      3/4  ...  &lt;NA&gt;              0        V6         dcml
+4    2   2        0        0  ...  &lt;NA&gt;              0      i(9)         dcml
+5    2   2      1/4      1/4  ...  &lt;NA&gt;              0        i6         dcml
+6    2   2      1/2      1/2  ...  &lt;NA&gt;              0  V(4)/III         dcml
+7    2   2      3/4      3/4  ...  &lt;NA&gt;              0    V6/III         dcml
+8    3   3        0        0  ...  &lt;NA&gt;              0    III(9)         dcml
+9    3   3      1/4      1/4  ...  &lt;NA&gt;              0      III6         dcml
+10   3   3      1/2      1/2  ...  &lt;NA&gt;              0     iv(9)         dcml
+11   3   3      3/4      3/4  ...  &lt;NA&gt;              0       iv6         dcml
+12   4   4        0        0  ...  &lt;NA&gt;              0      V(9)         dcml
+13   4   4      3/8      3/8  ...  &lt;NA&gt;              0     viio6         dcml
+14   4   4      1/2      1/2  ...  &lt;NA&gt;              0     V7/iv         dcml
+15   4   4      3/4      3/4  ...  &lt;NA&gt;              0      V/iv         dcml
+16   5   5        0        0  ...  &lt;NA&gt;              0     iv(9)         dcml
+17   5   5      1/4      1/4  ...  &lt;NA&gt;              0       iv6         dcml
+18   5   5      1/2      1/2  ...  &lt;NA&gt;              0      V7\\         dcml
+19   6   6      1/2      1/2  ...  &lt;NA&gt;              0     V(64)         dcml
+20   7   7      1/2      1/2  ...  &lt;NA&gt;              0         V         dcml
+21   7   7      5/8      5/8  ...  &lt;NA&gt;              0     viio2         dcml
+22   7   7      3/4      3/4  ...  &lt;NA&gt;              0        i6         dcml
+23   7   7      7/8      7/8  ...  &lt;NA&gt;              0       iv7         dcml
+24   8   8        0        0  ...  &lt;NA&gt;              0     V(64)         dcml
+25   8   8      1/4      1/4  ...  &lt;NA&gt;              0         V         dcml
+26   8   8      1/2      1/2  ...  &lt;NA&gt;              0      VI\\         dcml
+27   8   8      3/4      3/4  ...  &lt;NA&gt;              0        i6         dcml
+28   9   9        0        0  ...  &lt;NA&gt;              0        iv         dcml
+29   9   9      1/4      1/4  ...  &lt;NA&gt;              0        V+         dcml
+30   9   9      1/2      1/2  ...  &lt;NA&gt;              0        VI         dcml
+31   9   9      3/4      3/4  ...  &lt;NA&gt;              0        i6         dcml
+32  10  10        0        0  ...  &lt;NA&gt;              0        iv         dcml
+33  10  10      1/4      1/4  ...  &lt;NA&gt;              0        V+         dcml
+34  10  10      1/2      1/2  ...  &lt;NA&gt;              0        i6         dcml
+35  10  10      5/8      5/8  ...  &lt;NA&gt;              0    viio65         dcml
+36  10  10      3/4      3/4  ...  &lt;NA&gt;              0        i6         dcml
+37  10  10      7/8      7/8  ...  &lt;NA&gt;              0       ii6         dcml
+38  11  11        0        0  ...  &lt;NA&gt;              0     V7(4)         dcml
+39  11  11      1/4      1/4  ...  &lt;NA&gt;              0        V7         dcml
+40  11  11      1/2      1/2  ...  &lt;NA&gt;              0       i\\         dcml
+41  12  12      1/4      1/4  ...  &lt;NA&gt;              0        i6         dcml
+42  12  12      1/2      1/2  ...  &lt;NA&gt;              0      V(4)         dcml
+43  12  12      3/4      3/4  ...  &lt;NA&gt;              0         V         dcml
+44  13  13        0        0  ...  &lt;NA&gt;              0      i(9)         dcml
+45  13  13      1/4      1/4  ...  &lt;NA&gt;              0        i6         dcml
+46  13  13      1/2      1/2  ...  &lt;NA&gt;              0  V(4)/III         dcml
+47  13  13      3/4      3/4  ...  &lt;NA&gt;              0      III6         dcml
+
+[48 rows x 11 columns]
 </pre></div>
 </div>
 </section>
@@ -381,7 +386,7 @@ into the encoded features.</p></li>
 a tab-separated values file (TSV).</p>
 <section id="loading">
 <h3>Loading<a class="headerlink" href="#loading" title="Permalink to this heading">¶</a></h3>
-<p>The first step is to create a <code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code> object. When passing it
+<p>The first step is to create a <a class="reference internal" href="reference.html#ms3.parse.Parse" title="ms3.parse.Parse"><code class="xref py py-class docutils literal notranslate"><span class="pre">Parse</span></code></a> object. When passing it
 the path of the cloned <a class="reference external" href="https://github.com/johentsch/ms3">Git</a>, it scans it for all MSCX files:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">ms3</span> <span class="kn">import</span> <span class="n">Parse</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;~/ms3&#39;</span><span class="p">)</span>
@@ -417,7 +422,7 @@ Instead, we could assign all ten files to the same key and then add the ‘docs�
 </pre></div>
 </div>
 <p>Voilà, parsed in parallel with only one warning where a score has to be corrected. The parsed
-<code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a>) are stored in the dictionary
+<a class="reference internal" href="reference.html#ms3.score.Score" title="ms3.score.Score"><code class="xref py py-class docutils literal notranslate"><span class="pre">Score</span></code></a> objects (<a class="reference internal" href="manual.html#read-only"><span class="std std-ref">Read-only mode</span></a>) are stored in the dictionary
 <code class="xref py py-attr docutils literal notranslate"><span class="pre">_parsed</span></code>, the state of which can be viewed like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">p</span><span class="o">.</span><span class="n">parsed</span>
 <span class="go">{(&#39;all&#39;, 0): &#39;~/ms3/docs/cujus.mscx -&gt; 88 labels&#39;,</span>
@@ -518,7 +523,7 @@ folders are created at the top level (of the original directory or the specified
 <code class="docutils literal notranslate"><span class="pre">root_dir</span></code>) and the original subdirectory structure is replicated
 in each of them.</p></li>
 </ul>
-<p>To see examples for the three possibilities, see <span class="xref std std-ref">specifying_folders</span>.</p>
+<p>To see examples for the three possibilities, see <a class="reference internal" href="manual.html#specifying-folders"><span class="std std-ref">Specifying folders</span></a>.</p>
 </section>
 </section>
 </section>
@@ -620,12 +625,15 @@ in each of them.</p></li>
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+        <li class="right" >
           <a href="manual.html" title="Manual"
              >next</a> &nbsp; &nbsp;</li>
         <li class="right" >
           <a href="install.html" title="Installing ms3"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3  documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Quick Reference</a></li> 
       </ul>
@@ -634,7 +642,7 @@ in each of them.</p></li>
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.0.2.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

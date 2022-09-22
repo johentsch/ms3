@@ -74,6 +74,12 @@ Utils
 .. automodule:: ms3.utils
     :members:
 
+Transformations
+===============
+
+.. automodule:: ms3.transformations
+    :members:
+
 .. _cli_doc:
 
 The commandline interface

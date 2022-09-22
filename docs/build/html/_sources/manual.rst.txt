@@ -247,6 +247,8 @@ Tables with score information
 .. |pedal| replace:: :ref:`pedal <pedal>`
 .. |phraseend| replace:: :ref:`phraseend <phraseend>`
 .. |qpm| replace:: :ref:`qpm <qpm>`
+.. |quarterbeats| replace:: :ref:`quarterbeats <quarterbeats>`
+.. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings <quarterbeats_all_endings>`
 .. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
 .. |repeats| replace:: :ref:`repeats <repeats>`
 .. |root| replace:: :ref:`root <root>`
@@ -315,7 +317,7 @@ Measures
 
 .. code-block:: python
 
-    >>> s.mscx.measures   # access through a Score object
+    >>> s.mscx.measures()   # access through a Score object
     >>> p.measures()      # access through a Parse object
 
 
@@ -1314,9 +1316,16 @@ please refer to :ref:`onsets`.
 
 This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
 quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
-second ending is counted in order to give authentic values to such a score, as if played without repetitions (third endings and more are also ignored). If
-repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
-account correctly.
+second ending is counted in order to give authentic values to such a score, as if played without repetitions
+(third endings and more are also ignored). If repetitions are unfolded, i.e. the table corresponds to a
+full play-through of the score, all endings are taken into account correctly.
+
+For the specific case you need continuous quarterbeats including all endings, please refer to |quarterbeats_all_endings|.
+
+Computation of quarterbeats requires an offset_dict that is computed from the column |act_dur| contained in every
+:ref:`measures` table. Quarterbeats are based on the cumulative sum of that column, meaning that they take
+the length of irregular measures into account.
+
 
 
 .. _staff:
@@ -1463,7 +1472,22 @@ Scores which include several pieces (e.g. in variations or a suite),
 sometimes, instead of using section :ref:`breaks <breaks>`, use ``numbering_offset`` to simulate a restart for counting
 :ref:`MNs <mn>` at every new section. This leads to ambiguous MNs.
 
+.. _quarterbeats_all_endings:
 
+**quarterbeats_all_endings**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
+Since the computation of |quarterbeats| for pieces including alternative endings (:ref:`voltas <volta>`) excludes all
+but the second endings, the measures of such pieces get this additional column, allowing to create an offset_dict
+for users who need continuous quarterbeats including all endings. In that case one would call
+
+.. code-block:: python
+
+  from ms3 import add_quarterbeats_col
+  offset_dict = measures.quarterbeats_all_endings.to_dict()
+  df_with_gapless_quarterbeats = add_quarterbeats_col(df, offset_dict)
 
 .. _repeats:
 
