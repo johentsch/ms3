@@ -159,11 +159,11 @@ def parsed_parse_objects(parsed_parse_obj, request):
         'monty',
         'pergolesi',
         'berlioz',
-        'sarti',
+        'sarti[endings]',
         'caldara',
-        'bach',
+        'bach[endings]',
         'frescobaldi',
-        'schubert',
+        'schubert[endings]',
         'mozart'
        ])
 def score_object(directory, request):
