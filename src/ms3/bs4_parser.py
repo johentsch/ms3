@@ -1,5 +1,6 @@
 """
 .. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |alt_label| replace:: :ref:`alt_label <alt_label>`
 .. |added_tones| replace:: :ref:`added_tones <chord_tones>`
 .. |articulation| replace:: :ref:`articulation <articulation>`
 .. |bass_note| replace:: :ref:`bass_note <bass_note>`
@@ -15,15 +16,16 @@
 .. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
 .. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
 .. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |duration| replace:: :ref:`duration <duration>`
 .. |duration_qb| replace:: :ref:`duration_qb <duration_qb>`
 .. |dynamics| replace:: :ref:`dynamics <dynamics>`
 .. |figbass| replace:: :ref:`figbass <figbass>`
 .. |form| replace:: :ref:`form <form>`
 .. |globalkey| replace:: :ref:`globalkey <globalkey>`
 .. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
-.. |dont_count| replace:: :ref:`dont_count <dont_count>`
-.. |duration| replace:: :ref:`duration <duration>`
 .. |gracenote| replace:: :ref:`gracenote <gracenote>`
+.. |harmony_layer| replace:: :ref:`harmony_layer <harmony_layer>`
 .. |keysig| replace:: :ref:`keysig <keysig>`
 .. |label| replace:: :ref:`label <label>`
 .. |label_type| replace:: :ref:`label_type <label_type>`
@@ -40,14 +42,18 @@
 .. |nominal_duration| replace:: :ref:`nominal_duration <nominal_duration>`
 .. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
 .. |numeral| replace:: :ref:`numeral <numeral>`
+.. |offset_x| replace:: :ref:`offset_x <offset>`
+.. |offset_y| replace:: :ref:`offset_y <offset>`
 .. |Ottava:15mb| replace:: :ref:`Ottava:15mb <ottava>`
 .. |Ottava:8va| replace:: :ref:`Ottava:8va <ottava>`
+.. |Ottava:8vb| replace:: :ref:`Ottava:8vb <ottava>`
 .. |pedal| replace:: :ref:`pedal <pedal>`
 .. |phraseend| replace:: :ref:`phraseend <phraseend>`
 .. |qpm| replace:: :ref:`qpm <qpm>`
 .. |quarterbeats| replace:: :ref:`quarterbeats <quarterbeats>`
 .. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings <quarterbeats_all_endings>`
 .. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
+.. |regex_match| replace:: :ref:`regex_match <regex_match>`
 .. |repeats| replace:: :ref:`repeats <repeats>`
 .. |root| replace:: :ref:`root <root>`
 .. |scalar| replace:: :ref:`scalar <scalar>`
@@ -56,6 +62,7 @@
 .. |staff_text| replace:: :ref:`staff_text <staff_text>`
 .. |system_text| replace:: :ref:`system_text <system_text>`
 .. |tempo| replace:: :ref:`tempo <tempo>`
+.. |TextLine| replace:: :ref:`TextLine <textline>`
 .. |tied| replace:: :ref:`tied <tied>`
 .. |timesig| replace:: :ref:`timesig <timesig>`
 .. |tpc| replace:: :ref:`tpc <tpc>`

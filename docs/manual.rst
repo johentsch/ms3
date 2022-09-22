@@ -75,25 +75,13 @@ is simply the list index of the respective file.
 Label types
 -----------
 
-ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:
+ms3 recognizes and disambiguates different types of labels, depending on how they are encoded in MuseScore, see |harmony_layer|.
 
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| label_type | explanation                                                                                                                            |
-+============+========================================================================================================================================+
-| 0          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
-|            | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 1          | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 2          | Nashville number (Add->Text->Nashville Number).                                                                                        |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 3          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
-|            | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
+Independent of the type, ms3 will also try to infer whether a label conforms to the DCML syntax and/or other regular expressions registered
+via :meth:`ms3.Score.new_type`. The column |regex_match| contains for each label the name of the first regEx that matched.
+information will appear with a subtype, e.g. ``0 (dcml)``.
 
-Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
-information will appear with a subtype, e.g. ``0 (dcml)``. If instead or additionally you want other subtypes to be
-recognized, specify the :py:attr:`~.score.Score.infer_label_types` attribute.
+See also :attr:`~.score.Score.infer_label_types`.
 
 
 .. _mc_vs_mn:
@@ -203,6 +191,7 @@ Tables with score information
 =============================
 
 .. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |alt_label| replace:: :ref:`alt_label <alt_label>`
 .. |added_tones| replace:: :ref:`added_tones <chord_tones>`
 .. |articulation| replace:: :ref:`articulation <articulation>`
 .. |bass_note| replace:: :ref:`bass_note <bass_note>`
@@ -218,15 +207,16 @@ Tables with score information
 .. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
 .. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
 .. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |duration| replace:: :ref:`duration <duration>`
 .. |duration_qb| replace:: :ref:`duration_qb <duration_qb>`
 .. |dynamics| replace:: :ref:`dynamics <dynamics>`
 .. |figbass| replace:: :ref:`figbass <figbass>`
 .. |form| replace:: :ref:`form <form>`
 .. |globalkey| replace:: :ref:`globalkey <globalkey>`
 .. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
-.. |dont_count| replace:: :ref:`dont_count <dont_count>`
-.. |duration| replace:: :ref:`duration <duration>`
 .. |gracenote| replace:: :ref:`gracenote <gracenote>`
+.. |harmony_layer| replace:: :ref:`harmony_layer <harmony_layer>`
 .. |keysig| replace:: :ref:`keysig <keysig>`
 .. |label| replace:: :ref:`label <label>`
 .. |label_type| replace:: :ref:`label_type <label_type>`
@@ -243,14 +233,18 @@ Tables with score information
 .. |nominal_duration| replace:: :ref:`nominal_duration <nominal_duration>`
 .. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
 .. |numeral| replace:: :ref:`numeral <numeral>`
+.. |offset_x| replace:: :ref:`offset_x <offset>`
+.. |offset_y| replace:: :ref:`offset_y <offset>`
 .. |Ottava:15mb| replace:: :ref:`Ottava:15mb <ottava>`
 .. |Ottava:8va| replace:: :ref:`Ottava:8va <ottava>`
+.. |Ottava:8vb| replace:: :ref:`Ottava:8vb <ottava>`
 .. |pedal| replace:: :ref:`pedal <pedal>`
 .. |phraseend| replace:: :ref:`phraseend <phraseend>`
 .. |qpm| replace:: :ref:`qpm <qpm>`
 .. |quarterbeats| replace:: :ref:`quarterbeats <quarterbeats>`
 .. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings <quarterbeats_all_endings>`
 .. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
+.. |regex_match| replace:: :ref:`regex_match <regex_match>`
 .. |repeats| replace:: :ref:`repeats <repeats>`
 .. |root| replace:: :ref:`root <root>`
 .. |scalar| replace:: :ref:`scalar <scalar>`
@@ -259,6 +253,7 @@ Tables with score information
 .. |staff_text| replace:: :ref:`staff_text <staff_text>`
 .. |system_text| replace:: :ref:`system_text <system_text>`
 .. |tempo| replace:: :ref:`tempo <tempo>`
+.. |TextLine| replace:: :ref:`TextLine <textline>`
 .. |tied| replace:: :ref:`tied <tied>`
 .. |timesig| replace:: :ref:`timesig <timesig>`
 .. |tpc| replace:: :ref:`tpc <tpc>`
@@ -398,6 +393,11 @@ Notes and Rests
 
 Chords
 ------
+
+.. note::
+
+   The use of the word chords, here, is very specific because its meaning stems entirely from the MuseScore XML source code.
+   If you are interested in chord labels, please refer to :ref:`labels` or :ref:`expanded`.
 
 In a MuseScore file, every note is enclosed by a <Chord> tag. One <Chord> tag can enclose several notes, as long
 as they occur in the same |staff| and |voice| (notational layer). As a consequence, notes
@@ -1792,9 +1792,19 @@ always pertain to an entire |staff|
 Pedal line :ref:`spanners <spanners>` always pertain to an entire |staff|.
 
 
+.. _textline:
+
+**TextLine**
+^^^^^^^^^^^^
+
+:obj:`str` (-> :obj:`tuple`)
+
+Custom staff text with a line that can be prolonged at will.
+
 .. _trill:
 
 **Trill**
+^^^^^^^^^
 
 :obj:`str`
 
@@ -1807,6 +1817,30 @@ They always pertain to a particular |voice|.
 Labels
 ------
 
+.. _harmony_layer:
+
+**harmony_layer**
+^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+This column indicates the harmony layer, or label type, in/as which a label has been stored.
+It is an integer within [0, 3] that indicates how it is encoded in MuseScore.
+
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| harmony_layer | explanation                                                                                                                            |
++===============+========================================================================================================================================+
+| 0             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
+|               | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 1             | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 2             | Nashville number (Add->Text->Nashville Number).                                                                                        |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 3             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
+|               | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+
 .. _label:
 
 **label**
@@ -1817,22 +1851,50 @@ Labels
 Annotation labels from MuseScores <Harmony> tags. Depending on the |label_type| the column can include complete
 strings (decoded) or partial strings (encoded).
 
+.. _regex_match:
+
+**regex_match**
+^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+Name of the first regular expression that matched a label, e.g. 'dcml'.
+
 
 .. _label_type:
 
 **label_type**
+^^^^^^^^^^^^^^
+
+.. warning::
+
+   Deprecated since 0.6.0 where this column has been split and replaced by |harmony_layer| and |regex_match|
 
 :obj:`str`
 
 See :ref:`label types <label_types>` above.
 
 
+.. _offset:
 
+**offset_x** and **offset_y**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+Offset positions for labels whose position has been manually altered. Of importance mainly for re-inserting labels into a score at
+the exact same position.
 
 
 
 Expanded
 --------
+
+.. _alt_label:
+
+:obj:`str`
+
+Alternative reading to the |label|. Generally considered "second choice" compared to the "main label" that has been expanded.
 
 .. _bass_note:
 

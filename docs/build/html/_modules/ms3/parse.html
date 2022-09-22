@@ -64,7 +64,9 @@
           <div class="body" role="main">
             
   <h1>Source code for ms3.parse</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">io</span>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Collection</span>
+
+<span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span><span class="o">,</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
 <span class="kn">import</span> <span class="nn">json</span>
@@ -2898,6 +2900,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="c1"># (n_files, n_parsed_scores, n_parsed_tsv)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cached_piece_matrices</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matches</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="sd">        {fname -&gt; {type -&gt; [MatchedFile]}} dict, where MatchedFile is a :obj:`namedtuple` with the fields</span>
+<span class="sd">        &quot;id&quot;, &quot;full_path&quot;, &quot;suffix&quot;, &quot;fext&quot;, &quot;subdir&quot;, &quot;i_str&quot;.&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="sd">&quot;&quot;&quot;:obj:`dict` of :obj:`Piece`</span>
 <span class="sd">        References to the Piece objects belonging to each fname listed in the metadata.</span>
@@ -2968,14 +2974,24 @@
             <span class="n">fnames</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">fnames</span><span class="o">.</span><span class="n">to_list</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fnames</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">md</span><span class="o">.</span><span class="n">fnames</span><span class="o">.</span><span class="n">nunique</span><span class="p">():</span>
                 <span class="n">vc</span> <span class="o">=</span> <span class="n">md</span><span class="o">.</span><span class="n">fnames</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following file names occur more than once in the metadata: </span><span class="si">{</span><span class="n">vc</span><span class="p">[</span><span class="n">vc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following file names occur more than once in the metadata: </span><span class="si">{</span><span class="n">vc</span><span class="p">[</span><span class="n">vc</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">fnames</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;No file names present in metadata.&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[]</span>
 
 
-<div class="viewcode-block" id="View.detect_ids_by_fname"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.detect_ids_by_fname">[docs]</a>    <span class="k">def</span> <span class="nf">detect_ids_by_fname</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns a {fname -&gt; {type -&gt; [MatchedFile]}} dict.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="View.detect_ids_by_fname"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.detect_ids_by_fname">[docs]</a>    <span class="k">def</span> <span class="nf">detect_ids_by_fname</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Returns a {fname -&gt; {type -&gt; [MatchedFile]}} dict.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parsed_only:</span>
+<span class="sd">                By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.</span>
+<span class="sd">                Pass True to include match only parsed files in the matching.</span>
+<span class="sd">            names: If you want to do the matching only for selecte fnames, pass these.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            {fname -&gt; {type -&gt; [MatchedFile]}} dict</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">MatchedFile</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;MatchedFile&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;full_path&quot;</span><span class="p">,</span> <span class="s2">&quot;suffix&quot;</span><span class="p">,</span> <span class="s2">&quot;fext&quot;</span><span class="p">,</span> <span class="s2">&quot;subdir&quot;</span><span class="p">,</span> <span class="s2">&quot;i_str&quot;</span><span class="p">])</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -3010,17 +3026,25 @@
 
 
 
-<div class="viewcode-block" id="View.pieces"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.pieces">[docs]</a>    <span class="k">def</span> <span class="nf">pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that</span>
-<span class="sd">           correspond to each other. &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="View.pieces"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.pieces">[docs]</a>    <span class="k">def</span> <span class="nf">pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that</span>
+<span class="sd">           correspond to each other.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            parsed_only: By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.</span>
+<span class="sd">                Pass True to include match only parsed files in the matching.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame matching the :attr:`.names` to IDs (without key component) of scores and TSV files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">&gt;</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> \
             <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">_parsed_tsv</span><span class="p">))</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="ow">and</span> \
             <span class="n">parsed_only</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_piece_matrices</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using cached DataFrame for parameter parsed_only=</span><span class="si">{</span><span class="n">parsed_only</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cached_piece_matrices</span><span class="p">[</span><span class="n">parsed_only</span><span class="p">]</span>
         <span class="n">pieces</span> <span class="o">=</span> <span class="p">{}</span> <span class="c1"># result</span>
-        <span class="n">detected_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect_ids_by_fname</span><span class="p">(</span><span class="n">parsed_only</span><span class="o">=</span><span class="n">parsed_only</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">metadata_i</span><span class="p">,</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">detected</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">detected_ids</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">detect_ids_by_fname</span><span class="p">(</span><span class="n">parsed_only</span><span class="o">=</span><span class="n">parsed_only</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">metadata_i</span><span class="p">,</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">detected</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matches</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
             <span class="n">pieces</span><span class="p">[</span><span class="n">metadata_i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">fnames</span><span class="o">=</span><span class="n">fname</span><span class="p">)</span> <span class="c1"># start building the DataFrame row based on detected matches</span>
             <span class="k">for</span> <span class="n">typ</span><span class="p">,</span> <span class="n">matched_files</span> <span class="ow">in</span> <span class="n">detected</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_files</span><span class="p">)</span>
@@ -3099,7 +3123,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="View.iter"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fnames</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="View.iter"><a class="viewcode-back" href="../../reference.html#ms3.parse.View.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fnames</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prefer_score</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot; Iterate through combinations of metadata dicts and DataFrames pertaining to the same piece.</span>
 
 <span class="sd">        Parameters</span>
@@ -3113,9 +3137,13 @@
 <span class="sd">        fnames : :obj:`list`, optional</span>
 <span class="sd">            If you want to iterate only through a subset of pieces, pass their fnames as they appear</span>
 <span class="sd">            in the metadata.tsv column &#39;fnames&#39;.</span>
+<span class="sd">        prefer_score : :obj:`bool`, optional</span>
+<span class="sd">            By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.</span>
 
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
+<span class="sd">        Yields</span>
+<span class="sd">        ------</span>
+<span class="sd">        dict, *pd.DataFrame</span>
+<span class="sd">            A metadata dict and one DataFrame (or None) per entry in the parameter ``columns``.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">standard_cols</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">_dataframes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
@@ -3152,59 +3180,32 @@
                 <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">cols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;columns parameter </span><span class="si">{</span><span class="n">columns</span><span class="si">}</span><span class="s2"> after treating wildcards: </span><span class="si">{</span><span class="n">cols</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="c1"># check if arguments correspond to existing columns or if parsed scores are available</span>
-        <span class="n">flattened</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">iter_nested</span><span class="p">(</span><span class="n">cols</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">parsed_scores_present</span><span class="p">:</span>
-            <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">flattened</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">standard_cols</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">piece_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-            <span class="n">flattened</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">flattened</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">piece_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">missing</span> <span class="o">=</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">flattened</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">piece_matrix</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">missing</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following columns were not recognized: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">. You could try using the wildcard *</span><span class="se">\n</span><span class="s2">Currently available types among parsed TSV files:</span><span class="se">\n</span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
+        <span class="k">def</span> <span class="nf">c_name2std_and_disamb</span><span class="p">(</span><span class="n">col</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Intermediary solution&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">standard_cols</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">col</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span>
+            <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">standard_cols</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">col</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">c</span><span class="p">,</span> <span class="n">col</span>
 
-
-        <span class="k">def</span> <span class="nf">get_dataframe</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">column</span><span class="p">):</span>
-            <span class="k">if</span> <span class="s1">&#39;scores&#39;</span> <span class="ow">in</span> <span class="n">ids</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">])</span> <span class="ow">and</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">standard_cols</span><span class="p">:</span>
-                <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="s1">&#39;scores&#39;</span><span class="p">])</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
-                <span class="k">if</span> <span class="n">score</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No Score object found for ID (</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">).&quot;</span><span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">df</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">column</span><span class="p">)()</span>
-                    <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Property </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2"> of Score(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">) yielded None.&quot;</span><span class="p">)</span>
-                    <span class="k">elif</span> <span class="n">df</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                        <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Property </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2"> of Score(</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">) yielded an empty DataFrame.&quot;</span><span class="p">)</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                            <span class="sa">f</span><span class="s2">&quot;Using the </span><span class="si">{</span><span class="n">column</span><span class="si">}</span><span class="s2"> DataFrame from parsed score </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                        <span class="k">return</span> <span class="n">df</span><span class="p">,</span> <span class="n">i</span>
-            <span class="k">if</span> <span class="n">column</span> <span class="ow">in</span> <span class="n">ids</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="n">column</span><span class="p">]):</span>
-                <span class="n">i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ids</span><span class="p">[</span><span class="n">column</span><span class="p">])</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">_parsed_tsv</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)],</span> <span class="n">i</span>
-            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-
-
-        <span class="n">plural</span> <span class="o">=</span> <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Iterating through the following files, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span><span class="si">}</span><span class="s2"> file</span><span class="si">{</span><span class="n">plural</span><span class="si">}</span><span class="s2"> per iteration, based on the argument columns=</span><span class="si">{</span><span class="n">cols</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="si">{</span><span class="n">piece_matrix</span><span class="p">[</span><span class="n">flattened</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">md</span><span class="p">,</span> <span class="n">matched_ids</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">),</span> <span class="n">piece_matrix</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">)):</span>
-            <span class="sd">&quot;&quot;&quot;md = {key-&gt;value} metadata; ids = {tsv_type-&gt;id}&quot;&quot;&quot;</span>
-            <span class="k">if</span> <span class="n">fnames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">matched_ids</span><span class="p">[</span><span class="s1">&#39;fnames&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fnames</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">md</span><span class="p">,</span> <span class="p">(</span><span class="n">fname</span><span class="p">,</span> <span class="n">matches</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="p">()</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(</span><span class="n">orient</span><span class="o">=</span><span class="s1">&#39;records&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">matches</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+            <span class="sd">&quot;&quot;&quot;md = {key-&gt;value} metadata; matches = {type-&gt;id}&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">fnames</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">fname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">fnames</span><span class="p">:</span>
                 <span class="k">continue</span>
             <span class="n">skip_flat</span> <span class="o">=</span> <span class="kc">False</span> <span class="c1"># flag that serves the inner loop to make this loop skip yielding</span>
             <span class="n">result</span><span class="p">,</span> <span class="n">used_ids</span><span class="p">,</span> <span class="n">paths</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="n">piece</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
                 <span class="sd">&quot;&quot;&quot;c can be a column name or a list of column names from which the first non-empty one will be used&quot;&quot;&quot;</span>
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-                    <span class="n">df</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">get_dataframe</span><span class="p">(</span><span class="n">matched_ids</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+                    <span class="n">what</span><span class="p">,</span> <span class="n">disamb</span> <span class="o">=</span> <span class="n">c_name2std_and_disamb</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+                    <span class="n">df</span><span class="p">,</span> <span class="n">piece_info</span> <span class="o">=</span> <span class="n">piece</span><span class="o">.</span><span class="n">get_dataframe</span><span class="p">(</span><span class="n">what</span><span class="o">=</span><span class="n">what</span><span class="p">,</span> <span class="n">disambiguation</span><span class="o">=</span><span class="n">disamb</span><span class="p">,</span> <span class="n">prefer_score</span><span class="o">=</span><span class="n">prefer_score</span><span class="p">,</span> <span class="n">return_file_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">cc</span> <span class="ow">in</span> <span class="n">c</span><span class="p">:</span>
-                        <span class="n">df</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">get_dataframe</span><span class="p">(</span><span class="n">matched_ids</span><span class="p">,</span> <span class="n">cc</span><span class="p">)</span>
+                        <span class="n">what</span><span class="p">,</span> <span class="n">disamb</span> <span class="o">=</span> <span class="n">c_name2std_and_disamb</span><span class="p">(</span><span class="n">cc</span><span class="p">)</span>
+                        <span class="n">df</span><span class="p">,</span> <span class="n">piece_info</span> <span class="o">=</span> <span class="n">piece</span><span class="o">.</span><span class="n">get_dataframe</span><span class="p">(</span><span class="n">what</span><span class="o">=</span><span class="n">what</span><span class="p">,</span> <span class="n">disambiguation</span><span class="o">=</span><span class="n">disamb</span><span class="p">,</span> <span class="n">prefer_score</span><span class="o">=</span><span class="n">prefer_score</span><span class="p">,</span> <span class="n">return_file_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
                         <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                             <span class="n">c</span> <span class="o">=</span> <span class="n">cc</span>
                             <span class="k">break</span>
@@ -3215,8 +3216,8 @@
                     <span class="n">used_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                     <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="n">used_ids</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">))</span>
-                    <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]))</span>
+                    <span class="n">used_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">piece_info</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+                    <span class="n">paths</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">c</span><span class="p">,</span> <span class="n">piece_info</span><span class="o">.</span><span class="n">full_path</span><span class="p">))</span>
                 <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">skip_flat</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">md</span><span class="p">[</span><span class="s1">&#39;fnames&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> skipped.&quot;</span><span class="p">)</span>
@@ -3224,6 +3225,78 @@
             <span class="n">md</span><span class="p">[</span><span class="s1">&#39;ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">used_ids</span>
             <span class="n">md</span><span class="p">[</span><span class="s1">&#39;paths&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">paths</span>
             <span class="k">yield</span> <span class="p">(</span><span class="n">md</span><span class="p">,</span> <span class="o">*</span><span class="n">result</span><span class="p">)</span></div>
+
+        <span class="c1"># check if arguments correspond to existing columns or if parsed scores are available</span>
+        <span class="c1"># flattened = list(iter_nested(cols))</span>
+        <span class="c1"># if parsed_scores_present:</span>
+        <span class="c1">#     missing = [c for c in flattened if c not in standard_cols and c not in piece_matrix.columns]</span>
+        <span class="c1">#     flattened = [c for c in flattened if c in piece_matrix.columns]</span>
+        <span class="c1"># else:</span>
+        <span class="c1">#     missing = [c for c in flattened if c not in piece_matrix.columns]</span>
+        <span class="c1"># if len(missing) &gt; 0:</span>
+        <span class="c1">#     self.logger.error(f&quot;The following columns were not recognized: {missing}. You could try using the wildcard *\nCurrently available types among parsed TSV files:\n{available}&quot;)</span>
+        <span class="c1">#     return</span>
+        <span class="c1">#</span>
+        <span class="c1">#</span>
+        <span class="c1"># def get_dataframe(ids, column):</span>
+        <span class="c1">#     if &#39;scores&#39; in ids and not pd.isnull(ids[&#39;scores&#39;]) and column in standard_cols:</span>
+        <span class="c1">#         i = int(ids[&#39;scores&#39;])</span>
+        <span class="c1">#         score = self.p[(self.key, i)]</span>
+        <span class="c1">#         if score is None:</span>
+        <span class="c1">#             self.logger.debug(f&quot;No Score object found for ID ({self.key}, {i}).&quot;)</span>
+        <span class="c1">#         else:</span>
+        <span class="c1">#             df = score.mscx.__getattribute__(column)()</span>
+        <span class="c1">#             if df is None:</span>
+        <span class="c1">#                 score.logger.debug(</span>
+        <span class="c1">#                     f&quot;Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.&quot;)</span>
+        <span class="c1">#             elif df.shape[0] == 0:</span>
+        <span class="c1">#                 score.logger.debug(</span>
+        <span class="c1">#                     f&quot;Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.&quot;)</span>
+        <span class="c1">#             else:</span>
+        <span class="c1">#                 score.logger.debug(</span>
+        <span class="c1">#                     f&quot;Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.&quot;)</span>
+        <span class="c1">#                 return df, i</span>
+        <span class="c1">#     if column in ids and not pd.isnull(ids[column]):</span>
+        <span class="c1">#         i = int(ids[column])</span>
+        <span class="c1">#         return self.p._parsed_tsv[(self.key, i)], i</span>
+        <span class="c1">#     return (None, None)</span>
+        <span class="c1">#</span>
+        <span class="c1">#</span>
+        <span class="c1">#</span>
+        <span class="c1"># plural = &#39;s&#39; if len(cols) &gt; 1 else &#39;&#39;</span>
+        <span class="c1"># self.logger.debug(f&quot;Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}&quot;)</span>
+        <span class="c1"># for md, matched_ids in zip(self.metadata().to_dict(orient=&#39;records&#39;), piece_matrix.to_dict(orient=&#39;records&#39;)):</span>
+        <span class="c1">#     &quot;&quot;&quot;md = {key-&gt;value} metadata; ids = {tsv_type-&gt;id}&quot;&quot;&quot;</span>
+        <span class="c1">#     if fnames is not None and matched_ids[&#39;fnames&#39;] not in fnames:</span>
+        <span class="c1">#         continue</span>
+        <span class="c1">#     skip_flat = False # flag that serves the inner loop to make this loop skip yielding</span>
+        <span class="c1">#     result, used_ids, paths = [], [], []</span>
+        <span class="c1">#     for c in cols:</span>
+        <span class="c1">#         &quot;&quot;&quot;c can be a column name or a list of column names from which the first non-empty one will be used&quot;&quot;&quot;</span>
+        <span class="c1">#         if isinstance(c, str):</span>
+        <span class="c1">#             df, i = get_dataframe(matched_ids, c)</span>
+        <span class="c1">#         else:</span>
+        <span class="c1">#             for cc in c:</span>
+        <span class="c1">#                 df, i = get_dataframe(matched_ids, cc)</span>
+        <span class="c1">#                 if df is not None:</span>
+        <span class="c1">#                     c = cc</span>
+        <span class="c1">#                     break</span>
+        <span class="c1">#         if df is None:</span>
+        <span class="c1">#             if skip_missing:</span>
+        <span class="c1">#                 skip_flat = True</span>
+        <span class="c1">#                 break</span>
+        <span class="c1">#             used_ids.append(None)</span>
+        <span class="c1">#             paths.append(None)</span>
+        <span class="c1">#         else:</span>
+        <span class="c1">#             used_ids.append((self.key, i))</span>
+        <span class="c1">#             paths.append((c, self.p.full_paths[self.key][i]))</span>
+        <span class="c1">#         result.append(df)</span>
+        <span class="c1">#     if skip_flat:</span>
+        <span class="c1">#         self.logger.info(f&quot;{md[&#39;fnames&#39;]} skipped.&quot;)</span>
+        <span class="c1">#         continue</span>
+        <span class="c1">#     md[&#39;ids&#39;] = used_ids</span>
+        <span class="c1">#     md[&#39;paths&#39;] = paths</span>
+        <span class="c1">#     yield (md, *result)</span>
 
     <span class="k">def</span> <span class="nf">iter_transformed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">fnames</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">((</span><span class="n">unfold</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="p">,</span> <span class="n">interval_index</span><span class="p">)):</span>
@@ -3479,7 +3552,21 @@
     <span class="k">return</span> <span class="n">distinguish</span></div>
 
 
-<span class="k">def</span> <span class="nf">disambiguate</span><span class="p">(</span><span class="n">matched_files</span><span class="p">,</span> <span class="n">disambiguation</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="disambiguate"><a class="viewcode-back" href="../../reference.html#ms3.parse.disambiguate">[docs]</a><span class="k">def</span> <span class="nf">disambiguate</span><span class="p">(</span><span class="n">matched_files</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">namedtuple</span><span class="p">],</span> <span class="n">disambiguation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">namedtuple</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot; If only one file of a particular type is available, return that one. Otherwise try to disambiguate.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        matched_files: one namedtuple per file found for a particular fname for a particular type</span>
+<span class="sd">        disambiguation: defaults to &#39;auto&#39;, meaning that in case several files are available, the one with the shortest disambiguation</span>
+<span class="sd">            string will be selected, where disambiguation strings are composed of subdirectories and suffixes by :func:`make_distinguishing_strings`.</span>
+<span class="sd">            Pass a concrete distinguishing string to select a particular file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The disambiguated file.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: Unable to disambiguate</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_files</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;First argument should not be empty.&quot;</span><span class="p">)</span>
@@ -3493,7 +3580,7 @@
         <span class="n">shortest_key</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">matches</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">return</span> <span class="n">matches</span><span class="p">[</span><span class="n">shortest_key</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">disambiguation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot distinguish using &#39;</span><span class="si">{</span><span class="n">disambiguation</span><span class="si">}</span><span class="s2">&#39;. Use one of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cannot distinguish using &#39;</span><span class="si">{</span><span class="n">disambiguation</span><span class="si">}</span><span class="s2">&#39;. Use one of </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Piece"><a class="viewcode-back" href="../../reference.html#ms3.parse.Piece">[docs]</a><span class="k">class</span> <span class="nc">Piece</span><span class="p">(</span><span class="n">View</span><span class="p">):</span>
@@ -3540,8 +3627,33 @@
         <span class="nb">print</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
 
 
-    <span class="nd">@lru_cache</span><span class="p">()</span>
-    <span class="k">def</span> <span class="nf">get_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">disambiguation</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">prefer_score</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_file_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Piece.get_dataframe"><a class="viewcode-back" href="../../reference.html#ms3.parse.Piece.get_dataframe">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">get_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="s1">&#39;rests&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">],</span>
+                      <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                      <span class="n">quarterbeats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                      <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                      <span class="n">disambiguation</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                      <span class="n">prefer_score</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                      <span class="n">return_file_info</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Retrieves one DataFrame for the piece.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            what: What kind of DataFrame to retrieve.</span>
+<span class="sd">            unfold: Pass True to unfold repeats.</span>
+<span class="sd">            quarterbeats:</span>
+<span class="sd">            interval_index:</span>
+<span class="sd">            disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.</span>
+<span class="sd">            prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.</span>
+<span class="sd">            return_file_info: Set to True if the method should also return a :obj:`namedtuple` with information on the DataFrame</span>
+<span class="sd">                being returned. It comes with the fields &quot;id&quot;, &quot;full_path&quot;, &quot;suffix&quot;, &quot;fext&quot;, &quot;subdir&quot;, &quot;i_str&quot; where the</span>
+<span class="sd">                latter is the ID&#39;s second component as a string.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            FileNotFoundError: If no DataFrame of the requested type is available</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">available</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">_dataframes</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">what</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">available</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;what=&#39;</span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">&#39; is an invalid argument. Pass one of </span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
@@ -3560,7 +3672,7 @@
                                    <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">return_file_info</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">df</span><span class="p">,</span> <span class="n">file_info</span>
-        <span class="k">return</span> <span class="n">df</span></div>
+        <span class="k">return</span> <span class="n">df</span></div></div>
 </pre></div>
 
             <div class="clearer"></div>

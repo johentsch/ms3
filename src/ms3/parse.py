@@ -3124,10 +3124,8 @@ class View(Parse):
                 if col.startswith(c):
                     return c, col
 
-        print(self.matches.items())
         for md, (fname, matches) in zip(self.metadata().to_dict(orient='records'), self.matches.items()):
             """md = {key->value} metadata; matches = {type->id}"""
-            print(md, fname, matches)
             if fnames is not None and fname not in fnames:
                 continue
             skip_flat = False # flag that serves the inner loop to make this loop skip yielding

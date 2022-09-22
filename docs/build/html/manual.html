@@ -130,33 +130,11 @@ is simply the list index of the respective file.</p>
 </section>
 <section id="label-types">
 <span id="id3"></span><h3>Label types<a class="headerlink" href="#label-types" title="Permalink to this heading">¶</a></h3>
-<p>ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>label_type</p></th>
-<th class="head"><p>explanation</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>0</p></td>
-<td><p>Label encoded in MuseScore’s chord layer (Add-&gt;Text-&gt;Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did
-not recognize it as an absolute chord and encoded it as plain text (compare type 3).</p></td>
-</tr>
-<tr class="row-odd"><td><p>1</p></td>
-<td><p>Roman Numeral (Add-&gt;Text-&gt;Roman Numeral Analysis).</p></td>
-</tr>
-<tr class="row-even"><td><p>2</p></td>
-<td><p>Nashville number (Add-&gt;Text-&gt;Nashville Number).</p></td>
-</tr>
-<tr class="row-odd"><td><p>3</p></td>
-<td><p>Label encoded in MuseScore’s chord layer (Add-&gt;Text-&gt;Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did
-recognize it as an absolute chord and encoded its root (and bass note) as numerical values.</p></td>
-</tr>
-</tbody>
-</table>
-<p>Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
-information will appear with a subtype, e.g. <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">(dcml)</span></code>. If instead or additionally you want other subtypes to be
-recognized, specify the <code class="xref py py-attr docutils literal notranslate"><span class="pre">infer_label_types</span></code> attribute.</p>
+<p>ms3 recognizes and disambiguates different types of labels, depending on how they are encoded in MuseScore, see <a class="reference internal" href="#harmony-layer"><span class="std std-ref">harmony_layer</span></a>.</p>
+<p>Independent of the type, ms3 will also try to infer whether a label conforms to the DCML syntax and/or other regular expressions registered
+via <code class="xref py py-meth docutils literal notranslate"><span class="pre">ms3.Score.new_type()</span></code>. The column <a class="reference internal" href="#regex-match"><span class="std std-ref">regex_match</span></a> contains for each label the name of the first regEx that matched.
+information will appear with a subtype, e.g. <code class="docutils literal notranslate"><span class="pre">0</span> <span class="pre">(dcml)</span></code>.</p>
+<p>See also <code class="xref py py-attr docutils literal notranslate"><span class="pre">infer_label_types</span></code>.</p>
 </section>
 <section id="measure-counts-mc-vs-measure-numbers-mn">
 <span id="mc-vs-mn"></span><h3>Measure counts (MC) vs. measure numbers (MN)<a class="headerlink" href="#measure-counts-mc-vs-measure-numbers-mn" title="Permalink to this heading">¶</a></h3>
@@ -574,6 +552,11 @@ names. Cumbersome to work with and only needed in special cases.</p></li>
 </section>
 <section id="chords">
 <span id="id9"></span><h3>Chords<a class="headerlink" href="#chords" title="Permalink to this heading">¶</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The use of the word chords, here, is very specific because its meaning stems entirely from the MuseScore XML source code.
+If you are interested in chord labels, please refer to <a class="reference internal" href="#labels"><span class="std std-ref">Labels</span></a> or <a class="reference internal" href="#expanded"><span class="std std-ref">Expanded</span></a>.</p>
+</div>
 <p>In a MuseScore file, every note is enclosed by a &lt;Chord&gt; tag. One &lt;Chord&gt; tag can enclose several notes, as long
 as they occur in the same <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a> and <a class="reference internal" href="#voice"><span class="std std-ref">voice</span></a> (notational layer). As a consequence, notes
 belonging to the same &lt;Chord&gt; have the same onset and the same duration.</p>
@@ -2357,34 +2340,89 @@ always pertain to an entire <a class="reference internal" href="#staff"><span cl
 <span id="id48"></span><h5><strong>pedal</strong><a class="headerlink" href="#pedal" title="Permalink to this heading">¶</a></h5>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
 <p>Pedal line <a class="reference internal" href="#spanners"><span class="std std-ref">spanners</span></a> always pertain to an entire <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a>.</p>
-<p id="trill"><strong>Trill</strong></p>
+</section>
+</section>
+<section id="textline">
+<span id="id49"></span><h4><strong>TextLine</strong><a class="headerlink" href="#textline" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
+<p>Custom staff text with a line that can be prolonged at will.</p>
+</section>
+<section id="trill">
+<span id="id50"></span><h4><strong>Trill</strong><a class="headerlink" href="#trill" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Trills <a class="reference internal" href="#spanners"><span class="std std-ref">spanners</span></a> can have different subtypes specified after a colon, e.g. <code class="docutils literal notranslate"><span class="pre">'Trill:trill'</span></code>.
 They always pertain to a particular <a class="reference internal" href="#voice"><span class="std std-ref">voice</span></a>.</p>
 </section>
 </section>
+<section id="id51">
+<h3>Labels<a class="headerlink" href="#id51" title="Permalink to this heading">¶</a></h3>
+<section id="harmony-layer">
+<span id="id52"></span><h4><strong>harmony_layer</strong><a class="headerlink" href="#harmony-layer" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<p>This column indicates the harmony layer, or label type, in/as which a label has been stored.
+It is an integer within [0, 3] that indicates how it is encoded in MuseScore.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>harmony_layer</p></th>
+<th class="head"><p>explanation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>0</p></td>
+<td><p>Label encoded in MuseScore’s chord layer (Add-&gt;Text-&gt;Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did
+not recognize it as an absolute chord and encoded it as plain text (compare type 3).</p></td>
+</tr>
+<tr class="row-odd"><td><p>1</p></td>
+<td><p>Roman Numeral (Add-&gt;Text-&gt;Roman Numeral Analysis).</p></td>
+</tr>
+<tr class="row-even"><td><p>2</p></td>
+<td><p>Nashville number (Add-&gt;Text-&gt;Nashville Number).</p></td>
+</tr>
+<tr class="row-odd"><td><p>3</p></td>
+<td><p>Label encoded in MuseScore’s chord layer (Add-&gt;Text-&gt;Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did
+recognize it as an absolute chord and encoded its root (and bass note) as numerical values.</p></td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="id49">
-<h3>Labels<a class="headerlink" href="#id49" title="Permalink to this heading">¶</a></h3>
 <section id="label">
-<span id="id50"></span><h4><strong>label</strong><a class="headerlink" href="#label" title="Permalink to this heading">¶</a></h4>
+<span id="id53"></span><h4><strong>label</strong><a class="headerlink" href="#label" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Annotation labels from MuseScores &lt;Harmony&gt; tags. Depending on the <a class="reference internal" href="#label-type"><span class="std std-ref">label_type</span></a> the column can include complete
 strings (decoded) or partial strings (encoded).</p>
-<p id="label-type"><strong>label_type</strong></p>
+</section>
+<section id="regex-match">
+<span id="id54"></span><h4><strong>regex_match</strong><a class="headerlink" href="#regex-match" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<p>Name of the first regular expression that matched a label, e.g. ‘dcml’.</p>
+</section>
+<section id="label-type">
+<span id="id55"></span><h4><strong>label_type</strong><a class="headerlink" href="#label-type" title="Permalink to this heading">¶</a></h4>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Deprecated since 0.6.0 where this column has been split and replaced by <a class="reference internal" href="#harmony-layer"><span class="std std-ref">harmony_layer</span></a> and <a class="reference internal" href="#regex-match"><span class="std std-ref">regex_match</span></a></p>
+</div>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>See <a class="reference internal" href="#label-types"><span class="std std-ref">label types</span></a> above.</p>
 </section>
+<section id="offset-x-and-offset-y">
+<span id="offset"></span><h4><strong>offset_x</strong> and <strong>offset_y</strong><a class="headerlink" href="#offset-x-and-offset-y" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a></p>
+<p>Offset positions for labels whose position has been manually altered. Of importance mainly for re-inserting labels into a score at
+the exact same position.</p>
 </section>
-<section id="id51">
-<h3>Expanded<a class="headerlink" href="#id51" title="Permalink to this heading">¶</a></h3>
+</section>
+<section id="id56">
+<h3>Expanded<a class="headerlink" href="#id56" title="Permalink to this heading">¶</a></h3>
+<p id="alt-label"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<p>Alternative reading to the <a class="reference internal" href="#label"><span class="std std-ref">label</span></a>. Generally considered “second choice” compared to the “main label” that has been expanded.</p>
 <section id="bass-note">
-<span id="id52"></span><h4><strong>bass_note</strong><a class="headerlink" href="#bass-note" title="Permalink to this heading">¶</a></h4>
+<span id="id57"></span><h4><strong>bass_note</strong><a class="headerlink" href="#bass-note" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>The bass note designated by the label, expressed as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
 </section>
 <section id="cadence">
-<span id="id53"></span><h4><strong>cadence</strong><a class="headerlink" href="#cadence" title="Permalink to this heading">¶</a></h4>
+<span id="id58"></span><h4><strong>cadence</strong><a class="headerlink" href="#cadence" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Currently allows for the values</p>
 <table class="docutils align-default">
@@ -2416,7 +2454,7 @@ strings (decoded) or partial strings (encoded).</p>
 </table>
 </section>
 <section id="chord">
-<span id="id54"></span><h4><strong>chord</strong><a class="headerlink" href="#chord" title="Permalink to this heading">¶</a></h4>
+<span id="id59"></span><h4><strong>chord</strong><a class="headerlink" href="#chord" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>This column stands in no relation to the &lt;Chord&gt; tags <a class="reference internal" href="#chords"><span class="std std-ref">discussed above</span></a>. Instead, it holds the substring
 of the original labels that includes only the actual chord label, i.e. excluding information about modulations,
@@ -2433,7 +2471,7 @@ replacement expressed through intervals &lt;= 8 within parentheses, without lead
 intervals preceded by + or/and greater than 8.</p>
 </section>
 <section id="chord-type">
-<span id="id55"></span><h4><strong>chord_type</strong><a class="headerlink" href="#chord-type" title="Permalink to this heading">¶</a></h4>
+<span id="id60"></span><h4><strong>chord_type</strong><a class="headerlink" href="#chord-type" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>A summary of information that otherwise depends on the three columns <a class="reference internal" href="#numeral"><span class="std std-ref">numeral</span></a>, <a class="reference internal" href="#form"><span class="std std-ref">form</span></a>, <a class="reference internal" href="#figbass"><span class="std std-ref">figbass</span></a>.
 It can be one of the wide-spread abbreviations for triads: <code class="docutils literal notranslate"><span class="pre">M,</span> <span class="pre">m,</span> <span class="pre">o,</span> <span class="pre">+</span></code> or for seventh chords: <code class="docutils literal notranslate"><span class="pre">o7,</span> <span class="pre">%7,</span> <span class="pre">+7,</span> <span class="pre">+M7</span></code>
@@ -2447,7 +2485,7 @@ for seventh chords <code class="docutils literal notranslate"><span class="pre">
 This feature is decisive for <a class="reference internal" href="#bass-note"><span class="std std-ref">which chord tone is in the bass</span></a>.</p>
 </section>
 <section id="form">
-<span id="id56"></span><h4><strong>form</strong><a class="headerlink" href="#form" title="Permalink to this heading">¶</a></h4>
+<span id="id61"></span><h4><strong>form</strong><a class="headerlink" href="#form" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>This column conveys part of the information what <a class="reference internal" href="#chord-type"><span class="std std-ref">chord_type</span></a> a label expresses.</p>
 <table class="docutils align-default">
@@ -2471,28 +2509,28 @@ either a major or a minor chord with a minor seventh.</p></td>
 </table>
 </section>
 <section id="globalkey">
-<span id="id57"></span><h4><strong>globalkey</strong><a class="headerlink" href="#globalkey" title="Permalink to this heading">¶</a></h4>
+<span id="id62"></span><h4><strong>globalkey</strong><a class="headerlink" href="#globalkey" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Tonality of the piece, expressed as absolute note name, e.g. <code class="docutils literal notranslate"><span class="pre">Ab</span></code> for A flat major, or <code class="docutils literal notranslate"><span class="pre">g#</span></code> for G sharp minor.</p>
 </section>
 <section id="globalkey-is-minor">
-<span id="id58"></span><h4><strong>globalkey_is_minor</strong><a class="headerlink" href="#globalkey-is-minor" title="Permalink to this heading">¶</a></h4>
+<span id="id63"></span><h4><strong>globalkey_is_minor</strong><a class="headerlink" href="#globalkey-is-minor" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
 <p>Auxiliary column which is True if the <a class="reference internal" href="#globalkey"><span class="std std-ref">globalkey</span></a> is a minor key, False otherwise.</p>
 </section>
 <section id="localkey">
-<span id="id59"></span><h4><strong>localkey</strong><a class="headerlink" href="#localkey" title="Permalink to this heading">¶</a></h4>
+<span id="id64"></span><h4><strong>localkey</strong><a class="headerlink" href="#localkey" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Local key expressed as Roman numeral relative to the <a class="reference internal" href="#globalkey"><span class="std std-ref">globalkey</span></a>, e.g. <code class="docutils literal notranslate"><span class="pre">IV</span></code> for the major key on the 4th scale degree
 or <code class="docutils literal notranslate"><span class="pre">#iv</span></code> for the minor scale on the raised 4th scale degree.</p>
 </section>
 <section id="localkey-is-minor">
-<span id="id60"></span><h4><strong>localkey_is_minor</strong><a class="headerlink" href="#localkey-is-minor" title="Permalink to this heading">¶</a></h4>
+<span id="id65"></span><h4><strong>localkey_is_minor</strong><a class="headerlink" href="#localkey-is-minor" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
 <p>Auxiliary column which is True if the <a class="reference internal" href="#localkey"><span class="std std-ref">localkey</span></a> is a minor key, False otherwise.</p>
 </section>
 <section id="numeral">
-<span id="id61"></span><h4><strong>numeral</strong><a class="headerlink" href="#numeral" title="Permalink to this heading">¶</a></h4>
+<span id="id66"></span><h4><strong>numeral</strong><a class="headerlink" href="#numeral" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Roman numeral defining the chordal root relative to the local key. An uppercase numeral stands for a major chordal
 third, lowercase for a minor third. The column <a class="reference internal" href="#root"><span class="std std-ref">root</span></a> expresses the same information as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
@@ -2511,7 +2549,7 @@ For example, if the current <a class="reference internal" href="#numeral"><span 
 relativeroot is the Roman numeral of the key that is being tonicized.</p>
 </section>
 <section id="root">
-<span id="id62"></span><h4><strong>root</strong><a class="headerlink" href="#root" title="Permalink to this heading">¶</a></h4>
+<span id="id67"></span><h4><strong>root</strong><a class="headerlink" href="#root" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>The <a class="reference internal" href="#numeral"><span class="std std-ref">numeral</span></a> expressed as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
 </section>
@@ -2629,13 +2667,19 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l4"><a class="reference internal" href="#system-text"><strong>system_text</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tempo"><strong>tempo</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#spanners">Spanners</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textline"><strong>TextLine</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trill"><strong>Trill</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id49">Labels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id51">Labels</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#harmony-layer"><strong>harmony_layer</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#label"><strong>label</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#regex-match"><strong>regex_match</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#label-type"><strong>label_type</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#offset-x-and-offset-y"><strong>offset_x</strong> and <strong>offset_y</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id51">Expanded</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id56">Expanded</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#bass-note"><strong>bass_note</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cadence"><strong>cadence</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chord"><strong>chord</strong></a></li>
