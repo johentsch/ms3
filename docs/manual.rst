@@ -262,6 +262,7 @@ Tables with score information
 .. |tied| replace:: :ref:`tied <tied>`
 .. |timesig| replace:: :ref:`timesig <timesig>`
 .. |tpc| replace:: :ref:`tpc <tpc>`
+.. |tremolo| replace:: :ref:`tremolo <tremolo>`
 .. |volta| replace:: :ref:`volta <volta>`
 .. |voice| replace:: :ref:`voice <voice>`
 
@@ -1613,8 +1614,25 @@ Encodes note names by their position on the line of fifth with ``0`` = C, ``1`` 
 ``-2`` = Bb etc. The octave is defined by :ref:`midi <midi>` DIV 12 - 1
 
 
+.. _tremolo:
 
+**tremolo**
+^^^^^^^^^^^
 
+:obj:`str`
+
+The syntax for this column is ``<dur>_<type>_<component>`` where ``<dur>`` is half the duration of the tremolo,
+``<type>`` is the tremolo type, e.g. ``c32`` for 3 beams or ``c64`` for 4 (values taken from the source code), and
+``<component>`` is 1 for notes in the first and 2 for notes in the second <Chord>.
+
+Explanation: MuseScore 3 encodes the two components of a tremolo as two separate <Chord> tags with half the duration of the tremolo.
+This column serves to keep the information of the two components although onsets and durations in the :ref:`notes`
+are corrected to represent the fact that all notes are sounding through the duration of the tremolo.
+
+For example, an octave tremolo with duration of a dotted half note and tremolo frequency of 32nd notes will appear
+in the score as a dotted half on beat 1 and another dotted half 3 eights later. In the note list, however, both notes
+have ``mc_onset`` 0 and ``duration`` 3/4. The column ``tremolo`` has the value ``3/8_c32_1`` for the first note and
+``3/8_c32_1`` for the second.
 
 
 Chords

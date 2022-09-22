@@ -64,7 +64,73 @@
           <div class="body" role="main">
             
   <h1>Source code for ms3.bs4_parser</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. |act_dur| replace:: :ref:`act_dur &lt;act_dur&gt;`</span>
+<span class="sd">.. |added_tones| replace:: :ref:`added_tones &lt;chord_tones&gt;`</span>
+<span class="sd">.. |articulation| replace:: :ref:`articulation &lt;articulation&gt;`</span>
+<span class="sd">.. |bass_note| replace:: :ref:`bass_note &lt;bass_note&gt;`</span>
+<span class="sd">.. |barline| replace:: :ref:`barline &lt;barline&gt;`</span>
+<span class="sd">.. |breaks| replace:: :ref:`breaks &lt;breaks&gt;`</span>
+<span class="sd">.. |cadence| replace:: :ref:`cadence &lt;cadence&gt;`</span>
+<span class="sd">.. |changes| replace:: :ref:`changes &lt;changes&gt;`</span>
+<span class="sd">.. |chord| replace:: :ref:`chord &lt;chord&gt;`</span>
+<span class="sd">.. |chord_id| replace:: :ref:`chord_id &lt;chord_id&gt;`</span>
+<span class="sd">.. |chord_tones| replace:: :ref:`chord_tones &lt;chord_tones&gt;`</span>
+<span class="sd">.. |chord_type| replace:: :ref:`chord_type &lt;chord_type&gt;`</span>
+<span class="sd">.. |crescendo_hairpin| replace:: :ref:`crescendo_hairpin &lt;hairpins&gt;`</span>
+<span class="sd">.. |crescendo_line| replace:: :ref:`crescendo_line &lt;cresc_lines&gt;`</span>
+<span class="sd">.. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin &lt;hairpins&gt;`</span>
+<span class="sd">.. |diminuendo_line| replace:: :ref:`diminuendo_line &lt;cresc_lines&gt;`</span>
+<span class="sd">.. |duration_qb| replace:: :ref:`duration_qb &lt;duration_qb&gt;`</span>
+<span class="sd">.. |dynamics| replace:: :ref:`dynamics &lt;dynamics&gt;`</span>
+<span class="sd">.. |figbass| replace:: :ref:`figbass &lt;figbass&gt;`</span>
+<span class="sd">.. |form| replace:: :ref:`form &lt;form&gt;`</span>
+<span class="sd">.. |globalkey| replace:: :ref:`globalkey &lt;globalkey&gt;`</span>
+<span class="sd">.. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor &lt;globalkey_is_minor&gt;`</span>
+<span class="sd">.. |dont_count| replace:: :ref:`dont_count &lt;dont_count&gt;`</span>
+<span class="sd">.. |duration| replace:: :ref:`duration &lt;duration&gt;`</span>
+<span class="sd">.. |gracenote| replace:: :ref:`gracenote &lt;gracenote&gt;`</span>
+<span class="sd">.. |keysig| replace:: :ref:`keysig &lt;keysig&gt;`</span>
+<span class="sd">.. |label| replace:: :ref:`label &lt;label&gt;`</span>
+<span class="sd">.. |label_type| replace:: :ref:`label_type &lt;label_type&gt;`</span>
+<span class="sd">.. |localkey| replace:: :ref:`localkey &lt;localkey&gt;`</span>
+<span class="sd">.. |localkey_is_minor| replace:: :ref:`localkey_is_minor &lt;localkey_is_minor&gt;`</span>
+<span class="sd">.. |lyrics:1| replace:: :ref:`lyrics:1 &lt;lyrics_1&gt;`</span>
+<span class="sd">.. |mc| replace:: :ref:`mc &lt;mc&gt;`</span>
+<span class="sd">.. |mc_offset| replace:: :ref:`mc_offset &lt;mc_offset&gt;`</span>
+<span class="sd">.. |mc_onset| replace:: :ref:`mc_onset &lt;mc_onset&gt;`</span>
+<span class="sd">.. |midi| replace:: :ref:`midi &lt;midi&gt;`</span>
+<span class="sd">.. |mn| replace:: :ref:`mn &lt;mn&gt;`</span>
+<span class="sd">.. |mn_onset| replace:: :ref:`mn_onset &lt;mn_onset&gt;`</span>
+<span class="sd">.. |next| replace:: :ref:`next &lt;next&gt;`</span>
+<span class="sd">.. |nominal_duration| replace:: :ref:`nominal_duration &lt;nominal_duration&gt;`</span>
+<span class="sd">.. |numbering_offset| replace:: :ref:`numbering_offset &lt;numbering_offset&gt;`</span>
+<span class="sd">.. |numeral| replace:: :ref:`numeral &lt;numeral&gt;`</span>
+<span class="sd">.. |Ottava:15mb| replace:: :ref:`Ottava:15mb &lt;ottava&gt;`</span>
+<span class="sd">.. |Ottava:8va| replace:: :ref:`Ottava:8va &lt;ottava&gt;`</span>
+<span class="sd">.. |pedal| replace:: :ref:`pedal &lt;pedal&gt;`</span>
+<span class="sd">.. |phraseend| replace:: :ref:`phraseend &lt;phraseend&gt;`</span>
+<span class="sd">.. |qpm| replace:: :ref:`qpm &lt;qpm&gt;`</span>
+<span class="sd">.. |quarterbeats| replace:: :ref:`quarterbeats &lt;quarterbeats&gt;`</span>
+<span class="sd">.. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings &lt;quarterbeats_all_endings&gt;`</span>
+<span class="sd">.. |relativeroot| replace:: :ref:`relativeroot &lt;relativeroot&gt;`</span>
+<span class="sd">.. |repeats| replace:: :ref:`repeats &lt;repeats&gt;`</span>
+<span class="sd">.. |root| replace:: :ref:`root &lt;root&gt;`</span>
+<span class="sd">.. |scalar| replace:: :ref:`scalar &lt;scalar&gt;`</span>
+<span class="sd">.. |slur| replace:: :ref:`slur &lt;slur&gt;`</span>
+<span class="sd">.. |staff| replace:: :ref:`staff &lt;staff&gt;`</span>
+<span class="sd">.. |staff_text| replace:: :ref:`staff_text &lt;staff_text&gt;`</span>
+<span class="sd">.. |system_text| replace:: :ref:`system_text &lt;system_text&gt;`</span>
+<span class="sd">.. |tempo| replace:: :ref:`tempo &lt;tempo&gt;`</span>
+<span class="sd">.. |tied| replace:: :ref:`tied &lt;tied&gt;`</span>
+<span class="sd">.. |timesig| replace:: :ref:`timesig &lt;timesig&gt;`</span>
+<span class="sd">.. |tpc| replace:: :ref:`tpc &lt;tpc&gt;`</span>
+<span class="sd">.. |tremolo| replace:: :ref:`tremolo &lt;tremolo&gt;`</span>
+<span class="sd">.. |volta| replace:: :ref:`volta &lt;volta&gt;`</span>
+<span class="sd">.. |voice| replace:: :ref:`voice &lt;voice&gt;`</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">re</span><span class="o">,</span> <span class="nn">sys</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">fractions</span> <span class="kn">import</span> <span class="n">Fraction</span> <span class="k">as</span> <span class="n">frac</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">ChainMap</span> <span class="c1"># for merging dictionaries</span>
@@ -76,8 +142,9 @@
 <span class="kn">from</span> <span class="nn">.annotations</span> <span class="kn">import</span> <span class="n">Annotations</span>
 <span class="kn">from</span> <span class="nn">.bs4_measures</span> <span class="kn">import</span> <span class="n">MeasureList</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span><span class="p">,</span> <span class="n">LoggedClass</span><span class="p">,</span> <span class="n">temporarily_suppress_warnings</span>
+<span class="kn">from</span> <span class="nn">.transformations</span> <span class="kn">import</span> <span class="n">add_quarterbeats_col</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">adjacency_groups</span><span class="p">,</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">color_params2rgba</span><span class="p">,</span> <span class="n">column_order</span><span class="p">,</span> <span class="n">fifths2name</span><span class="p">,</span> <span class="n">FORM_DETECTION_REGEX</span><span class="p">,</span> \
-    <span class="n">get_quarterbeats_length</span><span class="p">,</span> <span class="n">ordinal_suffix</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2attrs</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">rgb_tuple2format</span><span class="p">,</span> <span class="n">sort_note_list</span>
+    <span class="n">get_quarterbeats_length</span><span class="p">,</span> <span class="n">make_continuous_offset_dict</span><span class="p">,</span> <span class="n">ordinal_suffix</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2attrs</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">rgb_tuple2format</span><span class="p">,</span> <span class="n">sort_note_list</span>
 
 
 
@@ -376,20 +443,18 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_fl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_standard_cols</span><span class="p">(</span><span class="n">form_labels</span><span class="p">)[</span><span class="n">cols</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fl</span>
 
-<div class="viewcode-block" id="_MSCX_bs4.measures"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.measures">[docs]</a>    <span class="k">def</span> <span class="nf">measures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`measures &lt;measures&gt;` of the MuseScore file (which can be incomplete measures). Comes with</span>
-<span class="sd">        the columns :ref:`mc &lt;mc&gt;` :ref:`mn &lt;mn&gt;` :ref:`quarterbeats &lt;quarterbeats&gt;` :ref:`duration_qb &lt;duration_qb&gt;`</span>
-<span class="sd">        :ref:`keysig &lt;keysig&gt;` :ref:`timesig &lt;timesig&gt;` :ref:`act_dur &lt;act_dur&gt;` :ref:`mc_offset &lt;mc_offset&gt;`</span>
-<span class="sd">        :ref:`volta &lt;volta&gt;` :ref:`numbering_offset &lt;numbering_offset&gt;` :ref:`dont_count &lt;dont_count&gt;`</span>
-<span class="sd">        :ref:`barline &lt;barline&gt;` :ref:`breaks &lt;breaks&gt;` :ref:`repeats &lt;repeats&gt;` :ref:`next &lt;next&gt;`</span>
+<div class="viewcode-block" id="_MSCX_bs4.measures"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.measures">[docs]</a>    <span class="k">def</span> <span class="nf">measures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with</span>
+<span class="sd">        the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,</span>
+<span class="sd">        |repeats|, |next|</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            interval_index: Try to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`</span>
+<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            DataFrame representing the :ref:`measures &lt;measures&gt;` of the MuseScore file (which can be incomplete measures).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span>
+        <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">()</span>
         <span class="n">duration_qb</span> <span class="o">=</span> <span class="p">(</span><span class="n">measures</span><span class="o">.</span><span class="n">act_dur</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
         <span class="n">measures</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;duration_qb&quot;</span><span class="p">,</span> <span class="n">duration_qb</span><span class="p">)</span>
         <span class="c1"># add quarterbeats column</span>
@@ -419,53 +484,96 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_metatags</span> <span class="o">=</span> <span class="n">Metatags</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metatags</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">ml</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get the raw measure list without adding quarterbeat columns.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="_MSCX_bs4.ml"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.ml">[docs]</a>    <span class="k">def</span> <span class="nf">ml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recompute</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Get the raw :ref:`measures` without adding quarterbeat columns.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            recompute: By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_measure_list</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;A list of all notes with their features.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_notelist</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nl</span>
+<div class="viewcode-block" id="_MSCX_bs4.notes"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.notes">[docs]</a>    <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns</span>
+<span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,</span>
+<span class="sd">        |tpc|, |midi|, |volta|, |chord_id|</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">nl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Like property `notes` but without recomputing.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">notes</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nl</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">notes_and_rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Get a combination of properties `notes` and `rests`&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">nr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rl</span><span class="p">])</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tied&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]})</span>
+<span class="sd">        Args:</span>
+<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame representing the :ref:`notes` of the MuseScore file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">notes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">()</span>
+        <span class="n">notes</span> <span class="o">=</span> <span class="n">add_quarterbeats_col</span><span class="p">(</span><span class="n">notes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset_dict</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">notes</span></div>
+
+<div class="viewcode-block" id="_MSCX_bs4.nl"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.nl">[docs]</a>    <span class="k">def</span> <span class="nf">nl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recompute</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Get the raw :ref:`notes` without adding quarterbeat columns.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_notelist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nl</span></div>
+
+<div class="viewcode-block" id="_MSCX_bs4.notes_and_rests"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.notes_and_rests">[docs]</a>    <span class="k">def</span> <span class="nf">notes_and_rests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval_index</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns</span>
+<span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,</span>
+<span class="sd">        |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nrl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nrl</span><span class="p">()</span>
+        <span class="n">nrl</span> <span class="o">=</span> <span class="n">add_quarterbeats_col</span><span class="p">(</span><span class="n">nrl</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset_dict</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">nrl</span></div>
+
+<div class="viewcode-block" id="_MSCX_bs4.nrl"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.nrl">[docs]</a>    <span class="k">def</span> <span class="nf">nrl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recompute</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the raw :ref:`notes_and_rests` without adding quarterbeat columns.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">nr</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">rl</span><span class="p">()])</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="n">col</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tied&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;chord_id&#39;</span><span class="p">]})</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span> <span class="o">=</span> <span class="n">sort_note_list</span><span class="p">(</span><span class="n">nr</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span></div>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">nrl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Like property `notes_and_rests` but without recomputing.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">notes_and_rests</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nrl</span>
+    <span class="k">def</span> <span class="nf">offset_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">make_continuous_offset_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">measures</span><span class="p">())</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">rests</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;A list of all rests with their features.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_restlist</span><span class="p">()</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rl</span>
+<div class="viewcode-block" id="_MSCX_bs4.rests"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.rests">[docs]</a>    <span class="k">def</span> <span class="nf">rests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interval_index</span> <span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns</span>
+<span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,</span>
+<span class="sd">        |nominal_duration|, |scalar|, |volta|</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">rl</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Like property `rests` but without recomputing.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">rests</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rl</span>
+<span class="sd">        Args:</span>
+<span class="sd">            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DataFrame representing the :ref:`rests` of the MuseScore file.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rests</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">rl</span><span class="p">()</span>
+        <span class="n">rests</span> <span class="o">=</span> <span class="n">add_quarterbeats_col</span><span class="p">(</span><span class="n">rests</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">offset_dict</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rests</span></div>
+
+<div class="viewcode-block" id="_MSCX_bs4.rl"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.rl">[docs]</a>    <span class="k">def</span> <span class="nf">rl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recompute</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Get the raw :ref:`rests` without adding quarterbeat columns.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">recompute</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rl</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">make_standard_restlist</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rl</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">staff_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -487,7 +595,7 @@
 
 
 <div class="viewcode-block" id="_MSCX_bs4.make_standard_chordlist"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.make_standard_chordlist">[docs]</a>    <span class="k">def</span> <span class="nf">make_standard_chordlist</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; This chord list has chords only as opposed to the one yielded by selr.get_chords()&quot;&quot;&quot;</span>
+        <span class="sd">&quot;&quot;&quot; This chord list has chords only as opposed to the one yielded by self.get_chords()&quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_standard_cols</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_events</span><span class="o">.</span><span class="n">event</span> <span class="o">==</span> <span class="s1">&#39;Chord&#39;</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cl</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;chord_id&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_cl</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;Chord/durationType&#39;</span><span class="p">:</span> <span class="s1">&#39;nominal_duration&#39;</span><span class="p">},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -749,9 +857,10 @@
         <span class="k">except</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The mn_onset </span><span class="si">{</span><span class="n">mn_onset</span><span class="si">}</span><span class="s2"> could not be interpreted as a fraction.&quot;</span><span class="p">)</span>
             <span class="k">raise</span>
-        <span class="n">candidates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="s1">&#39;mn&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">mn</span><span class="p">]</span>
+        <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">()</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="n">measures</span><span class="p">[</span><span class="n">measures</span><span class="p">[</span><span class="s1">&#39;mn&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="n">mn</span><span class="p">]</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MN </span><span class="si">{</span><span class="n">mn</span><span class="si">}</span><span class="s2"> does not occur in measure list, which ends at MN </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="s1">&#39;mn&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MN </span><span class="si">{</span><span class="n">mn</span><span class="si">}</span><span class="s2"> does not occur in measure list, which ends at MN </span><span class="si">{</span><span class="n">measures</span><span class="p">[</span><span class="s1">&#39;mn&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">()</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">mc</span> <span class="o">=</span> <span class="n">candidates</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mc</span>
@@ -829,19 +938,20 @@
                 <span class="k">del</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrongly spelled metadata field </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> read as </span><span class="si">{</span><span class="n">name_lwr</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;musescore&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span>
-        <span class="n">last_measure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">measures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">()</span>
+        <span class="n">last_measure</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;last_mc&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">last_measure</span><span class="o">.</span><span class="n">mc</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;last_mn&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">last_measure</span><span class="o">.</span><span class="n">mn</span><span class="p">)</span>
-        <span class="n">lqb</span><span class="p">,</span> <span class="n">lqbu</span> <span class="o">=</span> <span class="n">get_quarterbeats_length</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">)</span>
+        <span class="n">lqb</span><span class="p">,</span> <span class="n">lqbu</span> <span class="o">=</span> <span class="n">get_quarterbeats_length</span><span class="p">(</span><span class="n">measures</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;length_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lqb</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;length_qb_unfolded&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lqbu</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;label_count&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_raw_labels</span><span class="p">())</span>
-        <span class="n">ts_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">timesig</span><span class="p">)</span>
-        <span class="n">mc_ts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ts_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ts_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="n">measures</span><span class="o">.</span><span class="n">timesig</span><span class="p">)</span>
+        <span class="n">mc_ts</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ts_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">timesigs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mc_ts</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">timesigs</span>
-        <span class="n">ks_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">keysig</span><span class="p">)</span>
-        <span class="n">mc_ks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ks_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">ks_groups</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">adjacency_groups</span><span class="p">(</span><span class="n">measures</span><span class="o">.</span><span class="n">keysig</span><span class="p">)</span>
+        <span class="n">mc_ks</span> <span class="o">=</span> <span class="n">measures</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="n">ks_groups</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;keysig&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">keysigs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mc_ks</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;KeySig&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="n">keysigs</span>
         <span class="n">annotated_key</span> <span class="o">=</span> <span class="kc">None</span>
@@ -854,18 +964,19 @@
                     <span class="k">break</span>
         <span class="k">if</span> <span class="n">annotated_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;annotated_key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">annotated_key</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">notes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;all_notes_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.</span>
             <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onsets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
             <span class="k">return</span> <span class="n">data</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;all_notes_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="mf">4.</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">not_tied</span> <span class="o">=</span> <span class="o">~</span><span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">tied</span><span class="o">.</span><span class="n">isin</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;all_notes_qb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">round</span><span class="p">((</span><span class="n">notes</span><span class="o">.</span><span class="n">duration</span> <span class="o">*</span> <span class="mf">4.</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">not_tied</span> <span class="o">=</span> <span class="o">~</span><span class="n">notes</span><span class="o">.</span><span class="n">tied</span><span class="o">.</span><span class="n">isin</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onsets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">not_tied</span><span class="p">)</span>
-        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onset_positions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="p">[</span><span class="n">not_tied</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">staff_groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;staff&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">midi</span>
+        <span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_onset_positions&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">notes</span><span class="p">[</span><span class="n">not_tied</span><span class="p">]</span><span class="o">.</span><span class="n">groupby</span><span class="p">([</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_onset&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">staff_groups</span> <span class="o">=</span> <span class="n">notes</span><span class="o">.</span><span class="n">groupby</span><span class="p">(</span><span class="s1">&#39;staff&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">midi</span>
         <span class="n">ambitus</span> <span class="o">=</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">staff</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;min_midi&#39;</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="s1">&#39;min_name&#39;</span><span class="p">:</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">tpc</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)}</span>
-                        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">staff_groups</span><span class="o">.</span><span class="n">idxmin</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)}</span>
-        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nl</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">staff_groups</span><span class="o">.</span><span class="n">idxmax</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">notes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">staff_groups</span><span class="o">.</span><span class="n">idxmin</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)}</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">notes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">staff_groups</span><span class="o">.</span><span class="n">idxmax</span><span class="p">(),</span> <span class="p">[</span><span class="s1">&#39;staff&#39;</span><span class="p">,</span> <span class="s1">&#39;tpc&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
             <span class="n">ambitus</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">staff</span><span class="p">][</span><span class="s1">&#39;max_midi&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span>
             <span class="n">ambitus</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">staff</span><span class="p">][</span><span class="s1">&#39;max_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fifths2name</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">tpc</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="n">data</span><span class="p">[</span><span class="s1">&#39;parts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="sa">f</span><span class="s2">&quot;part_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">:</span> <span class="n">get_part_info</span><span class="p">(</span><span class="n">part</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">part</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s1">&#39;Part&#39;</span><span class="p">),</span> <span class="mi">1</span><span class="p">)}</span>
@@ -890,7 +1001,7 @@
 <div class="viewcode-block" id="_MSCX_bs4.add_standard_cols"><a class="viewcode-back" href="../../reference.html#ms3.bs4_parser._MSCX_bs4.add_standard_cols">[docs]</a>    <span class="k">def</span> <span class="nf">add_standard_cols</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Ensures that the DataFrame&#39;s first columns are [&#39;mc&#39;, &#39;mn&#39;, &#39;timesig&#39;, &#39;mc_offset&#39;, &#39;volta&#39;]&quot;&quot;&quot;</span>
         <span class="n">add_cols</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;timesig&#39;</span><span class="p">,</span> <span class="s1">&#39;mc_offset&#39;</span><span class="p">,</span> <span class="s1">&#39;volta&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
-        <span class="n">df</span> <span class="o">=</span>  <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">[</span><span class="n">add_cols</span><span class="p">],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+        <span class="n">df</span> <span class="o">=</span>  <span class="n">df</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ml</span><span class="p">()[</span><span class="n">add_cols</span><span class="p">],</span> <span class="n">on</span><span class="o">=</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="n">how</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
         <span class="n">df</span><span class="p">[</span><span class="s1">&#39;mn_onset&#39;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">df</span><span class="o">.</span><span class="n">mc_onset</span> <span class="o">+</span> <span class="n">df</span><span class="o">.</span><span class="n">mc_offset</span>
         <span class="k">return</span> <span class="n">df</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="o">==</span> <span class="s1">&#39;mc_offset&#39;</span><span class="p">]]</span></div>
 

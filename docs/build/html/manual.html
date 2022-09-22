@@ -2022,6 +2022,12 @@ either use an <a class="reference internal" href="reference.html#ms3.annotations
 into account if notes are <a class="reference internal" href="#tied"><span class="std std-ref">tied</span></a> together; in other words, the column expresses no durations that
 surpass the final bar line.</p>
 </section>
+<section id="duration-qb">
+<span id="id18"></span><h4><strong>duration_qb</strong><a class="headerlink" href="#duration-qb" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a></p>
+<p>Duration expressed in quarter notes. If the column <a class="reference internal" href="#duration"><span class="std std-ref">duration</span></a> is present it corresponds to that column times four.
+Otherwise (e.g. for labels) it is computed from an <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.IntervalIndex.html#pandas.IntervalIndex" title="(in pandas v1.5.0)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IntervalIndex</span></code></a> created from the <a class="reference internal" href="#quarterbeats"><span class="std std-ref">quarterbeats</span></a> column.</p>
+</section>
 <section id="keysig-key-signatures">
 <span id="keysig"></span><h4><strong>keysig</strong> Key Signatures<a class="headerlink" href="#keysig-key-signatures" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
@@ -2045,21 +2051,21 @@ Starts with 1 except for pieces beginning with a pickup measure, numbered as 0. 
 second endings! For more detailed information, please refer to <a class="reference internal" href="#mc-vs-mn"><span class="std std-ref">Measure counts (MC) vs. measure numbers (MN)</span></a>.</p>
 </section>
 <section id="mc-onset">
-<span id="id18"></span><h4><strong>mc_onset</strong><a class="headerlink" href="#mc-onset" title="Permalink to this heading">¶</a></h4>
+<span id="id19"></span><h4><strong>mc_onset</strong><a class="headerlink" href="#mc-onset" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>The value for <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
 corresponds to the earliest possible position (in most cases beat 1). For more detailed information, please
 refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
 </section>
 <section id="mn-onset">
-<span id="id19"></span><h4><strong>mn_onset</strong><a class="headerlink" href="#mn-onset" title="Permalink to this heading">¶</a></h4>
+<span id="id20"></span><h4><strong>mn_onset</strong><a class="headerlink" href="#mn-onset" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>The value for <code class="docutils literal notranslate"><span class="pre">mn_onset</span></code> represents, expressed as fraction of a whole note, a position in a measure where <code class="docutils literal notranslate"><span class="pre">0</span></code>
 corresponds to the earliest possible position of the corresponding measure number (MN). For more detailed information,
 please refer to <a class="reference internal" href="#onsets"><span class="std std-ref">Onset positions</span></a>.</p>
 </section>
 <section id="quarterbeats">
-<span id="id20"></span><h4><strong>quarterbeats</strong><a class="headerlink" href="#quarterbeats" title="Permalink to this heading">¶</a></h4>
+<span id="id21"></span><h4><strong>quarterbeats</strong><a class="headerlink" href="#quarterbeats" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>This column expresses positions, otherwise accessible only as a tuple <code class="docutils literal notranslate"><span class="pre">(mc,</span> <span class="pre">mc_onset)</span></code>, as a running count of
 quarter notes from the piece’s beginning (quarterbeat = 0). If second endings are present in the score, only the
@@ -2072,7 +2078,7 @@ full play-through of the score, all endings are taken into account correctly.</p
 the length of irregular measures into account.</p>
 </section>
 <section id="staff">
-<span id="id21"></span><h4><strong>staff</strong><a class="headerlink" href="#staff" title="Permalink to this heading">¶</a></h4>
+<span id="id22"></span><h4><strong>staff</strong><a class="headerlink" href="#staff" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>In which staff an event occurs. <code class="docutils literal notranslate"><span class="pre">1</span></code> = upper staff.</p>
 </section>
@@ -2085,14 +2091,14 @@ a pickup bar could have an actual duration of <code class="docutils literal notr
 has an actual duration of <code class="docutils literal notranslate"><span class="pre">3/8</span></code>.</p>
 </section>
 <section id="volta">
-<span id="id22"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this heading">¶</a></h4>
+<span id="id23"></span><h4><strong>volta</strong><a class="headerlink" href="#volta" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>In the case of first and second (third etc.) endings, this column holds the number of every “bracket”, “house”, or _volta_,
 which should increase from 1. This is required for MS3’s unfold repeats function to work. For more information,
 <a class="reference internal" href="#voltas"><span class="std std-ref">see here</span></a>.</p>
 </section>
 <section id="voice">
-<span id="id23"></span><h4><strong>voice</strong><a class="headerlink" href="#voice" title="Permalink to this heading">¶</a></h4>
+<span id="id24"></span><h4><strong>voice</strong><a class="headerlink" href="#voice" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>In which notational layer an event occurs. Each <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a> has (can have) up to four layers:</p>
 <ul class="simple">
@@ -2103,8 +2109,8 @@ which should increase from 1. This is required for MS3’s unfold repeats functi
 </ul>
 </section>
 </section>
-<section id="id24">
-<h3>Measures<a class="headerlink" href="#id24" title="Permalink to this heading">¶</a></h3>
+<section id="id25">
+<h3>Measures<a class="headerlink" href="#id25" title="Permalink to this heading">¶</a></h3>
 <section id="act-dur-actual-duration-of-a-measure">
 <span id="act-dur"></span><h4><strong>act_dur</strong> Actual duration of a measure<a class="headerlink" href="#act-dur-actual-duration-of-a-measure" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
@@ -2115,12 +2121,12 @@ of length 1/8, would have <code class="docutils literal notranslate"><span class
 from <a class="reference internal" href="#mc"><span class="std std-ref">MCs</span></a>. See also the columns <a class="reference internal" href="#dont-count"><span class="std std-ref">dont_count</span></a> and <a class="reference internal" href="#numbering-offset"><span class="std std-ref">numbering_offset</span></a>.</p>
 </section>
 <section id="barline">
-<span id="id25"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this heading">¶</a></h4>
+<span id="id26"></span><h4><strong>barline</strong><a class="headerlink" href="#barline" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>The column <code class="docutils literal notranslate"><span class="pre">barline</span></code> encodes information about the measure’s final bar line.</p>
 </section>
 <section id="breaks">
-<span id="id26"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this heading">¶</a></h4>
+<span id="id27"></span><h4><strong>breaks</strong><a class="headerlink" href="#breaks" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>The column <code class="docutils literal notranslate"><span class="pre">breaks</span></code> may include three different values: <code class="docutils literal notranslate"><span class="pre">{'line',</span> <span class="pre">'page',</span> <span class="pre">'section'}</span></code> which represent the different
 breaks types. In the case of section breaks, MuseScore</p>
@@ -2143,7 +2149,7 @@ which are also part of the corresponding MN. In the standard case that one MN wo
 would have mc_offset = <code class="docutils literal notranslate"><span class="pre">0</span></code> , and the second one mc_offset = <code class="docutils literal notranslate"><span class="pre">the</span> <span class="pre">previous</span> <span class="pre">MC's</span></code> <a class="reference internal" href="#act-dur"><span class="std std-ref">act_dur</span></a> .</p>
 </section>
 <section id="next">
-<span id="id27"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this heading">¶</a></h4>
+<span id="id28"></span><h4><strong>next</strong><a class="headerlink" href="#next" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
 <p>Every cell in this column has at least one integer, namely the MC of the subsequent bar, or <code class="docutils literal notranslate"><span class="pre">-1</span></code> in the cast of the last.
 In the case of repetitions, measures can have more than one subsequent MCs, in which case the integers are separated by
@@ -2162,7 +2168,7 @@ sometimes, instead of using section <a class="reference internal" href="#breaks"
 <a class="reference internal" href="#mn"><span class="std std-ref">MNs</span></a> at every new section. This leads to ambiguous MNs.</p>
 </section>
 <section id="quarterbeats-all-endings">
-<span id="id28"></span><h4><strong>quarterbeats_all_endings</strong><a class="headerlink" href="#quarterbeats-all-endings" title="Permalink to this heading">¶</a></h4>
+<span id="id29"></span><h4><strong>quarterbeats_all_endings</strong><a class="headerlink" href="#quarterbeats-all-endings" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>Since the computation of <a class="reference internal" href="#quarterbeats"><span class="std std-ref">quarterbeats</span></a> for pieces including alternative endings (<a class="reference internal" href="#volta"><span class="std std-ref">voltas</span></a>) excludes all
 but the second endings, the measures of such pieces get this additional column, allowing to create an offset_dict
@@ -2174,7 +2180,7 @@ for users who need continuous quarterbeats including all endings. In that case o
 </div>
 </section>
 <section id="repeats">
-<span id="id29"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this heading">¶</a></h4>
+<span id="id30"></span><h4><strong>repeats</strong><a class="headerlink" href="#repeats" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>The column <code class="docutils literal notranslate"><span class="pre">repeats</span></code> indicates the presence of repeat signs and can have the values
 <code class="docutils literal notranslate"><span class="pre">{'start',</span> <span class="pre">'end',</span> <span class="pre">'startend',</span> <span class="pre">'firstMeasure',</span> <span class="pre">'lastMeasure'}</span></code>. MS3 performs a test on the
@@ -2183,17 +2189,17 @@ repeat signs’ plausibility and throws warnings when some inference is required
 column which, in return, is required for MS3’s unfolding repetitions functionality.</p>
 </section>
 </section>
-<section id="id30">
-<h3>Notes and Rests<a class="headerlink" href="#id30" title="Permalink to this heading">¶</a></h3>
+<section id="id31">
+<h3>Notes and Rests<a class="headerlink" href="#id31" title="Permalink to this heading">¶</a></h3>
 <section id="chord-id">
-<span id="id31"></span><h4><strong>chord_id</strong><a class="headerlink" href="#chord-id" title="Permalink to this heading">¶</a></h4>
+<span id="id32"></span><h4><strong>chord_id</strong><a class="headerlink" href="#chord-id" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>Every note keeps the ID of the <code class="docutils literal notranslate"><span class="pre">&lt;Chord&gt;</span></code> tag to which it belongs in the score. This is necessary because in
 MuseScore XML, most markup (e.g. articulation, lyrics etc.) are attached to <a class="reference internal" href="#chords"><span class="std std-ref">chords</span></a> rather than
 to individual notes. This column allows for relating markup to notes at a later point.</p>
 </section>
 <section id="gracenote">
-<span id="id32"></span><h4><strong>gracenote</strong><a class="headerlink" href="#gracenote" title="Permalink to this heading">¶</a></h4>
+<span id="id33"></span><h4><strong>gracenote</strong><a class="headerlink" href="#gracenote" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>For grace notes, type of the grace note as encoded in the MuseScore source code. They are assigned a
 <a class="reference internal" href="#duration"><span class="std std-ref">duration</span></a> of 0.</p>
@@ -2205,18 +2211,18 @@ to individual notes. This column allows for relating markup to notes at a later 
 <a class="reference internal" href="#tpc"><span class="std std-ref">tpc</span></a> column.</p>
 </section>
 <section id="nominal-duration">
-<span id="id33"></span><h4><strong>nominal_duration</strong><a class="headerlink" href="#nominal-duration" title="Permalink to this heading">¶</a></h4>
+<span id="id34"></span><h4><strong>nominal_duration</strong><a class="headerlink" href="#nominal-duration" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>Note’s or rest’s duration without taking into account dots or tuplets. Multiplying by <a class="reference internal" href="#scalar"><span class="std std-ref">scalar</span></a>
 results in the actual <a class="reference internal" href="#duration"><span class="std std-ref">duration</span></a>.</p>
 </section>
 <section id="scalar">
-<span id="id34"></span><h4><strong>scalar</strong><a class="headerlink" href="#scalar" title="Permalink to this heading">¶</a></h4>
+<span id="id35"></span><h4><strong>scalar</strong><a class="headerlink" href="#scalar" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/fractions.html#fractions.Fraction" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fractions.Fraction</span></code></a></p>
 <p>Value reflecting dots and tuples by which to multiply a note’s or rest’s <a class="reference internal" href="#nominal-duration"><span class="std std-ref">nominal_duration</span></a>.</p>
 </section>
 <section id="tied">
-<span id="id35"></span><h4><strong>tied</strong><a class="headerlink" href="#tied" title="Permalink to this heading">¶</a></h4>
+<span id="id36"></span><h4><strong>tied</strong><a class="headerlink" href="#tied" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>Encodes ties on the note’s left (<code class="docutils literal notranslate"><span class="pre">-1</span></code>), on its right (<code class="docutils literal notranslate"><span class="pre">1</span></code>) or both (<code class="docutils literal notranslate"><span class="pre">0</span></code>).
 A tie merges a note with an adjacent one having the same pitch.</p>
@@ -2249,9 +2255,23 @@ instead it adds to the duration of a previous note on the same pitch and ends it
 <p>Encodes note names by their position on the line of fifth with <code class="docutils literal notranslate"><span class="pre">0</span></code> = C, <code class="docutils literal notranslate"><span class="pre">1</span></code> = G, <code class="docutils literal notranslate"><span class="pre">2</span></code> = D, <code class="docutils literal notranslate"><span class="pre">-1</span></code> = F,
 <code class="docutils literal notranslate"><span class="pre">-2</span></code> = Bb etc. The octave is defined by <a class="reference internal" href="#midi"><span class="std std-ref">midi</span></a> DIV 12 - 1</p>
 </section>
+<section id="tremolo">
+<span id="id37"></span><h4><strong>tremolo</strong><a class="headerlink" href="#tremolo" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<p>The syntax for this column is <code class="docutils literal notranslate"><span class="pre">&lt;dur&gt;_&lt;type&gt;_&lt;component&gt;</span></code> where <code class="docutils literal notranslate"><span class="pre">&lt;dur&gt;</span></code> is half the duration of the tremolo,
+<code class="docutils literal notranslate"><span class="pre">&lt;type&gt;</span></code> is the tremolo type, e.g. <code class="docutils literal notranslate"><span class="pre">c32</span></code> for 3 beams or <code class="docutils literal notranslate"><span class="pre">c64</span></code> for 4 (values taken from the source code), and
+<code class="docutils literal notranslate"><span class="pre">&lt;component&gt;</span></code> is 1 for notes in the first and 2 for notes in the second &lt;Chord&gt;.</p>
+<p>Explanation: MuseScore 3 encodes the two components of a tremolo as two separate &lt;Chord&gt; tags with half the duration of the tremolo.
+This column serves to keep the information of the two components although onsets and durations in the <a class="reference internal" href="#notes"><span class="std std-ref">Notes</span></a>
+are corrected to represent the fact that all notes are sounding through the duration of the tremolo.</p>
+<p>For example, an octave tremolo with duration of a dotted half note and tremolo frequency of 32nd notes will appear
+in the score as a dotted half on beat 1 and another dotted half 3 eights later. In the note list, however, both notes
+have <code class="docutils literal notranslate"><span class="pre">mc_onset</span></code> 0 and <code class="docutils literal notranslate"><span class="pre">duration</span></code> 3/4. The column <code class="docutils literal notranslate"><span class="pre">tremolo</span></code> has the value <code class="docutils literal notranslate"><span class="pre">3/8_c32_1</span></code> for the first note and
+<code class="docutils literal notranslate"><span class="pre">3/8_c32_1</span></code> for the second.</p>
 </section>
-<section id="id36">
-<h3>Chords<a class="headerlink" href="#id36" title="Permalink to this heading">¶</a></h3>
+</section>
+<section id="id38">
+<h3>Chords<a class="headerlink" href="#id38" title="Permalink to this heading">¶</a></h3>
 <p>The various &lt;Chord&gt; tags are identified by increasing integer counts in the column <code class="docutils literal notranslate"><span class="pre">chord_id</span></code>. Within a note list,
 a <a class="reference internal" href="#chord-id"><span class="std std-ref">column of the same name</span></a> specifies which note belongs to which &lt;Chord&gt; tag. A chord and all the
 notes belonging to it have identical values in the columns <a class="reference internal" href="#mc"><span class="std std-ref">mc</span></a>, <a class="reference internal" href="#mn"><span class="std std-ref">mn</span></a>, <a class="reference internal" href="#mc-onset"><span class="std std-ref">mc_onset</span></a>,
@@ -2259,19 +2279,19 @@ notes belonging to it have identical values in the columns <a class="reference i
 <a class="reference internal" href="#duration"><span class="std std-ref">duration</span></a>, <a class="reference internal" href="#gracenote"><span class="std std-ref">gracenote</span></a>, <a class="reference internal" href="#nominal-duration"><span class="std std-ref">nominal_duration</span></a>,
 <a class="reference internal" href="#scalar"><span class="std std-ref">scalar</span></a>, <a class="reference internal" href="#volta"><span class="std std-ref">volta</span></a>, and of course <a class="reference internal" href="#chord-id"><span class="std std-ref">chord_id</span></a>.</p>
 <section id="articulation">
-<span id="id37"></span><h4><strong>articulation</strong><a class="headerlink" href="#articulation" title="Permalink to this heading">¶</a></h4>
+<span id="id39"></span><h4><strong>articulation</strong><a class="headerlink" href="#articulation" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Articulation signs named as in the MuseScore file, e.g. <code class="docutils literal notranslate"><span class="pre">articStaccatoBelow</span></code>.</p>
 </section>
 <section id="dynamics">
-<span id="id38"></span><h4><strong>dynamics</strong><a class="headerlink" href="#dynamics" title="Permalink to this heading">¶</a></h4>
+<span id="id40"></span><h4><strong>dynamics</strong><a class="headerlink" href="#dynamics" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Dynamic signs such as <code class="docutils literal notranslate"><span class="pre">p</span></code>, <code class="docutils literal notranslate"><span class="pre">ff</span></code> etc. Other dynamic markings such as <code class="docutils literal notranslate"><span class="pre">dolce</span></code> are currently displayed as
 <code class="docutils literal notranslate"><span class="pre">other-dynamics</span></code>. Velocity values are currently not extracted. These features can easily be implemented
 <a class="reference external" href="https://github.com/johentsch/ms3/issues/">upon request</a>.</p>
 </section>
 <section id="lyrics-1">
-<span id="id39"></span><h4><strong>lyrics:1</strong><a class="headerlink" href="#lyrics-1" title="Permalink to this heading">¶</a></h4>
+<span id="id41"></span><h4><strong>lyrics:1</strong><a class="headerlink" href="#lyrics-1" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>When a voice includes only a single verse, all syllables are contained in the column <code class="docutils literal notranslate"><span class="pre">lyrics:1</span></code>. If it has more
 than one verse, for each &lt;Chord&gt; the last verse’s syllable is contained in the respective column, e.g. <code class="docutils literal notranslate"><span class="pre">lyrics:3</span></code> if
@@ -2285,25 +2305,25 @@ syllable of a word, a leading <code class="docutils literal notranslate"><span c
 value <code class="docutils literal notranslate"><span class="pre">qbm</span> <span class="pre">=</span> <span class="pre">112</span> <span class="pre">*</span> <span class="pre">1.5</span> <span class="pre">=</span> <span class="pre">168</span></code>.</p>
 </section>
 <section id="staff-text">
-<span id="id40"></span><h4><strong>staff_text</strong><a class="headerlink" href="#staff-text" title="Permalink to this heading">¶</a></h4>
+<span id="id42"></span><h4><strong>staff_text</strong><a class="headerlink" href="#staff-text" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Free-form text such as <code class="docutils literal notranslate"><span class="pre">dolce</span></code> or <code class="docutils literal notranslate"><span class="pre">div.</span></code>. Depending on the encoding standard, this layer may include dynamics
 such as <code class="docutils literal notranslate"><span class="pre">cresc.</span></code>, articulation such as <code class="docutils literal notranslate"><span class="pre">stacc.</span></code>, movement titles, and many more. Staff texts are added in MuseScore
 via <code class="docutils literal notranslate"><span class="pre">[C]</span> <span class="pre">+</span> <span class="pre">T</span></code>.</p>
 </section>
 <section id="system-text">
-<span id="id41"></span><h4><strong>system_text</strong><a class="headerlink" href="#system-text" title="Permalink to this heading">¶</a></h4>
+<span id="id43"></span><h4><strong>system_text</strong><a class="headerlink" href="#system-text" title="Permalink to this heading">¶</a></h4>
 <p>Free-form text not attached to a particular staff but to the entire system. This frequently includes movement names or
 playing styles such as <code class="docutils literal notranslate"><span class="pre">Swing</span></code>. System texts are added in MuseScore via <code class="docutils literal notranslate"><span class="pre">[C]</span> <span class="pre">+</span> <span class="pre">[S]</span> <span class="pre">+</span> <span class="pre">T</span></code>.</p>
 </section>
 <section id="tempo">
-<span id="id42"></span><h4><strong>tempo</strong><a class="headerlink" href="#tempo" title="Permalink to this heading">¶</a></h4>
+<span id="id44"></span><h4><strong>tempo</strong><a class="headerlink" href="#tempo" title="Permalink to this heading">¶</a></h4>
 <p>Metronome markings and tempo texts. Unfortunately, for tempo texts that include a metronome mark, e.g.
 <code class="docutils literal notranslate"><span class="pre">Larghetto.</span> <span class="pre">(𝅘𝅥</span> <span class="pre">=</span> <span class="pre">63)</span></code>, the text before the 𝅘𝅥 symbol is lost. This can be fixed
 <a class="reference external" href="https://github.com/johentsch/ms3/issues/">upon request</a>.</p>
 </section>
 <section id="spanners">
-<span id="id43"></span><h4>Spanners<a class="headerlink" href="#spanners" title="Permalink to this heading">¶</a></h4>
+<span id="id45"></span><h4>Spanners<a class="headerlink" href="#spanners" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
 <p>Spanners designate markup that spans several &lt;Chord&gt; tags, such as slurs, hairpins, pedal, trill and ottava lines. The values
 in a spanner column are IDs such that all chords with the same ID belong to the same spanner. Each cell can have more
@@ -2311,7 +2331,7 @@ than one ID, separated by commas. For evaluating spanner columns, the values sho
 <p>Spanners span all chords belonging to the same <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a>, except for slurs and trills which span only chords in the same <a class="reference internal" href="#voice"><span class="std std-ref">voice</span></a>. In
 other words, won’t find the ending of a slur that goes from one <a class="reference internal" href="#voice"><span class="std std-ref">voice</span></a> to another.</p>
 <section id="slur">
-<span id="id44"></span><h5><strong>slur</strong><a class="headerlink" href="#slur" title="Permalink to this heading">¶</a></h5>
+<span id="id46"></span><h5><strong>slur</strong><a class="headerlink" href="#slur" title="Permalink to this heading">¶</a></h5>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
 <p>Slurs expressing legato and/or phrasing. These <a class="reference internal" href="#spanners"><span class="std std-ref">spanners</span></a> always pertain to a particular <a class="reference internal" href="#voice"><span class="std std-ref">voice</span></a>.</p>
 </section>
@@ -2328,13 +2348,13 @@ These always pertain to an entire <a class="reference internal" href="#staff"><s
 These always pertain to an entire <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a>.</p>
 </section>
 <section id="ottava">
-<span id="id45"></span><h5><strong>Ottava</strong><a class="headerlink" href="#ottava" title="Permalink to this heading">¶</a></h5>
+<span id="id47"></span><h5><strong>Ottava</strong><a class="headerlink" href="#ottava" title="Permalink to this heading">¶</a></h5>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
 <p>These <a class="reference internal" href="#spanners"><span class="std std-ref">spanners</span></a> are always specified with a subtype such as <code class="docutils literal notranslate"><span class="pre">Ottava:8va</span></code> or <code class="docutils literal notranslate"><span class="pre">Ottava:15mb</span></code>. They
 always pertain to an entire <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a></p>
 </section>
 <section id="pedal">
-<span id="id46"></span><h5><strong>pedal</strong><a class="headerlink" href="#pedal" title="Permalink to this heading">¶</a></h5>
+<span id="id48"></span><h5><strong>pedal</strong><a class="headerlink" href="#pedal" title="Permalink to this heading">¶</a></h5>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> (-&gt; <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a>)</p>
 <p>Pedal line <a class="reference internal" href="#spanners"><span class="std std-ref">spanners</span></a> always pertain to an entire <a class="reference internal" href="#staff"><span class="std std-ref">staff</span></a>.</p>
 <p id="trill"><strong>Trill</strong></p>
@@ -2344,10 +2364,10 @@ They always pertain to a particular <a class="reference internal" href="#voice">
 </section>
 </section>
 </section>
-<section id="id47">
-<h3>Labels<a class="headerlink" href="#id47" title="Permalink to this heading">¶</a></h3>
+<section id="id49">
+<h3>Labels<a class="headerlink" href="#id49" title="Permalink to this heading">¶</a></h3>
 <section id="label">
-<span id="id48"></span><h4><strong>label</strong><a class="headerlink" href="#label" title="Permalink to this heading">¶</a></h4>
+<span id="id50"></span><h4><strong>label</strong><a class="headerlink" href="#label" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Annotation labels from MuseScores &lt;Harmony&gt; tags. Depending on the <a class="reference internal" href="#label-type"><span class="std std-ref">label_type</span></a> the column can include complete
 strings (decoded) or partial strings (encoded).</p>
@@ -2356,15 +2376,15 @@ strings (decoded) or partial strings (encoded).</p>
 <p>See <a class="reference internal" href="#label-types"><span class="std std-ref">label types</span></a> above.</p>
 </section>
 </section>
-<section id="id49">
-<h3>Expanded<a class="headerlink" href="#id49" title="Permalink to this heading">¶</a></h3>
+<section id="id51">
+<h3>Expanded<a class="headerlink" href="#id51" title="Permalink to this heading">¶</a></h3>
 <section id="bass-note">
-<span id="id50"></span><h4><strong>bass_note</strong><a class="headerlink" href="#bass-note" title="Permalink to this heading">¶</a></h4>
+<span id="id52"></span><h4><strong>bass_note</strong><a class="headerlink" href="#bass-note" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>The bass note designated by the label, expressed as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
 </section>
 <section id="cadence">
-<span id="id51"></span><h4><strong>cadence</strong><a class="headerlink" href="#cadence" title="Permalink to this heading">¶</a></h4>
+<span id="id53"></span><h4><strong>cadence</strong><a class="headerlink" href="#cadence" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Currently allows for the values</p>
 <table class="docutils align-default">
@@ -2396,7 +2416,7 @@ strings (decoded) or partial strings (encoded).</p>
 </table>
 </section>
 <section id="chord">
-<span id="id52"></span><h4><strong>chord</strong><a class="headerlink" href="#chord" title="Permalink to this heading">¶</a></h4>
+<span id="id54"></span><h4><strong>chord</strong><a class="headerlink" href="#chord" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>This column stands in no relation to the &lt;Chord&gt; tags <a class="reference internal" href="#chords"><span class="std std-ref">discussed above</span></a>. Instead, it holds the substring
 of the original labels that includes only the actual chord label, i.e. excluding information about modulations,
@@ -2413,7 +2433,7 @@ replacement expressed through intervals &lt;= 8 within parentheses, without lead
 intervals preceded by + or/and greater than 8.</p>
 </section>
 <section id="chord-type">
-<span id="id53"></span><h4><strong>chord_type</strong><a class="headerlink" href="#chord-type" title="Permalink to this heading">¶</a></h4>
+<span id="id55"></span><h4><strong>chord_type</strong><a class="headerlink" href="#chord-type" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>A summary of information that otherwise depends on the three columns <a class="reference internal" href="#numeral"><span class="std std-ref">numeral</span></a>, <a class="reference internal" href="#form"><span class="std std-ref">form</span></a>, <a class="reference internal" href="#figbass"><span class="std std-ref">figbass</span></a>.
 It can be one of the wide-spread abbreviations for triads: <code class="docutils literal notranslate"><span class="pre">M,</span> <span class="pre">m,</span> <span class="pre">o,</span> <span class="pre">+</span></code> or for seventh chords: <code class="docutils literal notranslate"><span class="pre">o7,</span> <span class="pre">%7,</span> <span class="pre">+7,</span> <span class="pre">+M7</span></code>
@@ -2427,7 +2447,7 @@ for seventh chords <code class="docutils literal notranslate"><span class="pre">
 This feature is decisive for <a class="reference internal" href="#bass-note"><span class="std std-ref">which chord tone is in the bass</span></a>.</p>
 </section>
 <section id="form">
-<span id="id54"></span><h4><strong>form</strong><a class="headerlink" href="#form" title="Permalink to this heading">¶</a></h4>
+<span id="id56"></span><h4><strong>form</strong><a class="headerlink" href="#form" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>This column conveys part of the information what <a class="reference internal" href="#chord-type"><span class="std std-ref">chord_type</span></a> a label expresses.</p>
 <table class="docutils align-default">
@@ -2451,28 +2471,28 @@ either a major or a minor chord with a minor seventh.</p></td>
 </table>
 </section>
 <section id="globalkey">
-<span id="id55"></span><h4><strong>globalkey</strong><a class="headerlink" href="#globalkey" title="Permalink to this heading">¶</a></h4>
+<span id="id57"></span><h4><strong>globalkey</strong><a class="headerlink" href="#globalkey" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Tonality of the piece, expressed as absolute note name, e.g. <code class="docutils literal notranslate"><span class="pre">Ab</span></code> for A flat major, or <code class="docutils literal notranslate"><span class="pre">g#</span></code> for G sharp minor.</p>
 </section>
 <section id="globalkey-is-minor">
-<span id="id56"></span><h4><strong>globalkey_is_minor</strong><a class="headerlink" href="#globalkey-is-minor" title="Permalink to this heading">¶</a></h4>
+<span id="id58"></span><h4><strong>globalkey_is_minor</strong><a class="headerlink" href="#globalkey-is-minor" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
 <p>Auxiliary column which is True if the <a class="reference internal" href="#globalkey"><span class="std std-ref">globalkey</span></a> is a minor key, False otherwise.</p>
 </section>
 <section id="localkey">
-<span id="id57"></span><h4><strong>localkey</strong><a class="headerlink" href="#localkey" title="Permalink to this heading">¶</a></h4>
+<span id="id59"></span><h4><strong>localkey</strong><a class="headerlink" href="#localkey" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Local key expressed as Roman numeral relative to the <a class="reference internal" href="#globalkey"><span class="std std-ref">globalkey</span></a>, e.g. <code class="docutils literal notranslate"><span class="pre">IV</span></code> for the major key on the 4th scale degree
 or <code class="docutils literal notranslate"><span class="pre">#iv</span></code> for the minor scale on the raised 4th scale degree.</p>
 </section>
 <section id="localkey-is-minor">
-<span id="id58"></span><h4><strong>localkey_is_minor</strong><a class="headerlink" href="#localkey-is-minor" title="Permalink to this heading">¶</a></h4>
+<span id="id60"></span><h4><strong>localkey_is_minor</strong><a class="headerlink" href="#localkey-is-minor" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a></p>
 <p>Auxiliary column which is True if the <a class="reference internal" href="#localkey"><span class="std std-ref">localkey</span></a> is a minor key, False otherwise.</p>
 </section>
 <section id="numeral">
-<span id="id59"></span><h4><strong>numeral</strong><a class="headerlink" href="#numeral" title="Permalink to this heading">¶</a></h4>
+<span id="id61"></span><h4><strong>numeral</strong><a class="headerlink" href="#numeral" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
 <p>Roman numeral defining the chordal root relative to the local key. An uppercase numeral stands for a major chordal
 third, lowercase for a minor third. The column <a class="reference internal" href="#root"><span class="std std-ref">root</span></a> expresses the same information as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
@@ -2491,7 +2511,7 @@ For example, if the current <a class="reference internal" href="#numeral"><span 
 relativeroot is the Roman numeral of the key that is being tonicized.</p>
 </section>
 <section id="root">
-<span id="id60"></span><h4><strong>root</strong><a class="headerlink" href="#root" title="Permalink to this heading">¶</a></h4>
+<span id="id62"></span><h4><strong>root</strong><a class="headerlink" href="#root" title="Permalink to this heading">¶</a></h4>
 <p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
 <p>The <a class="reference internal" href="#numeral"><span class="std std-ref">numeral</span></a> expressed as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
 </section>
@@ -2564,6 +2584,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l2"><a class="reference internal" href="#column-names">Column Names</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#general-columns">General Columns</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#duration"><strong>duration</strong></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#duration-qb"><strong>duration_qb</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#keysig-key-signatures"><strong>keysig</strong> Key Signatures</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mc-measure-counts"><strong>mc</strong> Measure Counts</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#mn-measure-numbers"><strong>mn</strong> Measure Numbers</a></li>
@@ -2576,7 +2597,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l4"><a class="reference internal" href="#voice"><strong>voice</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id24">Measures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id25">Measures</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#act-dur-actual-duration-of-a-measure"><strong>act_dur</strong> Actual duration of a measure</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#barline"><strong>barline</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#breaks"><strong>breaks</strong></a></li>
@@ -2588,7 +2609,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l4"><a class="reference internal" href="#repeats"><strong>repeats</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id30">Notes and Rests</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id31">Notes and Rests</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#chord-id"><strong>chord_id</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#gracenote"><strong>gracenote</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#midi-piano-key"><strong>midi</strong> Piano key</a></li>
@@ -2596,9 +2617,10 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l4"><a class="reference internal" href="#scalar"><strong>scalar</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tied"><strong>tied</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#tpc-tonal-pitch-class"><strong>tpc</strong> Tonal pitch class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#tremolo"><strong>tremolo</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id36">Chords</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id38">Chords</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#articulation"><strong>articulation</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#dynamics"><strong>dynamics</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#lyrics-1"><strong>lyrics:1</strong></a></li>
@@ -2609,11 +2631,11 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l4"><a class="reference internal" href="#spanners">Spanners</a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id47">Labels</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id49">Labels</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#label"><strong>label</strong></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#id49">Expanded</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id51">Expanded</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#bass-note"><strong>bass_note</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#cadence"><strong>cadence</strong></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#chord"><strong>chord</strong></a></li>
