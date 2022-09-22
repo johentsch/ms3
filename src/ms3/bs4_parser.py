@@ -10,8 +10,9 @@ import numpy as np
 from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
+from .transformations import add_quarterbeats_col
 from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
+    get_quarterbeats_length, make_continuous_offset_dict, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 
 
 
@@ -310,8 +311,18 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._fl = self.add_standard_cols(form_labels)[cols]
         return self._fl
 
-    def measures(self):
-        """ Retrieve a standard measure table from the parsed score.
+    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures). Comes with
+        the columns :ref:`mc <mc>` :ref:`mn <mn>` :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>`
+        :ref:`keysig <keysig>` :ref:`timesig <timesig>` :ref:`act_dur <act_dur>` :ref:`mc_offset <mc_offset>`
+        :ref:`volta <volta>` :ref:`numbering_offset <numbering_offset>` :ref:`dont_count <dont_count>`
+        :ref:`barline <barline>` :ref:`breaks <breaks>` :ref:`repeats <repeats>` :ref:`next <next>`
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
         measures = self.ml
         duration_qb = (measures.act_dur * 4).astype(float)
@@ -345,22 +356,35 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     @property
     def ml(self):
-        """Get the raw measure list without adding quarterbeat columns."""
+        """Get the raw measures without adding quarterbeat columns."""
         if self._ml is None:
             self._ml = self._make_measure_list()
         return self._ml.ml.copy()
 
-    @property
-    def notes(self):
-        """A list of all notes with their features."""
+    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
+        :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>` :ref:`mc <mc>` :ref:`mn <mn>`
+        :ref:`mc_onset <mc_onset>` :ref:`mn_onset <mn_onset>` :ref:`timesig <timesig>` :ref:`staff <staff>`
+        :ref:`voice <voice>` :ref:`duration <duration>` :ref:`gracenote <gracenote>` :ref:`tremolo <tremolo>`
+        :ref:`nominal_duration <nominal_duration>` :ref:`scalar <scalar>` :ref:`tied <tied>` :ref:`tpc <tpc>`
+        :ref:`midi <midi>` :ref:`volta <volta>` :ref:`chord_id <chord_id>`
+
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing the :ref:`notes` of the MuseScore file.
+        """
         self.make_standard_notelist()
-        return self._nl
+        notes = add_quarterbeats_col(self._nl, self.offset_dict, interval_index=interval_index)
+        return notes
 
     @property
     def nl(self):
-        """Like property `notes` but without recomputing."""
+        """Get the raw notes without adding quarterbeat columns."""
         if len(self._nl) == 0:
-            return self.notes
+            self.make_standard_notelist()
         return self._nl
 
     @property
@@ -377,6 +401,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if len(self._nrl) == 0:
             return self.notes_and_rests
         return self._nrl
+
+    @property
+    def offset_dict(self):
+        return make_continuous_offset_dict(self.measures())
 
     @property
     def rests(self):
