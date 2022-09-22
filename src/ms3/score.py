@@ -1,3 +1,68 @@
+"""
+.. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |added_tones| replace:: :ref:`added_tones <chord_tones>`
+.. |articulation| replace:: :ref:`articulation <articulation>`
+.. |bass_note| replace:: :ref:`bass_note <bass_note>`
+.. |barline| replace:: :ref:`barline <barline>`
+.. |breaks| replace:: :ref:`breaks <breaks>`
+.. |cadence| replace:: :ref:`cadence <cadence>`
+.. |changes| replace:: :ref:`changes <changes>`
+.. |chord| replace:: :ref:`chord <chord>`
+.. |chord_id| replace:: :ref:`chord_id <chord_id>`
+.. |chord_tones| replace:: :ref:`chord_tones <chord_tones>`
+.. |chord_type| replace:: :ref:`chord_type <chord_type>`
+.. |crescendo_hairpin| replace:: :ref:`crescendo_hairpin <hairpins>`
+.. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
+.. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
+.. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |duration_qb| replace:: :ref:`duration_qb <duration_qb>`
+.. |dynamics| replace:: :ref:`dynamics <dynamics>`
+.. |figbass| replace:: :ref:`figbass <figbass>`
+.. |form| replace:: :ref:`form <form>`
+.. |globalkey| replace:: :ref:`globalkey <globalkey>`
+.. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |duration| replace:: :ref:`duration <duration>`
+.. |gracenote| replace:: :ref:`gracenote <gracenote>`
+.. |keysig| replace:: :ref:`keysig <keysig>`
+.. |label| replace:: :ref:`label <label>`
+.. |label_type| replace:: :ref:`label_type <label_type>`
+.. |localkey| replace:: :ref:`localkey <localkey>`
+.. |localkey_is_minor| replace:: :ref:`localkey_is_minor <localkey_is_minor>`
+.. |lyrics:1| replace:: :ref:`lyrics:1 <lyrics_1>`
+.. |mc| replace:: :ref:`mc <mc>`
+.. |mc_offset| replace:: :ref:`mc_offset <mc_offset>`
+.. |mc_onset| replace:: :ref:`mc_onset <mc_onset>`
+.. |midi| replace:: :ref:`midi <midi>`
+.. |mn| replace:: :ref:`mn <mn>`
+.. |mn_onset| replace:: :ref:`mn_onset <mn_onset>`
+.. |next| replace:: :ref:`next <next>`
+.. |nominal_duration| replace:: :ref:`nominal_duration <nominal_duration>`
+.. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
+.. |numeral| replace:: :ref:`numeral <numeral>`
+.. |Ottava:15mb| replace:: :ref:`Ottava:15mb <ottava>`
+.. |Ottava:8va| replace:: :ref:`Ottava:8va <ottava>`
+.. |pedal| replace:: :ref:`pedal <pedal>`
+.. |phraseend| replace:: :ref:`phraseend <phraseend>`
+.. |qpm| replace:: :ref:`qpm <qpm>`
+.. |quarterbeats| replace:: :ref:`quarterbeats <quarterbeats>`
+.. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings <quarterbeats_all_endings>`
+.. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
+.. |repeats| replace:: :ref:`repeats <repeats>`
+.. |root| replace:: :ref:`root <root>`
+.. |scalar| replace:: :ref:`scalar <scalar>`
+.. |slur| replace:: :ref:`slur <slur>`
+.. |staff| replace:: :ref:`staff <staff>`
+.. |staff_text| replace:: :ref:`staff_text <staff_text>`
+.. |system_text| replace:: :ref:`system_text <system_text>`
+.. |tempo| replace:: :ref:`tempo <tempo>`
+.. |tied| replace:: :ref:`tied <tied>`
+.. |timesig| replace:: :ref:`timesig <timesig>`
+.. |tpc| replace:: :ref:`tpc <tpc>`
+.. |tremolo| replace:: :ref:`tremolo <tremolo>`
+.. |volta| replace:: :ref:`volta <volta>`
+.. |voice| replace:: :ref:`voice <voice>`
+"""
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
@@ -182,14 +247,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._annotations.get_labels(**self.labels_cfg)
 
     def measures(self, interval_index: bool = False) -> pd.DataFrame:
-        """ DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures). Comes with
-        the columns :ref:`mc <mc>` :ref:`mn <mn>` :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>`
-        :ref:`keysig <keysig>` :ref:`timesig <timesig>` :ref:`act_dur <act_dur>` :ref:`mc_offset <mc_offset>`
-        :ref:`volta <volta>` :ref:`numbering_offset <numbering_offset>` :ref:`dont_count <dont_count>`
-        :ref:`barline <barline>` :ref:`breaks <breaks>` :ref:`repeats <repeats>` :ref:`next <next>`
+        """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
+        the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
+        |repeats|, |next|
 
         Args:
-            interval_index: Try to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
             DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
@@ -210,11 +273,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
     def notes(self, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
-        :ref:`quarterbeats <quarterbeats>` :ref:`duration_qb <duration_qb>` :ref:`mc <mc>` :ref:`mn <mn>`
-        :ref:`mc_onset <mc_onset>` :ref:`mn_onset <mn_onset>` :ref:`timesig <timesig>` :ref:`staff <staff>`
-        :ref:`voice <voice>` :ref:`duration <duration>` :ref:`gracenote <gracenote>` :ref:`tremolo <tremolo>`
-        :ref:`nominal_duration <nominal_duration>` :ref:`scalar <scalar>` :ref:`tied <tied>` :ref:`tpc <tpc>`
-        :ref:`midi <midi>` :ref:`volta <volta>` :ref:`chord_id <chord_id>`
+        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,
+        |tpc|, |midi|, |volta|, |chord_id|
 
 
         Args:
@@ -225,10 +285,18 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         return self.parsed.notes(interval_index=interval_index)
 
-    def notes_and_rests(self):
-        """:obj:`pandas.DataFrame`
-        The union of :obj:`.notes` and :obj:`.rests`."""
-        return self.parsed.notes_and_rests()
+    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns
+        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
+        |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
+        """
+        return self.parsed.notes_and_rests(interval_index=interval_index)
 
     @property
     def parsed(self):
@@ -240,11 +308,18 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return None
         return self._parsed
 
-    @property
-    def rests(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Rest> tags."""
-        return self.parsed.rl
+    def rests(self, interval_index : bool = False) -> pd.DataFrame:
+        """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
+        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
+        |nominal_duration|, |scalar|, |volta|
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing the :ref:`rests` of the MuseScore file.
+        """
+        return self.parsed.rests(interval_index=interval_index)
 
     @property
     def staff_ids(self):

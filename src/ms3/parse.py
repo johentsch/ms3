@@ -603,8 +603,8 @@ class Parse(LoggedClass):
         directories = sorted(iterate_corpora(directory, logger=self.logger))
         n_corpora = len(directories)
         if n_corpora == 0:
-            self.logger.debug(f"Treating {directory} as corpus.")
-            corpus_name = os.path.basename(directory)
+            corpus_name = os.path.basename(directory.strip('/'))
+            self.logger.debug(f"Treating {directory} as corpus with key='{corpus_name}'.")
             if key is None:
                 key = corpus_name
             elif key != corpus_name:
