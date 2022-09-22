@@ -15,7 +15,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
 from .utils import column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
-    iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset, \
+    iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_dict, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
@@ -588,7 +588,7 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or 'concatenated_' are excluded.
+            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
@@ -651,7 +651,7 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or 'concatenated_' are excluded.
+            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
@@ -956,7 +956,7 @@ Continuing with {annotation_key}.""")
                     if self.simulate:
                         df = pd.DataFrame()
                     else:
-                        df = score.mscx.__getattribute__(param)
+                        df = score.mscx.__getattribute__(param)()
                     if df is not None:
                         li[i] = df
 
@@ -1490,7 +1490,7 @@ Available keys: {available_keys}""")
         if ml is None:
             logger.warning(f"Could not find measure list for id {id}.")
             return None
-        offset_col = make_continuous_offset(ml, logger=logger)
+        offset_col = make_continuous_offset_dict(ml, logger=logger)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
@@ -3106,7 +3106,7 @@ class View(Parse):
                 if score is None:
                     self.logger.debug(f"No Score object found for ID ({self.key}, {i}).")
                 else:
-                    df = score.mscx.__getattribute__(column)
+                    df = score.mscx.__getattribute__(column)()
                     if df is None:
                         score.logger.debug(
                             f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.")
@@ -3482,7 +3482,7 @@ class Piece(View):
         if self.score_available and (prefer_score or what not in self.matches):
             file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
             score = self.p[file_info.id]
-            df = score.mscx.__getattribute__(what)
+            df = score.mscx.__getattribute__(what)()
         elif what in self.matches:
             file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
             df = self.p[file_info.id]
