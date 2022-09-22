@@ -218,6 +218,7 @@ Tables with score information
 .. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
 .. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
 .. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |duration_qb| replace:: :ref:`duration_qb <duration_qb>`
 .. |dynamics| replace:: :ref:`dynamics <dynamics>`
 .. |figbass| replace:: :ref:`figbass <figbass>`
 .. |form| replace:: :ref:`form <form>`
@@ -1247,6 +1248,15 @@ Duration of an event expressed in fractions of a whole note. Note that in note l
 into account if notes are :ref:`tied <tied>` together; in other words, the column expresses no durations that
 surpass the final bar line.
 
+.. _duration_qb:
+
+**duration_qb**
+^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+Duration expressed in quarter notes. If the column |duration| is present it corresponds to that column times four.
+Otherwise (e.g. for labels) it is computed from an :obj:`~pandas.IntervalIndex` created from the |quarterbeats| column.
 
 .. _keysig:
 
