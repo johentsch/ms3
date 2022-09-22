@@ -1,3 +1,5 @@
+from typing import Literal, Collection
+
 import io
 import sys, os, re
 from functools import lru_cache
@@ -2832,6 +2834,10 @@ class View(Parse):
         self.key = key
         self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
         self._cached_piece_matrices = {}
+        self.matches = {}
+        """:obj:`dict`
+        {fname -> {type -> [MatchedFile]}} dict, where MatchedFile is a :obj:`namedtuple` with the fields
+        "id", "full_path", "suffix", "fext", "subdir", "i_str"."""
         self._pieces = {}
         """:obj:`dict` of :obj:`Piece`
         References to the Piece objects belonging to each fname listed in the metadata.
@@ -2902,14 +2908,24 @@ class View(Parse):
             fnames = md.fnames.to_list()
             if len(fnames) > md.fnames.nunique():
                 vc = md.fnames.value_counts(dropna=False)
-                self.logger.info(f"The following file names occur more than once in the metadata: {vc[vc > 1]}")
+                self.logger.info(f"The following file names occur more than once in the metadata: {vc[vc > 1].to_dict()}")
             return fnames
         self.logger.debug("No file names present in metadata.")
         return []
 
 
-    def detect_ids_by_fname(self, parsed_only=False, names=None):
-        """Returns a {fname -> {type -> [MatchedFile]}} dict."""
+    def detect_ids_by_fname(self, parsed_only: bool = False, names: Collection[str]=None) -> dict:
+        """ Returns a {fname -> {type -> [MatchedFile]}} dict.
+
+        Args:
+            parsed_only:
+                By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
+                Pass True to include match only parsed files in the matching.
+            names: If you want to do the matching only for selecte fnames, pass these.
+
+        Returns:
+            {fname -> {type -> [MatchedFile]}} dict
+        """
         MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
         result = {}
         if names is None:
@@ -2944,17 +2960,25 @@ class View(Parse):
 
 
 
-    def pieces(self, parsed_only=False):
-        """Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
-           correspond to each other. """
+    def pieces(self, parsed_only=False) -> pd.DataFrame:
+        """ Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
+           correspond to each other.
+
+        Args:
+            parsed_only: By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
+                Pass True to include match only parsed files in the matching.
+
+        Returns:
+            DataFrame matching the :attr:`.names` to IDs (without key component) of scores and TSV files.
+        """
         if self._state > (0, 0, 0) and \
             (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
             parsed_only in self._cached_piece_matrices:
             self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
             return self._cached_piece_matrices[parsed_only]
         pieces = {} # result
-        detected_ids = self.detect_ids_by_fname(parsed_only=parsed_only)
-        for metadata_i, (fname, detected) in enumerate(detected_ids.items()):
+        self.matches = self.detect_ids_by_fname(parsed_only=parsed_only)
+        for metadata_i, (fname, detected) in enumerate(self.matches.items()):
             pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
             for typ, matched_files in detected.items():
                 n = len(matched_files)
@@ -3033,7 +3057,7 @@ class View(Parse):
         print(info)
 
 
-    def iter(self, columns, skip_missing=False, fnames=None):
+    def iter(self, columns, skip_missing=False, fnames=None, prefer_score=True):
         """ Iterate through combinations of metadata dicts and DataFrames pertaining to the same piece.
 
         Parameters
@@ -3047,9 +3071,13 @@ class View(Parse):
         fnames : :obj:`list`, optional
             If you want to iterate only through a subset of pieces, pass their fnames as they appear
             in the metadata.tsv column 'fnames'.
+        prefer_score : :obj:`bool`, optional
+            By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
 
-        Returns
-        -------
+        Yields
+        ------
+        dict, *pd.DataFrame
+            A metadata dict and one DataFrame (or None) per entry in the parameter ``columns``.
 
         """
         standard_cols = list(self.p._dataframes.keys())
@@ -3086,59 +3114,34 @@ class View(Parse):
                 cols.append(resolved)
             else:
                 cols.append(c)
+        self.logger.debug(f"columns parameter {columns} after treating wildcards: {cols}")
 
-        # check if arguments correspond to existing columns or if parsed scores are available
-        flattened = list(iter_nested(cols))
-        if parsed_scores_present:
-            missing = [c for c in flattened if c not in standard_cols and c not in piece_matrix.columns]
-            flattened = [c for c in flattened if c in piece_matrix.columns]
-        else:
-            missing = [c for c in flattened if c not in piece_matrix.columns]
-        if len(missing) > 0:
-            self.logger.error(f"The following columns were not recognized: {missing}. You could try using the wildcard *\nCurrently available types among parsed TSV files:\n{available}")
-            return
+        def c_name2std_and_disamb(col):
+            """Intermediary solution"""
+            if col in standard_cols:
+                return col, 'auto'
+            for c in standard_cols:
+                if col.startswith(c):
+                    return c, col
 
-
-        def get_dataframe(ids, column):
-            if 'scores' in ids and not pd.isnull(ids['scores']) and column in standard_cols:
-                i = int(ids['scores'])
-                score = self.p[(self.key, i)]
-                if score is None:
-                    self.logger.debug(f"No Score object found for ID ({self.key}, {i}).")
-                else:
-                    df = score.mscx.__getattribute__(column)()
-                    if df is None:
-                        score.logger.debug(
-                            f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.")
-                    elif df.shape[0] == 0:
-                        score.logger.debug(
-                            f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
-                    else:
-                        score.logger.debug(
-                            f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
-                        return df, i
-            if column in ids and not pd.isnull(ids[column]):
-                i = int(ids[column])
-                return self.p._parsed_tsv[(self.key, i)], i
-            return (None, None)
-
-
-
-        plural = 's' if len(cols) > 1 else ''
-        self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
-        for md, matched_ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
-            """md = {key->value} metadata; ids = {tsv_type->id}"""
-            if fnames is not None and matched_ids['fnames'] not in fnames:
+        print(self.matches.items())
+        for md, (fname, matches) in zip(self.metadata().to_dict(orient='records'), self.matches.items()):
+            """md = {key->value} metadata; matches = {type->id}"""
+            print(md, fname, matches)
+            if fnames is not None and fname not in fnames:
                 continue
             skip_flat = False # flag that serves the inner loop to make this loop skip yielding
             result, used_ids, paths = [], [], []
+            piece = self[fname]
             for c in cols:
                 """c can be a column name or a list of column names from which the first non-empty one will be used"""
                 if isinstance(c, str):
-                    df, i = get_dataframe(matched_ids, c)
+                    what, disamb = c_name2std_and_disamb(c)
+                    df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
                 else:
                     for cc in c:
-                        df, i = get_dataframe(matched_ids, cc)
+                        what, disamb = c_name2std_and_disamb(cc)
+                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
                         if df is not None:
                             c = cc
                             break
@@ -3149,8 +3152,8 @@ class View(Parse):
                     used_ids.append(None)
                     paths.append(None)
                 else:
-                    used_ids.append((self.key, i))
-                    paths.append((c, self.p.full_paths[self.key][i]))
+                    used_ids.append(piece_info.id)
+                    paths.append((c, piece_info.full_path))
                 result.append(df)
             if skip_flat:
                 self.logger.info(f"{md['fnames']} skipped.")
@@ -3158,6 +3161,78 @@ class View(Parse):
             md['ids'] = used_ids
             md['paths'] = paths
             yield (md, *result)
+
+        # check if arguments correspond to existing columns or if parsed scores are available
+        # flattened = list(iter_nested(cols))
+        # if parsed_scores_present:
+        #     missing = [c for c in flattened if c not in standard_cols and c not in piece_matrix.columns]
+        #     flattened = [c for c in flattened if c in piece_matrix.columns]
+        # else:
+        #     missing = [c for c in flattened if c not in piece_matrix.columns]
+        # if len(missing) > 0:
+        #     self.logger.error(f"The following columns were not recognized: {missing}. You could try using the wildcard *\nCurrently available types among parsed TSV files:\n{available}")
+        #     return
+        #
+        #
+        # def get_dataframe(ids, column):
+        #     if 'scores' in ids and not pd.isnull(ids['scores']) and column in standard_cols:
+        #         i = int(ids['scores'])
+        #         score = self.p[(self.key, i)]
+        #         if score is None:
+        #             self.logger.debug(f"No Score object found for ID ({self.key}, {i}).")
+        #         else:
+        #             df = score.mscx.__getattribute__(column)()
+        #             if df is None:
+        #                 score.logger.debug(
+        #                     f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.")
+        #             elif df.shape[0] == 0:
+        #                 score.logger.debug(
+        #                     f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
+        #             else:
+        #                 score.logger.debug(
+        #                     f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
+        #                 return df, i
+        #     if column in ids and not pd.isnull(ids[column]):
+        #         i = int(ids[column])
+        #         return self.p._parsed_tsv[(self.key, i)], i
+        #     return (None, None)
+        #
+        #
+        #
+        # plural = 's' if len(cols) > 1 else ''
+        # self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
+        # for md, matched_ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
+        #     """md = {key->value} metadata; ids = {tsv_type->id}"""
+        #     if fnames is not None and matched_ids['fnames'] not in fnames:
+        #         continue
+        #     skip_flat = False # flag that serves the inner loop to make this loop skip yielding
+        #     result, used_ids, paths = [], [], []
+        #     for c in cols:
+        #         """c can be a column name or a list of column names from which the first non-empty one will be used"""
+        #         if isinstance(c, str):
+        #             df, i = get_dataframe(matched_ids, c)
+        #         else:
+        #             for cc in c:
+        #                 df, i = get_dataframe(matched_ids, cc)
+        #                 if df is not None:
+        #                     c = cc
+        #                     break
+        #         if df is None:
+        #             if skip_missing:
+        #                 skip_flat = True
+        #                 break
+        #             used_ids.append(None)
+        #             paths.append(None)
+        #         else:
+        #             used_ids.append((self.key, i))
+        #             paths.append((c, self.p.full_paths[self.key][i]))
+        #         result.append(df)
+        #     if skip_flat:
+        #         self.logger.info(f"{md['fnames']} skipped.")
+        #         continue
+        #     md['ids'] = used_ids
+        #     md['paths'] = paths
+        #     yield (md, *result)
 
     def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
         if not any((unfold, quarterbeats, interval_index)):
@@ -3413,7 +3488,21 @@ def make_distinguishing_strings(matched_files):
     return distinguish
 
 
-def disambiguate(matched_files, disambiguation='auto'):
+def disambiguate(matched_files: Collection[namedtuple], disambiguation: str = 'auto') -> namedtuple:
+    """ If only one file of a particular type is available, return that one. Otherwise try to disambiguate.
+
+    Args:
+        matched_files: one namedtuple per file found for a particular fname for a particular type
+        disambiguation: defaults to 'auto', meaning that in case several files are available, the one with the shortest disambiguation
+            string will be selected, where disambiguation strings are composed of subdirectories and suffixes by :func:`make_distinguishing_strings`.
+            Pass a concrete distinguishing string to select a particular file.
+
+    Returns:
+        The disambiguated file.
+
+    Raises:
+        ValueError: Unable to disambiguate
+    """
     n = len(matched_files)
     if n == 0:
         raise ValueError("First argument should not be empty.")
@@ -3475,7 +3564,32 @@ class Piece(View):
 
 
     @lru_cache()
-    def get_dataframe(self, what, unfold=False, quarterbeats=False, interval_index=False, disambiguation='auto', prefer_score=True, return_file_info=False):
+    def get_dataframe(self, what: Literal['measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'],
+                      unfold: bool = False,
+                      quarterbeats: bool = False,
+                      interval_index: bool = False,
+                      disambiguation: str = 'auto',
+                      prefer_score: bool = True,
+                      return_file_info: bool = False) -> pd.DataFrame:
+        """ Retrieves one DataFrame for the piece.
+
+        Args:
+            what: What kind of DataFrame to retrieve.
+            unfold: Pass True to unfold repeats.
+            quarterbeats:
+            interval_index:
+            disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.
+            prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
+            return_file_info: Set to True if the method should also return a :obj:`namedtuple` with information on the DataFrame
+                being returned. It comes with the fields "id", "full_path", "suffix", "fext", "subdir", "i_str" where the
+                latter is the ID's second component as a string.
+
+        Returns:
+            The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.
+
+        Raises:
+            FileNotFoundError: If no DataFrame of the requested type is available
+        """
         available = list(self.p._dataframes.keys())
         if what not in available:
             raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
