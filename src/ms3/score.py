@@ -66,6 +66,7 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
+from typing import Literal
 
 import pandas as pd
 
@@ -74,6 +75,7 @@ from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler
+from .transformations import add_quarterbeats_col
 
 
 class MSCX(LoggedClass):
@@ -142,7 +144,7 @@ class MSCX(LoggedClass):
         """{'bs4'}
         The currently used parser."""
 
-        self._parsed = None
+        self._parsed: _MSCX_bs4 = None
         """{:obj:`_MSCX_bs4`}
         Holds the MSCX score parsed by the selected parser (currently only BeautifulSoup 4 available)."""
 
@@ -176,39 +178,71 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """:obj:`pandas.DataFrame`
         DataFrame representing all cadence annotations in the score.
         """
-        exp = self.expanded
+        exp = self.expanded()
         if exp is None or 'cadence' not in exp.columns:
             return None
         return exp[exp.cadence.notna()]
 
-    @property
-    def chords(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Chord> tags in the score. A chord in that sense is a grouping of all
-        synchronous notes occurring in the same notational layer of the same staff. The DataFrame contains
-        all kinds of score markup that is not attached to particular notes but to a <Chord>, such as
-        slurs, lyrics, staff text, ottava lines etc.
+    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
+        (all <note> tags come within one) and attached score information and performance maerks, e.g.
+        lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
+        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|,
+        |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
+        |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
+        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
+
+        Args:
+            mode:
+                Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
+                namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
+                (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
+                markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
+                'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
+                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
+                markers not occurring in the score.
+            interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
         """
-        return self.parsed.chords
+        return self.parsed.chords(mode=mode, interval_index=interval_index)
 
-    @property
-    def events(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representating a raw skeleton of the score's XML structure and contains all score events,
-        i.e. <Chord>, <Rest>, <Harmony> and markup tags such as <Beam> together with, in the columns the values of their
-        XML properties and children. It serves as master for computing :obj:`.chords`, :obj:`rests`, and :obj:`labels`
-        (and therefore :obj:`.expanded`, too)."""
-        return self.parsed.events
+    def events(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
+        contained in it. It is the original tabular representation of the MuseScore file’s source code from which
+        all other tables, except ``measures`` are generated.
 
-    @property
-    def expanded(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame of labels that have been split into various features using a regular expression."""
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
+        """
+        return self.parsed.events(interval_index=interval_index)
+
+
+    def expanded(self, interval_index: bool = False) -> pd.DataFrame:
+        """DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in <Harmony> tags which could
+        be matched against one of the registered regular expressions and split into feature columns. Currently this
+        method is hard-coded to return expanded DCML harmony labels only but it takes into account the current
+        :attr:`._labels_cfg`. Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|,
+        |timesig|, |staff|, |voice|, |volta|, |label|, |alt_label|, |offset_x|, |offset_y|, |regex_match|, |globalkey|,
+        |localkey|, |pedal|, |chord|, |numeral|, |form|, |figbass|, |changes|, |relativeroot|, |cadence|, |phraseend|,
+        |chord_type|, |globalkey_is_minor|, |localkey_is_minor|, |chord_tones|, |added_tones|, |root|, |bass_note|
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+        """
+        # TODO: Retrieving expanded labels for custom regEx (registered with _.new_type())
         if self._annotations is None:
             return None
-        # labels_cfg = self.labels_cfg.copy()
-        # labels_cfg['decode'] = False
-        return self._annotations.expand_dcml(**self.labels_cfg)
+        expanded = self._annotations.expand_dcml(**self.labels_cfg)
+        expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index)
+        return expanded
 
     @property
     def has_annotations(self):
@@ -236,15 +270,25 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         return self.parsed.fl
 
-    @property
-    def labels(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing all <Harmony> tags in the score as returned by calling :py:meth:`~.annotations.Annotations.get_labels`
-        on the object at :obj:`._annotations` with the current :obj:`._labels_cfg`."""
+    def labels(self, interval_index: bool = False) -> pd.DataFrame:
+        """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score, as returned by calling
+        :meth:`~.annotations.Annotations.get_labels` on the object at :attr:`._annotations` with the current :attr:`._labels_cfg`.
+        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
+        |offset_x|, |offset_y|, |regex_match|
+
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+        """
         if self._annotations is None:
             self.logger.info("The score does not contain any annotations.")
             return None
-        return self._annotations.get_labels(**self.labels_cfg)
+        labels = self._annotations.get_labels(**self.labels_cfg)
+        labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index)
+        return labels
 
     def measures(self, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
@@ -259,10 +303,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         return self.parsed.measures(interval_index=interval_index)
 
-    @property
-    def offset_dict(self) -> dict:
+    def offset_dict(self, all_endings: bool = False) -> dict:
         """ {mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
-        return self.parsed.offset_dict
+        return self.parsed.offset_dict(all_endings=all_endings)
 
     @property
     def metadata(self):
@@ -299,7 +342,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self.parsed.notes_and_rests(interval_index=interval_index)
 
     @property
-    def parsed(self):
+    def parsed(self) -> _MSCX_bs4:
         """:obj:`~._MSCX_bs4`
         Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object's
         interface for requesting manipulations of and information from the source XML."""
@@ -930,7 +973,7 @@ class Score(LoggedClass):
         }
         """:obj:`dict`
         Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
-        objects contained in the current object, especially when calling :py:attr:`Score.mscx.labels<.MSCX.labels>`.
+        objects contained in the current object, especially when calling :meth:`Score.mscx.labels()<.MSCX.labels>`.
         The default options correspond to the default parameters of
         :py:meth:`Annotations.get_labels()<.annotations.Annotations.get_labels>`.
         """
@@ -1337,6 +1380,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             By default, the labels of all :py:class:`~.annotations.Annotations` objects are matched against the new type.
             Pass False to not change any label's type.
         """
+        # TODO: Registering new regEx type requires unittesting
         assert name not in self._regex_name_description, f"'{name}' already added to types: {self._regex_name_description[name]}"
         self._regex_name_description[name] = description
         self._name2regex[name] = regex

@@ -61,9 +61,9 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
                 duration_qb = (df.duration * 4).astype(float).rename('duration_qb')
                 new_cols.append(duration_qb)
             elif 'end' in offset_dict:
-                present_qb = df.quarterbeats.notna()
+                present_qb = quarterbeats.notna()
                 try:
-                    ivs = make_interval_index_from_breaks(df.loc[present_qb, 'quarterbeats'].astype(float),
+                    ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
                                                           end_value=float(offset_dict['end']), logger=logger)
                     duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
                     duration_qb.loc[present_qb] = ivs.length

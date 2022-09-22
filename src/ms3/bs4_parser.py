@@ -68,6 +68,7 @@ import re, sys
 import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
+from typing import Literal
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
@@ -77,7 +78,7 @@ from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col
-from .utils import adjacency_groups, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
+from .utils import adjacency_groups, assert_dfs_equal, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
     get_quarterbeats_length, make_continuous_offset_dict, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
 
 
@@ -350,22 +351,58 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    @property
-    def chords(self):
-        """A list of <chord> tags (all <note> tags come within one) and attached score information such as
-            lyrics, dynamics, articulations, slurs, etc."""
-        return self.get_chords()
+    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
+        (all <note> tags come within one) and attached score information and performance maerks, e.g.
+        lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
+        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|,
+        |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |volta|, |chord_id|, |dynamics|,
+        |articulation|, |staff_text|, |slur|, |Ottava:8va|, |Ottava:8vb|, |pedal|, |TextLine|, |decrescendo_hairpin|,
+        |diminuendo_line|, |crescendo_line|, |crescendo_hairpin|, |tempo|, |qpm|, |lyrics:1|, |Ottava:15mb|
 
-    @property
-    def cl(self):
-        """Getting self._cl but without recomputing."""
-        if len(self._cl) == 0:
-            self.make_standard_chordlist()
-        return self._cl
+        Args:
+            mode:
+                Defaults to 'auto', meaning that additional performance markers available in the score are to be included,
+                namely lyrics, dynamics, fermatas, articulations, slurs, staff_text, system_text, tempo, and spanners
+                (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
+                markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
+                'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
+                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
+                markers not occurring in the score.
+            interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
-    @property
-    def events(self):
-        return column_order(self.add_standard_cols(self._events))
+        Returns:
+            DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
+        """
+        if mode == 'strict':
+            chords = self.cl()
+        else:
+            chords = self.get_chords(mode=mode)
+        chords = add_quarterbeats_col(chords, self.offset_dict(), interval_index=interval_index)
+        return chords
+
+
+    def cl(self, recompute: bool = False) -> pd.DataFrame:
+        """Get the raw :ref:`chords` without adding quarterbeat columns."""
+        if recompute or len(self._cl) == 0:
+            self._cl = self.get_chords(mode='strict')
+        return self._cl.copy()
+
+
+    def events(self, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
+        contained in it. It is the original tabular representation of the MuseScore file’s source code from which
+        all other tables, except ``measures`` are generated.
+
+        Args:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
+        """
+        events = column_order(self.add_standard_cols(self._events))
+        events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index)
+        return events
 
     @property
     def fl(self):
@@ -403,10 +440,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             if 3 in measures.volta.values:
                 self.logger.info(
                     f"Piece contains third endings, note that only second endings are taken into account.")
-            quarterbeats_col = measures.loc[measures.volta.fillna(2) != 2, 'act_dur']\
+            quarterbeats_col = measures.loc[measures.volta.fillna(2) == 2, 'act_dur']\
                 .cumsum()\
                 .shift(fill_value=0)\
-                .reindex(measures)
+                .reindex(measures.index)
             measures.insert(2, "quarterbeats", quarterbeats_col * 4)
         return measures.copy()
 
@@ -441,7 +478,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         notes = self.nl()
-        notes = add_quarterbeats_col(notes, self.offset_dict, interval_index=interval_index)
+        notes = add_quarterbeats_col(notes, self.offset_dict(), interval_index=interval_index)
         return notes
 
     def nl(self, recompute: bool = False) -> pd.DataFrame:
@@ -466,7 +503,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         nrl = self.nrl()
-        nrl = add_quarterbeats_col(nrl, self.offset_dict, interval_index=interval_index)
+        nrl = add_quarterbeats_col(nrl, self.offset_dict(), interval_index=interval_index)
         return nrl
 
     def nrl(self, recompute: bool = False) -> pd.DataFrame:
@@ -480,9 +517,24 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
-    @property
-    def offset_dict(self):
-        return make_continuous_offset_dict(self.measures())
+    def offset_dict(self, all_endings: bool = False) -> dict:
+        """
+
+        Args:
+            all_endings:
+
+        Returns:
+
+        """
+        measures = self.measures().set_index('mc')
+        if all_endings and 'quarterbeats_all_endings' in measures.columns:
+            col = 'quarterbeats_all_endings'
+        else:
+            col = 'quarterbeats'
+        offset_dict = measures[col].to_dict()
+        last_row = measures.iloc[-1]
+        offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+        return offset_dict
 
     def rests(self, interval_index : bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
@@ -496,7 +548,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
-        rests = add_quarterbeats_col(rests, self.offset_dict, interval_index=interval_index)
+        rests = add_quarterbeats_col(rests, self.offset_dict(), interval_index=interval_index)
         return rests
 
     def rl(self, recompute: bool = False) -> pd.DataFrame:
@@ -529,15 +581,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
     def make_standard_chordlist(self):
-        """ This chord list has chords only as opposed to the one yielded by self.get_chords()"""
-        self._cl = self.add_standard_cols(self._events[self._events.event == 'Chord'])
-        self._cl = self._cl.astype({'chord_id': int})
-        self._cl.rename(columns={'Chord/durationType': 'nominal_duration'}, inplace=True)
-        self._cl.loc[:, 'nominal_duration'] = self._cl.nominal_duration.map(self.durations)  # replace string values by fractions
-        cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'volta', 'chord_id']
-        missing_cols = [col for col in cols if col not in self._cl.columns]
-        empty_cols = pd.DataFrame(index=self._cl.index, columns=missing_cols)
-        self._cl = pd.concat([self._cl, empty_cols], axis=1).reindex(columns=cols)
+        """ Stores the result of self.get_chords(mode='strict')"""
+        self._cl = self.get_chords(mode='strict')
 
 
 
@@ -566,7 +611,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
         self._nl.loc[:, ['midi', 'tpc']] = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
         self._nl.tpc -= 14
-        self._nl = self._nl.merge(self.cl[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
+        self._nl = self._nl.merge(self.cl()[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
         self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
 
