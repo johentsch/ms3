@@ -225,11 +225,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         return self.parsed.notes(interval_index=interval_index)
 
-    @property
     def notes_and_rests(self):
         """:obj:`pandas.DataFrame`
         The union of :obj:`.notes` and :obj:`.rests`."""
-        return self.parsed.notes_and_rests
+        return self.parsed.notes_and_rests()
 
     @property
     def parsed(self):
@@ -697,7 +696,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 ########################################################################################################################
 ########################################################################################################################
-################################################ End of MSCX() ########################################################
+################################################# End of MSCX() ########################################################
 ########################################################################################################################
 ########################################################################################################################
 

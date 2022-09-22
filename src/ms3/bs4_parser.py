@@ -324,7 +324,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
-        measures = self.ml
+        measures = self.ml()
         duration_qb = (measures.act_dur * 4).astype(float)
         measures.insert(2, "duration_qb", duration_qb)
         # add quarterbeats column
@@ -354,10 +354,13 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._metatags = Metatags(self.soup)
         return self._metatags
 
-    @property
-    def ml(self):
-        """Get the raw measures without adding quarterbeat columns."""
-        if self._ml is None:
+    def ml(self, recompute: bool = False) -> pd.DataFrame:
+        """ Get the raw measures without adding quarterbeat columns.
+
+        Args:
+            recompute: By default, the measures are cached. Pass True to enforce recomputing anew.
+        """
+        if recompute or self._ml is None:
             self._ml = self._make_measure_list()
         return self._ml.ml.copy()
 
@@ -376,30 +379,31 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
-        self.make_standard_notelist()
-        notes = add_quarterbeats_col(self._nl, self.offset_dict, interval_index=interval_index)
+        notes = self.nl()
+        notes = add_quarterbeats_col(notes, self.offset_dict, interval_index=interval_index)
         return notes
 
-    @property
-    def nl(self):
-        """Get the raw notes without adding quarterbeat columns."""
-        if len(self._nl) == 0:
+    def nl(self, recompute: bool = False) -> pd.DataFrame:
+        """ Get the raw notes without adding quarterbeat columns.
+
+        Args:
+            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
+        """
+        if recompute or len(self._nl) == 0:
             self.make_standard_notelist()
         return self._nl
 
-    @property
-    def notes_and_rests(self):
-        """Get a combination of properties `notes` and `rests`"""
-        if len(self._nrl) == 0:
-            nr = pd.concat([self.nl, self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
-            self._nrl = sort_note_list(nr.reset_index(drop=True))
-        return self._nrl
+    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+        """Get a combination of methods :meth:`notes` and :meth:`rests`."""
+        nrl = self.nrl()
+        nrl = add_quarterbeats_col(nrl, self.offset_dict, interval_index=interval_index)
+        return nrl
 
-    @property
     def nrl(self):
-        """Like property `notes_and_rests` but without recomputing."""
+        """Like :meth:`notes_and_rests` but without recomputing."""
         if len(self._nrl) == 0:
-            return self.notes_and_rests
+            nr = pd.concat([self.nl(), self.rl]).astype({col: 'Int64' for col in ['tied', 'tpc', 'midi', 'chord_id']})
+            self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
     @property
@@ -701,9 +705,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         except:
             self.logger.error(f"The mn_onset {mn_onset} could not be interpreted as a fraction.")
             raise
-        candidates = self.ml[self.ml['mn'] == mn]
+        measures = self.ml()
+        candidates = measures[measures['mn'] == mn]
         if len(candidates) == 0:
-            self.logger.error(f"MN {mn} does not occur in measure list, which ends at MN {self.ml['mn'].max()}.")
+            self.logger.error(f"MN {mn} does not occur in measure list, which ends at MN {measures['mn'].max()}.")
             return
         if len(candidates) == 1:
             mc = candidates.iloc[0].mc
@@ -781,19 +786,20 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 del(data[name])
                 self.logger.warning(f"Wrongly spelled metadata field {name} read as {name_lwr}.")
         data['musescore'] = self.version
-        last_measure = self.ml.iloc[-1]
+        measures = self.ml()
+        last_measure = measures.iloc[-1]
         data['last_mc'] = int(last_measure.mc)
         data['last_mn'] = int(last_measure.mn)
-        lqb, lqbu = get_quarterbeats_length(self.ml)
+        lqb, lqbu = get_quarterbeats_length(measures)
         data['length_qb'] = lqb
         data['length_qb_unfolded'] = lqbu
         data['label_count'] = len(self.get_raw_labels())
-        ts_groups, _ = adjacency_groups(self.ml.timesig)
-        mc_ts = self.ml.groupby(ts_groups)[['mc', 'timesig']].head(1)
+        ts_groups, _ = adjacency_groups(measures.timesig)
+        mc_ts = measures.groupby(ts_groups)[['mc', 'timesig']].head(1)
         timesigs = dict(mc_ts.values)
         data['TimeSig'] = timesigs
-        ks_groups, _ = adjacency_groups(self.ml.keysig)
-        mc_ks = self.ml.groupby(ks_groups)[['mc', 'keysig']].head(1)
+        ks_groups, _ = adjacency_groups(measures.keysig)
+        mc_ks = measures.groupby(ks_groups)[['mc', 'keysig']].head(1)
         keysigs = dict(mc_ks.values)
         data['KeySig']  = keysigs
         annotated_key = None
@@ -806,18 +812,19 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                     break
         if annotated_key is not None:
             data['annotated_key'] = annotated_key
-        if len(self.nl.index) == 0:
+        notes = self.nl()
+        if len(notes.index) == 0:
             data['all_notes_qb'] = 0.
             data['n_onsets'] = 0
             return data
-        data['all_notes_qb'] = round((self.nl.duration * 4.).sum(), 2)
-        not_tied = ~self.nl.tied.isin((0, -1))
+        data['all_notes_qb'] = round((notes.duration * 4.).sum(), 2)
+        not_tied = ~notes.tied.isin((0, -1))
         data['n_onsets'] = sum(not_tied)
-        data['n_onset_positions'] = self.nl[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
-        staff_groups = self.nl.groupby('staff').midi
+        data['n_onset_positions'] = notes[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
+        staff_groups = notes.groupby('staff').midi
         ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
-                        for t in self.nl.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
-        for t in self.nl.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
+                        for t in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
+        for t in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
             ambitus[t.staff]['max_midi'] = t.midi
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
@@ -842,7 +849,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
     def add_standard_cols(self, df):
         """Ensures that the DataFrame's first columns are ['mc', 'mn', 'timesig', 'mc_offset', 'volta']"""
         add_cols = ['mc'] + [c for c in ['mn', 'timesig', 'mc_offset', 'volta'] if c not in df.columns]
-        df =  df.merge(self.ml[add_cols], on='mc', how='left')
+        df =  df.merge(self.ml()[add_cols], on='mc', how='left')
         df['mn_onset'] =  df.mc_onset + df.mc_offset
         return df[[col for col in df.columns if not col == 'mc_offset']]
 
