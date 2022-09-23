@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 from typing import Literal, Collection
 
 import io
@@ -22,6 +24,18 @@ from .utils import column_order, first_level_files_and_subdirs, get_musescore, g
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
+
+@dataclass
+class File:
+    """Storing path and file name information for one file."""
+    full_path: str
+    scan_path: str
+    rel_path: str
+    subdir: str
+    path: str
+    file: str
+    fname: str
+    fext: str
 
 MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
 
@@ -103,6 +117,11 @@ class Parse(LoggedClass):
         """:obj:`dict`
         ``{key: [file]}`` dictionary of file names with extensions of all detected files. Keys
         serve as inventory of available corpora, e.g. in self.keys().
+        """
+
+        self.id2file_info = {}
+        """:obj:`dict`
+        ``{(key, i): [File]}`` dictionary of :obj:`File` objects.
         """
 
         self.fnames = defaultdict(list)
@@ -2421,7 +2440,8 @@ Load one of the identically named files with a different key using add_dir(key='
             self.logger.debug(
                 f"The file {file} is already registered for key '{key}' but can be distinguished via the relative path {rel_path}.")
 
-        i = len(self.full_paths[key])
+        i = len(self.files[key])
+        self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}{file_ext}"
         self.full_paths[key].append(full_path)
         self.scan_paths[key].append(self.last_scanned_dir)
         self.rel_paths[key].append(rel_path)
@@ -2431,7 +2451,18 @@ Load one of the identically named files with a different key using add_dir(key='
         self.logger_names[(key, i)] = f"{self.logger.name}.{key}.{file_name.replace('.', '')}{file_ext}"
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
-        return key, len(self.paths[key]) - 1
+        F = File(
+            full_path=full_path,
+            scan_path=self.last_scanned_dir,
+            rel_path=rel_path,
+            subdir=subdir,
+            path=file_path,
+            file=file,
+            fname=file_name,
+            fext=file_ext
+        )
+        self.id2file_info[(key, i)] = F
+        return key, i
 
     def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
         """Iterator through IDs for a given set of keys.
