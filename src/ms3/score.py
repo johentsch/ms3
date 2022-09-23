@@ -269,13 +269,24 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    @property
-    def form_labels(self):
-        """:obj:`pandas.DataFrame`
-        DataFrame representing a filtered event list containing only StaffTexts that include the regular expression
-        :py:const:`.utils.FORM_DETECTION_REGEX`
+    def form_labels(self, detection_regex: str = None, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
+        This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
+
+        Args:
+            detection_regex:
+                By default, detects all labels starting with one or two digits followed by a column
+                (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        return self.parsed.fl
+        form = self.parsed.form_labels(detection_regex=detection_regex, interval_index=interval_index)
+        if form is None:
+            self.logger.info("The score does not contain any form labels.")
+            return
+        return form
 
     def labels(self, interval_index: bool = False) -> pd.DataFrame:
         """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score, as returned by calling

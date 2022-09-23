@@ -411,15 +411,48 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index)
         return events
 
-    @property
-    def fl(self):
-        """Getting self._fl but without recomputing."""
-        if len(self._fl) == 0 and 'StaffText/text' in self._events.columns:
+
+    def form_labels(self, detection_regex: str = None, interval_index: bool = False) -> pd.DataFrame:
+        """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
+        This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
+
+        Args:
+            detection_regex:
+                By default, detects all labels starting with one or two digits followed by a column
+                (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame containing all StaffTexts matching the ``detection_regex``
+        """
+        form = self.fl(detection_regex=detection_regex)
+        if form is None:
+            return
+        form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index)
+        return form
+
+    def fl(self, detection_regex: str = None) -> pd.DataFrame:
+        """ Get the raw :ref:`form_labels` (or other) that match the ``detection_regex``, but without adding quarterbeat columns.
+
+        Args:
+            detection_regex:
+                By default, detects all labels starting with one or two digits followed by a column
+                (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+
+        Returns:
+            DataFrame containing all StaffTexts matching the ``detection_regex`` or None
+        """
+        if 'StaffText/text' in self._events.columns:
+            if detection_regex is None:
+                detection_regex = FORM_DETECTION_REGEX
             is_form_label = self._events['StaffText/text'].str.contains(FORM_DETECTION_REGEX).fillna(False)
+            if is_form_label.sum() == 0:
+                return
             form_labels = self._events[is_form_label].rename(columns={'StaffText/text': 'form_label'})
             cols = ['mc', 'mc_onset', 'mn', 'mn_onset', 'staff', 'voice', 'timesig', 'volta', 'form_label']
-            self._fl = self.add_standard_cols(form_labels)[cols]
-        return self._fl
+            self._fl = self.add_standard_cols(form_labels)[cols].sort_values(['mc', 'mc_onset'])
+            return self._fl
+        return
 
     def measures(self, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with

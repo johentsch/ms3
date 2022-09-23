@@ -108,6 +108,11 @@ including those consisting of two alternatives, without having to split them. It
 """
 
 FORM_DETECTION_REGEX = r"\d{1,2}(?:i+|\w)?:"
+""":obj:`str`
+Following Gotham & Ireland (@ISMIR 20 (2019): "Taking Form: A Representation Standard, Conversion Code, and Example Corpus for Recording, Visualizing, and Studying Analyses of Musical Form"),
+detects form labels as those strings that start with indicating a hierarchical level (one or two digits) followed by a colon.
+By extension (Llorens et al., forthcoming), allows one or more 'i' characters or any other alphabet character to further specify the level.
+"""
 FORM_LEVEL_REGEX = r"(?P<levels>(?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
 
 
@@ -3304,7 +3309,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         }
 
 def path2parent_corpus(path):
-    """Walk up the path and return the name of the superdirectory containing a 'metadata.tsv' file."""
+    """Walk up the path and return the name of the first superdirectory that is a git repository or contains a 'metadata.tsv' file."""
     if path in ('', '/'):
         return None
     try:
