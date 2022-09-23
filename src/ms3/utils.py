@@ -1240,6 +1240,11 @@ def first_level_subdirs(path):
     for _, subdirs, _ in os.walk(path):
         return subdirs
 
+def first_level_files_and_subdirs(path):
+    """Returns the directory names and filenames contained in path."""
+    for _, subdirs, files in os.walk(path):
+        return subdirs, files
+
 @function_logger
 def contains_corpus_indicator(path):
     for subdir in first_level_subdirs(path):
@@ -2184,8 +2189,8 @@ def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|
 
     Yields
     ------
-    list
-        List of full paths meeting the criteria.
+    :obj:`str`
+        Full path.
 
     """
     if file_re is None:

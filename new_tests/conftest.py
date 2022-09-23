@@ -157,10 +157,10 @@ def parsed_parse_objects(parsed_parse_obj, request):
           ],
     ids = [
         'monty[tremolo]',
-        'pergolesi',
+        'pergolesi[form]',
         'berlioz[tremolo]',
         'sarti[endings]',
-        'caldara',
+        'caldara[form]',
         'bach[endings]',
         'frescobaldi',
         'schubert[endings][tremolo]',

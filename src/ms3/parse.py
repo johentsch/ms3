@@ -16,13 +16,14 @@ from gitdb.exc import BadName
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
-from .utils import column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
-    iter_nested, iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_dict, \
+from .utils import column_order, first_level_files_and_subdirs, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
+     iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_dict, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 
+MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
 
 class Parse(LoggedClass):
     """
@@ -30,7 +31,7 @@ class Parse(LoggedClass):
     """
 
     def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None):
+                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
         """
 
         Parameters
@@ -58,18 +59,11 @@ class Parse(LoggedClass):
         level: :obj:`str`
             Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
-        warn_overwritten_level = False
         if level is not None:
-            warn_overwritten_level = 'level' in logger_cfg and logger_cfg['level'] is not None
-            if warn_overwritten_level:
-                previous_level_value = logger_cfg['level']
             logger_cfg['level'] = level
-        if 'level' not in logger_cfg:
+        if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
-        if warn_overwritten_level:
-            # warning emitted only here, after self.logger has been initialized
-            self.logger.warning(f"The level {previous_level_value} was overwritten by the parameter level {level}.")
         self.simulate=simulate
 
         self.corpus_paths = {}
@@ -257,12 +251,15 @@ class Parse(LoggedClass):
         """
 
 
-        self._matches = pd.DataFrame(columns=['scores']+list(self._dataframes.keys()))
+        self._matches = pd.DataFrame(columns=['scores']+list(Score.dataframe_types))
         """:obj:`pandas.DataFrame`
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
 
-
+        self.names = defaultdict(set)
+        """:obj:`dict`
+        {key -> {fnames}} For each corpus: the list of names identifying pieces. 
+        """
 
         self.last_scanned_dir = directory
         """:obj:`str`
@@ -272,7 +269,7 @@ class Parse(LoggedClass):
             if isinstance(directory, str):
                 directory = [directory]
             for d in directory:
-                self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                self.add_dir(directory=d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
         if paths is not None:
             _ = self.add_files(paths, key=key, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
@@ -371,9 +368,12 @@ class Parse(LoggedClass):
 
         Returns
         -------
-
+        :obj:`pandas.DataFrame`
         """
         d = {k: v for k, v in dict_of_dataframes.items() if v.shape[0] > 0}
+        if len(d) == 0:
+            self.logger.info(f"Nothing to concatenate:\n{dict_of_dataframes}")
+            return
         if id_index:
             result = pd.concat(d.values(), keys=d.keys())
             result.index.names = ['key', 'i', third_level_name]
@@ -569,7 +569,7 @@ class Parse(LoggedClass):
 
 
 
-    def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+    def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs):
         """
         This method decides if the directory ``directory`` contains several corpora or if it is a corpus
         itself, and calls _.add_corpus() for every corpus.
@@ -611,7 +611,7 @@ class Parse(LoggedClass):
                 key = corpus_name
             elif key != corpus_name:
                 self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
-            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
         else:
             self.logger.debug(f"{n_corpora} corpora detected.")
             if key is None:
@@ -627,11 +627,11 @@ class Parse(LoggedClass):
                                         f"\n{mscx_files}", extra={"message_id": (7, top_level)})
             else:
                 self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to unexpected behaviours:\n{', '.join(directories)}.")
-                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
 
 
 
-    def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True):
+    def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs):
         """
         This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
         under the same key, considering them as one corpus.
@@ -656,25 +656,76 @@ class Parse(LoggedClass):
             whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        **kwargs:
+            User other folder names than the default ones.
         """
+        print(kwargs)
         if file_re is None:
             convertible = self.ms is not None
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
+        directory = resolve_dir(directory)
+        self.last_scanned_dir = directory
+        if key is None:
+            key = os.path.basename(directory)
+        if key not in self.files:
+            self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
+            self.files[key] = []
+            self.corpus_paths[key] = resolve_dir(directory)
+        else:
+            self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
+
+        top_level_folders, top_level_files = first_level_files_and_subdirs(directory)
+        self.logger.debug(f"Top level folders: {top_level_folders}\nTop level files: {top_level_files}")
+
+        added_ids = []
+
+        # look for metadata
+        if 'metadata.tsv' in top_level_files:
+            default_metadata_path = os.path.join(directory, 'metadata.tsv')
+            self.logger.debug(f"'metadata.tsv' was detected and added.")
+            added_ids += self.add_files(paths=default_metadata_path, key=key)
+            metadata_id = added_ids[-1]
+            self.parse_tsv(ids=[metadata_id])
+            metadata_tsv = self._parsed_tsv[metadata_id]
+            metadata_fnames = metadata_tsv.fnames
+        else:
+            metadata_id = None
+
+
+        # look for scores
+        scores_folder = None
+        if 'scores' in kwargs and kwargs['scores'] in top_level_folders:
+            scores_folder = kwargs['scores']
+        elif 'MS3' in top_level_folders:
+            scores_folder = 'MS3'
+        elif 'scores' in top_level_folders:
+            scores_folder = 'scores'
+        else:
+            msg = f"No scores folder found among {top_level_folders}."
+            if 'scores' not in kwargs:
+                msg += " If one of them has MuseScore files, indicate it by passing scores='scores_folder'."
+            self.logger.info(msg)
+        if scores_folder is not None:
+            score_re = Score._make_extension_regex(convertible=False)
+            scores_path = os.path.join(directory, scores_folder)
+            score_paths = sorted(scan_directory(scores_path, file_re=score_re, recursive=recursive))
+            score_ids = self.add_files(paths=score_paths, key=key)
+            added_ids += score_ids
+            score_names = {i: self.fnames[key][i] for _, i in score_ids}
+            score_name_set = set(score_names.values())
+            if len(score_names) > len(score_name_set):
+                more_than_one = [name for name, cnt in Counter(score_names.values()).items() if cnt > 1]
+                ambiguate_file_names = {(name, i): os.path.join(self.subdirs[key][i], self.files[key][i]) for i, name in score_names.items() if name in more_than_one}
+                self.logger.warning(f"The following scores have the same fname: {ambiguate_file_names}")
+        return
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
                            recursive=recursive, logger=self.logger))
         if len(paths) == 0:
             self.logger.info(f"No matching files found in {directory}.")
             return
-        if key is None:
-            key = os.path.basename(directory)
-        if key not in self.files:
-            self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
-            self.files[key] = []
-        else:
-            self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
         added_ids = self.add_files(paths=paths, key=key)
         if len(added_ids) == 0:
             self.logger.debug(f"No files from {directory} have been added.")
@@ -689,11 +740,10 @@ class Parse(LoggedClass):
             default_metadata_path = os.path.join(directory, 'metadata.tsv')
             if os.path.isfile(default_metadata_path):
                 self.logger.info(f"'metadata.tsv' was detected and automatically added for corpus '{key}'.")
-                new_id = self.add_files(paths=default_metadata_path, key=key)
-                added_ids += new_id
+                metadata_id = self.add_files(paths=default_metadata_path, key=key)
+                added_ids += metadata_id
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
-        self.corpus_paths[key] = resolve_dir(directory)
         self.look_for_ignored_warnings(directory, key)
 
     def look_for_ignored_warnings(self, directory, key):
@@ -761,7 +811,7 @@ class Parse(LoggedClass):
                 parent_corpus = path2parent_corpus(path)
                 if parent_corpus is not None:
                     key = os.path.basename(parent_corpus)
-                    self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv'.")
+                    self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv' or is a git repository.")
                     metadata_path = os.path.join(parent_corpus, 'metadata.tsv')
                     if metadata_path not in paths:
                         paths.append(metadata_path)
@@ -948,7 +998,7 @@ Continuing with {annotation_key}.""")
             only_new = False
             ids = list(self._iterids(keys, only_parsed_mscx=True))
         scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
-        bool_params = list(self._dataframes.keys())
+        bool_params = Score.dataframe_types
         l = locals()
         params = {p: l[p] for p in bool_params}
 
@@ -1303,9 +1353,9 @@ Available keys: {available_keys}""")
         else:
             keys = self._treat_key_param(keys)
             key2fnames = {k: None for k in keys}
-        bool_params = list(self._dataframes.keys())
+        bool_params = Score.dataframe_types
         l = locals()
-        columns = [tsv_type for tsv_type in self._dataframes.keys() if l[tsv_type]]
+        columns = [tsv_type for tsv_type in Score.dataframe_types if l[tsv_type]]
         self.logger.debug(f"Looking up {columns} DataFrames for IDs {key2fnames}")
         #self.collect_lists(ids=ids, only_new=True, **params)
         res = {} if flat else defaultdict(dict)
@@ -1392,7 +1442,7 @@ Available keys: {available_keys}""")
         if len(self._parsed_tsv) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
             return {}
-        bool_params = ['metadata'] + list(self._dataframes.keys())
+        bool_params = ['metadata'] + Score.dataframe_types
         l = locals()
         types = [p for p in bool_params if l[p]]
         res = {}
@@ -1759,7 +1809,7 @@ Available keys: {available_keys}""")
 
 
     def metadata(self, keys=None, from_tsv=False):
-        """
+        """ Retrieve concatenated metadata from parsed scores or TSV files.
 
         Parameters
         ----------
@@ -1771,7 +1821,7 @@ Available keys: {available_keys}""")
 
         Returns
         -------
-
+        :obj:`pandas.DataFrame`
         """
         if from_tsv:
             tsv_dfs = self.get_tsvs(keys=keys, metadata=True)['metadata']
@@ -2821,7 +2871,11 @@ Load one of the identically named files with a different key using add_dir(key='
     def __repr__(self):
         return self.info(return_str=True)
 
-
+########################################################################################################################
+########################################################################################################################
+################################################# End of Parse() ########################################################
+########################################################################################################################
+########################################################################################################################
 
 
 
@@ -2878,10 +2932,10 @@ class View(Parse):
                     self._metadata = self.score_metadata()
                     self.logger.debug(f"Metadata updated from parsed scores at indices {indices}.")
                 else:
-                    self.logger.debug(f"Showing metadata from parsed scores at indices {indices}.")
+                    self.logger.debug(f"Using metadata from parsed scores at indices {indices}.")
         else:
             k, i = self.metadata_id
-            self.logger.debug(f"Showing metadata from '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
+            self.logger.debug(f"Using metadata from '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
         if len(self._metadata) == 0:
             self.logger.info(f"No scores and no metadata TSV file have been parsed so far.")
         return self._metadata
@@ -2920,16 +2974,23 @@ class View(Parse):
         Args:
             parsed_only:
                 By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
-                Pass True to include match only parsed files in the matching.
-            names: If you want to do the matching only for selecte fnames, pass these.
+                Pass True to include match only parsed files in the matching. This will prevent checking if all detected files have
+                actually been matched to an fname.
+            names: If you want to do the matching only for selected fnames, pass these.
 
         Returns:
             {fname -> {type -> [MatchedFile]}} dict
         """
-        MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
         result = {}
+        track_matches = False
         if names is None:
             names = self.names
+            if not parsed_only:
+                track_matches = True
+        if track_matches:
+            all_file_names = self.p.files[self.key]
+            n_files_to_be_matched = len(all_file_names)
+            counting_matches = Counter({i: 0 for i in range(n_files_to_be_matched)})
         for fname in names:
             ids = self.p.fname2ids(fname, self.key)
             detected = defaultdict(list)
@@ -2954,7 +3015,25 @@ class View(Parse):
                     if id in self._id2fname and fname != self._id2fname[id]:
                         self.logger.warning(f"ID {id}, to be matched with '{fname}' had previously been matched to {self._id2fname[id]}")
                     self._id2fname[id] = fname
+                    if track_matches:
+                        counting_matches.update([i])
             result[fname] = dict(detected)
+        if track_matches:
+            metadata_i = None if self.metadata_id is None else self.metadata_id[1]
+            not_matched = [i for i, cnt in counting_matches.items() if cnt == 0 and i != metadata_i]
+            more_than_one = {i: cnt for i, cnt in counting_matches.items() if cnt > 1}
+            if len(not_matched) > 0:
+                n_m_file_names = [all_file_names[i] for i in not_matched]
+                fnames = self.p.fnames[self.key]
+                n_m_fnames = set(fnames[i] for i in not_matched)
+                plural = "s have" if len(not_matched) > 1 else " has"
+                self.logger.warning(f"The following file{plural} not been matched to any fname included in the metadata: {n_m_file_names}")
+                additional_matches = self.detect_ids_by_fname(parsed_only=parsed_only, names=n_m_fnames)
+                result.update({fname + '**': match for fname, match in additional_matches.items()})
+            if len(more_than_one) > 0:
+                rel_paths = self.p.rel_paths[self.key]
+                m_t_o = [(os.path.join(rel_paths[i], all_file_names[i]), cnt) for i, cnt in more_than_one.items()]
+                self.logger.warning(f"Matched with several fnames: {m_t_o}")
         return result
 
 
@@ -3036,6 +3115,8 @@ class View(Parse):
             info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
         if len(md) > 0:
             piece_matrix = self.pieces()
+            if any('**' in fname for fname in self.matches):
+                info += "fnames marked with ** are not contained in the metadata, consider using 'ms3 extract -D' on this corpus."
             if len(piece_matrix.columns) == 1:
                 info += "\nNo files detected that would match the file names listed in the metadata"
             else:
@@ -3437,10 +3518,10 @@ class View(Parse):
         matches = piece_matrix.fnames == item
         found = matches.sum()
         if found == 0:
-            logger.error(f"No files correspond to '{item}' in key {self.key}.")
+            self.logger.error(f"No files correspond to '{item}' in key {self.key}.")
             return
         if found > 1:
-            logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
+            self.logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
             return
         return self._get_piece(item)
 
@@ -3516,6 +3597,12 @@ def disambiguate(matched_files: Collection[namedtuple], disambiguation: str = 'a
     if disambiguation not in matches:
         raise ValueError(f"Cannot distinguish using '{disambiguation}'. Use one of {list(matches.keys())}.")
 
+
+########################################################################################################################
+########################################################################################################################
+################################################# End of View() ########################################################
+########################################################################################################################
+########################################################################################################################
 
 class Piece(View):
 

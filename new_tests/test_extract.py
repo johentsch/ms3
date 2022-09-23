@@ -6,6 +6,19 @@ from collections import defaultdict
 
 from ms3.logger import MessageType, LEVELS
 
+DOCUMENTED_COLUMNS = {
+    'measures': ['mc', 'mn', 'quarterbeats', 'duration_qb', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta', 'numbering_offset', 'dont_count', 'barline', 'breaks', 'repeats', 'next'],
+    'notes': ['quarterbeats', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'tremolo', 'nominal_duration', 'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id'],
+    'notes_and_rests': ['quarterbeats', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'tremolo', 'nominal_duration', 'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id'],
+    'rests': ['quarterbeats', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar', 'volta'],
+    'labels': ['quarterbeats', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'volta', 'harmony_layer', 'label', 'offset_x', 'offset_y', 'regex_match'],
+    'expanded': ['quarterbeats', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'volta', 'label', 'alt_label', 'offset_x', 'offset_y', 'regex_match', 'globalkey', 'localkey', 'pedal', 'chord', 'numeral', 'form', 'figbass', 'changes', 'relativeroot', 'cadence', 'phraseend', 'chord_type', 'globalkey_is_minor', 'localkey_is_minor', 'chord_tones', 'added_tones', 'root', 'bass_note'],
+    'events': [],
+    'chords': ['quarterbeats', 'tremolo', 'duration_qb', 'mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration', 'scalar', 'volta', 'chord_id', 'dynamics', 'articulation', 'staff_text', 'slur', 'Ottava:8va', 'Ottava:8vb', 'pedal', 'TextLine', 'crescendo_line', 'diminuendo_line', 'crescendo_hairpin', 'decrescendo_hairpin', 'tempo', 'qpm', 'lyrics:1', 'Ottava:15mb'],
+    'metadata': [],
+    'form_labels': [],
+}
+"""Columns that are represented in the respective functions' docstrings."""
 
 def inspect_object(obj, no_magic=True):
     result = {}
@@ -215,11 +228,41 @@ class TestParsedParse():
         parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
         assert parsed_files == n_parsed_files
 
-    def test_extracting_dataframes(self):
+    def test_extracting_concatenated_dataframes(self):
         p = self.parsed_parse_obj
-        measures = p.measures()
+        if len(p._parsed_mscx) == 0:
+            return
+        dataframes = dict(
+        # measures = p.measures(),
+        # notes = p.notes(),
+        # notes_and_rests = p.notes_and_rests(),
+        # rests = p.rests(),
+        # labels = p.labels(),
+        # expanded = p.expanded(),
+        #chords = p.chords(),
+        form_labels = p.form_labels(),
+        )
 
-        print(measures)
+        for typ, df in dataframes.items():
+            print(p.pieces())
+            print(typ.upper())
+            print(df)
+            qb_cols = ('quarterbeats', 'duration_qb')
+            assert all(col in df for col in qb_cols)
+            if 'volta' in df.columns and df.volta.notna().any():
+                if not df.quarterbeats.isna().any():
+                    print(df.loc[df.volta.notna(), ['quarterbeats', 'volta']])
+                    assert False
+            print(df.columns.to_list())
+            for col in df.columns:
+                print(f"|{col}|,", end=" ")
+            documented = DOCUMENTED_COLUMNS[typ]
+            missing = [col for col in df.columns if col not in documented]
+            if len(missing) > 0:
+                print(f"Columns missing in documentation: {missing}")
+                for col in missing:
+                    print(f"|{col}|,", end=" ")
+                assert False
 
     # def test_check(self, caplog, all_ignored_warnings):
     #     _ = self.parsed_parse_obj.get_dataframes(expanded=True)
