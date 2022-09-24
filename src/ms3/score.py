@@ -906,6 +906,15 @@ class Score(LoggedClass):
         """
         super().__init__(subclass='Score', logger_cfg=logger_cfg)
 
+        self.read_only = read_only
+        """:obj:`bool`, optional
+        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+        of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information."""
+
+        if musescore_file is not None:
+            assert os.path.isfile(musescore_file), f"File does not exist: {musescore_file}"
+        self.musescore_file = musescore_file
+
         self.full_paths = {}
         """:obj:`dict`
         ``{KEY: {i: full_path}}`` dictionary holding the full paths of all parsed MuseScore and TSV files,
@@ -1015,8 +1024,8 @@ class Score(LoggedClass):
         """
 
         self.name2regex = match_regex
-        if musescore_file is not None:
-            self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
+        if self.musescore_file is not None:
+            self.parse_mscx()
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -1533,7 +1542,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         return re.compile(regex, re.IGNORECASE)
 
 
-    def _parse_mscx(self, musescore_file, read_only=False, parser=None, labels_cfg={}):
+    def parse_mscx(self, musescore_file=None, read_only=None, parser=None, labels_cfg={}):
         """ 
         This method is called by :py:meth:`.__init__` to parse the score. It checks the file extension
         and in the case of a compressed MuseScore file (.mscz), a temporary uncompressed file is generated
@@ -1545,7 +1554,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
         Parameters
         ----------
-        musescore_file : :obj:`str`
+        musescore_file : :obj:`str`, optional
             Path to the MuseScore file to be parsed.
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
@@ -1556,30 +1565,36 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
             object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
         """
+        if musescore_file is not None:
+            assert os.path.isfile(musescore_file), f"File does not exist: {musescore_file}"
+            self.musescore_file = musescore_file
+        if read_only is not None:
+            self.read_only = read_only
         if parser is not None:
             self.parser = parser
+        if len(labels_cfg) > 0:
+            self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
         permitted_extensions = self.native_formats + self.convertible_formats
-        _, ext = os.path.splitext(musescore_file)
+        _, ext = os.path.splitext(self.musescore_file)
         ext = ext[1:]
         if ext.lower() not in permitted_extensions:
             raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
-        extension = self._handle_path(musescore_file)
+        extension = self._handle_path(self.musescore_file)
         logger_cfg = self.logger_cfg.copy()
-        #logger_cfg['name'] = self.logger_names[extension]
-        musescore_file = resolve_dir(musescore_file)
+        musescore_file = resolve_dir(self.musescore_file)
 
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
-                self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
+                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
                                   logger_cfg=logger_cfg, parent_score=self)
                 self.mscx.mscx_src = (musescore_file)
         else:
-            self._mscx = MSCX(musescore_file, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
+            self._mscx = MSCX(musescore_file, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
                               logger_cfg=logger_cfg, parent_score=self)
         if self.mscx.has_annotations:
             self.mscx._annotations.infer_types(self.get_infer_regex())
@@ -1600,6 +1615,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def __repr__(self):
+        if len(self.full_paths) == 0:
+            if self.musescore_file is None:
+                return "Empty Score object."
+            else:
+                return f"Empty Score object ready to parse {self.musescore_file}"
         msg = ''
         if any(ext in self.full_paths for ext in ('mscx', 'mscz')):
             if 'mscx' in self.full_paths:
