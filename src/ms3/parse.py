@@ -28,6 +28,7 @@ from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 @dataclass
 class File:
     """Storing path and file name information for one file."""
+    id: tuple
     full_path: str
     scan_path: str
     rel_path: str
@@ -38,6 +39,36 @@ class File:
     fext: str
 
 MatchedFile = namedtuple("MatchedFile", ["id", "full_path", "suffix", "fext", "subdir", "i_str"])
+
+class Piece(LoggedClass):
+    """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
+
+    def __init__(self, key: str, fname: str, ):
+        self.key = key
+        self.fname = fname
+        available_types = ('score',) + Score.dataframe_types
+        self.type2file_info = {typ: None for typ in available_types}
+        """:obj:`dict`
+        {typ -> :obj:`File`} dict storing file information for associated types
+        """
+        self.score_obj: Score = None
+        self.score_metadata: pd.Series = None
+        """:obj:`pandas.Series`
+        Metadata from :attr:`.Score.metadata`, transformed by :func:`.utils.metadata2series`.
+        """
+        self.tsv_metadata: pd.Series = None
+        """:obj:`pandas.Series`
+        Metadata as it is stored in the current 'metadata.tsv'.
+        """
+        self.measures: pd.DataFrame = None
+        self.notes: pd.DataFrame = None
+        self.rests: pd.DataFrame = None
+        self.notes_and_rests: pd.DataFrame = None
+        self.labels: pd.DataFrame = None
+        self.expanded: pd.DataFrame = None
+        self.events: pd.DataFrame = None
+        self.chords: pd.DataFrame = None
+        self.form_labels: pd.DataFrame = None
 
 class Parse(LoggedClass):
     """
@@ -275,9 +306,19 @@ class Parse(LoggedClass):
         Dataframe that holds the (file name) matches between MuseScore and TSV files.
         """
 
-        self.names = defaultdict(set)
+        self.corpus2fname2score = defaultdict(dict)
+        """:obj:`collections.defaultdict`
+        {key -> {fname -> score_id}} For each corpus: the list of names identifying pieces. 
+        """
+
+        self._pieces = defaultdict(dict)
+        """:obj:`collections.defaultdict`
+        {key -> {fname -> :class:`.Piece`}} For each corpus: the list of names identifying pieces. 
+        """
+
+        self.id2piece_id = {}
         """:obj:`dict`
-        {key -> {fnames}} For each corpus: the list of names identifying pieces. 
+        {(key, i) -> (key, fname)} dict for associating parsed files with their piece.
         """
 
         self.last_scanned_dir = directory
@@ -678,9 +719,8 @@ class Parse(LoggedClass):
         **kwargs:
             User other folder names than the default ones.
         """
-        print(kwargs)
+        convertible = self.ms is not None
         if file_re is None:
-            convertible = self.ms is not None
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
         if exclude_re is None:
             exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
@@ -700,19 +740,6 @@ class Parse(LoggedClass):
 
         added_ids = []
 
-        # look for metadata
-        if 'metadata.tsv' in top_level_files:
-            default_metadata_path = os.path.join(directory, 'metadata.tsv')
-            self.logger.debug(f"'metadata.tsv' was detected and added.")
-            added_ids += self.add_files(paths=default_metadata_path, key=key)
-            metadata_id = added_ids[-1]
-            self.parse_tsv(ids=[metadata_id])
-            metadata_tsv = self._parsed_tsv[metadata_id]
-            metadata_fnames = metadata_tsv.fnames
-        else:
-            metadata_id = None
-
-
         # look for scores
         scores_folder = None
         if 'scores' in kwargs and kwargs['scores'] in top_level_folders:
@@ -727,17 +754,38 @@ class Parse(LoggedClass):
                 msg += " If one of them has MuseScore files, indicate it by passing scores='scores_folder'."
             self.logger.info(msg)
         if scores_folder is not None:
-            score_re = Score._make_extension_regex(convertible=False)
+            score_re = Score._make_extension_regex(convertible=convertible)
             scores_path = os.path.join(directory, scores_folder)
             score_paths = sorted(scan_directory(scores_path, file_re=score_re, recursive=recursive))
             score_ids = self.add_files(paths=score_paths, key=key)
             added_ids += score_ids
-            score_names = {i: self.fnames[key][i] for _, i in score_ids}
-            score_name_set = set(score_names.values())
-            if len(score_names) > len(score_name_set):
-                more_than_one = [name for name, cnt in Counter(score_names.values()).items() if cnt > 1]
-                ambiguate_file_names = {(name, i): os.path.join(self.subdirs[key][i], self.files[key][i]) for i, name in score_names.items() if name in more_than_one}
-                self.logger.warning(f"The following scores have the same fname: {ambiguate_file_names}")
+            score_fnames = self._get_unambiguous_fnames_from_ids(score_ids, key=key)
+
+            for fname, id in score_fnames.items():
+                piece = self._get_piece(key, fname)
+                piece.type2file_info['score'] = self.id2file_info[id]
+                self.id2piece_id[id] = (key, fname)
+                # if fname in self.corpus2fname2score[key]:
+                #     if self.corpus2fname2score[key][fname] == id:
+                #         self.debug(f"'{fname} had already been matched to {id}.")
+                #     else:
+                #         self.warning(f"'{fname} had already been matched to {self.corpus2fname2score[key][fname]}")
+            self.corpus2fname2score[key].update(score_fnames)
+
+        # look for metadata
+        if 'metadata.tsv' in top_level_files:
+            default_metadata_path = os.path.join(directory, 'metadata.tsv')
+            self.logger.debug(f"'metadata.tsv' was detected and added.")
+            added_ids += self.add_files(paths=default_metadata_path, key=key)
+            metadata_id = added_ids[-1]
+            self.parse_tsv(ids=[metadata_id])
+            metadata_tsv = self._parsed_tsv[metadata_id]
+            metadata_fnames = metadata_tsv.fnames
+        else:
+            metadata_id = None
+
+
+
         return
         paths = sorted(
             scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
@@ -1461,7 +1509,7 @@ Available keys: {available_keys}""")
         if len(self._parsed_tsv) == 0:
             self.info(f"No TSV files have been parsed, use method parse_tsv().")
             return {}
-        bool_params = ['metadata'] + Score.dataframe_types
+        bool_params = ('metadata',) + Score.dataframe_types
         l = locals()
         types = [p for p in bool_params if l[p]]
         res = {}
@@ -2418,6 +2466,7 @@ Available keys: {available_keys}""")
         self._annotations.update(updated)
 
     def _handle_path(self, full_path, key, skip_checks=False):
+        """Store information about the file at ``full_path`` in their various fields under the given key."""
         full_path = resolve_dir(full_path)
         if not skip_checks and not os.path.isfile(full_path):
             self.logger.error("No file found at this path: " + full_path)
@@ -2452,6 +2501,7 @@ Load one of the identically named files with a different key using add_dir(key='
         self.fnames[key].append(file_name)
         self.fexts[key].append(file_ext)
         F = File(
+            id=(key, i),
             full_path=full_path,
             scan_path=self.last_scanned_dir,
             rel_path=rel_path,
@@ -2859,20 +2909,17 @@ Load one of the identically named files with a different key using add_dir(key='
             return self._get_view(item)
         elif isinstance(item, tuple):
             key, i, *_ = item
+            if key not in self.files:
+                raise KeyError(f"'{key}' is not an existing key")
             try:
                 i = int(i)
-            except ValueError:
-                self.logger.error(f"Got invalid ID: {item}")
-                raise
-            try:
                 if key in self.files and i < len(self.files[key]):
                     id = (key, i)
                 else:
-                    self.logger.info(f"{item} is an invalid ID.")
-                    return None
-            except TypeError:
-                self.logger.error(f"Got invalid ID: {item}")
-                raise
+                    raise KeyError(f"Key '{key}' has no i=={i}. Current number of files is {len(self.files[key])}.")
+            except ValueError:
+                return self._get_piece(key, i)
+
         else:
             self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
         if id in self._parsed_tsv:
@@ -2902,6 +2949,81 @@ Load one of the identically named files with a different key using add_dir(key='
     def __repr__(self):
         return self.info(return_str=True)
 
+    def _get_unambiguous_fnames_from_ids(self, score_ids, key):
+
+        file_info = [self.id2file_info[id] for id in score_ids]
+        score_names = [F.fname for F in file_info]
+        score_name_set = set(score_names)
+        if len(score_names) == len(score_name_set):
+            return dict(zip(score_names, score_ids))
+        more_than_one = {name: [] for name, cnt in Counter(score_names).items() if cnt > 1}
+        result = {} # fname -> score_id
+        for F in file_info:
+            if F.fname in more_than_one:
+                more_than_one[F.fname].append(F)
+            else:
+                result[F.fname] = F.id
+        for name, files in more_than_one.items():
+            choice_between_n = len(files)
+            df = pd.DataFrame.from_dict({F.id: dict(subdir=F.subdir, fext=F.fext, subdir_len=len(F.subdir)) for F in files}, orient='index')
+            self.logger.debug(f"Trying to disambiguate between these {choice_between_n} with the same fname '{name}':\n{df}")
+            shortest_subdir_length = df.subdir_len.min()
+            shortest_length_selector = (df.subdir_len == shortest_subdir_length)
+            n_have_shortest_length = shortest_length_selector.sum()
+            # checking if the shortest path contains only 1 file and pick that
+            if n_have_shortest_length == 1:
+                id = df.subdir_len.idxmin()
+                picked = df.loc[id]
+                self.logger.info(f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one with the shortest subdir '{picked.subdir}' was selected.")
+                result[name] = id
+                continue
+            # otherwise, check if there is only a single MSCX or otherwise MSCZ file and pick that
+            fexts = df.fext.value_counts()
+            if '.mscx' in fexts:
+                if fexts['.mscx'] == 1:
+                    picked = df[df.fext == '.mscx'].iloc[0]
+                    id = picked.name
+                    self.logger.info(f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one contained in '{picked.subdir}' was selected because it is the only "
+                                     f"one in MSCX format.")
+                    result[name] = id
+                    continue
+            elif '.mscz' in fexts and fexts['.mscz'] == 1:
+                picked = df[df.fext == '.mscz'].iloc[0]
+                id = picked.name
+                self.logger.info(
+                    f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one contained in '{picked.subdir}' was selected because it is the only "
+                    f"one in MuseScore format.")
+                result[name] = id
+                continue
+            # otherwise, check if the shortest path contains only a single MSCX or MSCZ file as a last resort
+            if n_have_shortest_length < choice_between_n:
+                df = df[shortest_length_selector]
+                self.logger.debug(f"Picking those from the shortest subdir has reduced the choice to {n_have_shortest_length}:\n{df}.")
+            else:
+                self.logger.warning(f"Unable to pick one of the available scores for fname '{name}', it will be disregarded until disambiguated:\n{df}")
+                continue
+            if '.mscx' in df.fext.values and fexts['.mscx'] == 1:
+                pick_ext = '.mscx'
+            elif '.mscz' in df.fext.values and fexts['.mscz'] == 1:
+                pick_ext = '.mscz'
+            else:
+                self.logger.warning(f"Unable to pick one of the available scores for fname '{name}', it will be disregarded until disambiguated:\n{df}")
+                continue
+            picked = df[df.fext == pick_ext].iloc[0]
+            id = picked.name
+            self.logger.info(
+                f"In order to pick one from the {choice_between_n} scores with fname '{name}', the '{pick_ext}' one contained in '{picked.subdir}' was selected because it is the only "
+                f"one in that format contained in the shortest subdir.")
+            result[name] = id
+        return result
+
+
+    def _get_piece(self, key, fname) -> Piece:
+        """Returns a new or existing :obj:`Piece` object, as long as ``key`` exists."""
+        assert key in self.files, f"'{key}' is not a valid key."
+        if not fname in self._pieces[key]:
+            self._pieces[key][fname] = Piece(key, fname)
+        return self._pieces[key][fname]
 ########################################################################################################################
 ########################################################################################################################
 ################################################# End of Parse() ########################################################
@@ -3539,7 +3661,7 @@ class View(Parse):
         if fname in self._pieces:
             return self._pieces[fname]
         if fname in self.names:
-            self._pieces[fname] = Piece(self, fname)
+            self._pieces[fname] = PieceView(self, fname)
             return self._pieces[fname]
         self.logger.info(f"File name '{fname}' not found in the metadata.")
         return
@@ -3635,7 +3757,7 @@ def disambiguate(matched_files: Collection[namedtuple], disambiguation: str = 'a
 ########################################################################################################################
 ########################################################################################################################
 
-class Piece(View):
+class PieceView(View):
 
     def __init__(self,
                  view: View,
