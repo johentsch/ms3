@@ -203,7 +203,7 @@ class Annotations(LoggedClass):
             3: '3 (Absolute Chord)',
             'dcml': 'dcml',
         })
-        df.harmony_layer = df.harmony_layer.map(layer2name)
+        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')')
         return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
