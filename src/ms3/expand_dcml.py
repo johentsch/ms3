@@ -96,7 +96,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
         Original DataFrame plus additional columns with split features.
     """
     assert sum((absolute, all_in_c)) < 2, "Chord tones can be either 'absolute' or 'all_in_c', not both."
-    assert len(df.index.names) == 1, f"""df has a MultiIndex of {len(df.index.names)} levels, implying that it has information 
+    assert df.index.nlevels, f"""df has a MultiIndex of {df.index.nlevels} levels, implying that it has information 
 from several pieces. Apply expand_labels() to one piece at a time."""
     df = df.copy()
     if regex is None:
@@ -112,7 +112,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey', 'phraseend']:
         if not col in cols:
             cols[col] = col
-    global_minor = f"{cols['globalkey']}_is_minor"
 
     ### Check for too many immediate repetitions
     not_nan = df[column].dropna()
