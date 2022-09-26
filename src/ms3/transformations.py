@@ -2,6 +2,7 @@
 import sys
 from fractions import Fraction as frac
 from functools import reduce
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -852,7 +853,7 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
 def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     """ Drop exact adjacent repetitions within one or a combination of several feature columns and adapt the
     IntervalIndex and the column 'duration_qb' accordingly.
-    Uses: :py:func:`adjacency_groups`
+    Uses: :func:`adjacency_groups`, :func:`reduce_dataframe_duration_to_first_row`
 
     Parameters
     ----------
@@ -884,7 +885,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         logger.error("DataFrame is missing the column 'duration_qb'")
     if isinstance(cols, str):
         cols = [cols]
-    N = len(cols)
+    N = len(cols)  # number of columns of which subsequent equal value combinations are grouped
     if not isinstance(na_values, list):
         na_values = [na_values] * N
     else:
@@ -909,6 +910,43 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         grouped.index = grouped.index.set_levels(new_levels, level=list(range(1, N + 1)),
                                                  verify_integrity=False)
     grouped.index.rename('segment', level=0, inplace=True)
+    return grouped
+
+@function_logger
+def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.array], dropna: bool = False) -> pd.DataFrame:
+    """ Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb' accordingly.
+    Uses: :func:`reduce_dataframe_duration_to_first_row`
+
+    Args:
+        df: DataFrame to be reduced, expected to contain the column ``duration_qb``. In order to use the result as a
+            segmentation, it should have a :obj:`pandas.IntervalIndex`.
+        boolean_mask: Boolean mask where every True value starts a new segment.
+        dropna: If the boolean mask starts with any number of False, this first group is considered a missing value but
+            treated like the other groups and cannot be told apart. Set dropna to True if you want to discard this group
+            from the result, making sure that the first row actually reflects the criterion.
+
+    Returns:
+        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level
+        (if present).
+    """
+    if 'duration_qb' not in df.columns:
+        logger.error("DataFrame is missing the column 'duration_qb'")
+
+    if isinstance(boolean_mask, np.ndarray):
+        boolean_mask = pd.Series(boolean_mask, index=df.index)
+    group_integers = boolean_mask.cumsum()
+    if dropna and not boolean_mask.iloc[0]:
+        pass
+    grouped = df.groupby(group_integers).apply(reduce_dataframe_duration_to_first_row)
+    try:
+        grouped = grouped.droplevel(0)
+    except Exception:
+        print(boolean_mask)
+        print(grouped)
+        raise
+    grouped.index.rename('segment', inplace=True)
+    if dropna and not boolean_mask.iloc[0]:
+        return grouped.iloc[1:]
     return grouped
 
 
