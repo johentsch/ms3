@@ -1,6 +1,5 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
-from collections.abc import Iterable
 from fractions import Fraction as frac
 from functools import reduce
 
@@ -8,11 +7,10 @@ import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, interval_overlap, interval_overlap_size, \
-    make_interval_index_from_breaks, \
+from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
     make_continuous_offset_dict, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
+    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -895,25 +893,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     groups, names = zip(
         *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
 
-    def sum_durations(df):
-        if len(df) == 1:
-            return df
-        idx = df.index
-        first_loc = idx[0]
-        row = df.iloc[[0]]
-        # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
-        if isinstance(idx, pd.IntervalIndex):
-            start = min(idx.left)
-            end = max(idx.right)
-            iv = pd.Interval(start, end, closed=idx.closed)
-            row.index = pd.IntervalIndex([iv])
-            row.loc[iv, 'duration_qb'] = iv.length
-        else:
-            new_duration = df.duration_qb.sum()
-            row.loc[first_loc, 'duration_qb'] = new_duration
-        return row
-
-    grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
+    grouped = df.groupby(list(groups), dropna=False).apply(reduce_dataframe_duration_to_first_row)
     if any(gr.isna().any() for gr in groups):
         logger.warning(
             f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")

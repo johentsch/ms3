@@ -3490,3 +3490,31 @@ def infer_tsv_type(df):
     if any(True for c in ['mc', 'mn'] if c in df.columns):
         return 'labels'
     return
+
+
+def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
+    """ Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.
+
+    Args:
+        df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to
+            reflect the whole duration.
+
+    Returns:
+        DataFrame with one row.
+    """
+    if len(df) == 1:
+        return df
+    idx = df.index
+    first_loc = idx[0]
+    row = df.iloc[[0]]
+    # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
+    if isinstance(idx, pd.IntervalIndex):
+        start = min(idx.left)
+        end = max(idx.right)
+        iv = pd.Interval(start, end, closed=idx.closed)
+        row.index = pd.IntervalIndex([iv])
+        row.loc[iv, 'duration_qb'] = iv.length
+    else:
+        new_duration = df.duration_qb.sum()
+        row.loc[first_loc, 'duration_qb'] = new_duration
+    return row
