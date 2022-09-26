@@ -2115,8 +2115,22 @@ Available keys: {available_keys}""")
         try:
             targetfile = commit.tree / rel_path
         except KeyError:
-            self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
-            return
+            # if the file was not found, try and see if at the time of the git revision the folder was still called 'harmonies'
+            if tsv_type == 'expanded':
+                folder, tsv_name = os.path.split(rel_path)
+                if folder != 'harmonies':
+                    old_rel_path = os.path.join('harmonies', tsv_name)
+                    try:
+                        targetfile = commit.tree / old_rel_path
+                        self.logger.debug(f"{rel_path} did not exist at commit {commit_info}, using {old_rel_path} instead.")
+                        rel_path = old_rel_path
+                    except KeyError:
+                        self.logger.error(f"Neither {rel_path} nor its older version {old_rel_path} existed at commit {commit_info}.")
+                        return
+            else:
+                self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
+                return
+        self.logger.info(f"Successfully loaded {rel_path} from {commit_info}.")
         try:
             with io.BytesIO(targetfile.data_stream.read()) as f:
                 df = load_tsv(f)
@@ -3165,11 +3179,17 @@ class View(Parse):
                 """c can be a column name or a list of column names from which the first non-empty one will be used"""
                 if isinstance(c, str):
                     what, disamb = c_name2std_and_disamb(c)
-                    df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                    try:
+                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                    except FileNotFoundError:
+                        continue
                 else:
                     for cc in c:
                         what, disamb = c_name2std_and_disamb(cc)
-                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                        try:
+                            df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                        except FileNotFoundError:
+                            continue
                         if df is not None:
                             c = cc
                             break

@@ -7,3 +7,9 @@ def test_review_cmd(directory):
     sweelinck = os.path.join(directory, "sweelinck_keyboard")
     args = parser.parse_args(["review", "-d", sweelinck])
     review_cmd(args)
+
+# def test_review_cmd_with_git():
+#     parser = get_arg_parser()
+#     ABC = os.path.expanduser("~/ABC")
+#     args = parser.parse_args(["review", "-d", ABC, "-M", "-N", "-X", "-c=HEAD", "-r=n04op18-4_03"])
+#     review_cmd(args)
