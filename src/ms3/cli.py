@@ -365,7 +365,7 @@ def review_cmd(args, parse_obj=None):
     print(filtered_report[filtered_report.dur_ratio > threshold])
     comparison = compare(p, use=args.use, revision_specifier=args.commit)
     modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    p.output_mscx(ids=modified_ids, suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
+    p.output_mscx(ids=modified_ids, folder="../reviewed", suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
     if test_passes:
         review_logger.info(f"Parsed scores passed all tests.")
     else:
