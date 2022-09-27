@@ -28,10 +28,11 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     ----------
     df : :obj:`pandas.DataFrame`
         DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
-    offset_dict : :obj:`pandas.Series` or :obj:`dict`
+    offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
         | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
+        | It is not required if the column 'quarterbeats' exists already.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
         creation of the column ``duration_qb``).
@@ -40,17 +41,34 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     -------
 
     """
-    if offset_dict is None:
-        if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
-            # no offset dict required
-            pass
+    has_quarterbeats = 'quarterbeats' in df.columns
+    has_duration_qb = 'duration_qb' in df.columns
+    has_duration = 'duration' in df.columns
+    if sum((has_quarterbeats, has_duration_qb)) == 2:
+        if interval_index:
+            logger.debug(f"'quarterbeats' and 'duration_qb' already present, only creating IntervalIndex")
+            return replace_index_by_intervals(df, logger=logger)
         else:
+            logger.debug(f"'quarterbeats' and 'duration_qb' already present, nothing to do.")
+            return df
+    if offset_dict is None:
+        if not has_quarterbeats:
             logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
             return df
-    new_cols = []
-    if 'quarterbeats' in df.columns:
-        quarterbeats = df.quarterbeats
-    else:
+        if not has_duration:
+            logger.warning(f"Could not create 'duration_qb' because no offset_dict was passed and no 'duration' column is present.")
+            return df
+    if not has_duration and 'end' not in offset_dict:
+        logger.warning(f"Could not create 'duration_qb' because offset_dict does not contain the key 'end'.")
+        return df
+    new_cols = {}
+    if has_quarterbeats:
+        new_cols['quarterbeats'] = df.quarterbeats
+    if has_duration_qb:
+        new_cols['duration_qb'] = df.duration_qb
+    if len(new_cols) > 0:
+        df = df.drop(columns=list(new_cols.keys()))
+    if not has_quarterbeats:
         if 'mc_playthrough' in df.columns:
             mc_col = 'mc_playthrough'
         elif 'mc' in df.columns:
@@ -61,31 +79,29 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         quarterbeats = df[mc_col].map(offset_dict)
         if 'mc_onset' in df.columns:
             quarterbeats += df.mc_onset * 4
-        new_cols.append(quarterbeats.rename('quarterbeats'))
-    if 'duration_qb' not in df.columns:
+        new_cols['quarterbeats'] = quarterbeats.rename('quarterbeats')
+    if not has_quarterbeats or not has_duration_qb:
+        # recreate duration_qb also when quarterbeats had been missing
         if 'duration' in df.columns:
-            duration_qb = (df.duration * 4).astype(float).rename('duration_qb')
-            new_cols.append(duration_qb)
-        elif 'end' in offset_dict:
+            new_cols['duration_qb'] = (df.duration * 4).astype(float).rename('duration_qb')
+        else:
+            quarterbeats = new_cols['quarterbeats']
             present_qb = quarterbeats.notna()
             try:
                 ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
                                                       end_value=float(offset_dict['end']), logger=logger)
                 duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
                 duration_qb.loc[present_qb] = ivs.length
-                new_cols.append(duration_qb)
+                new_cols['duration_qb'] = duration_qb
             except Exception as e:
                 logger.warning(
                     f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
                     f"needs to be larger than the last quarterbeat). Error:\n{e}")
-        else:
-            logger.warning("Column 'duration_qb' could not be created because offset_dict is missing the key 'end'.")
     if len(new_cols) > 0:
-        df = pd.concat(new_cols + [df], axis=1)
-        names = [col.name for col in new_cols]
-        logger.debug(f"prepended the columns {names}.")
+        df = pd.concat(list(new_cols.values()) + [df], axis=1)
+        logger.debug(f"Prepended the columns {list(new_cols.keys())}.")
     else:
-        logger.debug("No columns have were added.")
+        logger.debug("No columns were added.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
         df = replace_index_by_intervals(df, logger=logger)
     return df
