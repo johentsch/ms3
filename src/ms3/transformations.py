@@ -939,41 +939,29 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     return grouped
 
 @function_logger
-def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.array], dropna: bool = False) -> pd.DataFrame:
+def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.array], warn_na: bool = False) -> pd.DataFrame:
     """ Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb' accordingly.
-    Uses: :func:`reduce_dataframe_duration_to_first_row`
 
     Args:
-        df: DataFrame to be reduced, expected to contain the column ``duration_qb``. In order to use the result as a
-            segmentation, it should have a :obj:`pandas.IntervalIndex`.
+        df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.
         boolean_mask: Boolean mask where every True value starts a new segment.
-        dropna: If the boolean mask starts with any number of False, this first group is considered a missing value but
-            treated like the other groups and cannot be told apart. Set dropna to True if you want to discard this group
-            from the result, making sure that the first row actually reflects the criterion.
+        warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.
+            Set warn_na to True if you want the logger to throw a warning in this case.
 
     Returns:
-        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level
-        (if present).
+        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level.
     """
-    if 'duration_qb' not in df.columns:
-        logger.error("DataFrame is missing the column 'duration_qb'")
+    if 'quarterbeats' not in df.columns:
+        raise TypeError("DataFrame is missing the column 'quarterbeats'")
+    offset_dict = dict(end=df.index.right.max())
+    df = df[boolean_mask].reset_index(drop=True)
+    if 'duration_qb' in df.columns:
+        df = df.drop(columns='duration_qb')
 
-    if isinstance(boolean_mask, np.ndarray):
-        boolean_mask = pd.Series(boolean_mask, index=df.index)
-    group_integers = boolean_mask.cumsum()
-    if dropna and not boolean_mask.iloc[0]:
-        pass
-    grouped = df.groupby(group_integers).apply(reduce_dataframe_duration_to_first_row)
-    try:
-        grouped = grouped.droplevel(0)
-    except Exception:
-        print(boolean_mask)
-        print(grouped)
-        raise
-    grouped.index.rename('segment', inplace=True)
-    if dropna and not boolean_mask.iloc[0]:
-        return grouped.iloc[1:]
-    return grouped
+    result = add_quarterbeats_col(df, offset_dict, interval_index=True)
+    if warn_na and not boolean_mask.iloc[0]:
+        logger.warning("Boolean mask started with False, meaning that a part of the DataFrame is excluded from the segmentation.")
+    return result
 
 
 def segment_by_interval_index(df, idx, truncate=True):
