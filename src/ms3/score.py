@@ -77,8 +77,8 @@ from typing import Literal
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies,\
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv
+from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, \
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler
@@ -248,7 +248,19 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._annotations is None:
             return None
         expanded = self._annotations.expand_dcml(**self.labels_cfg)
-        expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index)
+        has_chord = expanded.chord.notna()
+        if not has_chord.all():
+            # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
+            # cadence labels, which are considered to have duration 0 and not interrupt the prevailing chord
+            offset_dict = self.offset_dict()
+            with_chord = add_quarterbeats_col(expanded[has_chord], offset_dict, logger=self.logger)
+            without_chord = add_quarterbeats_col(expanded[~has_chord], offset_dict, logger=self.logger)
+            without_chord.loc[:, 'duration_qb'] = 0.0
+            expanded = pd.concat([with_chord, without_chord]).sort_index()
+            if interval_index:
+                expanded = replace_index_by_intervals(expanded, logger=self.logger)
+        else:
+            expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return expanded
 
     @property

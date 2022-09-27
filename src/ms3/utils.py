@@ -1527,9 +1527,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
 
 
 @function_logger
-def make_continuous_offset_dict(measures, quarters=True, negative_anacrusis=None):
+def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=None):
     """ Takes a measures table and compute each MC's offset from the piece's beginning. Deal with
     voltas before passing the table.
+
+    If you need an offset_dict and the measures already have a 'quarterbeats' column, you can call
+    :func:`make_offset_dict_from_measures`.
 
     Parameters
     ----------
@@ -1546,8 +1549,9 @@ def make_continuous_offset_dict(measures, quarters=True, negative_anacrusis=None
     Returns
     -------
     :obj:`pandas.Series`
-        Cumulative sum of the actual durations, shifted down by 1.
-
+        Cumulative sum of the actual durations, shifted down by 1. Compared to the original DataFrame it has
+        length + 2 because it adds the end value twice, once with the next index value, and once with the index 'end'.
+        Otherwise the end value would be lost due to the shifting.
     """
     if 'mc_playthrough' in measures.columns:
         act_durs = measures.set_index('mc_playthrough').act_dur
@@ -2962,7 +2966,7 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     -------
     :obj:`pandas.DataFrame`
         A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
-        could be coputed).
+        could be computed).
     """
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
@@ -3518,3 +3522,31 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
         new_duration = df.duration_qb.sum()
         row.loc[first_loc, 'duration_qb'] = new_duration
     return row
+
+
+def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = False):
+    """ Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
+    to their quarterbeat offset from the piece's beginning, used for computing quarterbeats for other facets.
+
+    This function is used for the default case. If you need more options, e.g. an offset dict from unfolded
+    measures or expressed in whole notes or with negative anacrusis, use
+    :func:`make_continuous_offset_series` instead.
+
+    Args:
+        measures: Measures table containing a 'quarterbeats' column.
+        all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+            falls back to the default 'quarterbeats'.
+
+    Returns:
+        {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+        values for MCs that are part of a first ending (or third or larger) are NA.
+    """
+    measures = measures.set_index('mc')
+    if all_endings and 'quarterbeats_all_endings' in measures.columns:
+        col = 'quarterbeats_all_endings'
+    else:
+        col = 'quarterbeats'
+    offset_dict = measures[col].to_dict()
+    last_row = measures.iloc[-1]
+    offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+    return offset_dict

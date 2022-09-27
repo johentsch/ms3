@@ -19,7 +19,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
 from .utils import column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
-    iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_dict, \
+    iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
@@ -1333,6 +1333,7 @@ Available keys: {available_keys}""")
             quarterbeats = True
         for key, fnames in key2fnames.items():
             for md, *dfs in self[key].iter_transformed(columns, skip_missing=True, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
+                # TODO: Adapt to the fact that now all DataFrames come with quarterbeats already
                 for tsv_type, id, df in zip(columns, md['ids'], dfs):
                     if df is not None:
                         if flat:
@@ -1510,7 +1511,7 @@ Available keys: {available_keys}""")
         if ml is None:
             logger.warning(f"Could not find measure list for id {id}.")
             return None
-        offset_col = make_continuous_offset_dict(ml, logger=logger)
+        offset_col = make_continuous_offset_series(ml, logger=logger)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets

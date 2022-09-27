@@ -9,7 +9,7 @@ import pandas as pd
 
 from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
-    make_continuous_offset_dict, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
+    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
@@ -41,9 +41,16 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
 
     """
     if offset_dict is None:
-        logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
-        return df
-    if 'quarterbeats' not in df.columns:
+        if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
+            # no offset dict required
+            pass
+        else:
+            logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
+            return df
+    new_cols = []
+    if 'quarterbeats' in df.columns:
+        quarterbeats = df.quarterbeats
+    else:
         if 'mc_playthrough' in df.columns:
             mc_col = 'mc_playthrough'
         elif 'mc' in df.columns:
@@ -54,28 +61,31 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         quarterbeats = df[mc_col].map(offset_dict)
         if 'mc_onset' in df.columns:
             quarterbeats += df.mc_onset * 4
-        new_cols = [quarterbeats.rename('quarterbeats')]
-        if 'duration_qb' not in df.columns:
-            if 'duration' in df.columns:
-                duration_qb = (df.duration * 4).astype(float).rename('duration_qb')
+        new_cols.append(quarterbeats.rename('quarterbeats'))
+    if 'duration_qb' not in df.columns:
+        if 'duration' in df.columns:
+            duration_qb = (df.duration * 4).astype(float).rename('duration_qb')
+            new_cols.append(duration_qb)
+        elif 'end' in offset_dict:
+            present_qb = quarterbeats.notna()
+            try:
+                ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
+                                                      end_value=float(offset_dict['end']), logger=logger)
+                duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
+                duration_qb.loc[present_qb] = ivs.length
                 new_cols.append(duration_qb)
-            elif 'end' in offset_dict:
-                present_qb = quarterbeats.notna()
-                try:
-                    ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
-                                                          end_value=float(offset_dict['end']), logger=logger)
-                    duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
-                    duration_qb.loc[present_qb] = ivs.length
-                    new_cols.append(duration_qb)
-                except Exception as e:
-                    logger.warning(
-                        f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
-                        f"needs to be larger than the last quarterbeat). Error:\n{e}")
-            else:
-                logger.warning("Column 'duration_qb' could not be created because offset_dict is missing the key 'end'.")
+            except Exception as e:
+                logger.warning(
+                    f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
+                    f"needs to be larger than the last quarterbeat). Error:\n{e}")
+        else:
+            logger.warning("Column 'duration_qb' could not be created because offset_dict is missing the key 'end'.")
+    if len(new_cols) > 0:
         df = pd.concat(new_cols + [df], axis=1)
+        names = [col.name for col in new_cols]
+        logger.debug(f"prepended the columns {names}.")
     else:
-        logger.debug("quarterbeats column was already present.")
+        logger.debug("No columns have were added.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
         df = replace_index_by_intervals(df, logger=logger)
     return df
@@ -274,7 +284,7 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
             unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
-            continuous_offset = make_continuous_offset_dict(unfolded_measures, logger=logger)
+            continuous_offset = make_continuous_offset_series(unfolded_measures, logger=logger)
             dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                    if df is not None else df for df in dfs]
     elif quarterbeats:
@@ -285,7 +295,7 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
                 logger.debug(
                     f"Piece contains third endings, note that only second endings are taken into account.")
             measures = measures.drop(index=measures[measures.volta.fillna(2) != 2].index, columns='volta')
-        continuous_offset = make_continuous_offset_dict(measures, logger=logger)
+        continuous_offset = make_continuous_offset_series(measures, logger=logger)
         dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                if df is not None else df for df in dfs]
     return dfs

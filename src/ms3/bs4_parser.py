@@ -72,21 +72,19 @@
 """
 
 import re, sys
-import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from typing import Literal
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
-import numpy as np
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col
-from .utils import adjacency_groups, assert_dfs_equal, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_continuous_offset_dict, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
+from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
+    get_quarterbeats_length, make_offset_dict_from_measures, ordinal_suffix, resolve_dir, rgba2attrs, rgb_tuple2format, sort_note_list
 
 
 
@@ -558,22 +556,19 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._nrl
 
     def offset_dict(self, all_endings: bool = False) -> dict:
-        """
+        """ Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
+        Used for computing quarterbeats for other facets.
 
         Args:
-            all_endings:
+            all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+                falls back to the default 'quarterbeats'.
 
         Returns:
-
+            {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+            values for MCs that are part of a first ending (or third or larger) are NA.
         """
-        measures = self.measures().set_index('mc')
-        if all_endings and 'quarterbeats_all_endings' in measures.columns:
-            col = 'quarterbeats_all_endings'
-        else:
-            col = 'quarterbeats'
-        offset_dict = measures[col].to_dict()
-        last_row = measures.iloc[-1]
-        offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+        measures = self.measures()
+        offset_dict = make_offset_dict_from_measures(measures, all_endings)
         return offset_dict
 
     def rests(self, interval_index : bool = False) -> pd.DataFrame:
