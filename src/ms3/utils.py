@@ -604,7 +604,7 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     label_col : :obj:`str`, optional
         Column name where the main components (<name> tag) are stored, defaults to 'label'
     keep_layer : :obj:`bool`, optional
-        Defaults to True, retaining the 'harmony_layer' column and setting types 2 and 3 to 0.
+        Defaults to True, retaining the 'harmony_layer' column with original layers.
     return_series : :obj:`bool`, optional
         If set to True, only the decoded labels column is returned as a Series rather than a copy of ``df``.
     alt_cols : :obj:`str` or :obj:`list`, optional
@@ -665,11 +665,8 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     if return_series:
         return new_label_col
 
-    if 'harmony_layer' in df.columns:
-        if keep_layer:
-            df.loc[df.harmony_layer.isin((2, 3)), 'harmony_layer'] == 0
-        else:
-            drop_cols.append('harmony_layer')
+    if 'harmony_layer' in df.columns and not keep_layer:
+        drop_cols.append('harmony_layer')
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -2112,7 +2109,7 @@ def roman_numeral2fifths(rn, global_minor=False):
     step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
     return step_tpc + 7 * accidentals
 
-
+@function_logger
 def roman_numeral2semitones(rn, global_minor=False):
     """ Turn a Roman numeral into a semitone distance from the root (0-11).
         Uses: split_scale_degree()
@@ -2126,7 +2123,7 @@ def roman_numeral2semitones(rn, global_minor=False):
         rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
-    accidentals, rn_step = split_scale_degree(rn, count=True)
+    accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
     if any(v is None for v in (accidentals, rn_step)):
         return None
     rn_step = rn_step.upper()
@@ -2404,7 +2401,11 @@ def split_scale_degree(sd, count=False):
     """
     m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
-        logger.error(f"{sd} is not a valid scale degree.")
+        if '/' in sd:
+            logger.error(f"{sd} needs to be resolved, which requires information about the mode of the local key. "
+                         f"You can use ms3.utils.resolve_relative_keys(scale_degree, is_minor_context).")
+        else:
+            logger.error(f"{sd} is not a valid scale degree.")
         return None, None
     acc, num = m.group(1), m.group(2)
     if count:
@@ -2973,13 +2974,18 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
         plural = 's' if len(missing) > 1 else ''
         logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
         return df
-    mask = df[position_col].notna()
+    mask = df[position_col].notna() & (df[position_col] != '') & df[duration_col].notna()
+    n_dropped = mask.sum()
     if filter_zero_duration:
         mask &= (df[duration_col] > 0)
+    elif n_dropped > 0:
+        logger.info(f"Had to drop {n_dropped} rows for creating the IntervalIndex.")
     df = df[mask].copy()
     iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
-                    closed=closed, round=round, name=name)
-    assert iv_index is not None, "Creating IntervalIndex failed."
+                    closed=closed, round=round, name=name, logger=logger)
+    if iv_index is None:
+        logger.warning("Creating IntervalIndex failed.")
+        return df
     df.index = iv_index
     return df
 
