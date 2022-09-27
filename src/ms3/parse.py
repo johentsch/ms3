@@ -247,8 +247,8 @@ class Parse(LoggedClass):
             'staff': None,
             'voice': None,
             'harmony_layer': None,
-            'positioning': True,
-            'decode': False,
+            'positioning': False,
+            'decode': True,
             'column_name': 'label',
             'color_format': None,
         }
@@ -2038,13 +2038,13 @@ Available keys: {available_keys}""")
 
                 if tsv_type is None:
                     logger.debug(
-                        f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                        f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                     self._tsv_types[id] = 'other'
                 else:
                     self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                        logger.debug(f"{self.files[key][i]} parsed as metadata.")
+                        logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
                     else:
                         self._dataframes[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
@@ -2054,16 +2054,16 @@ Available keys: {available_keys}""")
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg=logger_cfg, level=level)
                                 logger.debug(
-                                    f"{self.files[key][i]} parsed as annotation table and an Annotations object was created.")
+                                    f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
                             else:
                                 logger.info(
-    f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-    Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+        f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+        Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                         else:
-                            logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
+                            logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
 
-            except Exception:
-                self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
+            except Exception as e:
+                self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
         """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.

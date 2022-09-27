@@ -1005,8 +1005,8 @@ class Score(LoggedClass):
             'staff': None,
             'voice': None,
             'harmony_layer': None,
-            'positioning': True,
-            'decode': False,
+            'positioning': False,
+            'decode': True,
             'column_name': 'label',
             'color_format': None,
         }

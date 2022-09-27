@@ -210,7 +210,7 @@ class Annotations(LoggedClass):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format=None):
+    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, warnings=True, column_name=None, color_format=None):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -228,8 +228,8 @@ class Annotations(LoggedClass):
         positioning : :obj:`bool`, optional
             Set to True if you want to include information about how labels have been manually positioned.
         decode : :obj:`bool`, optional
-            Set to True if you don't want to keep labels in their original form as encoded by MuseScore (with root and
-            bass as TPC (tonal pitch class) where C = 14).
+            Set to False if you want to keep labels in harmony_layer 0, 2, and 3 labels in their original form
+            as encoded by MuseScore (e.g., with root and bass as TPC (tonal pitch class) where C = 14 for layer 0).
         drop : :obj:`bool`, optional
             Set to True to delete the returned labels from this object.
         warnings : :obj:`bool`, optional
@@ -425,7 +425,7 @@ class Annotations(LoggedClass):
         self.df.loc[no_nan, label_col] = self.df.loc[no_nan, label_col].map(rem_dots)
 
 
-    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=positioning, decode=decode)
         if decode and 'harmony_layer' in df.columns:
             df.drop(columns='harmony_layer', inplace=True)

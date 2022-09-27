@@ -661,7 +661,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     iix = make_interval_index_from_breaks(key_groups.Start, end_value=last_val, logger=logger)
     key_groups.index = iix
     fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
-    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename(
+    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor'], logger=logger).rename(
         'semitones')
     description = 'Duration: ' + iix.length.astype(str) + \
                   '<br>Tonicized global scale degree: ' + key_groups.localkey_resolved + \
@@ -715,7 +715,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     at.abs_numeral.fillna(global_numerals,
                           inplace=True)  # = at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
     at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
-    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
+    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'], logger=logger)
 
     if mode_agnostic_adjacency is not None:
         adjacent_groups = (at.semitones != at.semitones.shift()).cumsum() if mode_agnostic_adjacency else (
