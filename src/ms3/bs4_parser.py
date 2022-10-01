@@ -256,9 +256,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                 if tremolo_component in (0, 2):
                                     tremolo_type = None
                                 if tremolo_component == 2:
-                                    duration_to_complete_tremolo = event_node.find(
-                                        'duration').string
-                                    assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
+                                    completing_duration_node = event_node.find('duration')
+                                    if completing_duration_node:
+                                        duration_to_complete_tremolo = completing_duration_node.string
+                                        assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
                                     tremolo_component = 0
 
                             for chord_child in event_node.find_all(recursive=False):
