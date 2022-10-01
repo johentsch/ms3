@@ -365,8 +365,9 @@ class Annotations(LoggedClass):
                 df = self.df.copy()
                 df.loc[select_dcml, exp.columns] = exp
                 self._expanded = df
-            # if 'harmony_layer' in self._expanded.columns:
-            #     self._expanded.drop(columns='harmony_layer', inplace=True)
+            drop_cols = [col for col in ('harmony_layer', 'regex_match') if col in df.columns]
+            if len(drop_cols) > 0:
+                self._expanded.drop(columns=drop_cols, inplace=True)
         except:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
 
