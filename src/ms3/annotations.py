@@ -393,7 +393,7 @@ class Annotations(LoggedClass):
 
     def infer_types(self, regex_dict=None):
         if 'harmony_layer' not in self.df.columns:
-            harmony_layer_col = pd.Series(0, index=self.df.index, dtype='object', name='harmony_layer')
+            harmony_layer_col = pd.Series(1, index=self.df.index, dtype='object', name='harmony_layer')
             self.df = pd.concat([self.df, harmony_layer_col], axis=1)
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'harmony_layer'] = 2
