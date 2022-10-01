@@ -2983,6 +2983,8 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     df = df[mask].copy()
     iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
                     closed=closed, round=round, name=name, logger=logger)
+    if df[duration_col].dtype != float:
+        df.loc[:, duration_col] = pd.to_numeric(df[duration_col])
     if iv_index is None:
         logger.warning("Creating IntervalIndex failed.")
         return df
