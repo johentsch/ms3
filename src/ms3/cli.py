@@ -503,7 +503,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Folder where to store TSV files with information on all rests.")
     extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../expanded',
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
@@ -608,7 +608,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
     review_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
-                                const='../expanded',
+                                const='../harmonies',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     review_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
