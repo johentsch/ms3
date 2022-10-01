@@ -3478,6 +3478,8 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
                 new_rights[ending_after_r] = r
                 chunk.index = pd.IntervalIndex.from_arrays(new_lefts, new_rights, closed='left')
                 chunk.duration_qb = (new_rights - new_lefts)
+                chunk.quarterbeats = new_lefts
+                chunk.sort_values(['quarterbeats', 'duration_qb'], inplace=True)
         chunks[iv] = chunk
     return chunks
 
