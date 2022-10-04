@@ -2701,7 +2701,7 @@ def write_metadata(df, path, markdown=True, index=False):
         md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
         md_table = str(df2md(md))
 
-        readme = os.path.join(path, 'README.rst.md')
+        readme = os.path.join(path, 'README.md')
         if os.path.isfile(readme):
             msg = 'Updated'
             with open(readme, 'r', encoding='utf-8') as f:
@@ -2991,7 +2991,28 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     df.index = iv_index
     return df
 
+def boolean_mode_col2strings(S) -> pd.Series:
+    """Turn the boolean is_minor columns into string columns such that True => 'minor', False => 'major'."""
+    return S.map({True: 'minor', False: 'major'})
 
+def replace_boolean_mode_by_strings(df) -> pd.DataFrame:
+    """Replaces boolean '_is_minor' columns with string columns renamed to '_mode'.
+    Example: df['some_col', 'some_name_is_minor'] => df['some_col', 'some_name_mode']
+    """
+    bool_cols = [col for col in df.columns if col.endswith('_is_minor')]
+    if len(bool_cols) == 0:
+        return df
+    df = df.copy()
+    renaming = {}
+    for col_name in bool_cols:
+        numeral_name = col_name[:-len('_is_minor')]
+        if col_name in df.columns:
+            new_col_name = f"{numeral_name}_mode"
+            new_col = boolean_mode_col2strings(df[col_name])
+            df.loc[:,col_name] = new_col
+            renaming[col_name] = new_col_name
+    df.rename(columns=renaming, inplace=True)
+    return df
 
 @function_logger
 def resolve_relative_keys(relativeroot, minor=False):
