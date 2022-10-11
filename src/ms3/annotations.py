@@ -196,14 +196,7 @@ class Annotations(LoggedClass):
         else:
             df['color_name'] = 'default'
             layers.append('color_name')
-        layer2name = map_dict({
-            0: '0 (Plain Text)',
-            1: '1 (Nashville)',
-            2: '2 (Roman Numeral)',
-            3: '3 (Absolute Chord)',
-            'dcml': 'dcml',
-        })
-        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')')
+        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
         return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):

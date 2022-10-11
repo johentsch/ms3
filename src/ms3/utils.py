@@ -107,13 +107,13 @@ Constant with a regular expression that recognizes complete labels conforming to
 including those consisting of two alternatives, without having to split them. It is simply a doubled version of DCML_REGEX.
 """
 
-FORM_DETECTION_REGEX = r"\d{1,2}(?:i+|\w)?:"
+FORM_DETECTION_REGEX = r"^\d{1,2}.*?:"
 """:obj:`str`
 Following Gotham & Ireland (@ISMIR 20 (2019): "Taking Form: A Representation Standard, Conversion Code, and Example Corpus for Recording, Visualizing, and Studying Analyses of Musical Form"),
 detects form labels as those strings that start with indicating a hierarchical level (one or two digits) followed by a colon.
 By extension (Llorens et al., forthcoming), allows one or more 'i' characters or any other alphabet character to further specify the level.
 """
-FORM_LEVEL_REGEX = r"(?P<levels>(?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_REGEX = r"(?P<levels>\d{1,2}[a-h]?[ivx]*(?:\&\d{0,2}[a-h]?[ivx]*)*):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
@@ -3508,6 +3508,7 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
 
 
 def infer_tsv_type(df):
+    """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
         'notes': ['tpc', 'midi'],
         'events': ['event'],
@@ -3518,6 +3519,7 @@ def infer_tsv_type(df):
         'labels': ['harmony_layer', 'label_type'],
         'cadences': ['cadence'],
         'metadata': ['last_mn', 'md5'],
+        'form_labels': ['form_label', 'a'],
     }
     for t, columns in type2cols.items():
         if any(True for c in columns if c in df.columns):

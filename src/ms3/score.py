@@ -77,7 +77,7 @@ from typing import Literal
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, \
+from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
     get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
@@ -281,7 +281,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    def form_labels(self, detection_regex: str = None, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -289,12 +289,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             detection_regex:
                 By default, detects all labels starting with one or two digits followed by a column
                 (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+            exclude_harmony_layer:
+                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
+                Pass True in order to retrieve only StaffText form labels.
             interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        form = self.parsed.form_labels(detection_regex=detection_regex, interval_index=interval_index)
+        form = self.parsed.form_labels(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer, interval_index=interval_index)
         if form is None:
             self.logger.info("The score does not contain any form labels.")
             return
@@ -887,7 +890,7 @@ class Score(LoggedClass):
     Formats that ms3 can parse.
     """
 
-    def __init__(self, musescore_file=None, match_regex=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
+    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
         """
 
@@ -988,6 +991,7 @@ class Score(LoggedClass):
 
         self._regex_name_description = {
             'dcml': "Latest version of the DCML harmonic annotation standard.",
+            'form_labels': "Form labels that have been encoded as harmonies rather than as StaffText."
         }
         """:obj:`dict`
         Mapping regex names to their descriptions.
@@ -995,6 +999,7 @@ class Score(LoggedClass):
 
         self._name2regex = {
             'dcml': DCML_DOUBLE_REGEX,
+            'form_labels': FORM_DETECTION_REGEX,
         }
         """:obj:`dict`
         Mapping names to their corresponding regex. Managed via the property :py:attr:`name2regex`.

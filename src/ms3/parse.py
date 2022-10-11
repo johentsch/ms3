@@ -2218,12 +2218,13 @@ Available keys: {available_keys}""")
         else:
             self.simulate = simulate
         l = locals()
-        df_types = list(self._dataframes)
+        df_types = list(self._dataframes.keys())
         folder_vars = [t + '_folder' for t in df_types]
         suffix_vars = [t + '_suffix' for t in df_types]
         folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
         if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
+            print(l)
             return [] if simulate else None
         suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
@@ -3168,6 +3169,7 @@ class View(Parse):
             for c in standard_cols:
                 if col.startswith(c):
                     return c, col
+            raise ValueError(f"Cannot iterate through '{col}'. Check which columns are available for the corpus '{self.key}'.")
 
         for md, (fname, matches) in zip(self.metadata().to_dict(orient='records'), self.matches.items()):
             """md = {key->value} metadata; matches = {type->id}"""
@@ -3183,14 +3185,14 @@ class View(Parse):
                     try:
                         df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
                     except FileNotFoundError:
-                        continue
+                        df = None
                 else:
                     for cc in c:
                         what, disamb = c_name2std_and_disamb(cc)
                         try:
                             df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
                         except FileNotFoundError:
-                            continue
+                            df = None
                         if df is not None:
                             c = cc
                             break
