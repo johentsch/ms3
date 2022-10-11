@@ -20,7 +20,7 @@ __license__ = "gpl3"
 def gather_extract_params(args):
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'),
-        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata, args.form_labels))
               if arg is not None]
     return params
 
@@ -168,6 +168,7 @@ def extract_cmd(args, parse_obj=None):
                 events_folder=args.events,
                 chords_folder=args.chords,
                 expanded_folder=args.expanded,
+                form_labels_folder=args.form_labels,
                 metadata_path=resolve_dir(args.metadata),
                 simulate=args.test,
                 unfold=args.unfold,
@@ -512,7 +513,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
                                 help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+                                help="Folder where to store TSV files with all form labels.")
     extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
