@@ -7,6 +7,7 @@ from functools import reduce
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
+from typing import Collection, Union, Dict, Tuple
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -113,7 +114,10 @@ Following Gotham & Ireland (@ISMIR 20 (2019): "Taking Form: A Representation Sta
 detects form labels as those strings that start with indicating a hierarchical level (one or two digits) followed by a colon.
 By extension (Llorens et al., forthcoming), allows one or more 'i' characters or any other alphabet character to further specify the level.
 """
-FORM_LEVEL_REGEX = r"(?P<levels>\d{1,2}[a-h]?[ivx]*(?:\&\d{0,2}[a-h]?[ivx]*)*):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_REGEX = r"^(?P<level>\d{1,2})?(?P<form_tree>[a-h])?(?P<reading>[ivx]+)?:?$" # (?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_FORMAT = r"\d{1,2}[a-h]?[ivx]*(?:\&\d{0,2}[a-h]?[ivx]*)*"
+FORM_LEVEL_SPLIT_REGEX = FORM_LEVEL_FORMAT + ':'
+FORM_LEVEL_CAPTURE_REGEX = f"(?P<levels>{FORM_LEVEL_FORMAT}):"
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
@@ -687,38 +691,122 @@ def dict2oneliner(d):
     return ', '.join(f"{k}: {v}" for k, v in d.items())
 
 @function_logger
-def expand_form_labels(fl, fill_mn_until=None):
-    """Expands form labels into a hierarchical view of levels.
+def distribute_tokens_over_levels(levels: Collection[str], tokens: Collection[str], mc: Union[int|str] = None) -> Dict[Tuple[str, int], str]:
+    """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
+    tokens.
 
-    Parameters
-    ----------
-    fill_mn_until : :obj:`int`, optional
-        Pass the last measure number in order to insert rows for every measure without a form label.
-        If you pass -1, the measure number of the last form label will be used.
+    Args:
+        levels: Collection of strings indicating analytical layers.
+        tokens: Collection of tokens coming along, same size as levels.
+        mc: Pass the label's label's MC to display it in error messages.
+
+    Returns:
+        A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
+        several trees annotated in parallel.
     """
+    column2value = {}
+    reading_regex = r"^((?:[ivx]+\&?)+):"
+    roman_numbers = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv']
+    mc_string = '' if mc is None else f"MC {mc}: "
+    for level_str, token_str in zip(levels, tokens):
+        split_level_info = pd.Series(level_str.split('&'))
+        analytical_layers = split_level_info.str.extract(FORM_LEVEL_REGEX)
+        levels_include_reading = analytical_layers.reading.notna().any()
+        analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
+        analytical_layers = analytical_layers.fillna(method='ffill')
+        analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
+        token_components = [t.strip(' \n,') for t in token_str.split(' - ') if t.strip(' \n,') != '']
+        if len(token_components) > 1:
+            # this section deals with cases where alternative readings are or are not identified by Roman numbers,
+            # and deals with the given Roman numbers depending on whether the analytical layers include some as well
+            token_includes_reading = any(re.match(reading_regex, t) is not None for t in token_components)
+            if token_includes_reading:
+                reading_info = [re.match(reading_regex, t) for t in token_components]
+                reading2token = {}
+                missing_infos = 0
+                for read_inf, token_component in zip(reading_info[1:], token_components[1:]):
+                    if read_inf is None:
+                        missing_infos += 1
+                        reading = 'X' * missing_infos + ': '
+                        reading2token[reading] = token_component
+                    else:
+                        token_component = token_component[read_inf.end():].strip(' ')
+                        for roman in read_inf.group(1).split('&'):
+                            reading = f"{roman}: "
+                            if levels_include_reading and reading in analytical_layers.reading:
+                                logger.warning(
+                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{analytical_layers}")
+                            reading2token[reading] = token_component
+                if missing_infos > 0:
+                    logger.warning(f"{mc_string}Label '{token_str}' includes some alternative readings with, some without Roman numbering: {reading2token}\nLevels:\n{analytical_layers}")
+                label = ' - '.join(reading + tkn for reading, tkn in reading2token.items())
+                if levels_include_reading:
+                    if reading_info[0] is not None:
+                        logger.warning(
+                            f"{mc_string}Label the first component '{reading_info[0].group()}' specifies Roman number in addition to those specified in the level:\n{analytical_layers}")
+                    analytical_layers.reading += token_components[0]
+                else:
+                    label = token_components[0] + ' - ' + label
+            else:
+                if levels_include_reading:
+                    logger.warning(f"{mc_string}Label '{token_str}' includes alternative readings without Roman numbering, whereas levels do specify:\n{analytical_layers}")
+                    label = ' - '.join(t for t in token_components)
+                else:
+                    label = ' - '.join(f"{roman_number}: {t}" for roman_number, t in zip(roman_numbers, token_components))
+        else:
+            if levels_include_reading:
+                analytical_layers.reading += token_components[0]
+                label = ''
+            else:
+                label = token_components[0]
 
-    def distribute_levels(df, mc=None):
-        """Takes the regex matches of one label and turns them into one row where
-        the levels become column names. Pass label's MC to display it in error messages.
-        """
-        col2val = {}
-        levels_re = r"(\d{1,2})(i+|\w)?[\&=]?"
-        for levels, token in df.values:
-            for level, hybrid in re.findall(levels_re, levels):
-                key = (hybrid, level)  # hybrid becomes first index level, e.g. 'a' and 'b'
-                if key in col2val:
-                    mc_string = '' if mc is None else f"MC {mc}: "
-                    logger.warning(
-                        f"{mc_string}The token '{col2val[key]}' for level {key} was overwritten with '{token}':\n{df}")
-                col2val[key] = token
-        return col2val
+        for (form_tree, level), df in analytical_layers.groupby(['form_tree', 'level'], dropna=False):
+            key = (form_tree, level)  # form_tree becomes first level of the columns' MultiIndex, e.g. 'a' and 'b'
+            if (df.reading == '').all():
+                value = label
+                if len(df) > 1:
+                    logger.warning(f"{mc_string}Duplication of level without specifying separate readings:\n{df}")
+            else:
+                value = ' - '.join(reading for reading in df.reading.to_list())
+                if label != '':
+                    value += ' - ' + label
+            if key in column2value:
+                column2value[key] += ' - ' + value
+                # logger.warning(f"{mc_string}The token '{column2value[key]}' for level {key} was overwritten with '{value}':\nlevels: {level_str}, token: {token}")
+            else:
+                column2value[key] = value
+    return column2value
 
-    matches = fl.form_label.str.extractall(FORM_LEVEL_REGEX)
-    matches.token = matches.token.str.strip('\n ,')
-    mcs = fl.mc.to_dict()
-    levels = list(range(matches.index.nlevels - 1))  # all index levels except the one for the matches
-    res = {i: distribute_levels(df, mcs[i]) for i, df in matches.groupby(level=levels)}
-    res = pd.DataFrame.from_dict(res, orient='index')
+@function_logger
+def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None) -> pd.DataFrame:
+    """ Expands form labels into a hierarchical view of levels in a table.
+
+    Args:
+        fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.
+        fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,
+            even if it doesn't come with a form label. This may be desired for increased intuition of proportions,
+            rather than seeing all form labels right below each other. In order to add the empty rows, even without
+            knowing the number of measures, pass -1.
+
+    Returns:
+        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+    """
+    extracted_levels = fl.form_label.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
+    extracted_levels = extracted_levels.unstack().reindex(fl.index)
+    extracted_tokens = fl.form_label.str.split(FORM_LEVEL_SPLIT_REGEX, expand=True)
+    # CHECKS:
+    # extracted_tokens.apply(lambda S: S.str.contains(r'(?<![ixv]):').fillna(False)).any(axis=1)
+    # extracted_tokens[extracted_tokens[0] != '']
+    # fl[fl.form_label.str.contains(':&')]
+    extracted_tokens = extracted_tokens.drop(columns=0)
+    assert (extracted_tokens.index == extracted_levels.index).all(), "Indices need to be identical after regex extraction."
+    result_dict = {}
+    for mc, (i, lvls), (_, tkns) in zip(fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()):
+        level_select, token_select = lvls.notna(), tkns.notna()
+        present_levels, present_tokens = lvls[level_select], tkns[token_select]
+        assert level_select.sum() == token_select.sum(), f"MC {mc}: {level_select.sum()} levels\n{present_levels}\nbut {token_select.sum()} tokens:\n{present_tokens}"
+        result_dict[i] = distribute_tokens_over_levels(present_levels, present_tokens, mc)
+    res = pd.DataFrame.from_dict(result_dict, orient='index')
     res.columns = pd.MultiIndex.from_tuples(res.columns)
     form_types = res.columns.levels[0]
     if len(form_types) > 1:
@@ -730,12 +818,14 @@ def expand_form_labels(fl, fill_mn_until=None):
             distributed_to_all = pd.concat([pertaining_to_all] * len(forms), keys=forms, axis=1)
             level_exists = distributed_to_all.columns.isin(res.columns)
             existing_level_names = distributed_to_all.columns[level_exists]
-            res = pd.concat([res.loc[:, forms], distributed_to_all.loc[:, ~level_exists]], axis=1)
+            res = pd.concat([res.loc[:, forms],
+                             distributed_to_all.loc[:, ~level_exists]],
+                            axis=1)
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
             check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
             if check_double_attribution.any().any():
-                logger.warning(
-                    "Could not distribute levels to all form types because some had already been individually specified.")
+                logger.debug(
+                    "Did not distribute levels to all form types because some had already been individually specified.")
             res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
         fl_multiindex = pd.concat([fl], keys=[''], axis=1)
         res = pd.concat([fl_multiindex, res.sort_index(axis=1)], axis=1)
@@ -743,7 +833,8 @@ def expand_form_labels(fl, fill_mn_until=None):
         if form_types[0] == '':
             res = pd.concat([fl, res.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
         else:
-            raise NotImplementedError(f"Syntax for several form types used for a single one: '{form_types[0]}'")
+            res = pd.concat([fl, res.sort_index(axis=1)], axis=1)
+            logger.info(f"Syntax for several form types used for a single one: '{form_types[0]}'")
 
     if fill_mn_until is not None:
         if len(form_types) == 1:
