@@ -118,6 +118,59 @@ FORM_LEVEL_REGEX = r"^(?P<level>\d{1,2})?(?P<form_tree>[a-h])?(?P<reading>[ivx]+
 FORM_LEVEL_FORMAT = r"\d{1,2}[a-h]?[ivx]*(?:\&\d{0,2}[a-h]?[ivx]*)*"
 FORM_LEVEL_SPLIT_REGEX = FORM_LEVEL_FORMAT + ':'
 FORM_LEVEL_CAPTURE_REGEX = f"(?P<levels>{FORM_LEVEL_FORMAT}):"
+FORM_TOKEN_ABBREVIATIONS = {
+ 'ah': 'anhang',
+ 'bi': 'basic idea',
+ 'br': 'bridge',
+ 'ci': 'contrasting idea',
+ 'cr': 'crux',
+ 'eg': 'eingang',
+ 'hp': 'hauptperiode',
+ 'hs': 'hauptsatz',
+ 'ip': 'interpolation',
+ 'li': 'lead-in',
+ 'pc': 'pre-core',
+ 'pd': 'period',
+ 'si': 'secondary idea',
+ 'ti': 'thematic introduction',
+ 'tr': 'transition',
+ '1st': 'first theme',
+ '2nd': 'second theme',
+ 'ant': 'antecedent',
+ 'btb': 'before-the-beginning',
+ 'cad': 'cadential idea',
+ 'cbi': 'compound basic idea',
+ 'chr': 'chorus',
+ 'cls': 'closing theme',
+ 'dev': 'development section',
+ 'epi': 'episode',
+ 'exp': 'exposition',
+ 'liq': 'liquidation',
+ 'mod': 'model',
+ 'rec': 'recapitulation',
+ 'rep': 'repetition',
+ 'rit': 'ritornello',
+ 'rtr': 'retransition',
+ 'seq': 'sequence',
+ 'ver': 'verse',
+ 'cdza': 'cadenza',
+ 'coda': 'coda',
+ 'cons': 'consequent',
+ 'cont': 'continuation',
+ 'ctta': 'codetta',
+ 'depi': 'display episode',
+ 'diss': 'dissolution',
+ 'expa': 'expansion',
+ 'frag': 'fragmentation',
+ 'pcad': 'postcadential',
+ 'pres': 'presentation',
+ 'schl': 'schlusssatz',
+ 'sent': 'sentence',
+ 'solo': 'solo',
+ 'intro': 'introduction',
+ 'prchr': 'pre-chorus',
+ 'ptchr': 'post-chorus'
+}
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
@@ -691,7 +744,56 @@ def dict2oneliner(d):
     return ', '.join(f"{k}: {v}" for k, v in d.items())
 
 @function_logger
-def distribute_tokens_over_levels(levels: Collection[str], tokens: Collection[str], mc: Union[int|str] = None) -> Dict[Tuple[str, int], str]:
+def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowercase: bool = True) -> str:
+    """ Checks for each consecutive substring of the token if it matches one of the given abbreviations and replaces
+    it with the corresponding long name. Trailing numbers are separated by a space in this case.
+    
+    Args:
+        token: Individual token after splitting alternative readings.
+        abbreviations: {abbreviation -> long name} dict for string replacement.
+        fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,
+            again in lowercase. Pass False to use only the original string.
+
+    Returns:
+
+    """
+    if ',' in token:
+        logger.warning(f"'{token}' contains a comma, which might result from a syntax error.")
+    sub_component_regex = r"[ |!,]+"
+    ends_on_numbers_regex = r"\d+$"
+    resolved_substrings = []
+    for original_substring in re.split(sub_component_regex, token):
+        trailing_numbers_match = re.search(ends_on_numbers_regex, original_substring)
+        if trailing_numbers_match is None:
+            trailing_numbers = ''
+            substring = original_substring
+        else:
+            trailing_numbers_position = trailing_numbers_match.start()
+            if trailing_numbers_position == 0:
+                # token is just a number
+                resolved_substrings.append(original_substring)
+                continue
+            trailing_numbers = " " + trailing_numbers_match.group()
+            substring = original_substring[:trailing_numbers_position]
+        lowercase = substring.lower()
+        if substring in abbreviations:
+            resolved = abbreviations[substring] + trailing_numbers
+        elif fallback_to_lowercase and lowercase in abbreviations:
+            resolved = abbreviations[lowercase] + trailing_numbers
+        else:
+            resolved = original_substring
+        resolved_substrings.append(resolved)
+    return ''.join(substring + separator for substring, separator in zip(resolved_substrings,
+                                                                       re.findall(sub_component_regex, token) + ['']))
+
+
+
+@function_logger
+def distribute_tokens_over_levels(levels: Collection[str],
+                                  tokens: Collection[str],
+                                  mc: Union[int|str] = None,
+                                  abbreviations: dict = {},
+                                  ) -> Dict[Tuple[str, int], str]:
     """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
     tokens.
 
@@ -699,6 +801,7 @@ def distribute_tokens_over_levels(levels: Collection[str], tokens: Collection[st
         levels: Collection of strings indicating analytical layers.
         tokens: Collection of tokens coming along, same size as levels.
         mc: Pass the label's label's MC to display it in error messages.
+        abbreviations: {abbrevation -> long name} mapping abbreviations to what they are to be replaced with
 
     Returns:
         A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
@@ -715,7 +818,9 @@ def distribute_tokens_over_levels(levels: Collection[str], tokens: Collection[st
         analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
         analytical_layers = analytical_layers.fillna(method='ffill')
         analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
-        token_components = [t.strip(' \n,') for t in token_str.split(' - ') if t.strip(' \n,') != '']
+        token_components = [re.sub(r'\s',  ' ', t).strip(' \n,') for t in token_str.split(' - ') if t.strip(' \n,') != '']
+        if len(abbreviations) > 0:
+            token_components = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_components]
         if len(token_components) > 1:
             # this section deals with cases where alternative readings are or are not identified by Roman numbers,
             # and deals with the given Roman numbers depending on whether the analytical layers include some as well
@@ -778,7 +883,7 @@ def distribute_tokens_over_levels(levels: Collection[str], tokens: Collection[st
     return column2value
 
 @function_logger
-def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None) -> pd.DataFrame:
+def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbreviations=True, **kwargs) -> pd.DataFrame:
     """ Expands form labels into a hierarchical view of levels in a table.
 
     Args:
@@ -787,13 +892,17 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None) -> pd.DataFr
             even if it doesn't come with a form label. This may be desired for increased intuition of proportions,
             rather than seeing all form labels right below each other. In order to add the empty rows, even without
             knowing the number of measures, pass -1.
+        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+            long names. Pass False to prevent that.
+        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
 
     Returns:
         A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
     """
-    extracted_levels = fl.form_label.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
+    form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(r"\s", " ", regex=True)
+    extracted_levels = form_labels.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
     extracted_levels = extracted_levels.unstack().reindex(fl.index)
-    extracted_tokens = fl.form_label.str.split(FORM_LEVEL_SPLIT_REGEX, expand=True)
+    extracted_tokens = form_labels.str.split(FORM_LEVEL_SPLIT_REGEX, expand=True)
     # CHECKS:
     # extracted_tokens.apply(lambda S: S.str.contains(r'(?<![ixv]):').fillna(False)).any(axis=1)
     # extracted_tokens[extracted_tokens[0] != '']
@@ -801,11 +910,13 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None) -> pd.DataFr
     extracted_tokens = extracted_tokens.drop(columns=0)
     assert (extracted_tokens.index == extracted_levels.index).all(), "Indices need to be identical after regex extraction."
     result_dict = {}
+    abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    abbreviations.update(kwargs)
     for mc, (i, lvls), (_, tkns) in zip(fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()):
         level_select, token_select = lvls.notna(), tkns.notna()
         present_levels, present_tokens = lvls[level_select], tkns[token_select]
         assert level_select.sum() == token_select.sum(), f"MC {mc}: {level_select.sum()} levels\n{present_levels}\nbut {token_select.sum()} tokens:\n{present_tokens}"
-        result_dict[i] = distribute_tokens_over_levels(present_levels, present_tokens, mc)
+        result_dict[i] = distribute_tokens_over_levels(present_levels, present_tokens, mc=mc, abbreviations=abbreviations, logger=logger)
     res = pd.DataFrame.from_dict(result_dict, orient='index')
     res.columns = pd.MultiIndex.from_tuples(res.columns)
     form_types = res.columns.levels[0]
