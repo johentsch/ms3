@@ -817,7 +817,7 @@ def distribute_tokens_over_levels(levels: Collection[str],
         analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
         analytical_layers = analytical_layers.fillna(method='ffill')
         analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
-        token_alternatives = [re.sub(r'\s',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
+        token_alternatives = [re.sub(r'\s+',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
         token_alternatives = [t for t in token_alternatives if t != '']
         if len(abbreviations) > 0:
             token_alternatives = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_alternatives]
