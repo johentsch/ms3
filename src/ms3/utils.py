@@ -132,6 +132,7 @@ FORM_TOKEN_ABBREVIATIONS = {
  'pc': 'pre-core',
  'pd': 'period',
  'si': 'secondary idea',
+ 'th': 'theme',
  'ti': 'thematic introduction',
  'tr': 'transition',
  '1st': 'first theme',
@@ -143,6 +144,7 @@ FORM_TOKEN_ABBREVIATIONS = {
  'chr': 'chorus',
  'cls': 'closing theme',
  'dev': 'development section',
+ 'dom': 'standing on the dominant',
  'epi': 'episode',
  'exp': 'exposition',
  'liq': 'liquidation',
@@ -875,6 +877,26 @@ def distribute_tokens_over_levels(levels: Collection[str],
             else:
                 column2value[key] = value
     return column2value
+
+@function_logger
+def expand_single_form_label(label: str, default_abbreviations=True, **kwargs) -> Dict[Tuple[str, str], str]:
+    """ Splits a form label and applies distribute_tokens_over_levels()
+
+    Args:
+        label: Complete form label including indications of analytical layer(s).
+        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+            long names. Pass False to prevent that.
+        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
+
+    Returns:
+        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+    """
+    extracted_levels = re.findall(FORM_LEVEL_CAPTURE_REGEX, label)
+    extracted_tokens = re.split(FORM_LEVEL_SPLIT_REGEX, label)[1:]
+    abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    abbreviations.update(kwargs)
+    return distribute_tokens_over_levels(extracted_levels, extracted_tokens, abbreviations=abbreviations)
+
 
 @function_logger
 def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbreviations=True, **kwargs) -> pd.DataFrame:
