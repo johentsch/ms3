@@ -759,7 +759,7 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
     """
     if ',' in token:
         logger.warning(f"'{token}' contains a comma, which might result from a syntax error.")
-    sub_component_regex = r"[ |!,]+"
+    sub_component_regex = r"\W+"
     ends_on_numbers_regex = r"\d+$"
     resolved_substrings = []
     for original_substring in re.split(sub_component_regex, token):
@@ -809,7 +809,6 @@ def distribute_tokens_over_levels(levels: Collection[str],
     """
     column2value = {}
     reading_regex = r"^((?:[ivx]+\&?)+):"
-    roman_numbers = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii', 'ix', 'x', 'xi', 'xii', 'xiii', 'xiv', 'xv']
     mc_string = '' if mc is None else f"MC {mc}: "
     for level_str, token_str in zip(levels, tokens):
         split_level_info = pd.Series(level_str.split('&'))
