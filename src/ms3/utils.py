@@ -793,7 +793,7 @@ def distribute_tokens_over_levels(levels: Collection[str],
                                   tokens: Collection[str],
                                   mc: Union[int|str] = None,
                                   abbreviations: dict = {},
-                                  ) -> Dict[Tuple[str, int], str]:
+                                  ) -> Dict[Tuple[str, str], str]:
     """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
     tokens.
 
@@ -818,52 +818,47 @@ def distribute_tokens_over_levels(levels: Collection[str],
         analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
         analytical_layers = analytical_layers.fillna(method='ffill')
         analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
-        token_components = [re.sub(r'\s',  ' ', t).strip(' \n,') for t in token_str.split(' - ') if t.strip(' \n,') != '']
+        token_alternatives = [re.sub(r'\s',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
+        token_alternatives = [t for t in token_alternatives if t != '']
         if len(abbreviations) > 0:
-            token_components = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_components]
-        if len(token_components) > 1:
+            token_alternatives = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_alternatives]
+        if len(token_alternatives) == 1:
+            if levels_include_reading:
+                analytical_layers.reading += token_alternatives[0]
+                label = ''
+            else:
+                label = token_alternatives[0]
+        else:
             # this section deals with cases where alternative readings are or are not identified by Roman numbers,
             # and deals with the given Roman numbers depending on whether the analytical layers include some as well
-            token_includes_reading = any(re.match(reading_regex, t) is not None for t in token_components)
+            token_includes_reading = any(re.match(reading_regex, t) is not None for t in token_alternatives)
             if token_includes_reading:
-                reading_info = [re.match(reading_regex, t) for t in token_components]
+                reading_info = [re.match(reading_regex, t) for t in token_alternatives]
                 reading2token = {}
-                missing_infos = 0
-                for read_inf, token_component in zip(reading_info[1:], token_components[1:]):
-                    if read_inf is None:
-                        missing_infos += 1
-                        reading = 'X' * missing_infos + ': '
+                for readings_str, token_component in zip(reading_info[1:], token_alternatives[1:]):
+                    if readings_str is None:
+                        reading = ''
                         reading2token[reading] = token_component
                     else:
-                        token_component = token_component[read_inf.end():].strip(' ')
-                        for roman in read_inf.group(1).split('&'):
+                        token_component = token_component[readings_str.end():].strip(' ')
+                        for roman in readings_str.group(1).split('&'):
                             reading = f"{roman}: "
-                            if levels_include_reading and reading in analytical_layers.reading:
+                            if levels_include_reading and reading in analytical_layers.reading.values:
                                 logger.warning(
                                     f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{analytical_layers}")
                             reading2token[reading] = token_component
-                if missing_infos > 0:
-                    logger.warning(f"{mc_string}Label '{token_str}' includes some alternative readings with, some without Roman numbering: {reading2token}\nLevels:\n{analytical_layers}")
                 label = ' - '.join(reading + tkn for reading, tkn in reading2token.items())
                 if levels_include_reading:
                     if reading_info[0] is not None:
                         logger.warning(
-                            f"{mc_string}Label the first component '{reading_info[0].group()}' specifies Roman number in addition to those specified in the level:\n{analytical_layers}")
-                    analytical_layers.reading += token_components[0]
+                            f"{mc_string}'{token_str}': The first reading '{reading_info[0].group()}' specifies Roman number in addition to those specified in the level:\n{analytical_layers}")
+                    analytical_layers.reading += token_alternatives[0]
                 else:
-                    label = token_components[0] + ' - ' + label
+                    label = token_alternatives[0] + ' - ' + label
             else:
-                if levels_include_reading:
-                    logger.warning(f"{mc_string}Label '{token_str}' includes alternative readings without Roman numbering, whereas levels do specify:\n{analytical_layers}")
-                    label = ' - '.join(t for t in token_components)
-                else:
-                    label = ' - '.join(f"{roman_number}: {t}" for roman_number, t in zip(roman_numbers, token_components))
-        else:
-            if levels_include_reading:
-                analytical_layers.reading += token_components[0]
+                # token does not include any Roman numbers and is used as is for all layers
+                analytical_layers.reading += ' - '.join(t for t in token_alternatives)
                 label = ''
-            else:
-                label = token_components[0]
 
         for (form_tree, level), df in analytical_layers.groupby(['form_tree', 'level'], dropna=False):
             key = (form_tree, level)  # form_tree becomes first level of the columns' MultiIndex, e.g. 'a' and 'b'
