@@ -1,0 +1,66 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/AGPL-3.0",
+    "codeRepository": "git+https://github.com/johentsch/ms3.git",
+    "dateCreated": "2020-05-03",
+    "datePublished": "2020-07-06",
+    "issueTracker": "https://github.com/johentsch/ms3/issues",
+    "name": "ms3",
+    "description": "A parser for MuseScore 3 files and data factory for annotated music corpora.",
+    "applicationCategory": "Music",
+    "funding": "Swiss National Science Foundation (Grant no. 182811), Mr. Claude Latour (Latour Chair in Digital and Cognitive Musicology)",
+    "funder": {
+        "@type": "Organization",
+        "name": "École Polytechnique Fédérale de Lausanne, Digital and Cognitive Musicology Lab"
+    },
+    "keywords": [
+        "python",
+        "music",
+        "scores",
+        "corpus",
+        "corpora",
+        "data",
+        "musescore",
+        "tab-separated values"
+    ],
+    "programmingLanguage": [
+        "Python 3"
+    ],
+    "operatingSystem": [
+        "Linux",
+        "Windows",
+        "macOS"
+    ],
+    "softwareRequirements": [
+        "https://musescore.org/en/3.6.2 (optional)"
+    ],
+    "relatedLink": [
+        "https://github.com/DCMLab/dcml_corpora"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0002-1986-9545",
+            "givenName": "Johannes",
+            "familyName": "Hentschel",
+            "email": "johannes.hentschel@epfl.ch",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "Digital and Cognitive Musicology Lab, École Polytechnique Fédérale de Lausanne"
+            }
+        }
+    ],
+    "contributor": [
+        {
+            "@type": "Person",
+            "givenName": "Arina",
+            "familyName": "Lozhkina",
+            "email": "arina.lozhkina@epfl.ch",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "École Polytechnique Fédérale de Lausanne"
+            }
+        }
+    ]
+}
