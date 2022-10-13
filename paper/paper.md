@@ -19,17 +19,15 @@ authors:
     equal-contrib: false
     affiliation: 1
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, USA
-   index: 1
  - name: Digital and Cognitive Musicology Lab, École Polytechnique Fédérale de Lausanne, Switzerland
-   index: 2
+   index: 1
 date: 13 October 2022
 bibliography: paper.bib
 ---
 
 # Summary
 
-
+Digital Musicology is a vibrant and quickly growing discipline that addresses traditional and novel music-related research questions with digital and computational means [@Huron1999_NewEmpiricismSystematic]. 	
 
 # Statement of need
 
