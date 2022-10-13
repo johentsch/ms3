@@ -1,0 +1,23 @@
+{
+  "@context": "https://raw.githubusercontent.com/codemeta/codemeta/master/codemeta.jsonld",
+  "@type": "Code",
+  "author": [
+    {
+      "@id": "https://orcid.org/0000-0002-1986-9545",
+      "@type": "Person",
+      "email": "johannes.hentschel@epfl.ch",
+      "name": "johentsch",
+      "affiliation": "École Polytechnique Fédérale de Lausanne, Digital and Cognitive Musicology Lab"
+    },
+  ],
+  "identifier": "",
+  "codeRepository": "https://github.com/johentsch/ms3",
+  "datePublished": "2022-10-13",
+  "dateModified": "2022-10-13",
+  "dateCreated": "2022-10-13",
+  "description": "A parser for MuseScore 3 files and data factory for annotated music corpora.",
+  "keywords": "python, music, scores, corpus, corpora, data, musescore, tab-separated values, annotation",
+  "license": "GPL v3.0",
+  "title": "ms3",
+  "version": ""
+}
