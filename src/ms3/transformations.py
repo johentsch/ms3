@@ -603,7 +603,7 @@ def make_chord_col(at, cols=None):
 @function_logger
 def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
     """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
-        based on the column ``localkey``. The column names are suited for the plotly library.
+    based on the column ``localkey``. The column names are suited for the plotly library.
     Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
 
     Parameters
@@ -780,7 +780,7 @@ def notes2pcvs(notes,
     ensure_columns : :obj:`Iterable`, optional
         By default, pitch classes that don't appear don't get a column. Pass a value if you want to
         ensure the presence of particular columns, even if empty. For example, if ``pitch_class_format='pc'``
-        you could pass ``ensure_columns=range(12).
+        you could pass ``ensure_columns=range(12)``.
 
 
     Returns

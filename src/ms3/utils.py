@@ -793,7 +793,7 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
 @function_logger
 def distribute_tokens_over_levels(levels: Collection[str],
                                   tokens: Collection[str],
-                                  mc: Union[int|str] = None,
+                                  mc: Union[int, str] = None,
                                   abbreviations: dict = {},
                                   ) -> Dict[Tuple[str, str], str]:
     """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
@@ -1469,6 +1469,8 @@ def iterate_corpora(path):
     """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
     of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
     score file."""
+    if path is None or not os.path.isdir(path):
+        return
     if contains_metadata(path):
         return path
     subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
@@ -2724,7 +2726,8 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
 
 
 def adjacency_groups(S, na_values=None, prevent_merge=False):
-    """
+    """ Turns a Series into a Series of ascending integers starting from 0 that reflect groups of successive
+    equal values. There are several options of how to deal with NA values.
 
     Parameters
     ----------
@@ -2745,7 +2748,7 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
 
     Returns
     -------
-    :obj:`pandas.Series
+    :obj:`pandas.Series`
         A series with increasing integers that can be used for grouping.
     :obj:`dict`
         A dictionary mapping the integers to the grouped values.
@@ -3678,7 +3681,7 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
 
     Parameters
     ----------
-   df : :obj:`pandas.DataFrame`
+    df : :obj:`pandas.DataFrame`
         The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
         Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
         ``Parse.iter_transformed(interval_index=True)``.

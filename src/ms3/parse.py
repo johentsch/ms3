@@ -608,11 +608,14 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
+            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
         directory = resolve_dir(directory)
+        if not os.path.isdir(directory):
+            self.logger.warning(f"{directory} is not an existing directory.")
+            return
         self.last_scanned_dir = directory
 
         if not recursive:
@@ -671,10 +674,14 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
+            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
+        directory = resolve_dir(directory)
+        if not os.path.isdir(directory):
+            self.logger.warning(f"{directory} is not an existing directory.")
+            return
         if file_re is None:
             convertible = self.ms is not None
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
@@ -711,7 +718,7 @@ class Parse(LoggedClass):
                 added_ids += new_id
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
-        self.corpus_paths[key] = resolve_dir(directory)
+        self.corpus_paths[key] = directory
         self.look_for_ignored_warnings(directory, key)
 
     def look_for_ignored_warnings(self, directory, key):
