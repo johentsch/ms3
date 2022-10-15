@@ -77,8 +77,8 @@ from typing import Literal
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies,\
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv
+from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler
@@ -248,7 +248,19 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._annotations is None:
             return None
         expanded = self._annotations.expand_dcml(**self.labels_cfg)
-        expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index)
+        has_chord = expanded.chord.notna()
+        if not has_chord.all():
+            # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
+            # cadence labels, which are considered to have duration 0 and not interrupt the prevailing chord
+            offset_dict = self.offset_dict()
+            with_chord = add_quarterbeats_col(expanded[has_chord], offset_dict, logger=self.logger)
+            without_chord = add_quarterbeats_col(expanded[~has_chord], offset_dict, logger=self.logger)
+            without_chord.loc[:, 'duration_qb'] = 0.0
+            expanded = pd.concat([with_chord, without_chord]).sort_index()
+            if interval_index:
+                expanded = replace_index_by_intervals(expanded, logger=self.logger)
+        else:
+            expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return expanded
 
     @property
@@ -269,7 +281,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    def form_labels(self, detection_regex: str = None, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -277,12 +289,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             detection_regex:
                 By default, detects all labels starting with one or two digits followed by a column
                 (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+            exclude_harmony_layer:
+                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
+                Pass True in order to retrieve only StaffText form labels.
             interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        form = self.parsed.form_labels(detection_regex=detection_regex, interval_index=interval_index)
+        form = self.parsed.form_labels(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer, interval_index=interval_index)
         if form is None:
             self.logger.info("The score does not contain any form labels.")
             return
@@ -877,7 +892,7 @@ class Score(LoggedClass):
 
     dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels')
 
-    def __init__(self, musescore_file=None, match_regex=['dcml'], read_only=False, labels_cfg={}, logger_cfg={},
+    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
         """
 
@@ -907,6 +922,15 @@ class Score(LoggedClass):
             Windows, 'mac' for MacOS, or 'mscore' for Linux.
         """
         super().__init__(subclass='Score', logger_cfg=logger_cfg)
+
+        self.read_only = read_only
+        """:obj:`bool`, optional
+        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
+        of the score, such as adding and deleting labels. Set to ``True`` if you're only extracting information."""
+
+        if musescore_file is not None:
+            assert os.path.isfile(musescore_file), f"File does not exist: {musescore_file}"
+        self.musescore_file = musescore_file
 
         self.full_paths = {}
         """:obj:`dict`
@@ -969,6 +993,7 @@ class Score(LoggedClass):
 
         self._regex_name_description = {
             'dcml': "Latest version of the DCML harmonic annotation standard.",
+            'form_labels': "Form labels that have been encoded as harmonies rather than as StaffText."
         }
         """:obj:`dict`
         Mapping regex names to their descriptions.
@@ -976,6 +1001,7 @@ class Score(LoggedClass):
 
         self._name2regex = {
             'dcml': DCML_DOUBLE_REGEX,
+            'form_labels': FORM_DETECTION_REGEX,
         }
         """:obj:`dict`
         Mapping names to their corresponding regex. Managed via the property :py:attr:`name2regex`.
@@ -986,8 +1012,8 @@ class Score(LoggedClass):
             'staff': None,
             'voice': None,
             'harmony_layer': None,
-            'positioning': True,
-            'decode': False,
+            'positioning': False,
+            'decode': True,
             'column_name': 'label',
             'color_format': None,
         }
@@ -1017,8 +1043,8 @@ class Score(LoggedClass):
         """
 
         self.name2regex = match_regex
-        if musescore_file is not None:
-            self._parse_mscx(musescore_file, read_only=read_only, labels_cfg=self.labels_cfg)
+        if self.musescore_file is not None:
+            self.parse_mscx()
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -1535,7 +1561,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         return re.compile(regex, re.IGNORECASE)
 
 
-    def _parse_mscx(self, musescore_file, read_only=False, parser=None, labels_cfg={}):
+    def parse_mscx(self, musescore_file=None, read_only=None, parser=None, labels_cfg={}):
         """ 
         This method is called by :py:meth:`.__init__` to parse the score. It checks the file extension
         and in the case of a compressed MuseScore file (.mscz), a temporary uncompressed file is generated
@@ -1547,7 +1573,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
         Parameters
         ----------
-        musescore_file : :obj:`str`
+        musescore_file : :obj:`str`, optional
             Path to the MuseScore file to be parsed.
         read_only : :obj:`bool`, optional
             Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations
@@ -1558,30 +1584,36 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Store a configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`
             object representing the currently attached annotations. See :py:attr:`.MSCX.labels_cfg`.
         """
+        if musescore_file is not None:
+            assert os.path.isfile(musescore_file), f"File does not exist: {musescore_file}"
+            self.musescore_file = musescore_file
+        if read_only is not None:
+            self.read_only = read_only
         if parser is not None:
             self.parser = parser
+        if len(labels_cfg) > 0:
+            self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
         permitted_extensions = self.native_formats + self.convertible_formats
-        _, ext = os.path.splitext(musescore_file)
+        _, ext = os.path.splitext(self.musescore_file)
         ext = ext[1:]
         if ext.lower() not in permitted_extensions:
             raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
-        extension = self._handle_path(musescore_file)
+        extension = self._handle_path(self.musescore_file)
         logger_cfg = self.logger_cfg.copy()
-        #logger_cfg['name'] = self.logger_names[extension]
-        musescore_file = resolve_dir(musescore_file)
+        musescore_file = resolve_dir(self.musescore_file)
 
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
-                self._mscx = MSCX(tmp_mscx, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
+                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
                                   logger_cfg=logger_cfg, parent_score=self)
                 self.mscx.mscx_src = (musescore_file)
         else:
-            self._mscx = MSCX(musescore_file, read_only=read_only, labels_cfg=labels_cfg, parser=self.parser,
+            self._mscx = MSCX(musescore_file, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
                               logger_cfg=logger_cfg, parent_score=self)
         if self.mscx.has_annotations:
             self.mscx._annotations.infer_types(self.get_infer_regex())
@@ -1602,6 +1634,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def __repr__(self):
+        if len(self.full_paths) == 0:
+            if self.musescore_file is None:
+                return "Empty Score object."
+            else:
+                return f"Empty Score object ready to parse {self.musescore_file}"
         msg = ''
         if any(ext in self.full_paths for ext in ('mscx', 'mscz')):
             if 'mscx' in self.full_paths:

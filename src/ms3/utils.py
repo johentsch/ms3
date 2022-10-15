@@ -7,6 +7,7 @@ from functools import reduce
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
+from typing import Collection, Union, Dict, Tuple
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -107,13 +108,79 @@ Constant with a regular expression that recognizes complete labels conforming to
 including those consisting of two alternatives, without having to split them. It is simply a doubled version of DCML_REGEX.
 """
 
-FORM_DETECTION_REGEX = r"\d{1,2}(?:i+|\w)?:"
+FORM_DETECTION_REGEX = r"^\d{1,2}.*?:"
 """:obj:`str`
 Following Gotham & Ireland (@ISMIR 20 (2019): "Taking Form: A Representation Standard, Conversion Code, and Example Corpus for Recording, Visualizing, and Studying Analyses of Musical Form"),
 detects form labels as those strings that start with indicating a hierarchical level (one or two digits) followed by a colon.
 By extension (Llorens et al., forthcoming), allows one or more 'i' characters or any other alphabet character to further specify the level.
 """
-FORM_LEVEL_REGEX = r"(?P<levels>(?:(?:\d{1,2})(?:i+|\w)?[\&=]?)+):(?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_REGEX = r"^(?P<level>\d{1,2})?(?P<form_tree>[a-h])?(?P<reading>[ivx]+)?:?$" # (?P<token>(?:\D|\d+(?!(?:$|i+|\w)?[\&=:]))+)"
+FORM_LEVEL_FORMAT = r"\d{1,2}[a-h]?[ivx]*(?:\&\d{0,2}[a-h]?[ivx]*)*"
+FORM_LEVEL_SPLIT_REGEX = FORM_LEVEL_FORMAT + ':'
+FORM_LEVEL_CAPTURE_REGEX = f"(?P<levels>{FORM_LEVEL_FORMAT}):"
+FORM_TOKEN_ABBREVIATIONS = {
+ 's': 'satz',
+ 'x': 'unit',
+ 'ah': 'anhang',
+ 'bi': 'basic idea',
+ 'br': 'bridge',
+ 'ci': 'contrasting idea',
+ 'cr': 'crux',
+ 'eg': 'eingang',
+ 'hp': 'hauptperiode',
+ 'hs': 'hauptsatz',
+ 'ip': 'interpolation',
+ 'li': 'lead-in',
+ 'pc': 'pre-core',
+ 'pd': 'period',
+ 'si': 'secondary idea',
+ 'ti': 'thematic introduction',
+ 'tr': 'transition',
+ '1st': 'first theme',
+ '2nd': 'second theme',
+ '3rd': 'third theme',
+ 'ans': 'answer',
+ 'ant': 'antecedent',
+ 'ate': 'after-the-end',
+ 'beg': 'beginning',
+ 'btb': 'before-the-beginning',
+ 'cad': 'cadential idea',
+ 'cbi': 'compound basic idea',
+ 'chr': 'chorus',
+ 'cls': 'closing theme',
+ 'dev': 'development section',
+ 'epi': 'episode',
+ 'exp': 'exposition',
+ 'liq': 'liquidation',
+ 'mid': 'middle',
+ 'mod': 'model',
+ 'mvt': 'movement',
+ 'rec': 'recapitulation',
+ 'rep': 'repetition',
+ 'rit': 'ritornello',
+ 'rtr': 'retransition',
+ 'seq': 'sequence',
+ 'sub': 'subject',
+ 'th0': 'theme0',
+ 'var': 'variation',
+ 'ver': 'verse',
+ 'cdza': 'cadenza',
+ 'coda': 'coda',
+ 'cons': 'consequent',
+ 'cont': 'continuation',
+ 'ctta': 'codetta',
+ 'depi': 'display episode',
+ 'diss': 'dissolution',
+ 'expa': 'expansion',
+ 'frag': 'fragmentation',
+ 'pcad': 'postcadential',
+ 'pres': 'presentation',
+ 'schl': 'schlusssatz',
+ 'sent': 'sentence',
+ 'intro': 'introduction',
+ 'prchr': 'pre-chorus',
+ 'ptchr': 'post-chorus'
+}
 
 
 MS3_HTML = {'#005500': 'ms3_darkgreen',
@@ -604,7 +671,7 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     label_col : :obj:`str`, optional
         Column name where the main components (<name> tag) are stored, defaults to 'label'
     keep_layer : :obj:`bool`, optional
-        Defaults to True, retaining the 'harmony_layer' column and setting types 2 and 3 to 0.
+        Defaults to True, retaining the 'harmony_layer' column with original layers.
     return_series : :obj:`bool`, optional
         If set to True, only the decoded labels column is returned as a Series rather than a copy of ``df``.
     alt_cols : :obj:`str` or :obj:`list`, optional
@@ -665,11 +732,8 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     if return_series:
         return new_label_col
 
-    if 'harmony_layer' in df.columns:
-        if keep_layer:
-            df.loc[df.harmony_layer.isin((2, 3)), 'harmony_layer'] == 0
-        else:
-            drop_cols.append('harmony_layer')
+    if 'harmony_layer' in df.columns and not keep_layer:
+        drop_cols.append('harmony_layer')
     df[label_col] = new_label_col
     df.drop(columns=drop_cols, inplace=True)
     return df
@@ -690,38 +754,194 @@ def dict2oneliner(d):
     return ', '.join(f"{k}: {v}" for k, v in d.items())
 
 @function_logger
-def expand_form_labels(fl, fill_mn_until=None):
-    """Expands form labels into a hierarchical view of levels.
+def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowercase: bool = True) -> str:
+    """ Checks for each consecutive substring of the token if it matches one of the given abbreviations and replaces
+    it with the corresponding long name. Trailing numbers are separated by a space in this case.
+    
+    Args:
+        token: Individual token after splitting alternative readings.
+        abbreviations: {abbreviation -> long name} dict for string replacement.
+        fallback_to_lowercase: By default, the substrings are checked against the dictionary keys and, if unsuccessful,
+            again in lowercase. Pass False to use only the original string.
 
-    Parameters
-    ----------
-    fill_mn_until : :obj:`int`, optional
-        Pass the last measure number in order to insert rows for every measure without a form label.
-        If you pass -1, the measure number of the last form label will be used.
+    Returns:
+
     """
+    if ',' in token:
+        logger.warning(f"'{token}' contains a comma, which might result from a syntax error.")
+    sub_component_regex = r"\W+"
+    ends_on_numbers_regex = r"\d+$"
+    resolved_substrings = []
+    for original_substring in re.split(sub_component_regex, token):
+        trailing_numbers_match = re.search(ends_on_numbers_regex, original_substring)
+        if trailing_numbers_match is None:
+            trailing_numbers = ''
+            substring = original_substring
+        else:
+            trailing_numbers_position = trailing_numbers_match.start()
+            if trailing_numbers_position == 0:
+                # token is just a number
+                resolved_substrings.append(original_substring)
+                continue
+            trailing_numbers = " " + trailing_numbers_match.group()
+            substring = original_substring[:trailing_numbers_position]
+        lowercase = substring.lower()
+        if substring in abbreviations:
+            resolved = abbreviations[substring] + trailing_numbers
+        elif fallback_to_lowercase and lowercase in abbreviations:
+            resolved = abbreviations[lowercase] + trailing_numbers
+        else:
+            resolved = original_substring
+        resolved_substrings.append(resolved)
+    return ''.join(substring + separator for substring, separator in zip(resolved_substrings,
+                                                                       re.findall(sub_component_regex, token) + ['']))
 
-    def distribute_levels(df, mc=None):
-        """Takes the regex matches of one label and turns them into one row where
-        the levels become column names. Pass label's MC to display it in error messages.
-        """
-        col2val = {}
-        levels_re = r"(\d{1,2})(i+|\w)?[\&=]?"
-        for levels, token in df.values:
-            for level, hybrid in re.findall(levels_re, levels):
-                key = (hybrid, level)  # hybrid becomes first index level, e.g. 'a' and 'b'
-                if key in col2val:
-                    mc_string = '' if mc is None else f"MC {mc}: "
-                    logger.warning(
-                        f"{mc_string}The token '{col2val[key]}' for level {key} was overwritten with '{token}':\n{df}")
-                col2val[key] = token
-        return col2val
 
-    matches = fl.form_label.str.extractall(FORM_LEVEL_REGEX)
-    matches.token = matches.token.str.strip('\n ,')
-    mcs = fl.mc.to_dict()
-    levels = list(range(matches.index.nlevels - 1))  # all index levels except the one for the matches
-    res = {i: distribute_levels(df, mcs[i]) for i, df in matches.groupby(level=levels)}
-    res = pd.DataFrame.from_dict(res, orient='index')
+
+@function_logger
+def distribute_tokens_over_levels(levels: Collection[str],
+                                  tokens: Collection[str],
+                                  mc: Union[int, str] = None,
+                                  abbreviations: dict = {},
+                                  ) -> Dict[Tuple[str, str], str]:
+    """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
+    tokens.
+
+    Args:
+        levels: Collection of strings indicating analytical layers.
+        tokens: Collection of tokens coming along, same size as levels.
+        mc: Pass the label's label's MC to display it in error messages.
+        abbreviations: {abbrevation -> long name} mapping abbreviations to what they are to be replaced with
+
+    Returns:
+        A {(form_tree, level) -> token} dict where form_tree is either '' or a letter between a-h identifying one of
+        several trees annotated in parallel.
+    """
+    column2value = {}
+    reading_regex = r"^((?:[ivx]+\&?)+):"
+    mc_string = '' if mc is None else f"MC {mc}: "
+    for level_str, token_str in zip(levels, tokens):
+        split_level_info = pd.Series(level_str.split('&'))
+        analytical_layers = split_level_info.str.extract(FORM_LEVEL_REGEX)
+        levels_include_reading = analytical_layers.reading.notna().any()
+        analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
+        analytical_layers = analytical_layers.fillna(method='ffill')
+        analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
+        token_alternatives = [re.sub(r'\s+',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
+        token_alternatives = [t for t in token_alternatives if t != '']
+        if len(abbreviations) > 0:
+            token_alternatives = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_alternatives]
+        if len(token_alternatives) == 1:
+            if levels_include_reading:
+                analytical_layers.reading += token_alternatives[0]
+                label = ''
+            else:
+                label = token_alternatives[0]
+        else:
+            # this section deals with cases where alternative readings are or are not identified by Roman numbers,
+            # and deals with the given Roman numbers depending on whether the analytical layers include some as well
+            token_includes_reading = any(re.match(reading_regex, t) is not None for t in token_alternatives)
+            if token_includes_reading:
+                reading_info = [re.match(reading_regex, t) for t in token_alternatives]
+                reading2token = {}
+                for readings_str, token_component in zip(reading_info[1:], token_alternatives[1:]):
+                    if readings_str is None:
+                        reading = ''
+                        reading2token[reading] = token_component
+                    else:
+                        token_component = token_component[readings_str.end():].strip(' ')
+                        for roman in readings_str.group(1).split('&'):
+                            reading = f"{roman}: "
+                            if levels_include_reading and reading in analytical_layers.reading.values:
+                                logger.warning(
+                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{analytical_layers}")
+                            reading2token[reading] = token_component
+                label = ' - '.join(reading + tkn for reading, tkn in reading2token.items())
+                if levels_include_reading:
+                    if reading_info[0] is not None:
+                        logger.warning(
+                            f"{mc_string}'{token_str}': The first reading '{reading_info[0].group()}' specifies Roman number in addition to those specified in the level:\n{analytical_layers}")
+                    analytical_layers.reading += token_alternatives[0]
+                else:
+                    label = token_alternatives[0] + ' - ' + label
+            else:
+                # token does not include any Roman numbers and is used as is for all layers
+                analytical_layers.reading += ' - '.join(t for t in token_alternatives)
+                label = ''
+
+        for (form_tree, level), df in analytical_layers.groupby(['form_tree', 'level'], dropna=False):
+            key = (form_tree, level)  # form_tree becomes first level of the columns' MultiIndex, e.g. 'a' and 'b'
+            if (df.reading == '').all():
+                value = label
+                if len(df) > 1:
+                    logger.warning(f"{mc_string}Duplication of level without specifying separate readings:\n{df}")
+            else:
+                value = ' - '.join(reading for reading in df.reading.to_list())
+                if label != '':
+                    value += ' - ' + label
+            if key in column2value:
+                column2value[key] += ' - ' + value
+                # logger.warning(f"{mc_string}The token '{column2value[key]}' for level {key} was overwritten with '{value}':\nlevels: {level_str}, token: {token}")
+            else:
+                column2value[key] = value
+    return column2value
+
+@function_logger
+def expand_single_form_label(label: str, default_abbreviations=True, **kwargs) -> Dict[Tuple[str, str], str]:
+    """ Splits a form label and applies distribute_tokens_over_levels()
+
+    Args:
+        label: Complete form label including indications of analytical layer(s).
+        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+            long names. Pass False to prevent that.
+        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
+
+    Returns:
+        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+    """
+    extracted_levels = re.findall(FORM_LEVEL_CAPTURE_REGEX, label)
+    extracted_tokens = re.split(FORM_LEVEL_SPLIT_REGEX, label)[1:]
+    abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    abbreviations.update(kwargs)
+    return distribute_tokens_over_levels(extracted_levels, extracted_tokens, abbreviations=abbreviations)
+
+
+@function_logger
+def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbreviations=True, **kwargs) -> pd.DataFrame:
+    """ Expands form labels into a hierarchical view of levels in a table.
+
+    Args:
+        fl: A DataFrame containing raw form labels as retrieved from :meth:`ms3.Score.mscx.form_labels()`.
+        fill_mn_until: Pass the last measure number if you want every measure of the piece have a row in the tree view,
+            even if it doesn't come with a form label. This may be desired for increased intuition of proportions,
+            rather than seeing all form labels right below each other. In order to add the empty rows, even without
+            knowing the number of measures, pass -1.
+        default_abbreviations: By default, each token component is checked against a mapping from abbreviations to
+            long names. Pass False to prevent that.
+        **kwargs: Abbreviation='long name' mappings to resolve individual abbreviations
+
+    Returns:
+        A DataFrame with one column added per hierarchical layer of analysis, starting from level 0.
+    """
+    form_labels = fl.form_label.str.replace("&amp;", "&", regex=False).str.replace(r"\s", " ", regex=True)
+    extracted_levels = form_labels.str.extractall(FORM_LEVEL_CAPTURE_REGEX)
+    extracted_levels = extracted_levels.unstack().reindex(fl.index)
+    extracted_tokens = form_labels.str.split(FORM_LEVEL_SPLIT_REGEX, expand=True)
+    # CHECKS:
+    # extracted_tokens.apply(lambda S: S.str.contains(r'(?<![ixv]):').fillna(False)).any(axis=1)
+    # extracted_tokens[extracted_tokens[0] != '']
+    # fl[fl.form_label.str.contains(':&')]
+    extracted_tokens = extracted_tokens.drop(columns=0)
+    assert (extracted_tokens.index == extracted_levels.index).all(), "Indices need to be identical after regex extraction."
+    result_dict = {}
+    abbreviations = FORM_TOKEN_ABBREVIATIONS if default_abbreviations else {}
+    abbreviations.update(kwargs)
+    for mc, (i, lvls), (_, tkns) in zip(fl.mc, extracted_levels.iterrows(), extracted_tokens.iterrows()):
+        level_select, token_select = lvls.notna(), tkns.notna()
+        present_levels, present_tokens = lvls[level_select], tkns[token_select]
+        assert level_select.sum() == token_select.sum(), f"MC {mc}: {level_select.sum()} levels\n{present_levels}\nbut {token_select.sum()} tokens:\n{present_tokens}"
+        result_dict[i] = distribute_tokens_over_levels(present_levels, present_tokens, mc=mc, abbreviations=abbreviations, logger=logger)
+    res = pd.DataFrame.from_dict(result_dict, orient='index')
     res.columns = pd.MultiIndex.from_tuples(res.columns)
     form_types = res.columns.levels[0]
     if len(form_types) > 1:
@@ -733,12 +953,14 @@ def expand_form_labels(fl, fill_mn_until=None):
             distributed_to_all = pd.concat([pertaining_to_all] * len(forms), keys=forms, axis=1)
             level_exists = distributed_to_all.columns.isin(res.columns)
             existing_level_names = distributed_to_all.columns[level_exists]
-            res = pd.concat([res.loc[:, forms], distributed_to_all.loc[:, ~level_exists]], axis=1)
+            res = pd.concat([res.loc[:, forms],
+                             distributed_to_all.loc[:, ~level_exists]],
+                            axis=1)
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
             check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
             if check_double_attribution.any().any():
-                logger.warning(
-                    "Could not distribute levels to all form types because some had already been individually specified.")
+                logger.debug(
+                    "Did not distribute levels to all form types because some had already been individually specified.")
             res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
         fl_multiindex = pd.concat([fl], keys=[''], axis=1)
         res = pd.concat([fl_multiindex, res.sort_index(axis=1)], axis=1)
@@ -746,7 +968,8 @@ def expand_form_labels(fl, fill_mn_until=None):
         if form_types[0] == '':
             res = pd.concat([fl, res.droplevel(0, axis=1).sort_index(axis=1)], axis=1)
         else:
-            raise NotImplementedError(f"Syntax for several form types used for a single one: '{form_types[0]}'")
+            res = pd.concat([fl, res.sort_index(axis=1)], axis=1)
+            logger.info(f"Syntax for several form types used for a single one: '{form_types[0]}'")
 
     if fill_mn_until is not None:
         if len(form_types) == 1:
@@ -1259,6 +1482,8 @@ def iterate_corpora(path):
     """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
     of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
     score file."""
+    if path is None or not os.path.isdir(path):
+        return
     if contains_metadata(path):
         return path
     subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
@@ -1532,9 +1757,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
 
 
 @function_logger
-def make_continuous_offset_dict(measures, quarters=True, negative_anacrusis=None):
+def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=None):
     """ Takes a measures table and compute each MC's offset from the piece's beginning. Deal with
     voltas before passing the table.
+
+    If you need an offset_dict and the measures already have a 'quarterbeats' column, you can call
+    :func:`make_offset_dict_from_measures`.
 
     Parameters
     ----------
@@ -1551,8 +1779,9 @@ def make_continuous_offset_dict(measures, quarters=True, negative_anacrusis=None
     Returns
     -------
     :obj:`pandas.Series`
-        Cumulative sum of the actual durations, shifted down by 1.
-
+        Cumulative sum of the actual durations, shifted down by 1. Compared to the original DataFrame it has
+        length + 2 because it adds the end value twice, once with the next index value, and once with the index 'end'.
+        Otherwise the end value would be lost due to the shifting.
     """
     if 'mc_playthrough' in measures.columns:
         act_durs = measures.set_index('mc_playthrough').act_dur
@@ -2113,7 +2342,7 @@ def roman_numeral2fifths(rn, global_minor=False):
     step_tpc = rn_tpcs_min[rn_step] if global_minor else rn_tpcs_maj[rn_step]
     return step_tpc + 7 * accidentals
 
-
+@function_logger
 def roman_numeral2semitones(rn, global_minor=False):
     """ Turn a Roman numeral into a semitone distance from the root (0-11).
         Uses: split_scale_degree()
@@ -2127,7 +2356,7 @@ def roman_numeral2semitones(rn, global_minor=False):
         rn = resolved
     rn_tpcs_maj = {'I': 0, 'II': 2, 'III': 4, 'IV': 5, 'V': 7, 'VI': 9, 'VII': 11}
     rn_tpcs_min = {'I': 0, 'II': 2, 'III': 3, 'IV': 5, 'V': 7, 'VI': 8, 'VII': 10}
-    accidentals, rn_step = split_scale_degree(rn, count=True)
+    accidentals, rn_step = split_scale_degree(rn, count=True, logger=logger)
     if any(v is None for v in (accidentals, rn_step)):
         return None
     rn_step = rn_step.upper()
@@ -2405,7 +2634,11 @@ def split_scale_degree(sd, count=False):
     """
     m = re.match(r"^(#*|b*)(VII|VI|V|IV|III|II|I|vii|vi|v|iv|iii|ii|i|\d)$", str(sd))
     if m is None:
-        logger.error(f"{sd} is not a valid scale degree.")
+        if '/' in sd:
+            logger.error(f"{sd} needs to be resolved, which requires information about the mode of the local key. "
+                         f"You can use ms3.utils.resolve_relative_keys(scale_degree, is_minor_context).")
+        else:
+            logger.error(f"{sd} is not a valid scale degree.")
         return None, None
     acc, num = m.group(1), m.group(2)
     if count:
@@ -2506,7 +2739,8 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
 
 
 def adjacency_groups(S, na_values=None, prevent_merge=False):
-    """
+    """ Turns a Series into a Series of ascending integers starting from 0 that reflect groups of successive
+    equal values. There are several options of how to deal with NA values.
 
     Parameters
     ----------
@@ -2527,7 +2761,7 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
 
     Returns
     -------
-    :obj:`pandas.Series
+    :obj:`pandas.Series`
         A series with increasing integers that can be used for grouping.
     :obj:`dict`
         A dictionary mapping the integers to the grouped values.
@@ -2701,7 +2935,7 @@ def write_metadata(df, path, markdown=True, index=False):
         md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
         md_table = str(df2md(md))
 
-        readme = os.path.join(path, 'README.rst.md')
+        readme = os.path.join(path, 'README.md')
         if os.path.isfile(readme):
             msg = 'Updated'
             with open(readme, 'r', encoding='utf-8') as f:
@@ -2967,24 +3201,52 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     -------
     :obj:`pandas.DataFrame`
         A copy of ``df`` with the original index replaced and underspecified rows removed (those where no interval
-        could be coputed).
+        could be computed).
     """
     if not all(c in df.columns for c in (position_col, duration_col)):
         missing = [c for c in (position_col, duration_col) if c not in df.columns]
         plural = 's' if len(missing) > 1 else ''
         logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
         return df
-    mask = df[position_col].notna()
+    mask = df[position_col].notna() & (df[position_col] != '') & df[duration_col].notna()
+    n_dropped = mask.sum()
     if filter_zero_duration:
         mask &= (df[duration_col] > 0)
+    elif n_dropped > 0:
+        logger.info(f"Had to drop {n_dropped} rows for creating the IntervalIndex.")
     df = df[mask].copy()
     iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
-                    closed=closed, round=round, name=name)
-    assert iv_index is not None, "Creating IntervalIndex failed."
+                    closed=closed, round=round, name=name, logger=logger)
+    if df[duration_col].dtype != float:
+        df.loc[:, duration_col] = pd.to_numeric(df[duration_col])
+    if iv_index is None:
+        logger.warning("Creating IntervalIndex failed.")
+        return df
     df.index = iv_index
     return df
 
+def boolean_mode_col2strings(S) -> pd.Series:
+    """Turn the boolean is_minor columns into string columns such that True => 'minor', False => 'major'."""
+    return S.map({True: 'minor', False: 'major'})
 
+def replace_boolean_mode_by_strings(df) -> pd.DataFrame:
+    """Replaces boolean '_is_minor' columns with string columns renamed to '_mode'.
+    Example: df['some_col', 'some_name_is_minor'] => df['some_col', 'some_name_mode']
+    """
+    bool_cols = [col for col in df.columns if col.endswith('_is_minor')]
+    if len(bool_cols) == 0:
+        return df
+    df = df.copy()
+    renaming = {}
+    for col_name in bool_cols:
+        numeral_name = col_name[:-len('_is_minor')]
+        if col_name in df.columns:
+            new_col_name = f"{numeral_name}_mode"
+            new_col = boolean_mode_col2strings(df[col_name])
+            df.loc[:,col_name] = new_col
+            renaming[col_name] = new_col_name
+    df.rename(columns=renaming, inplace=True)
+    return df
 
 @function_logger
 def resolve_relative_keys(relativeroot, minor=False):
@@ -3156,7 +3418,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     tpcs = tpcs[root:] + tpcs[:root]
     root = tpcs[0] + 7 * root_alteration
     tpcs[0] = root  # octave stays diatonic, is not altered
-    logger.debug(f"{num_degree}: The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
+    #logger.debug(f"{num_degree}: The {'minor' if minor else 'major'} scale starting from the root: {tpcs}")
 
     def set_iv(chord_interval, interval_size):
         """ Add to the interval of a given chord interval in `tpcs` (both viewed from the root note).
@@ -3432,7 +3694,7 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
 
     Parameters
     ----------
-   df : :obj:`pandas.DataFrame`
+    df : :obj:`pandas.DataFrame`
         The DataFrame is expected to come with an IntervalIndex and contain the columns 'quarterbeats' and 'duration_qb'.
         Those can be obtained through ``Parse.get_lists(interval_index=True)`` or
         ``Parse.iter_transformed(interval_index=True)``.
@@ -3473,11 +3735,14 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
                 new_rights[ending_after_r] = r
                 chunk.index = pd.IntervalIndex.from_arrays(new_lefts, new_rights, closed='left')
                 chunk.duration_qb = (new_rights - new_lefts)
+                chunk.quarterbeats = new_lefts
+                chunk.sort_values(['quarterbeats', 'duration_qb'], inplace=True)
         chunks[iv] = chunk
     return chunks
 
 
 def infer_tsv_type(df):
+    """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
         'notes': ['tpc', 'midi'],
         'events': ['event'],
@@ -3488,6 +3753,7 @@ def infer_tsv_type(df):
         'labels': ['harmony_layer', 'label_type'],
         'cadences': ['cadence'],
         'metadata': ['last_mn', 'md5'],
+        'form_labels': ['form_label', 'a'],
     }
     for t, columns in type2cols.items():
         if any(True for c in columns if c in df.columns):
@@ -3495,3 +3761,59 @@ def infer_tsv_type(df):
     if any(True for c in ['mc', 'mn'] if c in df.columns):
         return 'labels'
     return
+
+
+def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
+    """ Reduces a DataFrame to its row and updates the duration_qb column to reflect the reduced duration.
+
+    Args:
+        df: Dataframe of which to keep only the first row. If it has an IntervalIndex, the interval is updated to
+            reflect the whole duration.
+
+    Returns:
+        DataFrame with one row.
+    """
+    if len(df) == 1:
+        return df
+    idx = df.index
+    first_loc = idx[0]
+    row = df.iloc[[0]]
+    # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
+    if isinstance(idx, pd.IntervalIndex):
+        start = min(idx.left)
+        end = max(idx.right)
+        iv = pd.Interval(start, end, closed=idx.closed)
+        row.index = pd.IntervalIndex([iv])
+        row.loc[iv, 'duration_qb'] = iv.length
+    else:
+        new_duration = df.duration_qb.sum()
+        row.loc[first_loc, 'duration_qb'] = new_duration
+    return row
+
+
+def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = False):
+    """ Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
+    to their quarterbeat offset from the piece's beginning, used for computing quarterbeats for other facets.
+
+    This function is used for the default case. If you need more options, e.g. an offset dict from unfolded
+    measures or expressed in whole notes or with negative anacrusis, use
+    :func:`make_continuous_offset_series` instead.
+
+    Args:
+        measures: Measures table containing a 'quarterbeats' column.
+        all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+            falls back to the default 'quarterbeats'.
+
+    Returns:
+        {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+        values for MCs that are part of a first ending (or third or larger) are NA.
+    """
+    measures = measures.set_index('mc')
+    if all_endings and 'quarterbeats_all_endings' in measures.columns:
+        col = 'quarterbeats_all_endings'
+    else:
+        col = 'quarterbeats'
+    offset_dict = measures[col].to_dict()
+    last_row = measures.iloc[-1]
+    offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+    return offset_dict

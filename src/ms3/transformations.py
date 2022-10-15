@@ -1,18 +1,17 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
-from collections.abc import Iterable
 from fractions import Fraction as frac
 from functools import reduce
+from typing import Union
 
 import numpy as np
 import pandas as pd
 
 from .logger import function_logger
-from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, interval_overlap, interval_overlap_size, \
-    make_interval_index_from_breaks, \
-    make_continuous_offset_dict, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
+from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
+    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
+    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
 
 def add_localkey_change_column(at, key_column='localkey'):
@@ -29,10 +28,11 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     ----------
     df : :obj:`pandas.DataFrame`
         DataFrame with an ``mc_playthrough`` and an ``mc_onset`` column.
-    offset_dict : :obj:`pandas.Series` or :obj:`dict`
+    offset_dict : :obj:`pandas.Series` or :obj:`dict`, optional
         | If unfolded: {mc_playthrough -> offset}
         | Otherwise: {mc -> offset}
         | You can create the dict using the function :py:meth:`Parse.get_continuous_offsets()<ms3.parse.Parse.get_continuous_offsets>`
+        | It is not required if the column 'quarterbeats' exists already.
     interval_index : :obj:`bool`, optional
         Defaults to False. Pass True to replace the index with an :obj:`pandas.IntervalIndex` (depends on the successful
         creation of the column ``duration_qb``).
@@ -41,10 +41,34 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
     -------
 
     """
+    has_quarterbeats = 'quarterbeats' in df.columns
+    has_duration_qb = 'duration_qb' in df.columns
+    has_duration = 'duration' in df.columns
+    if sum((has_quarterbeats, has_duration_qb)) == 2:
+        if interval_index:
+            logger.debug(f"'quarterbeats' and 'duration_qb' already present, only creating IntervalIndex")
+            return replace_index_by_intervals(df, logger=logger)
+        else:
+            logger.debug(f"'quarterbeats' and 'duration_qb' already present, nothing to do.")
+            return df
     if offset_dict is None:
-        logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
+        if not has_quarterbeats:
+            logger.warning(f"No offset_dict was passed: Not adding quarterbeats.")
+            return df
+        if not has_duration:
+            logger.warning(f"Could not create 'duration_qb' because no offset_dict was passed and no 'duration' column is present.")
+            return df
+    if not has_duration and 'end' not in offset_dict:
+        logger.warning(f"Could not create 'duration_qb' because offset_dict does not contain the key 'end'.")
         return df
-    if 'quarterbeats' not in df.columns:
+    new_cols = {}
+    if has_quarterbeats:
+        new_cols['quarterbeats'] = df.quarterbeats
+    if has_duration_qb:
+        new_cols['duration_qb'] = df.duration_qb
+    if len(new_cols) > 0:
+        df = df.drop(columns=list(new_cols.keys()))
+    if not has_quarterbeats:
         if 'mc_playthrough' in df.columns:
             mc_col = 'mc_playthrough'
         elif 'mc' in df.columns:
@@ -55,28 +79,29 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         quarterbeats = df[mc_col].map(offset_dict)
         if 'mc_onset' in df.columns:
             quarterbeats += df.mc_onset * 4
-        new_cols = [quarterbeats.rename('quarterbeats')]
-        if 'duration_qb' not in df.columns:
-            if 'duration' in df.columns:
-                duration_qb = (df.duration * 4).astype(float).rename('duration_qb')
-                new_cols.append(duration_qb)
-            elif 'end' in offset_dict:
-                present_qb = quarterbeats.notna()
-                try:
-                    ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
-                                                          end_value=float(offset_dict['end']), logger=logger)
-                    duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
-                    duration_qb.loc[present_qb] = ivs.length
-                    new_cols.append(duration_qb)
-                except Exception as e:
-                    logger.warning(
-                        f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
-                        f"needs to be larger than the last quarterbeat). Error:\n{e}")
-            else:
-                logger.warning("Column 'duration_qb' could not be created because offset_dict is missing the key 'end'.")
-        df = pd.concat(new_cols + [df], axis=1)
+        new_cols['quarterbeats'] = quarterbeats.rename('quarterbeats')
+    if not has_quarterbeats or not has_duration_qb:
+        # recreate duration_qb also when quarterbeats had been missing
+        if 'duration' in df.columns:
+            new_cols['duration_qb'] = (df.duration * 4).astype(float).rename('duration_qb')
+        else:
+            quarterbeats = new_cols['quarterbeats']
+            present_qb = quarterbeats.notna()
+            try:
+                ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
+                                                      end_value=float(offset_dict['end']), logger=logger)
+                duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
+                duration_qb.loc[present_qb] = ivs.length
+                new_cols['duration_qb'] = duration_qb
+            except Exception as e:
+                logger.warning(
+                    f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
+                    f"needs to be larger than the last quarterbeat). Error:\n{e}")
+    if len(new_cols) > 0:
+        df = pd.concat(list(new_cols.values()) + [df], axis=1)
+        logger.debug(f"Prepended the columns {list(new_cols.keys())}.")
     else:
-        logger.debug("quarterbeats column was already present.")
+        logger.debug("No columns were added.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
         df = replace_index_by_intervals(df, logger=logger)
     return df
@@ -275,7 +300,7 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
         dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
             unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
-            continuous_offset = make_continuous_offset_dict(unfolded_measures, logger=logger)
+            continuous_offset = make_continuous_offset_series(unfolded_measures, logger=logger)
             dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                    if df is not None else df for df in dfs]
     elif quarterbeats:
@@ -286,7 +311,7 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
                 logger.debug(
                     f"Piece contains third endings, note that only second endings are taken into account.")
             measures = measures.drop(index=measures[measures.volta.fillna(2) != 2].index, columns='volta')
-        continuous_offset = make_continuous_offset_dict(measures, logger=logger)
+        continuous_offset = make_continuous_offset_series(measures, logger=logger)
         dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                if df is not None else df for df in dfs]
     return dfs
@@ -578,7 +603,7 @@ def make_chord_col(at, cols=None):
 @function_logger
 def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
     """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
-        based on the column ``localkey``. The column names are suited for the plotly library.
+    based on the column ``localkey``. The column names are suited for the plotly library.
     Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
 
     Parameters
@@ -636,7 +661,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     iix = make_interval_index_from_breaks(key_groups.Start, end_value=last_val, logger=logger)
     key_groups.index = iix
     fifths = transform(key_groups, roman_numeral2fifths, ['localkey_resolved', 'globalkey_is_minor']).rename('fifths')
-    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor']).rename(
+    semitones = transform(key_groups, roman_numeral2semitones, ['localkey_resolved', 'globalkey_is_minor'], logger=logger).rename(
         'semitones')
     description = 'Duration: ' + iix.length.astype(str) + \
                   '<br>Tonicized global scale degree: ' + key_groups.localkey_resolved + \
@@ -690,7 +715,7 @@ def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacenc
     at.abs_numeral.fillna(global_numerals,
                           inplace=True)  # = at.abs_numeral.where(at.abs_numeral.notna(), global_numerals)
     at['fifths'] = transform(at, roman_numeral2fifths, ['abs_numeral', 'globalkey_is_minor'])
-    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'])
+    at['semitones'] = transform(at, roman_numeral2semitones, ['abs_numeral', 'globalkey_is_minor'], logger=logger)
 
     if mode_agnostic_adjacency is not None:
         adjacent_groups = (at.semitones != at.semitones.shift()).cumsum() if mode_agnostic_adjacency else (
@@ -755,7 +780,7 @@ def notes2pcvs(notes,
     ensure_columns : :obj:`Iterable`, optional
         By default, pitch classes that don't appear don't get a column. Pass a value if you want to
         ensure the presence of particular columns, even if empty. For example, if ``pitch_class_format='pc'``
-        you could pass ``ensure_columns=range(12).
+        you could pass ``ensure_columns=range(12)``.
 
 
     Returns
@@ -854,7 +879,7 @@ def resolve_all_relative_numerals(at, additional_columns=None, inplace=False):
 def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     """ Drop exact adjacent repetitions within one or a combination of several feature columns and adapt the
     IntervalIndex and the column 'duration_qb' accordingly.
-    Uses: :py:func:`adjacency_groups`
+    Uses: :func:`adjacency_groups`, :func:`reduce_dataframe_duration_to_first_row`
 
     Parameters
     ----------
@@ -886,7 +911,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         logger.error("DataFrame is missing the column 'duration_qb'")
     if isinstance(cols, str):
         cols = [cols]
-    N = len(cols)
+    N = len(cols)  # number of columns of which subsequent equal value combinations are grouped
     if not isinstance(na_values, list):
         na_values = [na_values] * N
     else:
@@ -895,25 +920,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
     groups, names = zip(
         *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
 
-    def sum_durations(df):
-        if len(df) == 1:
-            return df
-        idx = df.index
-        first_loc = idx[0]
-        row = df.iloc[[0]]
-        # if isinstance(ix, pd.Interval) or (isinstance(ix, tuple) and isinstance(ix[-1], pd.Interval)):
-        if isinstance(idx, pd.IntervalIndex):
-            start = min(idx.left)
-            end = max(idx.right)
-            iv = pd.Interval(start, end, closed=idx.closed)
-            row.index = pd.IntervalIndex([iv])
-            row.loc[iv, 'duration_qb'] = iv.length
-        else:
-            new_duration = df.duration_qb.sum()
-            row.loc[first_loc, 'duration_qb'] = new_duration
-        return row
-
-    grouped = df.groupby(list(groups), dropna=False).apply(sum_durations)
+    grouped = df.groupby(list(groups), dropna=False).apply(reduce_dataframe_duration_to_first_row)
     if any(gr.isna().any() for gr in groups):
         logger.warning(
             f"na_values={na_values} did not take care of all NA values in {cols}. This very probably leads to wrongly grouped rows. If in doubt, use 'group'.")
@@ -930,6 +937,31 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
                                                  verify_integrity=False)
     grouped.index.rename('segment', level=0, inplace=True)
     return grouped
+
+@function_logger
+def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.array], warn_na: bool = False) -> pd.DataFrame:
+    """ Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column 'duration_qb' accordingly.
+
+    Args:
+        df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.
+        boolean_mask: Boolean mask where every True value starts a new segment.
+        warn_na: If the boolean mask starts with any number of False, this first group will be missing from the result.
+            Set warn_na to True if you want the logger to throw a warning in this case.
+
+    Returns:
+        Reduced DataFrame with updated 'duration_qb' column and :obj:`pandas.IntervalIndex` on the first level.
+    """
+    if 'quarterbeats' not in df.columns:
+        raise TypeError("DataFrame is missing the column 'quarterbeats'")
+    offset_dict = dict(end=df.index.right.max())
+    df = df[boolean_mask].reset_index(drop=True)
+    if 'duration_qb' in df.columns:
+        df = df.drop(columns='duration_qb')
+
+    result = add_quarterbeats_col(df, offset_dict, interval_index=True)
+    if warn_na and not boolean_mask.iloc[0]:
+        logger.warning("Boolean mask started with False, meaning that a part of the DataFrame is excluded from the segmentation.")
+    return result
 
 
 def segment_by_interval_index(df, idx, truncate=True):

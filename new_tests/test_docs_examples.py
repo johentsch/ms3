@@ -1,9 +1,17 @@
+import os
 import subprocess
 
-import os
+import pytest
+from conftest import DOCS_EXAMPLES_DIR
 
-def test_examples():
-    docs_folder = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "docs", "examples")
-    for script in os.listdir(docs_folder):
-        path = os.path.join(docs_folder, script)
-        subprocess.run(["python", path])
+@pytest.fixture(
+    params=os.listdir(DOCS_EXAMPLES_DIR)
+)
+def example_script(request):
+    return os.path.join(DOCS_EXAMPLES_DIR, request.param)
+
+
+def test_examples(example_script):
+    print(f"Running {example_script} ...")
+    exit_value = subprocess.run(["python", example_script])
+    exit_value.check_returncode()

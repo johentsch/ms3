@@ -262,48 +262,24 @@ Tables with score information
 .. |voice| replace:: :ref:`voice <voice>`
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 This section gives an overview of the various tables that ms3 exposes after parsing a MuseScore file. Their names, e.g.
 ``measures``, correspond to the properties of :py:class:`~.score.Score` and the methods of :py:class:`~.parse.Parse`
 with which they can be retrieved. They come as :obj:`pandas.DataFrame` objects. The available tables are:
 
 All score information, except the metadata, is contained in the following two tables:
 
-* :ref:`measures <measures>`: A list of all measures contained in the score together with their respective features.
-* :ref:`notes <notes>`: A list of all notes contained in the score together with their respective features.
-* :ref:`rests <rests>`: A list of all rests contained in the score together with their respective features.
-* :ref:`notes_and_rests <notes_and_rests>`: A combination of the two above.
+* :ref:`measures <measures>`
+* :ref:`notes <notes>`
+* :ref:`rests <rests>`
+* :ref:`notes_and_rests <notes_and_rests>`
 * :ref:`chords <chords>`: **Not to be confounded with labels or chord annotations**, a chord is a notational unit in which all included
   notes are part of the same notational layer and have the same onset and duration. Every chord has a ``chord_id`` and every note
   is part of a chord. These tables are used to convey score information that is not attached to a particular note,
   such as lyrics, staff text, dynamics and other markup.
-* :ref:`labels <labels>`: The annotation labels contained in the score. The output can be controlled by changing
-  the ``labels_cfg`` configuration.
-* :ref:`expanded <expanded>`: If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__,
-  return them after being split into the encoded features.
-* :ref:`cadences <cadences>`: If DCML harmony labels include cadence labels, return only those (simply a filter on ``expanded``).
-* :ref:`events <events>`: A raw version of the score where the XML tags of all events have been transformed to column
-  names. Cumbersome to work with and only needed in special cases.
+* :ref:`labels <labels>`
+* :ref:`expanded <expanded>`
+* :ref:`cadences <cadences>`
+* :ref:`events <events>`
 
 For each of the available tables you will see an example and you can click on the columns to learn about their meanings.
 
@@ -311,6 +287,9 @@ For each of the available tables you will see an example and you can click on th
 
 Measures
 --------
+
+DataFrame representing the measures in the MuseScore file (which can be incomplete measures, see :ref:`mc_vs_mn`)
+together with their respective features. Required for unfolding repeats.
 
 .. code-block:: python
 
@@ -333,9 +312,11 @@ Measures
 Notes
 -----
 
+DataFrame representing the notes in the MuseScore file.
+
 .. code-block:: python
 
-    >>> s.mscx.notes   # access through a Score object
+    >>> s.mscx.notes() # access through a Score object
     >>> p.notes()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
@@ -352,9 +333,11 @@ Notes
 Rests
 -----
 
+DataFrame representing the rests in the MuseScore file.
+
 .. code-block:: python
 
-    >>> s.mscx.rests   # access through a Score object
+    >>> s.mscx.rests() # access through a Score object
     >>> p.rests()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+------------------+--------+-------+
@@ -371,9 +354,11 @@ Rests
 Notes and Rests
 ---------------
 
+DataFrame combining :ref:`notes` and :ref:`rests`.
+
 .. code-block:: python
 
-    >>> s.mscx.notes_and_rests   # access through a Score object
+    >>> s.mscx.notes_and_rests() # access through a Score object
     >>> p.notes_and_rests()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
@@ -442,7 +427,7 @@ for demonstration purposes:
 
 .. code-block:: python
 
-    >>> s.mscx.chords   # access through a Score object
+    >>> s.mscx.chords()   # access through a Score object
     >>> p.chords()      # access through a Parse object
 
 +----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
@@ -510,9 +495,12 @@ for demonstration purposes:
 Labels
 ------
 
+DataFrame representing the annotation labels contained in the score. The output can be controlled by changing
+the ``labels_cfg`` configuration.
+
 .. code-block:: python
 
-    >>> s.mscx.labels   # access through a Score object
+    >>> s.mscx.labels()   # access through a Score object
     >>> p.labels()      # access through a Parse object
 
 
@@ -530,9 +518,13 @@ Labels
 Expanded
 --------
 
+If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__,
+this DataFrames represents them after splitting them into the encoded features and translating
+them into scale degrees.
+
 .. code-block:: python
 
-    >>> s.mscx.expanded   # access through a Score object
+    >>> s.mscx.expanded()   # access through a Score object
     >>> p.expanded()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+-------+-------+-----------+----------+-------+-------+---------+------+---------+---------+--------------+---------+-----------+------------+--------------------+-------------------+-------------+-------------+------+-----------+
@@ -549,6 +541,7 @@ Expanded
 Cadences
 --------
 
+If DCML harmony labels include cadence labels, return only those.
 This table is simply a filter on :ref:`expanded <expanded>`. The table has the same columns and contains only rows
 that include a cadence label. Just for convenience...
 
@@ -558,12 +551,23 @@ that include a cadence label. Just for convenience...
     >>> p.cadences()      # access through a Parse object
 
 
+.. _form_labels:
+
+Form labels
+-----------
+
+.. code-block:: python
+
+    >>> s.mscx.form_labels()  # access through a Score object
+    >>> p.form_labels()       # access through a Parse object
+
+
 .. _events:
 
 Events
 ------
 
-This table is the original tabular representation of the MuseScore file's source code from which all other tables,
+This DataFrame is the original tabular representation of the MuseScore file's source code from which all other tables,
 except ``measures`` are generated. The nested XML tags are transformed into column names.
 
 The value ``'∅'`` is used for empty tags. For example, in the column ``Chord/Spanner/Slur`` it would correspond to

@@ -467,7 +467,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
 
 
 @function_logger
-def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None):
+def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dict:
     """
         Uses: treat_group()
     """

@@ -81,11 +81,11 @@ class TestScore:
         else:
             assert effective_measures.quarterbeats.notna().all()
         assert_dfs_equal(raw_measures, effective_measures)
-        print(score_object.mscx.offset_dict)
+        print(score_object.mscx.offset_dict())
 
     def test_notes(self, score_object):
         mscx = score_object.mscx.parsed
-        notelist = score_object.mscx.notes
+        notelist = score_object.mscx.notes()
         print()
 
     def test_form_labels(self, score_object):

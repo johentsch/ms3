@@ -72,21 +72,19 @@
 """
 
 import re, sys
-import logging
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from typing import Literal
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
-import numpy as np
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col
-from .utils import adjacency_groups, assert_dfs_equal, color2rgba, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_continuous_offset_dict, ordinal_suffix, pretty_dict, resolve_dir, rgba2attrs, rgba2params, rgb_tuple2format, sort_note_list
+from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
+    get_quarterbeats_length, make_offset_dict_from_measures, ordinal_suffix, resolve_dir, rgba2attrs, rgb_tuple2format, sort_note_list
 
 
 
@@ -258,9 +256,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                 if tremolo_component in (0, 2):
                                     tremolo_type = None
                                 if tremolo_component == 2:
-                                    duration_to_complete_tremolo = event_node.find(
-                                        'duration').string
-                                    assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
+                                    completing_duration_node = event_node.find('duration')
+                                    if completing_duration_node:
+                                        duration_to_complete_tremolo = completing_duration_node.string
+                                        assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
                                     tremolo_component = 0
 
                             for chord_child in event_node.find_all(recursive=False):
@@ -412,7 +411,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return events
 
 
-    def form_labels(self, detection_regex: str = None, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -420,18 +419,21 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             detection_regex:
                 By default, detects all labels starting with one or two digits followed by a column
                 (see :const:`the regex <~.utils.FORM_DETECTION_REGEX>`). Pass another regex to retrieve only StaffTexts matching this one.
+            exclude_harmony_layer:
+                By default, form labels are detected even if they have been encoded as Harmony labels (rather than as StaffText).
+                Pass True in order to retrieve only StaffText form labels.
             interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        form = self.fl(detection_regex=detection_regex)
+        form = self.fl(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer)
         if form is None:
             return
         form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index)
         return form
 
-    def fl(self, detection_regex: str = None) -> pd.DataFrame:
+    def fl(self, detection_regex: str = None, exclude_harmony_layer=False) -> pd.DataFrame:
         """ Get the raw :ref:`form_labels` (or other) that match the ``detection_regex``, but without adding quarterbeat columns.
 
         Args:
@@ -442,13 +444,28 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex`` or None
         """
-        if 'StaffText/text' in self._events.columns:
+        stafftext_col = 'StaffText/text'
+        harmony_col = 'Harmony/name'
+        has_stafftext = stafftext_col in self._events.columns
+        has_harmony_layer = harmony_col in self._events.columns and not exclude_harmony_layer
+        if has_stafftext or has_harmony_layer:
             if detection_regex is None:
                 detection_regex = FORM_DETECTION_REGEX
-            is_form_label = self._events['StaffText/text'].str.contains(FORM_DETECTION_REGEX).fillna(False)
-            if is_form_label.sum() == 0:
+            form_label_column = pd.Series(pd.NA, index=self._events.index, dtype='string', name='form_label')
+            if has_stafftext:
+                stafftext_selector = self._events[stafftext_col].str.contains(detection_regex).fillna(False)
+                if stafftext_selector.sum() > 0:
+                    form_label_column.loc[stafftext_selector] = self._events.loc[stafftext_selector, stafftext_col]
+            if has_harmony_layer:
+                harmony_selector = self._events[harmony_col].str.contains(detection_regex).fillna(False)
+                if harmony_selector.sum() > 0:
+                    form_label_column.loc[harmony_selector] = self._events.loc[harmony_selector, harmony_col]
+            detected_form_labels = form_label_column.notna()
+            if detected_form_labels.sum() == 0:
+                self.logger.debug(f"No form labels found.")
                 return
-            form_labels = self._events[is_form_label].rename(columns={'StaffText/text': 'form_label'})
+            events_with_form = pd.concat([self._events, form_label_column], axis=1)
+            form_labels = events_with_form[detected_form_labels]
             cols = ['mc', 'mc_onset', 'mn', 'mn_onset', 'staff', 'voice', 'timesig', 'volta', 'form_label']
             self._fl = self.add_standard_cols(form_labels)[cols].sort_values(['mc', 'mc_onset'])
             return self._fl
@@ -485,6 +502,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 .shift(fill_value=0)\
                 .reindex(measures.index)
             measures.insert(2, "quarterbeats", quarterbeats_col * 4)
+        else:
+            measures.drop(columns='volta', inplace=True)
         return measures.copy()
 
     @property
@@ -558,22 +577,19 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._nrl
 
     def offset_dict(self, all_endings: bool = False) -> dict:
-        """
+        """ Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
+        Used for computing quarterbeats for other facets.
 
         Args:
-            all_endings:
+            all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+                falls back to the default 'quarterbeats'.
 
         Returns:
-
+            {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+            values for MCs that are part of a first ending (or third or larger) are NA.
         """
-        measures = self.measures().set_index('mc')
-        if all_endings and 'quarterbeats_all_endings' in measures.columns:
-            col = 'quarterbeats_all_endings'
-        else:
-            col = 'quarterbeats'
-        offset_dict = measures[col].to_dict()
-        last_row = measures.iloc[-1]
-        offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+        measures = self.measures()
+        offset_dict = make_offset_dict_from_measures(measures, all_endings)
         return offset_dict
 
     def rests(self, interval_index : bool = False) -> pd.DataFrame:

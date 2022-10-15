@@ -20,7 +20,7 @@ __license__ = "gpl3"
 def gather_extract_params(args):
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'),
-        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata, args.form_labels))
               if arg is not None]
     return params
 
@@ -168,6 +168,7 @@ def extract_cmd(args, parse_obj=None):
                 events_folder=args.events,
                 chords_folder=args.chords,
                 expanded_folder=args.expanded,
+                form_labels_folder=args.form_labels,
                 metadata_path=resolve_dir(args.metadata),
                 simulate=args.test,
                 unfold=args.unfold,
@@ -365,7 +366,7 @@ def review_cmd(args, parse_obj=None):
     print(filtered_report[filtered_report.dur_ratio > threshold])
     comparison = compare(p, use=args.use, revision_specifier=args.commit)
     modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    p.output_mscx(ids=modified_ids, suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
+    p.output_mscx(ids=modified_ids, folder="../reviewed", suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
     if test_passes:
         review_logger.info(f"Parsed scores passed all tests.")
     else:
@@ -503,7 +504,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Folder where to store TSV files with information on all rests.")
     extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../expanded',
+    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
@@ -512,7 +513,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
                                 help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
     extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+                                help="Folder where to store TSV files with all form labels.")
     extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
@@ -608,7 +609,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 const='../labels',
                                 help="Folder where to store TSV files with information on all annotation labels.")
     review_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
-                                const='../expanded',
+                                const='../harmonies',
                                 help="Folder where to store TSV files with expanded DCML labels.")
     review_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")

@@ -34,18 +34,25 @@ Version 0.5.1
 =============
 
 * changes to ``iter`` methods for iterating through DataFrames and metadata belonging together:
+
   * supressed the second item: instead of ``(metadata, paths, df1, df2...)`` yield ``(metadata, df1, df2...)`` where the
     metadata dict contains the paths
   * added methods ``iter_transformed()`` and ``iter_notes()`` to ``Parse`` and ``View`` objects
+
 * added command ``ms3 transform``
+
   * used to concatenate all parsed TSVs of a certain type into one file including the option to unfold and add quarterbeats
   * stores them with prefix ``concatenated_``; ms3 now ignores all files beginning with this prefix
+
 * changes in default TSV columns
+
   * ``metadata.tsv`` includes the new columns
+
     * ``length_qb``: a scores length in quarterbeats (including all voltas)
     * ``length_qb_unfolded``: the same but with unfolded repeats, if any
     * ``all_notes_qb``: the sum of all note durations in quarterbeats
     * ``n_onsets``: the number of all onsets
+
   * no empty ``volta`` columns are included (except for measures) when no voltas are present
 
 Version 0.5.0

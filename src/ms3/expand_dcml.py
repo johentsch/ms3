@@ -39,8 +39,8 @@ SM = SliceMaker()
 
 
 @function_logger
-def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propagate=True, volta_structure=None,
-                  relative_to_global=False, chord_tones=True, absolute=False, all_in_c=False):
+def expand_labels(df, column='label', regex=None, rename={}, dropna=False, propagate=True, volta_structure=None,
+                  relative_to_global=False, chord_tones=True, absolute=False, all_in_c=False, skip_checks=False, ):
     """
     Split harmony labels complying with the DCML syntax into columns holding their various features
     and allows for additional computations and transformations.
@@ -59,7 +59,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
     regex : :obj:`re.Pattern`
         Compiled regular expression used to split the labels. It needs to have named groups.
         The group names are used as column names unless replaced by ``cols``.
-    cols : :obj:`dict`, optional
+    rename : :obj:`dict`, optional
         Dictionary to map the regex's group names to deviating column names of your choice.
     dropna : :obj:`bool`, optional
         Pass True if you want to drop rows where ``column`` is NaN/<NA>
@@ -96,7 +96,7 @@ def expand_labels(df, column='label', regex=None, cols={}, dropna=False, propaga
         Original DataFrame plus additional columns with split features.
     """
     assert sum((absolute, all_in_c)) < 2, "Chord tones can be either 'absolute' or 'all_in_c', not both."
-    assert len(df.index.names) == 1, f"""df has a MultiIndex of {len(df.index.names)} levels, implying that it has information 
+    assert df.index.nlevels, f"""df has a MultiIndex of {df.index.nlevels} levels, implying that it has information 
 from several pieces. Apply expand_labels() to one piece at a time."""
     df = df.copy()
     if regex is None:
@@ -110,113 +110,142 @@ from several pieces. Apply expand_labels() to one piece at a time."""
 
 
     for col in ['numeral', 'form', 'figbass', 'localkey', 'globalkey', 'phraseend']:
-        if not col in cols:
-            cols[col] = col
-    global_minor = f"{cols['globalkey']}_is_minor"
+        if not col in rename:
+            rename[col] = col
 
-    ### Check for too many immediate repetitions
-    not_nan = df[column].dropna()
-    immediate_repetitions = not_nan == not_nan.shift()
-    k = immediate_repetitions.sum()
-    if k > 0:
-        if k / len(not_nan.index) > 0.1:
-            logger.warning(
-                "DataFrame has many direct repetitions of labels. This function is written for lists of labels only which should have no immediate repetitions.")
-        else:
-            logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
-
-
+    if not skip_checks:
+        ### Check for too many immediate repetitions
+        not_nan = df[column].dropna()
+        immediate_repetitions = not_nan == not_nan.shift()
+        k = immediate_repetitions.sum()
+        if k > 0:
+            if k / len(not_nan.index) > 0.1:
+                logger.warning(
+                    "DataFrame has many direct repetitions of labels. This function is written for lists of labels only which should have no immediate repetitions.")
+            else:
+                logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
 
     ### Do the actual expansion
     df = split_alternatives(df, column=column, logger=logger)
-    df = split_labels(df, column=column, regex=regex, cols=cols, dropna=dropna, logger=logger)
-    df['chord_type'] = transform(df, features2type, [cols[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
-    df = replace_special(df, regex=regex, merge=True, cols=cols, logger=logger)
+    df = split_labels(df, label_column=column, regex=regex, rename=rename, dropna=dropna, skip_checks=skip_checks, logger=logger)
+    df['chord_type'] = transform(df, features2type, [rename[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
+    df = replace_special(df, regex=regex, merge=True, cols=rename, logger=logger)
 
-    ### Check phrase annotations
-    p_col = df[cols['phraseend']]
-    opening = p_col.fillna('').str.count('{')
-    closing = p_col.fillna('').str.count('}')
-    if opening.sum() != closing.sum():
-        o = df.loc[(opening > 0), ['mc', cols['phraseend']]]
-        c = df.loc[(closing > 0), ['mc', cols['phraseend']]]
-        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
+    if not skip_checks:
+        ### Check phrase annotations
+        p_col = df[rename['phraseend']]
+        opening = p_col.fillna('').str.count('{')
+        closing = p_col.fillna('').str.count('}')
+        if opening.sum() != closing.sum():
+            o = df.loc[(opening > 0), ['mc', rename['phraseend']]]
+            c = df.loc[(closing > 0), ['mc', rename['phraseend']]]
+            compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
+            logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
 
+    key_cols = {col: rename[col] for col in ['localkey', 'globalkey']}
     if propagate:
-        key_cols = {col: cols[col] for col in ['localkey', 'globalkey']}
         try:
             df = propagate_keys(df, volta_structure=volta_structure, add_bool=True, **key_cols, logger=logger)
         except:
             logger.error(f"propagate_keys() failed with\n{sys.exc_info()[1]}", extra={"message_id": (12, )})
         try:
-            df = propagate_pedal(df, cols=cols, logger=logger)
+            df = propagate_pedal(df, cols=rename, logger=logger)
         except:
             logger.error(f"propagate_pedal() failed with\n{sys.exc_info()[1]}", extra={"message_id": (13, )})
-
-        if chord_tones:
-            ct = compute_chord_tones(df, expand=True, cols=cols, logger=logger)
-            df = pd.concat([df, ct], axis=1)
-            if relative_to_global or absolute or all_in_c:
-                df = transpose_chord_tones_by_localkey(df, by_global=absolute)
-
-        if relative_to_global:
-            labels2global_tonic(df, inplace=True, cols=cols, logger=logger)
     else:
         if chord_tones:
             logger.info("Chord tones cannot be calculated without propagating keys.")
         if relative_to_global:
             logger.info("Cannot transpose labels without propagating keys.")
+    not_a_chord = df.chord.isna()
+    if chord_tones:
+        key_cols_gapless = {col: (df[col].notna() | not_a_chord).all() for col in key_cols.values()}
+        if propagate or all(key_cols_gapless.values()):
+            ct = compute_chord_tones(df, expand=True, cols=rename, logger=logger)
+            df = values_into_df(df, ct)
+            if relative_to_global or absolute or all_in_c:
+                df = transpose_chord_tones_by_localkey(df, by_global=absolute)
+
+        if relative_to_global:
+            labels2global_tonic(df, inplace=True, cols=rename, logger=logger)
 
     if tmp_index:
         df.index = ix
 
     return df
 
+@function_logger
+def extract_features_from_labels(S, regex=None):
+    """Applies .str.extract(regex) on the Series and returns a DataFrame with all named capturing groups."""
+    if regex is None:
+        regex = DCML_REGEX
+    if regex.__class__ != re.compile('').__class__:
+        regex = re.compile(regex, re.VERBOSE)
+    features = list(regex.groupindex.keys())
+    extracted = S.str.extract(regex, expand=True)
+    return extracted[features].copy()
 
 @function_logger
-def split_labels(df, column, regex, cols={}, dropna=False, inplace=False, **kwargs):
+def split_labels(df, label_column='label', regex=None, rename={}, dropna=False, inplace=False, skip_checks=False, **kwargs):
     """ Split harmony labels complying with the DCML syntax into columns holding their various features.
 
     Parameters
     ----------
     df : :obj:`pandas.DataFrame`
         Dataframe where one column contains DCML chord labels.
-    column : :obj:`str`
+    label_column : :obj:`str`
         Name of the column that holds the harmony labels.
     regex : :obj:`re.Pattern`
         Compiled regular expression used to split the labels. It needs to have named groups.
         The group names are used as column names unless replaced by `cols`.
-    cols : :obj:`dict`
+    rename : :obj:`dict`
         Dictionary to map the regex's group names to deviating column names.
     dropna : :obj:`bool`, optional
         Pass True if you want to drop rows where ``column`` is NaN/<NA>
     inplace : :obj:`bool`, optional
         Pass True if you want to mutate ``df``.
     """
+    if regex is None:
+        regex = DCML_REGEX
     if regex.__class__ != re.compile('').__class__:
         regex = re.compile(regex, re.VERBOSE)
-    features = regex.groupindex.keys()
+
     if not inplace:
         df = df.copy()
-    if df[column].isna().any():
+    if df[label_column].isna().any():
         if dropna:
-            logger.debug(f"Removing NaN values from label column {column}...")
-            df = df[df[column].notna()]
+            logger.debug(f"Removing NaN values from label column {label_column}...")
+            df = df[df[label_column].notna()]
         else:
-            logger.debug(f"{column} contains NaN values.")
+            logger.debug(f"{label_column} contains NaN values.")
 
-    logger.debug(f"Applying RegEx to column {column}...")
-    spl = df[column].str.extract(regex, expand=True)  # .astype('string') # needs pandas 1.0
-    for feature in features:
-        name = cols[feature] if feature in cols else feature
-        df[name] = spl[feature]
-    mistakes = spl.isna().apply(all, axis=1) & df[column].notna()
-    if mistakes.any():
-        logger.warning(f"The following labels do not match the regEx:\n{df.loc[mistakes, :column].to_string()}")
+    logger.debug(f"Applying RegEx to column {label_column}...")
+    spl = extract_features_from_labels(df[label_column], regex=regex, logger=logger)
+    if len(rename) > 0:
+        spl.rename(columns=rename, inplace=True)
+    df = values_into_df(df, spl)
+    if not skip_checks:
+        syntax_errors = spl.isna().all(axis=1) & df[label_column].notna()
+        if syntax_errors.any():
+            logger.warning(f"The following labels do not match the regEx:\n{df.loc[syntax_errors, :label_column].to_string()}")
     if not inplace:
         return df
+
+
+def values_into_df(df, new_values):
+    features = list(new_values.columns)
+    update_columns = [col for col in features if col in df.columns]
+    new_columns = [col for col in features if col not in df.columns]
+    if len(update_columns) > 0:
+        df.loc[:, update_columns] = df[update_columns].fillna(new_values[update_columns])
+    if len(new_columns) > 0:
+        df = pd.concat([df, new_values[new_columns]], axis=1)
+        if len(update_columns) > 0:
+            all_other_columns = [col for col in df.columns if col not in features]
+            column_order = all_other_columns + features
+            df = df[column_order].copy()
+    return df
 
 
 @function_logger

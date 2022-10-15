@@ -19,7 +19,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
 from .score import Score
 from .utils import column_order, first_level_files_and_subdirs, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
-     iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_dict, \
+     iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
@@ -273,8 +273,8 @@ class Parse(LoggedClass):
             'staff': None,
             'voice': None,
             'harmony_layer': None,
-            'positioning': True,
-            'decode': False,
+            'positioning': False,
+            'decode': True,
             'column_name': 'label',
             'color_format': None,
         }
@@ -650,11 +650,14 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
+            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         """
         directory = resolve_dir(directory)
+        if not os.path.isdir(directory):
+            self.logger.warning(f"{directory} is not an existing directory.")
+            return
         self.last_scanned_dir = directory
 
         if not recursive:
@@ -713,12 +716,16 @@ class Parse(LoggedClass):
             The regEx is checked with search(), not match(), allowing for fuzzy search.
         exclude_re : :obj:`str`, optional
             Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include '_reviewed' or start with . or _ or "concatenated_" are excluded.
+            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
         **kwargs:
             User other folder names than the default ones.
         """
+        directory = resolve_dir(directory)
+        if not os.path.isdir(directory):
+            self.logger.warning(f"{directory} is not an existing directory.")
+            return
         convertible = self.ms is not None
         if file_re is None:
             file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
@@ -811,6 +818,7 @@ class Parse(LoggedClass):
                 added_ids += metadata_id
             else:
                 self.logger.info(f"No metadata found for corpus '{key}'.")
+        self.corpus_paths[key] = directory
         self.look_for_ignored_warnings(directory, key)
 
     def look_for_ignored_warnings(self, directory, key):
@@ -1432,6 +1440,7 @@ Available keys: {available_keys}""")
             quarterbeats = True
         for key, fnames in key2fnames.items():
             for md, *dfs in self[key].iter_transformed(columns, skip_missing=True, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
+                # TODO: Adapt to the fact that now all DataFrames come with quarterbeats already
                 for tsv_type, id, df in zip(columns, md['ids'], dfs):
                     if df is not None:
                         if flat:
@@ -1609,7 +1618,7 @@ Available keys: {available_keys}""")
         if ml is None:
             logger.warning(f"Could not find measure list for id {id}.")
             return None
-        offset_col = make_continuous_offset_dict(ml, logger=logger)
+        offset_col = make_continuous_offset_series(ml, logger=logger)
         offsets = offset_col.to_dict()
         self._quarter_offsets[unfold][id] = offsets
         return offsets
@@ -2136,13 +2145,13 @@ Available keys: {available_keys}""")
 
                 if tsv_type is None:
                     logger.debug(
-                        f"No label column '{label_col}' was found in {self.files[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                        f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
                     self._tsv_types[id] = 'other'
                 else:
                     self._tsv_types[id] = tsv_type
                     if tsv_type == 'metadata':
                         self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                        logger.debug(f"{self.files[key][i]} parsed as metadata.")
+                        logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
                     else:
                         self._dataframes[tsv_type][id] = self._parsed_tsv[id]
                         if tsv_type in ['labels', 'expanded']:
@@ -2152,16 +2161,16 @@ Available keys: {available_keys}""")
                                 self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
                                                                           logger_cfg=logger_cfg, level=level)
                                 logger.debug(
-                                    f"{self.files[key][i]} parsed as annotation table and an Annotations object was created.")
+                                    f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
                             else:
                                 logger.info(
-    f"""The file {self.files[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-    Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+        f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+        Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
                         else:
-                            logger.debug(f"{self.files[key][i]} parsed as {tsv_type} table.")
+                            logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
 
-            except Exception:
-                self.logger.error(f"Parsing {self.files[key][i]} failed with the following error:\n{sys.exc_info()[1]}")
+            except Exception as e:
+                self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
         """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
@@ -2214,8 +2223,22 @@ Available keys: {available_keys}""")
         try:
             targetfile = commit.tree / rel_path
         except KeyError:
-            self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
-            return
+            # if the file was not found, try and see if at the time of the git revision the folder was still called 'harmonies'
+            if tsv_type == 'expanded':
+                folder, tsv_name = os.path.split(rel_path)
+                if folder != 'harmonies':
+                    old_rel_path = os.path.join('harmonies', tsv_name)
+                    try:
+                        targetfile = commit.tree / old_rel_path
+                        self.logger.debug(f"{rel_path} did not exist at commit {commit_info}, using {old_rel_path} instead.")
+                        rel_path = old_rel_path
+                    except KeyError:
+                        self.logger.error(f"Neither {rel_path} nor its older version {old_rel_path} existed at commit {commit_info}.")
+                        return
+            else:
+                self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
+                return
+        self.logger.info(f"Successfully loaded {rel_path} from {commit_info}.")
         try:
             with io.BytesIO(targetfile.data_stream.read()) as f:
                 df = load_tsv(f)
@@ -2302,7 +2325,7 @@ Available keys: {available_keys}""")
         else:
             self.simulate = simulate
         l = locals()
-        df_types = list(self._dataframes)
+        df_types = list(self._dataframes.keys())
         folder_vars = [t + '_folder' for t in df_types]
         suffix_vars = [t + '_suffix' for t in df_types]
         folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
@@ -3357,6 +3380,7 @@ class View(Parse):
             for c in standard_cols:
                 if col.startswith(c):
                     return c, col
+            raise ValueError(f"Cannot iterate through '{col}'. Check which columns are available for the corpus '{self.key}'.")
 
         for md, (fname, matches) in zip(self.metadata().to_dict(orient='records'), self.matches.items()):
             """md = {key->value} metadata; matches = {type->id}"""
@@ -3369,11 +3393,17 @@ class View(Parse):
                 """c can be a column name or a list of column names from which the first non-empty one will be used"""
                 if isinstance(c, str):
                     what, disamb = c_name2std_and_disamb(c)
-                    df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                    try:
+                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                    except FileNotFoundError:
+                        df = None
                 else:
                     for cc in c:
                         what, disamb = c_name2std_and_disamb(cc)
-                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                        try:
+                            df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
+                        except FileNotFoundError:
+                            df = None
                         if df is not None:
                             c = cc
                             break

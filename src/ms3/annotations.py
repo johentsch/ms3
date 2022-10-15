@@ -30,8 +30,8 @@ class Annotations(LoggedClass):
         cols : :obj:`dict`
             If your columns don't have standard names, pass a {NAME -> ACTUAL_NAME} dictionary.
             Required columns: label, mc, mc_onset, staff, voice
-            Additional columns: harmony_layer, root, base, leftParen, rightParen, offset_x, offset_y, nashville, color_name,
-            color_html, color_r, color_g, color_b, color_a
+            Additional columns: harmony_layer, regex_match, absolute_root, rootCase, absolute_base, leftParen, rightParen, offset_x, offset_y, nashville, decoded, color_name,
+            color_html, color_r, color_g, color_b, color_a, placement, minDistance, style, z
         index_col
         sep
         mscx_obj
@@ -196,21 +196,14 @@ class Annotations(LoggedClass):
         else:
             df['color_name'] = 'default'
             layers.append('color_name')
-        layer2name = map_dict({
-            0: '0 (Plain Text)',
-            1: '1 (Nashville)',
-            2: '2 (Roman Numeral)',
-            3: '3 (Absolute Chord)',
-            'dcml': 'dcml',
-        })
-        df.harmony_layer = df.harmony_layer.map(layer2name)
+        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
         return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, drop=False, warnings=True, column_name=None, color_format=None):
+    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, warnings=True, column_name=None, color_format=None):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -228,8 +221,8 @@ class Annotations(LoggedClass):
         positioning : :obj:`bool`, optional
             Set to True if you want to include information about how labels have been manually positioned.
         decode : :obj:`bool`, optional
-            Set to True if you don't want to keep labels in their original form as encoded by MuseScore (with root and
-            bass as TPC (tonal pitch class) where C = 14).
+            Set to False if you want to keep labels in harmony_layer 0, 2, and 3 labels in their original form
+            as encoded by MuseScore (e.g., with root and bass as TPC (tonal pitch class) where C = 14 for layer 0).
         drop : :obj:`bool`, optional
             Set to True to delete the returned labels from this object.
         warnings : :obj:`bool`, optional
@@ -250,6 +243,7 @@ class Annotations(LoggedClass):
         if voice is not None:
             sel = sel & (self.df[self.cols['voice']] == voice)
         if harmony_layer is not None and 'harmony_layer' in self.df.columns:
+            # TODO: account for the split into harmony_layer and regex_match
             harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
             sel = sel & self.df.harmony_layer.isin(harmony_layer)
         res = self.df[sel].copy()
@@ -346,26 +340,27 @@ class Annotations(LoggedClass):
             self.regex_dict = dict(dcml=DCML_DOUBLE_REGEX, **self.regex_dict)
             self.infer_types()
         df = self.get_labels(**kwargs)
-        sel = (df.regex_match == 'dcml').fillna(False)
-        if not sel.any():
+        select_dcml = (df.regex_match == 'dcml').fillna(False)
+        if not select_dcml.any():
             self.logger.info(f"Score does not contain any DCML harmonic annotations.")
             return
         if not drop_others:
             warn_about_others = False
-        if warn_about_others and (~sel).any():
-            self.logger.warning(f"Score contains {(~sel).sum()} labels that don't (and {sel.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~sel], keep_layer=True, logger=self.logger)[['mc', 'mn', 'label', 'harmony_layer']].to_string()}",
+        if warn_about_others and (~select_dcml).any():
+            self.logger.warning(f"Score contains {(~select_dcml).sum()} labels that don't (and {select_dcml.sum()} that do) match the DCML standard:\n{decode_harmonies(df[~select_dcml], keep_layer=True, logger=self.logger)[['mc', 'mn', 'label', 'harmony_layer']].to_string()}",
                                 extra={"message_id": (15, )})
-        df = df[sel]
+        df = df[select_dcml]
         try:
             exp = expand_labels(df, column='label', regex=DCML_REGEX, volta_structure=self.volta_structure, chord_tones=chord_tones, relative_to_global=relative_to_global, absolute=absolute, all_in_c=all_in_c, logger=self.logger)
             if drop_others:
                 self._expanded = exp
             else:
                 df = self.df.copy()
-                df.loc[sel, exp.columns] = exp
+                df.loc[select_dcml, exp.columns] = exp
                 self._expanded = df
-            if 'harmony_layer' in self._expanded.columns:
-                self._expanded.drop(columns='harmony_layer', inplace=True)
+            drop_cols = [col for col in ('harmony_layer', 'regex_match') if col in df.columns]
+            if len(drop_cols) > 0:
+                self._expanded.drop(columns=drop_cols, inplace=True)
         except:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
 
@@ -391,8 +386,8 @@ class Annotations(LoggedClass):
 
     def infer_types(self, regex_dict=None):
         if 'harmony_layer' not in self.df.columns:
-            type_col = pd.Series(0, index=self.df.index, dtype='object', name='harmony_layer')
-            self.df = pd.concat([self.df, type_col], axis=1)
+            harmony_layer_col = pd.Series(1, index=self.df.index, dtype='object', name='harmony_layer')
+            self.df = pd.concat([self.df, harmony_layer_col], axis=1)
         if 'nashville' in self.df.columns:
             self.df.loc[self.df.nashville.notna(), 'harmony_layer'] = 2
         if 'absolute_root' in self.df.columns:
@@ -409,6 +404,7 @@ class Annotations(LoggedClass):
                 column_position = self.df.columns.get_loc('harmony_layer') + 1
                 self.df.insert(column_position, 'regex_match', regex_col)
             for name, regex in regex_dict.items():
+                # TODO: Check if in the loop, previously matched regex names are being overwritten by those matched after
                 mtch = decoded[sel].str.match(regex)
                 self.df.loc[sel & mtch, 'regex_match'] = name
 
@@ -423,7 +419,7 @@ class Annotations(LoggedClass):
         self.df.loc[no_nan, label_col] = self.df.loc[no_nan, label_col].map(rem_dots)
 
 
-    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, sep='\t', index=False, **kwargs):
+    def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):
         df = self.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=positioning, decode=decode)
         if decode and 'harmony_layer' in df.columns:
             df.drop(columns='harmony_layer', inplace=True)
