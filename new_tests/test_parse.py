@@ -25,8 +25,8 @@ class TestEquivalence():
         assert len(b.count_extensions(per_key=True)) == 1
 
 def assert_all_loggers_level(level):
-    for logger in iter_ms3_loggers():
-        if not logger.name.startswith('ms3.Parse'):
+    for name, logger in iter_ms3_loggers():
+        if not name.startswith('ms3.Parse'):
             continue
         eff_level = logger.getEffectiveLevel()
         if eff_level != level:
@@ -43,6 +43,7 @@ def assert_all_loggers_level(level):
 class TestLogging():
 
     def test_parallel_log_capture(self, directory):
+        """Compare log messages emitted when parsing the same thing in parallel or iteratively."""
         cfg = dict(level='d')
         a = Parse(directory, logger_cfg=cfg)
         b = Parse(directory, logger_cfg=cfg)

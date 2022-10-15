@@ -68,7 +68,7 @@ class TestScore:
 
     def test_measures(self, score_object):
         mscx = score_object.mscx.parsed
-        raw_measures = mscx.ml
+        raw_measures = mscx.ml()
         effective_measures = score_object.mscx.measures()
         qb_cols = ('quarterbeats', 'duration_qb')
         assert all(col in effective_measures for col in qb_cols)
@@ -80,11 +80,11 @@ class TestScore:
         else:
             assert effective_measures.quarterbeats.notna().all()
         assert_dfs_equal(raw_measures, effective_measures)
-        print(score_object.mscx.offset_dict)
+        print(score_object.mscx.offset_dict())
 
     def test_notes(self, score_object):
         mscx = score_object.mscx.parsed
-        notelist = score_object.mscx.notes
+        notelist = score_object.mscx.notes()
         print()
 
 
