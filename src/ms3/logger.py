@@ -44,7 +44,7 @@ class CustomFormatter(logging.Formatter):
     """Formats message depending on whether there is a specified message type"""
     def format(self, record):
         if not hasattr(record, "_message_type"):
-            raise ValueError(f"Logger {record.name} has not been correctly defined and is missing the default _message_id field.")
+            raise ValueError(f"Logger {record.name} has not been correctly defined and is missing the default _message_type field.")
         msg = record.msg.replace('\n', '\n\t')
         if record._message_type == 0:  # if there is no message type
             record.msg = '%-8s %s -- %s (line %s) %s():\n\t%s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, msg)
@@ -239,6 +239,12 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
         elif is_head_logger:
             logger.setLevel(30)
     effective_level = logger.getEffectiveLevel()
+    if is_head_logger:
+        # checking if any loggers exist from previous runs and need to be adapted
+        for logger_name, lggr in logging.Logger.manager.loggerDict.items():
+            if logger_name.startswith(name) and logger_name != name and isinstance(lggr, logging.Logger):
+                if lggr.getEffectiveLevel() not in (0, effective_level):
+                    lggr.setLevel(effective_level)
 
     if len(ignored_warnings) > 0:
         logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
@@ -361,11 +367,15 @@ class LogCapturer(object):
         return self._log_handler
 
 
-def iter_ms3_loggers(exclude_placeholders=True):
-    for name, logger in logging.Logger.manager.loggerDict.items():
+def iter_ms3_loggers(exclude_placeholders=True) -> tuple:
+    for name in logging.Logger.manager.loggerDict:
         if name.startswith('ms3'):
+            logger = logging.getLogger(name)
             if not exclude_placeholders or isinstance(logger, logging.Logger):
-                yield logger
+                yield name, logger
+
+def inspect_loggers(exclude_placeholders=False) -> dict:
+    return dict(iter_ms3_loggers(exclude_placeholders=exclude_placeholders))
 
 @contextmanager
 def temporarily_suppress_warnings(parse_obj):
