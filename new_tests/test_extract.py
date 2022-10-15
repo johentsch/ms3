@@ -58,7 +58,7 @@ class TestEmptyParse():
     def expected_keys(self, request):
         name2expected = defaultdict(dict)
         name2expected.update(dict(
-            everything = {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
+            everything = {'mixed_files': {'.mscx': 11, '.mscz': 1, '.tsv': 1},
                              'outputs': {'.mscx': 1, '.tsv': 3},
                              'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
@@ -74,9 +74,10 @@ class TestEmptyParse():
             regular_dirs_at_once = {'ravel_piano': {'.mscx': 5, '.tsv': 14},
                              'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
                              'wagner_overtures': {'.mscx': 2, '.tsv': 7}},
-            chaotic_dirs = {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
-                             'orchestral': {'.mscx': 3},
-                             'outputs': {'.mscx': 1, '.tsv': 3}},
+            chaotic_dirs = {'chamber': {'.mscx': 1},
+                            'keyboard': {'.mscx': 5, '.mscz': 1, '.tsv': 1},
+                            'orchestral': {'.mscx': 3},
+                            'outputs': {'.mscx': 1, '.tsv': 3}},
             files_without_key = {'unittest_metacorpus': {'.mscx': 3}},
             files_with_inferred_key = {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
             files_with_wrong_key = {'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
@@ -132,10 +133,11 @@ class TestParsedParse():
     @pytest.fixture()
     def expected_keys(self, request):
         expected = {
-            "chaotic_dirs": {'keyboard': {'.mscx': 4, '.mscz': 1, '.tsv': 1},
-                                         'orchestral': {'.mscx': 3},
-                                         'outputs': {'.mscx': 1, '.tsv': 3}},
-            "everything": {'mixed_files': {'.mscx': 9, '.mscz': 1, '.tsv': 1},
+            "chaotic_dirs": {'chamber': {'.mscx': 1},
+                             'keyboard': {'.mscx': 5, '.mscz': 1, '.tsv': 1},
+                             'orchestral': {'.mscx': 3},
+                             'outputs': {'.mscx': 1, '.tsv': 3}},
+            "everything": {'mixed_files': {'.mscx': 11, '.mscz': 1, '.tsv': 1},
                                       'outputs': {'.mscx': 1, '.tsv': 3},
                                       'ravel_piano': {'.mscx': 5, '.tsv': 14},
                                       'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4},
@@ -170,7 +172,7 @@ class TestParsedParse():
     @pytest.fixture()
     def n_parsed_files(self, request):
         expected = {
-            "chaotic_dirs": (9, 4),
+            "chaotic_dirs": (11, 4),
             "file_re_with_key": (2, 6),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),
@@ -178,7 +180,7 @@ class TestParsedParse():
             "files_with_wrong_key": (4, 4),
             "files_with_inferred_key": (1, 4),
             "files_without_key": (3, 0),
-            "everything": (19, 29),
+            "everything": (21, 29),
             "redundant": (2, 0),
             "regular_dirs": (8, 25),
             "regular_dirs_at_once": (8, 25),
