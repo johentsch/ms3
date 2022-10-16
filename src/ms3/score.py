@@ -180,7 +180,6 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    @property
     def cadences(self):
         """:obj:`pandas.DataFrame`
         DataFrame representing all cadence annotations in the score.
@@ -890,7 +889,7 @@ class Score(LoggedClass):
     Formats that ms3 can parse.
     """
 
-    dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels')
+    dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'events', 'chords', 'cadences', 'form_labels')
 
     def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):

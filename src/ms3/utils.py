@@ -19,7 +19,7 @@ from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg, LogCapturer
 
-METADATA_COLUMN_ORDER = ['rel_paths', 'fnames', 'last_mc', 'last_mn', 'length_qb',
+METADATA_COLUMN_ORDER = ['fname', 'subdirectory', 'last_mc', 'last_mn', 'length_qb',
                          'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions', 'TimeSig', 'KeySig',
                          'label_count', 'annotated_key', 'annotators',
                          'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
@@ -2168,7 +2168,7 @@ def parts_info(d):
 
     Example
     -------
-    >>> d = s.mscx.metadata
+    >>> d = s.mscx.metadata_from_parsed
     >>> parts_info(d['parts'])
     {'staff_1_instrument': 'Voice',
      'staff_1_ambitus': '66-76 (F#4-E5)',
@@ -2201,26 +2201,26 @@ def path2type(path):
     -------
 
     """
-    comp2type = {comp: comp for comp in STANDARD_NAMES}
-    comp2type['MS3'] = 'scores'
-    comp2type['harmonies'] = 'expanded'
+    score_extensions = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
+    _, fext = os.path.splitext(path)
+    if fext.lower() in score_extensions:
+        logger.debug(f"Recognized file extension '{fext}' as score.")
+        return 'scores'
+    comp2type = path_component2file_type_map()
     def find_components(s):
         res = [comp for comp in comp2type.keys() if comp in s]
         return res, len(res)
     if os.path.isfile(path):
         # give preference to folder names before file names
         directory, fname = os.path.split(path)
+        if 'metadata' in fname:
+            return 'metadata'
         found_components, n_found = find_components(directory)
         if n_found == 0:
             found_components, n_found = find_components(fname)
     else:
         found_components, n_found = find_components(path)
     if n_found == 0:
-        score_extensions = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
-        _, fext = os.path.splitext(path)
-        if fext.lower() in score_extensions:
-            logger.debug(f"Recognized file extension '{fext}' as score.")
-            return 'scores'
         logger.debug(f"Type could not be inferred from path '{path}'.")
         return 'unknown'
     if n_found == 1:
@@ -2238,6 +2238,21 @@ def path2type(path):
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
         return 'other'
+
+
+def path_component2file_type_map() -> dict:
+    comp2type = {comp: comp for comp in STANDARD_NAMES}
+    comp2type['MS3'] = 'scores'
+    comp2type['harmonies'] = 'expanded'
+    comp2type['output'] = 'labels'
+    return comp2type
+
+def file_type2path_component_map() -> dict:
+    comp2type = path_component2file_type_map()
+    type2comps = defaultdict(list)
+    for comp, typ in comp2type.items():
+        type2comps[typ].append(comp)
+    return dict(type2comps)
 
 
 def pretty_dict(d, heading=None):
