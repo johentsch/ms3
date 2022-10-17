@@ -1,10 +1,9 @@
-from typing import Literal, Collection, Dict, List, Tuple, Union
+from typing import Literal, Collection, Dict, List, Union, Generator
 
 import io
 import sys, os, re
 from functools import lru_cache
 import json
-import traceback
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict, namedtuple
 
@@ -18,7 +17,7 @@ from .logger import LoggedClass, get_logger, get_log_capture_handler, temporaril
 from .piece import File, Piece
 from .score import Score
 from .utils import column_order, first_level_files_and_subdirs, get_musescore, get_path_component, group_id_tuples, infer_tsv_type, \
-    iter_selection, iterate_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
+    iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
     scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
@@ -95,34 +94,6 @@ class Corpus(LoggedClass):
         super().__init__(subclass='Corpus', logger_cfg=logger_cfg)
         self.simulate=simulate
 
-        # # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
-        # self.full_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [full_path]}`` dictionary of the full paths of all detected files.
-        # """
-        #
-        # self.rel_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
-        # """
-        #
-        # self.subdirs = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [subdir]}`` dictionary that differs from :obj:`.rel_paths` only if ``key`` is included in the file's
-        # relative path: In these cases only the part after ``key`` is kept.
-        # This is useful to inspect subdirectories in the case where keys correspond to subcorpora.
-        # """
-        #
-        # self.scan_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [scan_path]}`` dictionary of the scan_paths from which each file was detected.
-        # """
-        #
-        # self.paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [path]}`` dictionary of the paths of all detected files (without file name).
-        # """
-        #
         self.files: list = []
         """
         ``[File]`` list of :obj:`File` data objects containing information on the file location
@@ -132,119 +103,11 @@ class Corpus(LoggedClass):
         self.files_df: pd.DataFrame = pd.DataFrame()
         """ DataFrame containing information on all detected files.
         """
-        #
-        # self.id2file_info = {}
-        # """:obj:`dict`
-        # ``{(key, i): [File]}`` dictionary of :obj:`File` objects.
-        # """
-        #
-        # self.fnames = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [fname]}`` dictionary of file names without extensions of all detected files.
-        # """
 
-        # self.fexts = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [fext]}`` dictionary of file extensions of all detected files.
-        # """
 
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
-
-
-        # self._parsed_mscx = {}
-        # """:obj:`dict`
-        # ``{(key, i): :py:attr:`~.score.Score`}`` dictionary of parsed scores.
-        # """
-        #
-        # self._annotations = {}
-        # """:obj:`dict`
-        # {(key, i): :py:attr:`~.annotations.Annotations`} dictionary of parsed sets of annotations.
-        # """
-        #
-        # self._fl_lists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.form_labels` tables.
-        # """
-        #
-        # self._notelists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.notes` tables.
-        # """
-        #
-        # self._restlists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.rests` tables
-        # """
-        #
-        # self._noterestlists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.notes_and_rests` tables
-        # """
-        #
-        # self._eventlists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.events` tables.
-        # """
-        #
-        # self._labellists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.labels` tables.
-        # """
-        #
-        # self._chordlists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.chords` tables.
-        # """
-        #
-        # self._expandedlists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.expanded` tables.
-        # """
-        #
-        # self._cadencelists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.cadences` tables.
-        # """
-        #
-        # self._measurelists = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of DataFrames holding :py:attr:`~.score.Score.measures` tables.
-        # """
-        #
-        # self._metadata = pd.DataFrame()
-        # """:obj:`pandas.DataFrame`
-        # Concatenation of all parsed metadata TSVs.
-        # """
-        #
-        # self._parsed_tsv = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.DataFrame`} dictionary of all parsed (i.e. loaded as DataFrame) TSV files.
-        # """
-        #
-        # self._tsv_types = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`str`} dictionary of TSV types as inferred by :py:meth:`._infer_tsv_type`, i.e. one of
-        # ``None, 'notes', 'events', 'chords', 'rests', 'measures', 'labels'}``
-        # """
-        #
-        # self._playthrough2mc = {}
-        # """:obj:`dict`
-        # {(key, i): :obj:`pandas.Series`} dictionary of a parsed score's MC succession after 'unfolding' all repeats.
-        # """
-        #
-        # self._quarter_offsets = {True: {}, False: {}}
-        # """:obj:`dict`
-        # { unfolded? -> {(key, i) -> {mc_playthrough -> quarter_offset}} } dictionary with keys True and false.
-        # True: For every mc_playthrough (i.e., after 'unfolding' all repeats) the total sum of preceding quarter beats, measured from m. 1, b. 0.
-        # False: For every mc the total sum of preceding quarter beats after deleting all but second endings.
-        # """
-        #
-        # self._views = {}
-        # """:obj:`dict`
-        # {key -> View} This dictionary caches :obj:`.View` objects to keep their state.
-        # """
 
         self._ignored_warnings = defaultdict(list)
         """:obj:`collections.defaultdict`
@@ -267,32 +130,6 @@ class Corpus(LoggedClass):
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
-        # self._dataframes = {
-        #     'notes': self._notelists,
-        #     'rests': self._restlists,
-        #     'notes_and_rests': self._noterestlists,
-        #     'measures': self._measurelists,
-        #     'events': self._eventlists,
-        #     'labels': self._labellists,
-        #     'chords': self._chordlists,
-        #     'expanded': self._expandedlists,
-        #     'cadences': self._cadencelists,
-        #     'form_labels': self._fl_lists,
-        # }
-        # """:obj:`dict`
-        # Dictionary exposing the different :obj:`dicts<dict>` of :obj:`DataFrames<pandas.DataFrame>`.
-        # """
-        #
-        #
-        # self._matches = pd.DataFrame(columns=['scores']+list(Score.dataframe_types))
-        # """:obj:`pandas.DataFrame`
-        # Dataframe that holds the (file name) matches between MuseScore and TSV files.
-        # """
-        #
-        # self.corpus2fname2score = defaultdict(dict)
-        # """:obj:`collections.defaultdict`
-        # {key -> {fname -> score_id}} For each corpus: the list of names identifying pieces.
-        # """
 
         self._pieces: Dict[str, Piece] = {}
         """{fname -> :class:`Piece`} The objects holding together information for the same piece
@@ -326,6 +163,10 @@ class Corpus(LoggedClass):
         self.find_and_load_metadata()
         self.create_pieces()
         self.reset_piece_selection()
+        # self.look_for_ignored_warnings(directory, key=top_level)
+        # if len(mscx_files) > 0:
+        #     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
+        #                         f"\n{mscx_files}", extra={"message_id": (7, top_level)})
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -349,13 +190,17 @@ class Corpus(LoggedClass):
                 outside_fnames.append(fname)
             self.selected_pieces += outside_fnames
         self.selected_pieces = sorted(self.selected_pieces)
-        self.logger.info(f"{len(self.selected_pieces)}/{len(self._pieces)} pieces selected.")
+        n_selected, n_overall = len(self.selected_pieces), len(self._pieces)
+        if n_selected == n_overall:
+            self.logger.debug(f"All pieces selected.")
+        else:
+            self.logger.info(f"{n_selected}/{n_overall} pieces selected.")
 
-    def iter_selected_pieces(self) -> Piece:
+    def iter_selected_pieces(self) -> Generator[Piece, None, None]:
         for fname in self.selected_pieces:
             yield self._get_piece(fname)
 
-    def select_files(self, file_type: str|Collection[str], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Tuple[Dict[str, Union[Literal[None], File, Dict[str, File]]], List[str]]:
+    def select_files(self, file_type: Union[str, Collection[str]], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Dict[str, Union[File, Dict[str, File]]]:
         """
 
         Args:
@@ -363,7 +208,8 @@ class Corpus(LoggedClass):
             choose:
 
         Returns:
-
+            {fname -> {type -> :obj:`File`}} dict if ``file_type`` is a collection.
+            {fname -> :obj:`File`} dict if ``file_type`` is a string.
         """
         result = {}
         unpack_result = isinstance(file_type, str)
@@ -413,6 +259,9 @@ class Corpus(LoggedClass):
             self._pieces[fname] = Piece(fname, logger_cfg=logger_cfg)
             self.logger_names[fname] = logger_name
         fnames = sorted(fnames, key=len, reverse=True)
+        if len(fnames) == 0:
+            self.logger.warning(f"Corpus contains neither scores nor metadata.")
+            return
         for file in self.files:
             # try to associate all detected files with one of the created pieces and
             # store the mapping in :attr:`ix2fname`
@@ -426,7 +275,7 @@ class Corpus(LoggedClass):
                         break
             if piece_name is None:
                 if 'metadata' not in file.fname:
-                    self.logger.error(f"Could not associate {file.file} with any of the pieces.")
+                    self.logger.warning(f"Could not associate {file.file} with any of the pieces.")
                 self.ix2fname[file.ix] = None
             else:
                 if self._pieces[piece_name].add_file(file):
@@ -773,225 +622,6 @@ class Corpus(LoggedClass):
             return
         self._add_detached_annotations_by_ids(list_of_pairs, new_key=new_key)
 
-
-
-    def add_dir(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs):
-        """
-        This method decides if the directory ``directory`` contains several corpora or if it is a corpus
-        itself, and calls _.add_corpus() for every corpus.
-
-        Parameters
-        ----------
-        directory : :obj:`str`
-            Directory to scan for files.
-        key : :obj:`str`, optional
-            By default, the folder names of the detected corpora are used as keys. If you pass a string,
-            you force ``directory`` to be treated as one corpus, identified by the given string.
-        file_re : :obj:`str`, optional
-            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
-            depending on whether the MuseScore 3 executable is specified as :py:attr:``Corpus.ms``, or not.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        folder_re : :obj:`str`, optional
-            Regular expression for filtering certain folder names.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        exclude_re : :obj:`str`, optional
-            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
-        recursive : :obj:`bool`, optional
-            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-        """
-        directory = resolve_dir(directory)
-        if not os.path.isdir(directory):
-            self.logger.warning(f"{directory} is not an existing directory.")
-            return
-        self.last_scanned_dir = directory
-
-        if not recursive:
-            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-            return
-
-        # new corpus/corpora to be added
-        directories = sorted(iterate_corpora(directory, logger=self.logger))
-        n_corpora = len(directories)
-        if n_corpora == 0:
-            corpus_name = os.path.basename(directory.strip('/'))
-            self.logger.debug(f"Treating {directory} as corpus with key='{corpus_name}'.")
-            if key is None:
-                key = corpus_name
-            elif key != corpus_name:
-                self.logger.info(f"Using key '{key}' instead of '{corpus_name}'.")
-            self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
-        else:
-            self.logger.debug(f"{n_corpora} corpora detected.")
-            if key is None:
-                if exclude_re is not None:
-                    directories = [d for d in directories if re.search(exclude_re, os.path.basename(d)) is None]
-                for d in directories:
-                    self.add_corpus(d, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
-                mscx_files = [file for file in os.listdir(directory) if file.endswith('.mscx')]
-                top_level = os.path.basename(directory)
-                self.look_for_ignored_warnings(directory, key=top_level)
-                if len(mscx_files) > 0:
-                    self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
-                                        f"\n{mscx_files}", extra={"message_id": (7, top_level)})
-            else:
-                self.logger.warning(f"The following corpora are to be grouped under the same key '{key}', which can lead to unexpected behaviours:\n{', '.join(directories)}.")
-                self.add_corpus(directory, key=key, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
-
-
-
-    def add_corpus(self, directory, key=None, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs):
-        """
-        This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
-        under the same key, considering them as one corpus.
-        to the Corpus object without looking at them. The
-
-        Parameters
-        ----------
-        directory : :obj:`str`
-            Directory to scan for files.
-        key : :obj:`str`, optional
-            By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to
-            use a different identifier.
-        file_re : :obj:`str`, optional
-            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
-            depending on whether the MuseScore 3 executable is specified as :py:attr:``Corpus.ms``, or not.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        folder_re : :obj:`str`, optional
-            Regular expression for filtering certain folder names.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        exclude_re : :obj:`str`, optional
-            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
-        recursive : :obj:`bool`, optional
-            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-        **kwargs:
-            User other folder names than the default ones.
-        """
-        directory = resolve_dir(directory)
-        if not os.path.isdir(directory):
-            self.logger.warning(f"{directory} is not an existing directory.")
-            return
-        convertible = self.ms is not None
-        if file_re is None:
-            file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
-        if exclude_re is None:
-            exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
-        directory = resolve_dir(directory)
-        self.last_scanned_dir = directory
-        if key is None:
-            key = os.path.basename(directory)
-        if key not in self.files:
-            self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
-            self.files[key] = []
-            self.corpus_paths[key] = resolve_dir(directory)
-        else:
-            self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
-
-        top_level_folders, top_level_files = first_level_files_and_subdirs(directory)
-        self.logger.debug(f"Top level folders: {top_level_folders}\nTop level files: {top_level_files}")
-
-        added_ids = []
-
-        # look for scores
-        scores_folder = None
-        if 'scores' in kwargs and kwargs['scores'] in top_level_folders:
-            scores_folder = kwargs['scores']
-        elif 'MS3' in top_level_folders:
-            scores_folder = 'MS3'
-        elif 'scores' in top_level_folders:
-            scores_folder = 'scores'
-        else:
-            msg = f"No scores folder found among {top_level_folders}."
-            if 'scores' not in kwargs:
-                msg += " If one of them has MuseScore files, indicate it by passing scores='scores_folder'."
-            self.logger.info(msg)
-        if scores_folder is not None:
-            score_re = Score._make_extension_regex(convertible=convertible)
-            scores_path = os.path.join(directory, scores_folder)
-            score_paths = sorted(scan_directory(scores_path, file_re=score_re, recursive=recursive))
-            score_ids = self.add_files(paths=score_paths, key=key)
-            added_ids += score_ids
-            score_fnames = self._get_unambiguous_fnames_from_ids(score_ids, key=key)
-
-            for fname, id in score_fnames.items():
-                piece = self._get_piece(key, fname)
-                piece.type2file_info['score'] = self.id2file_info[id]
-                self.id2piece_id[id] = (key, fname)
-                # if fname in self.corpus2fname2score[key]:
-                #     if self.corpus2fname2score[key][fname] == id:
-                #         self.debug(f"'{fname} had already been matched to {id}.")
-                #     else:
-                #         self.warning(f"'{fname} had already been matched to {self.corpus2fname2score[key][fname]}")
-            self.corpus2fname2score[key].update(score_fnames)
-
-        # look for metadata
-        if 'metadata.tsv' in top_level_files:
-            default_metadata_path = os.path.join(directory, 'metadata.tsv')
-            self.logger.debug(f"'metadata.tsv' was detected and added.")
-            added_ids += self.add_files(paths=default_metadata_path, key=key)
-            metadata_id = added_ids[-1]
-            self.parse_tsv(ids=[metadata_id])
-            metadata_tsv = self._parsed_tsv[metadata_id]
-            metadata_fnames = metadata_tsv.fnames
-        else:
-            metadata_id = None
-
-
-
-        return
-        paths = sorted(
-            scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-                           recursive=recursive, logger=self.logger))
-        if len(paths) == 0:
-            self.logger.info(f"No matching files found in {directory}.")
-            return
-        added_ids = self.add_files(paths=paths, key=key)
-        if len(added_ids) == 0:
-            self.logger.debug(f"No files from {directory} have been added.")
-            return
-        _, first_i = added_ids[0]
-        if 'metadata.tsv' in self.files[key][first_i:]:
-            self.logger.debug(f"Found metadata.tsv for corpus '{key}'.")
-        elif 'metadata.tsv' in self.files[key]:
-            self.logger.debug(f"Had already found metadata.tsv for corpus '{key}'.")
-        else:
-            # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
-            default_metadata_path = os.path.join(directory, 'metadata.tsv')
-            if os.path.isfile(default_metadata_path):
-                self.logger.info(f"'metadata.tsv' was detected and automatically added for corpus '{key}'.")
-                metadata_id = self.add_files(paths=default_metadata_path, key=key)
-                added_ids += metadata_id
-            else:
-                self.logger.info(f"No metadata found for corpus '{key}'.")
-        self.corpus_paths[key] = directory
-        self.look_for_ignored_warnings(directory, key)
-
-    def look_for_ignored_warnings(self, directory, key):
-        default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
-        if os.path.isfile(default_ignored_warnings_path):
-            self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
-            self.load_ignored_warnings(default_ignored_warnings_path)
-
-    def load_ignored_warnings(self, path):
-        ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
-        logger_names = set(self.logger_names.values())
-        all_logger_names = set()
-        for name in logger_names:
-            while name != '' and name not in all_logger_names:
-                all_logger_names.add(name)
-                try:
-                    split_pos = name.rindex('.')
-                    name = name[:split_pos]
-                except:
-                    name = ''
-        for to_be_configured, message_ids in ignored_warnings.items():
-            self._ignored_warnings[to_be_configured].extend(message_ids)
-            if to_be_configured not in all_logger_names:
-                self.logger.warning(f"This Corpus object is not using any logger called '{to_be_configured}', "
-                                    f"which was, however, indicated in {path}.", extra={"message_id": (14, to_be_configured)})
-            configured = get_logger(to_be_configured, ignored_warnings=message_ids)
-            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
     def add_files(self, paths, key=None, exclude_re=None):
         """
@@ -1756,6 +1386,36 @@ Available keys: {available_keys}""")
 
         return idx, names
 
+    def count(self, types: bool = True,
+              parsed: bool = True,
+              as_dict: bool = False,
+              drop_zero: bool = False) -> Union[pd.DataFrame, dict]:
+        assert types + parsed > 0, "At least one parameter needs to be True"
+        fname2counts = {}
+        for fname, piece in self._pieces.items():
+            if types:
+                type_count = piece.count_types()
+                if not parsed:
+                    fname2counts[fname] = type_count
+            if parsed:
+                parsed_count = piece.count_parsed()
+                if not types:
+                    fname2counts[fname] = parsed_count
+            if types & parsed:
+                alternating_counts = {}
+                for (k1, v1), (k2, v2) in zip(type_count.items(), parsed_count.items()):
+                    alternating_counts[k1] = v1
+                    alternating_counts[k2] = v2
+                fname2counts[fname] = alternating_counts
+        if as_dict:
+            return fname2counts
+        df = pd.DataFrame.from_dict(fname2counts, orient='index')
+        if drop_zero:
+            empty_cols = df.columns[df.sum() == 0]
+            return df.drop(columns=empty_cols)
+        return df
+
+
 
     def info(self, keys=None, subdirs=False, return_str=False):
         """"""
@@ -2061,7 +1721,7 @@ Available keys: {available_keys}""")
             id = (k, i)
             if id not in self._parsed_tsv:
                 if parse_if_necessary:
-                    self.parse_tsv(ids=[id])
+                    self.parse_tsv()
                 else:
                     self.logger.debug(
                         f"Found unparsed metadata for key '{k}' but parse_if_necessary is set to False.")
@@ -2082,7 +1742,7 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
-        self.parse_tsv(keys=keys, fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
+        self.parse_tsv(fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
 
 
 
@@ -2115,6 +1775,7 @@ Available keys: {available_keys}""")
 
         selected_scores = self.select_files('scores')
         selected_files = list(selected_scores.values())
+        # ToDo: implement only_new parameter
         if len(selected_scores) == 0:
             self.logger.info(f"No parseable scores found {reason}.")
             return
@@ -2176,8 +1837,8 @@ Available keys: {available_keys}""")
             #self._collect_annotations_objects_references(ids=ids)
             pass
 
-    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
-        """ Corpus TSV files (or other value-separated files such as CSV) to be able to do something with them.
+    def parse_tsv(self, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
+        """ Parse TSV files to be able to do something with them.
 
         Parameters
         ----------
@@ -2205,17 +1866,8 @@ Available keys: {available_keys}""")
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        if self.simulate:
-            return
-        if ids is not None:
-            pass
-        elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
-        else:
-            if isinstance(fexts, str):
-                fexts = [fexts]
-            fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
+
+        selected_scores = self.select_files('scores')
 
         for id in ids:
             key, i = id

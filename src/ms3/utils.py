@@ -7,7 +7,7 @@ from functools import reduce
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple
+from typing import Collection, Union, Dict, Tuple, List
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -31,7 +31,7 @@ STANDARD_COLUMN_ORDER = [
     'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
     'gracenote', 'nominal_duration', 'scalar', 'tpc', 'midi', 'volta', 'chord_id']
 
-STANDARD_NAMES = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
+STANDARD_NAMES = ['notes_and_rests', 'rests', 'notes', 'measures', 'events', 'labels', 'chords', 'expanded',
                   'harmonies', 'cadences', 'form_labels', 'MS3', 'scores']
 """:obj:`list`
 Indicators for corpora: If a folder contains any file or folder beginning or ending on any of these names, it is 
@@ -1478,30 +1478,20 @@ def contains_corpus_indicator(path):
 
 
 @function_logger
-def iterate_corpora(path):
-    """Returns path if it is a subcorpus or yields its subdirectories if they are. First and most prevalent indicator
-    of a subcorpus is presence of a 'metadata.tsv' file. Second indicator is presence of a default folder name or
-    score file."""
+def get_first_level_corpora(path: str) -> List[str]:
+    """Checks the first-level subdirectories of path for indicators of being a corpus. If one of them shows an
+    indicator (presence of a 'metadata.tsv' file, or of a '.git' folder or any of the default folder names), returns
+    a list of all subdirectories.
+    """
     if path is None or not os.path.isdir(path):
+        logger.info(f"{path} is not an existing directory.")
         return
-    if contains_metadata(path):
-        return path
     subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
-    yield_subpaths = False
     for subpath in subpaths:
-        if contains_metadata(subpath):
-            yield_subpaths = True
-            break
-    if not yield_subpaths:
-        if contains_corpus_indicator(path, logger=logger):
-            return path
-        for subpath in subpaths:
-            if contains_corpus_indicator(subpath, logger=logger):
-                yield_subpaths = True
-                break
-    if not yield_subpaths:
-        return path
-    yield from subpaths
+        if contains_metadata(subpath) or contains_corpus_indicator(subpath):
+            return subpaths
+    return []
+
 
 
 @function_logger

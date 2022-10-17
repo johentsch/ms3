@@ -71,9 +71,9 @@ class LoggedClass():
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
             logger_cfg['name'] = name
-        self.logger_cfg = logger_cfg
-        self.logger_names = {}
-        self.logger = get_logger(**self.logger_cfg)
+        self.logger_cfg: dict = logger_cfg
+        self.logger_names: dict = {}
+        self.logger: logging.Logger = get_logger(**self.logger_cfg)
         self.logger_names['class'] = self.logger.name
 
     def change_logger_cfg(self, level):
@@ -97,7 +97,7 @@ class LoggedClass():
 
 
 
-def get_logger(name=None, level=None, path=None, ignored_warnings=[]):
+def get_logger(name=None, level=None, path=None, ignored_warnings=[]) -> logging.Logger:
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
     # if isinstance(name, logging.LoggerAdapter):
