@@ -2,6 +2,7 @@ import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
 from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from fractions import Fraction as frac
 from functools import reduce
 from itertools import chain, repeat, takewhile
@@ -3822,3 +3823,19 @@ def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = F
     last_row = measures.iloc[-1]
     offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
     return offset_dict
+
+
+@dataclass
+class File:
+    """Storing path and file name information for one file."""
+    ix: int
+    type: str
+    file: str
+    fname: str
+    fext: str
+    subdir: str
+    corpus_path: str
+    rel_path: str
+    full_path: str
+    directory: str
+    suffix: str

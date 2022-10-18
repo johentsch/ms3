@@ -1,12 +1,11 @@
 
-from typing import Literal, Collection
+from typing import Literal, Collection, Generator, Tuple
 
 import io
 import sys, os, re
 from functools import lru_cache
 import json
 import traceback
-import pathos.multiprocessing as mp
 from collections import Counter, defaultdict, namedtuple
 
 import pandas as pd
@@ -16,15 +15,50 @@ from gitdb.exc import BadName
 
 from .corpus import Corpus
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings
+from .logger import LoggedClass, get_logger, function_logger
 from .piece import Piece
 from .score import Score
-from .utils import column_order, first_level_files_and_subdirs, get_musescore, get_path_component, group_id_tuples, infer_tsv_type,\
+from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type,\
      iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
-    pretty_dict, resolve_dir, \
-    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
-from .transformations import add_weighted_grace_durations, dfs2quarterbeats
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
+    update_labels_cfg, write_tsv, path2parent_corpus
+from .transformations import dfs2quarterbeats
+from .view import View, DefaultView
+
+@function_logger
+def unpack_json_paths(paths: Collection[str]) -> None:
+    """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
+    json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
+    if len(json_ixs) > 0:
+        for i in reversed(json_ixs):
+            try:
+                with open(paths[i]) as f:
+                    loaded_paths = json.load(f)
+                paths.extend(loaded_paths)
+                logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
+                del (paths[i])
+            except Exception:
+                logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+
+
+
+def legacy_params2view(paths=None, file_re=None, folder_re=None, exclude_re=None) -> View:
+    if all(param is None for param in (paths, file_re, folder_re, exclude_re)):
+        return DefaultView('current')
+    view = View("Gerhardt")
+    if file_re is not None:
+        view.include('files', file_re)
+    if folder_re is not None and folder_re != '.*':
+        view.include('folders', folder_re)
+    if exclude_re is not None:
+        view.exclude(('files', 'folders'), exclude_re)
+    if paths is not None:
+        if isinstance(paths, str):
+            paths = [paths]
+        unpack_json_paths(paths)
+        regexes = [re.escape(os.path.basename(p)) for p in paths]
+        view.include('files', *regexes)
+    return view
 
 
 class Parse(LoggedClass):
@@ -32,7 +66,7 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :py:attr:`~.score.Score` objects).
     """
 
-    def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
+    def __init__(self, directory=None, paths=None, file_re=None, folder_re='.*', exclude_re=None,
                  recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
         """
 
@@ -126,9 +160,9 @@ class Parse(LoggedClass):
         # ``{key: [fext]}`` dictionary of file extensions of all detected files.
         # """
         #
-        # self._ms = get_musescore(ms, logger=self.logger)
-        # """:obj:`str`
-        # Path or command of the local MuseScore 3 installation if specified by the user."""
+        self._ms = get_musescore(ms, logger=self.logger)
+        """:obj:`str`
+        Path or command of the local MuseScore 3 installation if specified by the user."""
         #
         #
         # self._parsed_mscx = {}
@@ -219,10 +253,10 @@ class Parse(LoggedClass):
         # False: For every mc the total sum of preceding quarter beats after deleting all but second endings.
         # """
         #
-        # self._views = {}
-        # """:obj:`dict`
-        # {key -> View} This dictionary caches :obj:`.View` objects to keep their state.
-        # """
+        self._views: dict = {}
+        self._views[None] = legacy_params2view(paths=None, file_re=None, folder_re=None, exclude_re=None)
+        self._views['default'] = DefaultView('default')
+        self._views['all'] = View('all')
         #
         # self._ignored_warnings = defaultdict(list)
         # """:obj:`collections.defaultdict`
@@ -230,20 +264,20 @@ class Parse(LoggedClass):
         # upon loading them from an IGNORED_WARNINGS file.
         # """
         #
-        # self.labels_cfg = {
-        #     'staff': None,
-        #     'voice': None,
-        #     'harmony_layer': None,
-        #     'positioning': False,
-        #     'decode': True,
-        #     'column_name': 'label',
-        #     'color_format': None,
-        # }
-        # """:obj:`dict`
-        # Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
-        # :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
-        # """
-        # self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
+        self.labels_cfg = {
+            'staff': None,
+            'voice': None,
+            'harmony_layer': None,
+            'positioning': False,
+            'decode': True,
+            'column_name': 'label',
+            'color_format': None,
+        }
+        """:obj:`dict`
+        Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and
+        :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.
+        """
+        self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         #
         # self._dataframes = {
         #     'notes': self._notelists,
@@ -296,7 +330,35 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    def set_view(self, current: View = None, **views: View):
+        """Register one or several view_name=View pairs."""
+        if current is not None:
+            self._views[None] = current
+        for view_name, view in views.items():
+            if view.name is None:
+                view.name = view_name
+            self._views[view_name] = view
+        for corpus_name, corpus in self:
+            if current is not None and current.check_token('corpus', corpus_name):
+                corpus.set_view(current)
+            for view_name, view in views.items():
+                if view.check_token('corpus', corpus_name):
+                    corpus.set_view(**{view_name: view})
 
+
+    def get_view(self, view_name: str = None) -> View:
+        """Retrieve an existing or create a new View object."""
+        if view_name in self._views:
+            return self._views[view_name]
+        self._views[view_name] = View(view_name)
+        self.logger.info(f"New view '{view_name}' created.")
+        return self._views[view_name]
+
+    def __getattr__(self, view_name) -> View:
+        if view_name in self._views:
+            self.info(view_name=view_name)
+        else:
+            raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
     def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, harmony_layer=1,
                                 check_for_clashes=False):
@@ -575,7 +637,7 @@ class Parse(LoggedClass):
         keys = self._treat_key_param(keys)
         if tsv_key is None:
             for key in keys:
-                view = self._get_view(key)
+                view = self.get_view(key)
                 view.add_detached_annotations(use=use, new_key=new_key, revision_specifier=revision_specifier)
             return
         matches = self.match_files(keys=keys + [tsv_key])
@@ -832,17 +894,7 @@ class Parse(LoggedClass):
             return []
         if isinstance(paths, str):
             paths = [paths]
-        json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
-        if len(json_ixs) > 0:
-            for i in reversed(json_ixs):
-                try:
-                    with open(paths[i]) as f:
-                        loaded_paths = json.load(f)
-                    paths.extend(loaded_paths)
-                    self.logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
-                    del(paths[i])
-                except Exception:
-                    self.logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+        unpack_json_paths(paths, logger=self.logger)
         if key is None:
             # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
             for path in paths:
@@ -892,8 +944,6 @@ class Parse(LoggedClass):
         else:
             self.logger.info("No files added.")
             return []
-
-
 
 
     def annotation_objects(self):
@@ -1617,16 +1667,28 @@ Available keys: {available_keys}""")
 
         return idx, names
 
+    def iter_corpora(self, view_name: str = None) -> Generator[Tuple[str, Corpus], None, None]:
+        """Iterate through corpora under the current or specified view."""
+        view = self.get_view(view_name)
+        for corpus_name, corpus in  view.filter_by_token('corpora', self):
+            if view_name not in corpus._views or corpus._views[view_name] != view:
+                if view_name is None:
+                    corpus.set_view(view)
+                else:
+                    corpus.set_view(**{view_name: view})
+            yield corpus_name, corpus
 
-    def info(self, return_str=False):
+    def info(self, return_str=False, view_name=None):
         """"""
-        all_counts = {corpus_name: corpus.count().sum() for corpus_name, corpus in self}
+        print(self.get_view(view_name))
+        all_counts = {corpus_name: corpus.count(view_name=view_name).sum() for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
         counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
         empty_cols = counts_df.columns[counts_df.sum() == 0]
         counts_df = counts_df.drop(columns=empty_cols)
+        counts_df.index.rename('corpus', inplace=True)
         if return_str:
             return counts_df.to_string()
-        print(counts_df.to_string())
+        print(counts_df)
         # ids = list(self._iterids(keys))
         # info = f"{len(ids)} files.\n"
         # if subdirs:
@@ -2157,7 +2219,7 @@ Available keys: {available_keys}""")
         result.index.names = ['key', 'metadata_row']
         return result
 
-    def output_dataframes(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
+    def output_dataframes(self, root_dir=None, notes_folder=None, notes_suffix='',
                           rests_folder=None, rests_suffix='',
                           notes_and_rests_folder=None, notes_and_rests_suffix='',
                           measures_folder=None, measures_suffix='',
@@ -2210,67 +2272,25 @@ Available keys: {available_keys}""")
             simulate = self.simulate
         else:
             self.simulate = simulate
-        l = locals()
-        df_types = list(self._dataframes.keys())
-        folder_vars = [t + '_folder' for t in df_types]
-        suffix_vars = [t + '_suffix' for t in df_types]
-        folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
-        if len(folder_params) == 0 and metadata_path is None:
-            self.logger.warning("Pass at least one parameter to store files.")
-            return [] if simulate else None
-        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
-        df_params = {p: True for p in folder_params.keys()}
-        if silence_label_warnings:
-            with temporarily_suppress_warnings(self) as self:
-                dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
-        else:
-            dataframes = self.get_dataframes(keys, unfold=unfold, quarterbeats=quarterbeats, flat=True, **df_params)
-        modus = 'would ' if simulate else ''
-        if len(dataframes) == 0 and metadata_path is None:
-            self.logger.info(f"No files {modus}have been written.")
-            return [] if simulate else None
-        paths = {}
-        warnings, infos = [], []
-        unf = 'Unfolded ' if unfold else ''
-        for (key, i, what), li in dataframes.items():
-            new_path = self._store_tsv(df=li, key=key, i=i, folder=folder_params[what], suffix=suffix_params[what],
-                                       root_dir=root_dir, what=what, simulate=simulate)
-            if new_path in paths:
-                warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
-            else:
-                infos.append(f"{unf}{what} {modus}have been stored as {new_path}.")
-            paths[new_path] = what
-        if len(warnings) > 0:
-            self.logger.warning('\n'.join(warnings))
-        l_infos = len(infos)
-        l_target = len(dataframes)
-        if l_target > 0:
-            if l_infos == 0:
-                self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
-            elif l_infos < l_target:
-                msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
-            else:
-                msg = f"\n\nAll {l_infos} {modus}have been written."
-            self.logger.info('\n'.join(infos) + msg)
-        if metadata_path is not None:
-            md = self.metadata()
-            if len(md.index) > 0:
-                fname, ext = os.path.splitext(metadata_path)
-                if ext != '':
-                    path, file = os.path.split(metadata_path)
-                else:
-                    path = metadata_path
-                    file = 'metadata.tsv'
-                path = resolve_dir(path)
-                if not os.path.isdir(path):
-                    os.makedirs(path)
-                full_path = os.path.join(path, file)
-                write_metadata(self.metadata(), full_path, markdown=markdown, logger=self.logger)
-                paths[full_path] = 'metadata'
-            else:
-                self.logger.debug(f"\n\nNo metadata to write.")
-        return paths
-
+        for corpus_name, corpus in self:
+            corpus.output_dataframes(root_dir=root_dir,
+                        notes_folder=notes_folder, notes_suffix=notes_suffix,
+                        notes_and_rests_folder=notes_and_rests_folder, notes_and_rests_suffix=notes_and_rests_suffix,
+                        labels_folder=labels_folder, labels_suffix=labels_suffix,
+                        measures_folder=measures_folder, measures_suffix=measures_suffix,
+                        rests_folder=rests_folder, rests_suffix=rests_suffix,
+                        events_folder=events_folder, events_suffix=events_suffix,
+                        chords_folder=chords_folder, chords_suffix=chords_suffix,
+                        expanded_folder=expanded_folder, expanded_suffix=expanded_suffix,
+                        cadences_folder=cadences_folder, cadences_suffix=cadences_suffix,
+                        form_labels_folder=form_labels_folder, form_labels_suffix=form_labels_suffix,
+                        metadata_path=metadata_path,
+                        markdown=markdown,
+                        simulate=simulate,
+                        unfold=unfold,
+                        quarterbeats=quarterbeats,
+                        silence_label_warnings=silence_label_warnings,
+                        )
 
 
     def output_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
@@ -2702,106 +2722,26 @@ Available keys: {available_keys}""")
         """ Override the method of superclass """
         return self.__dict__
 
-    # def expand_labels(self, keys=None, how='dcml'):
-    #     keys = self._treat_key_param(keys)
-    #     scores = {id: score for id, score in self._parsed.items() if id[0] in keys}
-    #     res = {}
-    #     for id, score in scores.items():
-    #         if score.mscx._annotations is not None:
-    #             exp = score.annotations.expanded
-    #             self._expandedlists[id] = exp
-    #             res[id + ('expanded',)] = exp
-    #     return res
 
-
-    # def __getattr__(self, item):
-    #     if item in self.fexts: # is an existing key
-    #         fexts = self.fexts[item]
-    #         res = {}
-    #         for i, ext in enumerate(fexts):
-    #             id = (item, i)
-    #             ix = str(self._index[id])
-    #             if ext == '.mscx':
-    #                 if id in self._parsed_mscx:
-    #                     ix += " (parsed)"
-    #                     val = str(self._parsed_mscx[id])
-    #                 else:
-    #                     ix += " (not parsed)"
-    #                     val = self.full_paths[item][i]
-    #             else:
-    #                 if id in self._parsed_tsv:
-    #                     df = self._parsed_tsv[id]
-    #                     if isinstance(df, Annotations):
-    #                         ix += " (parsed annotations)"
-    #                         val = str(df)
-    #                     else:
-    #                         t = self._tsv_types[id] if id in self._tsv_types else 'unrecognized DataFrame'
-    #                         ix += f" (parsed {t}, length {len(df)})"
-    #                         val = df.head(5).to_string()
-    #                 else:
-    #                     ix += " (not parsed)"
-    #                     val = self.full_paths[item][i]
-    #             ix += f"\n{'-' * len(ix)}\n"
-    #             if ext != '.mscx':
-    #                 ix += f"{self.full_paths[item][i]}\n"
-    #             print(f"{ix}{val}\n")
-    #     else:
-    #         raise AttributeError(item)
-
-    # def __getattr__(self, item):
-    #     ext = f".{item}"
-    #     ids = [(k, i) for k, i in self._iterids() if self.fexts[k][i] == ext]
-    #     if len(ids) == 0:
-    #         self.logger.info(f"Includes no files with the extension {ext}")
-    #     return ids
-
-    def _get_view(self, key):
-        if key in self._views:
-            return self._views[key]
-        if key in self.files:
-            self._views[key] = View(self, key)
-            return self._views[key]
-        self.logger.info(f"Key '{key}' not found.")
-        return
+    def _get_corpus(self, name):
+        assert name in self.corpus_objects, f"Don't have a corpus called '{name}', only {list(self.corpus_objects.keys())}"
+        return self.corpus_objects[name]
 
 
     def __getitem__(self, item):
         if isinstance(item, str):
-            return self._get_view(item)
+            return self._get_corpus(item)
         elif isinstance(item, tuple):
-            key, i, *_ = item
-            if key not in self.files:
-                raise KeyError(f"'{key}' is not an existing key")
-            try:
-                i = int(i)
-                if key in self.files and i < len(self.files[key]):
-                    id = (key, i)
-                else:
-                    raise KeyError(f"Key '{key}' has no i=={i}. Current number of files is {len(self.files[key])}.")
-            except ValueError:
-                return self._get_piece(key, i)
-
-        else:
-            self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
-        if id in self._parsed_tsv:
-            return self._parsed_tsv[id]
-        if id in self._parsed_mscx:
-            return self._parsed_mscx[id]
-        if id in self._annotations:
-            return self._annotations[id]
-        self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
+            corpus_name, fname_or_ix, *_ = item
+            return self._get_corpus(corpus_name)[fname_or_ix]
 
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Tuple[str, Corpus], None, None]:
+        """  Iterate through all (corpus_name, Corpus) tuples, regardless of any Views.
+
+        Yields: (corpus_name, Corpus) tuples
         """
-
-        Yields
-        ------
-        (str, ms3.parse.View)
-            For iterating through the keys and associated View objects.
-        """
-        for corpus_name, corpus in self.corpus_objects.items():
-            yield corpus_name, corpus
+        yield from self.corpus_objects.items()
 
 
     def __repr__(self):
@@ -2885,684 +2825,6 @@ Available keys: {available_keys}""")
 ################################################# End of Parse() ########################################################
 ########################################################################################################################
 ########################################################################################################################
-
-
-
-class View(Parse):
-
-    def __init__(self,
-                 p: Parse,
-                 key: str = None):
-        self.p = p # parent parse object
-        self.key = key
-        self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
-        self._cached_piece_matrices = {}
-        self.matches = {}
-        """:obj:`dict`
-        {fname -> {type -> [MatchedFile]}} dict, where MatchedFile is a :obj:`namedtuple` with the fields
-        "id", "full_path", "suffix", "fext", "subdir", "i_str"."""
-        self._pieces = {}
-        """:obj:`dict` of :obj:`Piece`
-        References to the Piece objects belonging to each fname listed in the metadata.
-        """
-        logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = f"{self.p.logger.name}.{self.key}"
-        super(Parse, self).__init__(subclass='View', logger_cfg=logger_cfg) # initialize loggers
-        self._metadata = pd.DataFrame()
-        self.metadata_id = None
-        """:obj:`tuple`
-        ID of the detected metadata TSV file if any. None means that none has been detected, meaning that :attr:`.metadata`
-        corresponds to the metadata included in the parsed scores.
-        """
-        self._id2fname = {}
-        """:obj:`dict`
-        Stores the mapping from IDs to fnames found in the metadata.
-        """
-        _ = self.pieces()
-
-
-    def metadata(self):
-        if self.metadata_id is None:
-            # always give preference to parsed metadata files because they might contain additional
-            # information and may exclude unwanted files
-            metadata_tsv = self.p.metadata_tsv(self.key)
-            if len(metadata_tsv) > 0:
-                id = list(metadata_tsv.keys())[0]
-                self.metadata_id = id
-                self._metadata = metadata_tsv[id]
-                k, i = self.metadata_id
-                self.logger.debug(f"Metadata detected in '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
-
-        if self.metadata_id is None:
-            score_ids = self.score_ids
-            if len(score_ids) > 0:
-                _, indices = zip(*self.score_ids)
-                if len(score_ids) > len(self._metadata):
-                    self._metadata = self.score_metadata()
-                    self.logger.debug(f"Metadata updated from parsed scores at indices {indices}.")
-                else:
-                    self.logger.debug(f"Using metadata from parsed scores at indices {indices}.")
-        else:
-            k, i = self.metadata_id
-            self.logger.debug(f"Using metadata from '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
-        if len(self._metadata) == 0:
-            self.logger.info(f"No scores and no metadata TSV file have been parsed so far.")
-        return self._metadata
-
-
-    def score_metadata(self):
-        return self.p.metadata(self.key)
-
-    @property
-    def score_ids(self):
-        parsed = list(self.p._iterids(self.key, only_parsed_mscx=True))
-        n_parsed = len(parsed)
-        if n_parsed == 0:
-            self.logger.debug(f"No scores have been parsed. Use method Parse.parse_mscx(keys='{self.key}')")
-        return parsed
-
-
-    @property
-    def names(self):
-        """A list of the View's filenames used for matching corresponding files in different folders.
-           If metadata.tsv was parsed, the column ``fnames`` is used as authoritative list for this corpus."""
-        md = self.metadata()
-        if 'fnames' in md.columns:
-            fnames = md.fnames.to_list()
-            if len(fnames) > md.fnames.nunique():
-                vc = md.fnames.value_counts(dropna=False)
-                self.logger.info(f"The following file names occur more than once in the metadata: {vc[vc > 1].to_dict()}")
-            return fnames
-        self.logger.debug("No file names present in metadata.")
-        return []
-
-
-    def detect_ids_by_fname(self, parsed_only: bool = False, names: Collection[str]=None) -> dict:
-        """ Returns a {fname -> {type -> [MatchedFile]}} dict.
-
-        Args:
-            parsed_only:
-                By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
-                Pass True to include match only parsed files in the matching. This will prevent checking if all detected files have
-                actually been matched to an fname.
-            names: If you want to do the matching only for selected fnames, pass these.
-
-        Returns:
-            {fname -> {type -> [MatchedFile]}} dict
-        """
-        result = {}
-        track_matches = False
-        if names is None:
-            names = self.names
-            if not parsed_only:
-                track_matches = True
-        if track_matches:
-            all_file_names = self.p.files[self.key]
-            n_files_to_be_matched = len(all_file_names)
-            counting_matches = Counter({i: 0 for i in range(n_files_to_be_matched)})
-        for fname in names:
-            ids = self.p.fname2ids(fname, self.key)
-            detected = defaultdict(list)
-            for id, fn in ids.items():
-                k, i = id
-                suffix = fn[len(fname):]
-                full_path = self.p.full_paths[k][i]
-                fext = self.p.fexts[k][i]
-                subdir = self.p.subdirs[k][i]
-                match = None
-                if id in self.p._parsed_mscx:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
-                    detected['scores'].append(match)
-                elif id in self.p._tsv_types:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
-                    detected[self.p._tsv_types[id]].append(match)
-                elif not parsed_only:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i)+'*')
-                    typ = path2type(full_path, logger=self.p.logger_names[id])
-                    detected[typ].append(match)
-                if match is not None:
-                    if id in self._id2fname and fname != self._id2fname[id]:
-                        self.logger.warning(f"ID {id}, to be matched with '{fname}' had previously been matched to {self._id2fname[id]}")
-                    self._id2fname[id] = fname
-                    if track_matches:
-                        counting_matches.update([i])
-            result[fname] = dict(detected)
-        if track_matches:
-            metadata_i = None if self.metadata_id is None else self.metadata_id[1]
-            not_matched = [i for i, cnt in counting_matches.items() if cnt == 0 and i != metadata_i]
-            more_than_one = {i: cnt for i, cnt in counting_matches.items() if cnt > 1}
-            if len(not_matched) > 0:
-                n_m_file_names = [all_file_names[i] for i in not_matched]
-                fnames = self.p.fnames[self.key]
-                n_m_fnames = set(fnames[i] for i in not_matched)
-                plural = "s have" if len(not_matched) > 1 else " has"
-                self.logger.warning(f"The following file{plural} not been matched to any fname included in the metadata: {n_m_file_names}")
-                additional_matches = self.detect_ids_by_fname(parsed_only=parsed_only, names=n_m_fnames)
-                result.update({fname + '**': match for fname, match in additional_matches.items()})
-            if len(more_than_one) > 0:
-                rel_paths = self.p.rel_paths[self.key]
-                m_t_o = [(os.path.join(rel_paths[i], all_file_names[i]), cnt) for i, cnt in more_than_one.items()]
-                self.logger.warning(f"Matched with several fnames: {m_t_o}")
-        return result
-
-
-
-
-    def pieces(self, parsed_only=False) -> pd.DataFrame:
-        """ Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
-           correspond to each other.
-
-        Args:
-            parsed_only: By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
-                Pass True to include match only parsed files in the matching.
-
-        Returns:
-            DataFrame matching the :attr:`.names` to IDs (without key component) of scores and TSV files.
-        """
-        if self._state > (0, 0, 0) and \
-            (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
-            parsed_only in self._cached_piece_matrices:
-            self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
-            return self._cached_piece_matrices[parsed_only]
-        pieces = {} # result
-        self.matches = self.detect_ids_by_fname(parsed_only=parsed_only)
-        for metadata_i, (fname, detected) in enumerate(self.matches.items()):
-            pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
-            for typ, matched_files in detected.items():
-                n = len(matched_files)
-                if n == 0:
-                    continue
-                if n == 1:
-                    pieces[metadata_i][typ] = matched_files[0].i_str
-                else:
-                    distinguish = make_distinguishing_strings(matched_files)
-                    for match, dist in zip(matched_files, distinguish):
-                        column = typ if dist == "" else f"{typ}:{dist}"
-                        pieces[metadata_i][column] = match.i_str
-        try:
-            res = pd.DataFrame.from_dict(pieces, orient='index', dtype='string')
-            res.index.name = 'metadata_row'
-        except:
-            print(pieces)
-            raise
-        # caching
-        current_state = (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv))
-        if current_state > self._state and (not parsed_only) in self._cached_piece_matrices:
-            del(self._cached_piece_matrices[not parsed_only])
-        self._state = current_state
-        self._cached_piece_matrices[parsed_only] = res
-        return res
-
-    def ids(self):
-        return self.p.ids(self.key)
-
-    def get_piece(self, id):
-        fname = self.id2fname(id)
-        if fname is not None:
-            return self[fname]
-        return None
-
-    def id2fname(self, id):
-        if id in self._id2fname:
-            return self._id2fname[id]
-        self.logger.info(f"ID {id} has not been linked to any of the fnames.")
-        return None
-
-    def info(self, return_str=False):
-        info = f"View on key {self.key}"
-        info += '\n' + '_' * len(info) + '\n\n'
-        md = self.metadata()
-        if self.metadata_id is None:
-            score_ids = self.score_ids
-            if len(score_ids) > 0:
-                _, indices = zip(*score_ids)
-                info += f"No metadata.tsv found. Constructed metadata from parsed scores at indices {indices}.\n"
-            else:
-                info += f"No metadata present. Parse scores and/or metadata.tsv files.\n"
-        else:
-            k, i = self.metadata_id
-            info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
-        if len(md) > 0:
-            piece_matrix = self.pieces()
-            if any('**' in fname for fname in self.matches):
-                info += "fnames marked with ** are not contained in the metadata, consider using 'ms3 extract -D' on this corpus."
-            if len(piece_matrix.columns) == 1:
-                info += "\nNo files detected that would match the file names listed in the metadata"
-            else:
-                info += "\nFile names & associated indices"
-                asterisk = False
-                for _, column in piece_matrix.iteritems():
-                    try:
-                        if column.str.contains('*', regex=False).any():
-                            asterisk = True
-                            break
-                    except:
-                        pass
-                if asterisk:
-                    info += " (* means file has not been parsed; type inferred from path)"
-            info += f":\n\n{piece_matrix.fillna('').to_string()}"
-
-        if return_str:
-            return info
-        print(info)
-
-
-    def iter(self, columns, skip_missing=False, fnames=None, prefer_score=True):
-        """ Iterate through combinations of metadata dicts and DataFrames pertaining to the same piece.
-
-        Parameters
-        ----------
-        columns : list of str
-            One or several columns contained in self.pieces(). If there is a choice between several columns
-            for the same type of DataFrame, either pass a nested list with desired column order
-            or use wildcard notation.
-        skip_missing : :obj:`bool`, optional
-            If one of the requested aspects has no DataFrame available, skip the piece.
-        fnames : :obj:`list`, optional
-            If you want to iterate only through a subset of pieces, pass their fnames as they appear
-            in the metadata.tsv column 'fnames'.
-        prefer_score : :obj:`bool`, optional
-            By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
-
-        Yields
-        ------
-        dict, *pd.DataFrame
-            A metadata dict and one DataFrame (or None) per entry in the parameter ``columns``.
-
-        """
-        standard_cols = list(self.p._dataframes.keys())
-        piece_matrix = self.pieces(parsed_only=True)
-        if fnames is not None:
-            missing = [fn for fn in fnames if fn not in piece_matrix.fnames.values]
-            if len(missing) > 0:
-                fnames = [fn for fn in fnames if fn in piece_matrix.fnames.values]
-                self.logger.warning(f"The following fnames are not listed in the metadata: [{', '.join(missing)}].\nChoose among: [{', '.join(piece_matrix.fnames.values)}")
-        available = '\n'.join(sorted(piece_matrix.columns[1:]))
-        parsed_scores_present = piece_matrix.columns.str.contains('scores').any()
-        n, d = piece_matrix.shape
-        if n == 0 or d == 1:
-            self.logger.error("No files present.")
-            return
-
-        # look for and treat wildcard arguments
-        cols = []
-        if isinstance(columns, str):
-            columns = [columns]
-        for c in columns:
-            if isinstance(c, str) and c[-1] == '*':
-                col_name = c[:-1]
-                resolved = [col for col in piece_matrix.columns if col.startswith(col_name)]
-                resolved = sorted(resolved, key=lambda s: len(s))
-                if col_name in standard_cols and col_name not in resolved and parsed_scores_present:
-                    resolved = [col_name] + resolved
-                if len(resolved) == 0:
-                    self.logger.error(f"Unable to resolve wildcard expression '{c}'. Available columns:\n{available}")
-                    return
-                if len(resolved) == 1:
-                    resolved = resolved[0]
-                self.logger.debug(f"{c} resolved to {resolved}.")
-                cols.append(resolved)
-            else:
-                cols.append(c)
-        self.logger.debug(f"columns parameter {columns} after treating wildcards: {cols}")
-
-        def c_name2std_and_disamb(col):
-            """Intermediary solution"""
-            if col in standard_cols:
-                return col, 'auto'
-            for c in standard_cols:
-                if col.startswith(c):
-                    return c, col
-            raise ValueError(f"Cannot iterate through '{col}'. Check which columns are available for the corpus '{self.key}'.")
-
-        for md, (fname, matches) in zip(self.metadata().to_dict(orient='records'), self.matches.items()):
-            """md = {key->value} metadata; matches = {type->id}"""
-            if fnames is not None and fname not in fnames:
-                continue
-            skip_flat = False # flag that serves the inner loop to make this loop skip yielding
-            result, used_ids, paths = [], [], []
-            piece = self[fname]
-            for c in cols:
-                """c can be a column name or a list of column names from which the first non-empty one will be used"""
-                if isinstance(c, str):
-                    what, disamb = c_name2std_and_disamb(c)
-                    try:
-                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
-                    except FileNotFoundError:
-                        df = None
-                else:
-                    for cc in c:
-                        what, disamb = c_name2std_and_disamb(cc)
-                        try:
-                            df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
-                        except FileNotFoundError:
-                            df = None
-                        if df is not None:
-                            c = cc
-                            break
-                if df is None:
-                    if skip_missing:
-                        skip_flat = True
-                        break
-                    used_ids.append(None)
-                    paths.append(None)
-                else:
-                    used_ids.append(piece_info.id)
-                    paths.append((c, piece_info.full_path))
-                result.append(df)
-            if skip_flat:
-                self.logger.info(f"{md['fnames']} skipped.")
-                continue
-            md['ids'] = used_ids
-            md['paths'] = paths
-            yield (md, *result)
-
-        # check if arguments correspond to existing columns or if parsed scores are available
-        # flattened = list(iter_nested(cols))
-        # if parsed_scores_present:
-        #     missing = [c for c in flattened if c not in standard_cols and c not in piece_matrix.columns]
-        #     flattened = [c for c in flattened if c in piece_matrix.columns]
-        # else:
-        #     missing = [c for c in flattened if c not in piece_matrix.columns]
-        # if len(missing) > 0:
-        #     self.logger.error(f"The following columns were not recognized: {missing}. You could try using the wildcard *\nCurrently available types among parsed TSV files:\n{available}")
-        #     return
-        #
-        #
-        # def get_dataframe(ids, column):
-        #     if 'scores' in ids and not pd.isnull(ids['scores']) and column in standard_cols:
-        #         i = int(ids['scores'])
-        #         score = self.p[(self.key, i)]
-        #         if score is None:
-        #             self.logger.debug(f"No Score object found for ID ({self.key}, {i}).")
-        #         else:
-        #             df = score.mscx.__getattribute__(column)()
-        #             if df is None:
-        #                 score.logger.debug(
-        #                     f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded None.")
-        #             elif df.shape[0] == 0:
-        #                 score.logger.debug(
-        #                     f"Property {column} of Score({self.p.full_paths[self.key][i]}) yielded an empty DataFrame.")
-        #             else:
-        #                 score.logger.debug(
-        #                     f"Using the {column} DataFrame from parsed score {self.p.full_paths[self.key][i]}.")
-        #                 return df, i
-        #     if column in ids and not pd.isnull(ids[column]):
-        #         i = int(ids[column])
-        #         return self.p._parsed_tsv[(self.key, i)], i
-        #     return (None, None)
-        #
-        #
-        #
-        # plural = 's' if len(cols) > 1 else ''
-        # self.logger.debug(f"Iterating through the following files, {len(cols)} file{plural} per iteration, based on the argument columns={cols}:\n{piece_matrix[flattened]}")
-        # for md, matched_ids in zip(self.metadata().to_dict(orient='records'), piece_matrix.to_dict(orient='records')):
-        #     """md = {key->value} metadata; ids = {tsv_type->id}"""
-        #     if fnames is not None and matched_ids['fnames'] not in fnames:
-        #         continue
-        #     skip_flat = False # flag that serves the inner loop to make this loop skip yielding
-        #     result, used_ids, paths = [], [], []
-        #     for c in cols:
-        #         """c can be a column name or a list of column names from which the first non-empty one will be used"""
-        #         if isinstance(c, str):
-        #             df, i = get_dataframe(matched_ids, c)
-        #         else:
-        #             for cc in c:
-        #                 df, i = get_dataframe(matched_ids, cc)
-        #                 if df is not None:
-        #                     c = cc
-        #                     break
-        #         if df is None:
-        #             if skip_missing:
-        #                 skip_flat = True
-        #                 break
-        #             used_ids.append(None)
-        #             paths.append(None)
-        #         else:
-        #             used_ids.append((self.key, i))
-        #             paths.append((c, self.p.full_paths[self.key][i]))
-        #         result.append(df)
-        #     if skip_flat:
-        #         self.logger.info(f"{md['fnames']} skipped.")
-        #         continue
-        #     md['ids'] = used_ids
-        #     md['paths'] = paths
-        #     yield (md, *result)
-
-    def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
-        if not any((unfold, quarterbeats, interval_index)):
-            for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs):
-                    if skip_missing:
-                        continue
-                    else:
-                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
-                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                yield (md, *dfs)
-        else:
-            if isinstance(columns, str):
-                columns = [columns]
-            columns.append('measures*')
-            for md, *dfs, measures in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs + [measures]):
-                    if skip_missing:
-                        continue
-                    else:
-                        if any(s.contains('measures') for s in columns):
-                            missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
-                        else:
-                            missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
-                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=self.logger)
-                md['paths'] = md['paths'][:-1]
-                yield (md, *dfs)
-
-
-
-    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, skip_missing=True, weight_grace_durations=0, fnames=None):
-        for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
-            if notes is None:
-                msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
-                if skip_missing:
-                    self.logger.warning(msg)
-                    continue
-                else:
-                    self.logger.debug(msg)
-            if weight_grace_durations > 0 and notes is not None:
-                notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
-            yield md, notes
-
-
-    def match_scores_with_annotations(self, use=None):
-        """ Go through View.pieces() and match parsed scores with parsed annotation files.
-
-        Parameters
-        ----------
-        use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked which one(s) to use.
-            To prevent the interaction, pass a string to subselect a column of ``_.pieces(parsed_only=True)``
-            that has been recognized to contain labels or expanded labels. The values 'labels', 'expanded' and
-            'any' subselect all columns of the respective type(s) and, for each piece, uses the leftmost that is
-            not empty, i.e. that represents a parsed annotation table. This can be useful if there are several
-            annotation tables present for the same piece. To subselect one particular set of annotation tables
-            that can be distinguished through their subdirectory and/or suffix, use the respective column name
-            from ``_.pieces()``. Generally speaking, the value of ``use`` is used to select all columns that
-            start with this exact string.
-
-        Returns
-        -------
-        list of (score_id, tsv_id)
-            IDs of parsed files.
-        """
-        piece_matrix = self.pieces(parsed_only=True)
-        score_cols = [c for c in piece_matrix.columns if c.startswith('scores')]
-        if len(score_cols) == 0:
-            self.logger.warning(f"View '{self.key}' does not include any parsed scores.")
-            return []
-        has_score = piece_matrix[score_cols].notna().any(axis=1)
-        if not has_score.all():
-            self.logger.info(f"For {(~has_score).sum()} pieces listed in the metadata, no parsed score was found.")
-        piece_matrix = piece_matrix[has_score]
-        if use is None or use.lower() == 'any':
-            use_str = ''
-            labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
-        else:
-            use_str = f" (use={use})"
-            labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
-        n_cols = len(labels_cols)
-        if n_cols == 0:
-            self.logger.info(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
-            return []
-        display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
-        display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
-        display_matrix.index.name = None
-        if n_cols == 1:
-            column_order = [0]
-        else:
-            if use is None:
-                range_str = f"0-{n_cols - 1}"
-                accept_several = display_matrix.isna().any().any()
-                print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
-                query = "Please enter one "
-                if accept_several:
-                    print(f"Please pass an integer to select a column or, if you need to define fallback columns, several ({range_str}):")
-                    query += "or several "
-                    plural = 's'
-                else:
-                    print(f"Please select one of the columns by passing an integer between {range_str}:")
-                    plural = ''
-                options = dict(enumerate(labels_cols))
-                query += f"integer{plural} {options}> "
-                permitted = list(options.keys())
-
-                def test_integer(s):
-                    nonlocal permitted, range_str
-                    try:
-                        int_i = int(s)
-                    except:
-                        print(f"Value '{s}' could not be converted to an integer.")
-                        return None
-                    if int_i not in permitted:
-                        print(f"Value '{s}' is not between {range_str}.")
-                        return None
-                    return int_i
-
-                ask_user = True
-                while ask_user:
-                    selection = input(query)
-                    if accept_several:
-                        column_order = []
-                        for i in selection.split():
-                            int_i = test_integer(i)
-                            if int_i is None:
-                                ask_user=True
-                                break
-                            column_order.append(int_i)
-                            ask_user=False
-                    else:
-                        int_i = test_integer(selection)
-                        if int_i is not None:
-                            column_order = [int_i]
-                            ask_user = False
-            else:
-                column_order = list(range(n_cols))
-                self.logger.debug(f"Using this column order:\n{display_matrix.columns}")
-
-        def merge_cols(df):
-            result = df.iloc[:, 0].copy()
-            for _, col in df.iloc[:, 1:].iteritems():
-                if result.notna().all():
-                    break
-                result.fillna(col, inplace=True)
-            return result
-
-        selected_cols = [labels_cols[i] for i in column_order]
-        pairing = pd.concat([
-            merge_cols(piece_matrix[score_cols]).rename('score_ids'),
-            merge_cols(piece_matrix[selected_cols]).rename('labels_ids')
-        ], axis=1)
-        has_annotations = pairing.labels_ids.notna()
-        if not has_annotations.all():
-            self.logger.info(f"Found no annotations for the following sores:\n{piece_matrix.loc[~has_annotations, ['fnames'] + score_cols + labels_cols].to_string()}")
-        id_pairs = list(pairing[has_annotations].itertuples(name=None, index=False))
-        id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
-        return id_pairs
-
-    def add_detached_annotations(self, use=None, new_key='old', revision_specifier=None):
-        """
-
-        Parameters
-        ----------
-        use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked to input
-            in which order to pick them. Instead, they can specify the name of a column of
-            _.pieces(), especially 'expanded' or 'labels' to be using only these.
-        new_key : :obj:`str`
-            The key under which the detached annotations can be addressed using Score[new_key].
-        revision_specifier : :obj:`str`, optional
-            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-            using compare_labels()), pass a specifier for that git revision.
-            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
-
-        Returns
-        -------
-
-        """
-        id_pairs = self.match_scores_with_annotations(use=use)
-        if revision_specifier is not None:
-            id_pairs = [(score, self.p._parse_tsv_from_git_revision(tsv, revision_specifier)) for score, tsv in id_pairs]
-        if len(id_pairs) > 0:
-            self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
-        else:
-            self.logger.info(f"No scores were matched with annotation tables.")
-
-    def add_labels(self, use=None):
-        id_pairs = self.match_scores_with_annotations(use=use)
-        self.p._add_annotations_by_ids(id_pairs)
-
-    def _get_piece(self, fname):
-        if fname in self._pieces:
-            return self._pieces[fname]
-        if fname in self.names:
-            self._pieces[fname] = PieceView(self, fname)
-            return self._pieces[fname]
-        self.logger.info(f"File name '{fname}' not found in the metadata.")
-        return
-
-    def __getitem__(self, item):
-        piece_matrix = self.pieces(parsed_only=True)
-        matches = piece_matrix.fnames == item
-        found = matches.sum()
-        if found == 0:
-            self.logger.error(f"No files correspond to '{item}' in key {self.key}.")
-            return
-        if found > 1:
-            self.logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
-            return
-        return self._get_piece(item)
-
-
-    def __iter__(self):
-        """
-
-        Yields
-        ------
-        (str, ms3.parse.Piece)
-            For iterating through the keys and associated View objects.
-        """
-        names = self.names()
-        if len(keys) == 0:
-            self.logger.info("This View does not contain any Pieces.")
-        for n in names:
-            yield n, self._get_piece(n)
-
-
-
-
-
-    ### this would make sense if the arguments of parent's methods could be automatically called with keys=self.key
-    # def __getattr__(self, item):
-    #     return self.p.__getattribute__(item)
 
 
 def make_distinguishing_strings(matched_files):

@@ -496,7 +496,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                          f"compute quarterbeats for a full playthrough.")
             if 3 in measures.volta.values:
                 self.logger.info(
-                    f"Piece contains third endings, note that only second endings are taken into account.")
+                    f"Piece contains third endings; please note that only second endings are taken into account for quarterbeats.")
             quarterbeats_col = measures.loc[measures.volta.fillna(2) == 2, 'act_dur']\
                 .cumsum()\
                 .shift(fill_value=0)\

@@ -1,4 +1,4 @@
-from typing import Literal, Collection, Dict, List, Union, Generator
+from typing import Literal, Collection, Dict, List, Union, Generator, Tuple
 
 import io
 import sys, os, re
@@ -14,43 +14,23 @@ from gitdb.exc import BadName
 
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
-from .piece import File, Piece
+from .piece import Piece
 from .score import Score
-from .utils import column_order, first_level_files_and_subdirs, get_musescore, get_path_component, group_id_tuples, infer_tsv_type, \
-    iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
+from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type, \
+    iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
     pretty_dict, resolve_dir, \
-    scan_directory, update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
+    update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
 from .transformations import add_weighted_grace_durations, dfs2quarterbeats
+from .view import DefaultView, View
 
-
-@function_logger
-def parse_mscx(file: File, logger_cfg={}, labels_cfg={}, read_only=False, ms=None):
-    """Performs a single parse and returns the resulting Score object or None."""
-    path = file.full_path
-    file = file.file
-    logger.debug(f"Attempting to parse {file}")
-    try:
-        score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=ms)
-        if score is None:
-            logger.debug(f"Encountered errors when parsing {file}")
-        else:
-            logger.debug(f"Successfully parsed {file}")
-        return score
-    except (KeyboardInterrupt, SystemExit):
-        logger.info("Process aborted.")
-        raise
-    except Exception as e:
-        logger.error(f"Unable to parse {path} due to the following exception:\n{e}")
-        return None
 
 class Corpus(LoggedClass):
     """
     Collection of scores and TSV files that can be matched to each other based on their file names.
     """
 
-    def __init__(self, directory=None, paths=None, key=None, file_re=None, folder_re='.*', exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
+    def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
         """
 
         Parameters
@@ -104,6 +84,10 @@ class Corpus(LoggedClass):
         """ DataFrame containing information on all detected files.
         """
 
+        self._views: dict = {}
+        self._views[None] = view if view is None else DefaultView('current')
+        self._views['default'] = DefaultView('default')
+        self._views['all'] = View('all')
 
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
@@ -170,6 +154,35 @@ class Corpus(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    def set_view(self, current: View = None, **views: View):
+        """Register one or several view_name=View pairs."""
+        if current is not None:
+            self._views[None] = current
+        for view_name, view in views.items():
+            if view.name is None:
+                view.name = view_name
+            self._views[view_name] = view
+        for fname, piece in self:
+            if current is not None and current.check_token('fname', fname):
+                piece.set_view(current)
+            for view_name, view in views.items():
+                if view.check_token('fname', fname):
+                    piece.set_view(**{view_name:view})
+
+    def get_view(self, view_name: str = None) -> View:
+        """Retrieve an existing or create a new View object."""
+        if view_name in self._views:
+            return self._views[view_name]
+        self._views[view_name] = View(view_name)
+        self.logger.info(f"New view '{view_name}' created.")
+        return self._views[view_name]
+
+    def __getattr__(self, view_name):
+        if view_name in self._views:
+            self.info(view_name=view_name)
+        else:
+            raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
+
     def reset_piece_selection(self, pieces_from_metadata: bool = True,
                                     pieces_outside_metadata: bool = False) -> None:
         assert pieces_from_metadata + pieces_outside_metadata > 0, "At least one parameter needs to be True"
@@ -196,11 +209,18 @@ class Corpus(LoggedClass):
         else:
             self.logger.info(f"{n_selected}/{n_overall} pieces selected.")
 
-    def iter_selected_pieces(self) -> Generator[Piece, None, None]:
-        for fname in self.selected_pieces:
-            yield self._get_piece(fname)
+    def iter_pieces(self, view_name: str = None) -> Generator[Tuple[str, Piece], None, None]:
+        """Iterate through corpora under the current or specified view."""
+        view = self.get_view(view_name)
+        for fname, piece in view.filter_by_token('fnames', self):
+            if view_name not in piece._views or piece._views[view_name] != view:
+                if view_name is None:
+                    piece.set_view(view)
+                else:
+                    piece.set_view(**{view_name: view})
+            yield fname, piece
 
-    def select_files(self, file_type: Union[str, Collection[str]], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Dict[str, Union[File, Dict[str, File]]]:
+    def select_files(self, file_type: Union[str, Collection[str]], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Dict[str, Dict[str, File]]:
         """
 
         Args:
@@ -212,18 +232,23 @@ class Corpus(LoggedClass):
             {fname -> :obj:`File`} dict if ``file_type`` is a string.
         """
         result = {}
-        unpack_result = isinstance(file_type, str)
-        if choose != 'auto':
+        if choose == 'ask':
             choose = 'auto'
-            logger.warning(f"Currently, Corpus.select_files() always picks automatically: choose set to 'auto'")
-        for piece in self.iter_selected_pieces():
+            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_files(); setting to 'auto'")
+        for piece in self.iter_pieces():
             type2file, ambiguous_types = piece.select_files(file_type=file_type, choose=choose)
             result[piece.fname] = type2file
-        if unpack_result:
-            result = {fname: list(type2file.values()) for fname, type2file in result.items()}
-            if all(len(l) == 1 for l in result.values()):
-                return {fname: l[0] for fname, l in result.items()}
         return result
+
+    def select_score_files(self, choose: Literal['all', 'auto', 'ask'] = 'auto'):
+        if choose == 'ask':
+            choose = 'auto'
+            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
+        result = self.select_files('scores', choose=choose)
+        result = {fname: list(type2file.values()) for fname, type2file in result.items()}
+
+        if all(len(l) == 1 for l in result.values()):
+            return {fname: l[0] for fname, l in result.items()}
 
     def metadata_fnames(self):
         if self.metadata_tsv is None:
@@ -1198,7 +1223,7 @@ Available keys: {available_keys}""")
         l = locals()
         file_types = [tsv_type for tsv_type in Score.dataframe_types if l[tsv_type]]
         res = {} if flat else defaultdict(dict)
-        for piece in self.iter_selected_pieces():
+        for piece in self.iter_pieces():
             fname = piece.fname
             file, score_obj = piece.get_parsed_score()
             if score_obj is None:
@@ -1389,12 +1414,13 @@ Available keys: {available_keys}""")
     def count(self, types: bool = True,
               parsed: bool = True,
               as_dict: bool = False,
-              drop_zero: bool = False) -> Union[pd.DataFrame, dict]:
+              drop_zero: bool = False,
+              view_name: str = None) -> Union[pd.DataFrame, dict]:
         assert types + parsed > 0, "At least one parameter needs to be True"
         fname2counts = {}
-        for fname, piece in self._pieces.items():
+        for fname, piece in self.iter_pieces(view_name=view_name):
             if types:
-                type_count = piece.count_types()
+                type_count = piece.count_types(view_name=view_name)
                 if not parsed:
                     fname2counts[fname] = type_count
             if parsed:
@@ -1417,15 +1443,10 @@ Available keys: {available_keys}""")
 
 
 
-    def info(self, keys=None, subdirs=False, return_str=False):
+    def info(self, return_str=False, view_name: str = None):
         """"""
-        type_count_per_piece = {fname: piece.count_types() for fname, piece in self._pieces.items()}
-        parsed_count_per_piece = {fname: piece.count_parsed() for fname, piece in self._pieces.items()}
-        all_found = pd.DataFrame.from_dict(type_count_per_piece, orient='index')
-        all_parsed = pd.DataFrame.from_dict(parsed_count_per_piece, orient='index')
-        all_pieces_df = pd.concat([all_found, all_parsed], axis=1)
-        empty_cols = all_pieces_df.columns[all_pieces_df.sum() == 0]
-        all_pieces_df = all_pieces_df.drop(columns=empty_cols)
+        print(self.get_view(view_name))
+        all_pieces_df = self.count(drop_zero=True, view_name=view_name)
         if self.metadata_tsv is None:
             info = "No 'metadata.tsv' file is present.\n\n"
             info += all_pieces_df.to_string()
@@ -1691,7 +1712,7 @@ Available keys: {available_keys}""")
             raise NotImplementedError(f"Not there yet")
 
         rows = {}
-        for piece in self.iter_selected_pieces():
+        for piece in self.iter_pieces():
             fname = piece.fname
             file, score_obj = piece.get_parsed_score()
             metadata_dict = score_obj.mscx.metadata
@@ -1837,7 +1858,7 @@ Available keys: {available_keys}""")
             #self._collect_annotations_objects_references(ids=ids)
             pass
 
-    def parse_tsv(self, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
+    def parse_tsv(self, cols={}, infer_types=None, level=None, **kwargs):
         """ Parse TSV files to be able to do something with them.
 
         Parameters
@@ -2649,57 +2670,22 @@ Load one of the identically named files with a different key using add_dir(key='
     #         self.logger.info(f"Includes no files with the extension {ext}")
     #     return ids
 
-    def _get_view(self, key):
-        if key in self._views:
-            return self._views[key]
-        if key in self.files:
-            self._views[key] = View(self, key)
-            return self._views[key]
-        self.logger.info(f"Key '{key}' not found.")
-        return
 
 
-    def __getitem__(self, item):
+
+    def __getitem__(self, item) -> Piece:
         if isinstance(item, str):
             return self._get_piece(item)
         raise NotImplementedError("Currently subscripting works with fnames only.")
-        # elif isinstance(item, tuple):
-            # key, i, *_ = item
-            # if key not in self.files:
-            #     raise KeyError(f"'{key}' is not an existing key")
-            # try:
-            #     i = int(i)
-            #     if key in self.files and i < len(self.files[key]):
-            #         id = (key, i)
-            #     else:
-            #         raise KeyError(f"Key '{key}' has no i=={i}. Current number of files is {len(self.files[key])}.")
-            # except ValueError:
-            #     return self._get_piece(key, i)
-        #
-        # else:
-        #     self.logger.info(f"Not prepared to be subscripted by '{type(item)}' object {item}.")
-        # if id in self._parsed_tsv:
-        #     return self._parsed_tsv[id]
-        # if id in self._parsed_mscx:
-        #     return self._parsed_mscx[id]
-        # if id in self._annotations:
-        #     return self._annotations[id]
-        # self.logger.warning(f"{self.full_paths[key][i]} has or could not be(en) parsed.")
 
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[Tuple[str, Piece], None, None]:
+        """  Iterate through all (fname, Piece) tuples, regardless of any Views.
+
+        Yields: (fname, Piece) tuples
         """
+        yield from self._pieces.items()
 
-        Yields
-        ------
-        (str, ms3.parse.View)
-            For iterating through the keys and associated View objects.
-        """
-        keys = self.keys()
-        if len(keys) == 0:
-            self.logger.info("No files have been added to this Corpus object.")
-        for k in keys:
-            yield k, self._get_view(k)
 
 
     def __repr__(self):
@@ -2718,755 +2704,22 @@ Load one of the identically named files with a different key using add_dir(key='
 ########################################################################################################################
 
 
-
-class View(Corpus):
-
-    def __init__(self,
-                 p: Corpus,
-                 key: str = None):
-        self.p = p # parent parse object
-        self.key = key
-        self._state = (0, 0, 0) # (n_files, n_parsed_scores, n_parsed_tsv)
-        self._cached_piece_matrices = {}
-        self.matches = {}
-        """:obj:`dict`
-        {fname -> {type -> [MatchedFile]}} dict, where MatchedFile is a :obj:`namedtuple` with the fields
-        "id", "full_path", "suffix", "fext", "subdir", "i_str"."""
-        self._pieces = {}
-        """:obj:`dict` of :obj:`Piece`
-        References to the Piece objects belonging to each fname listed in the metadata.
-        """
-        logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = f"{self.p.logger.name}.{self.key}"
-        super(Corpus, self).__init__(subclass='View', logger_cfg=logger_cfg) # initialize loggers
-        self._metadata = pd.DataFrame()
-        self.metadata_id = None
-        """:obj:`tuple`
-        ID of the detected metadata TSV file if any. None means that none has been detected, meaning that :attr:`.metadata`
-        corresponds to the metadata included in the parsed scores.
-        """
-        self._id2fname = {}
-        """:obj:`dict`
-        Stores the mapping from IDs to fnames found in the metadata.
-        """
-        _ = self.pieces()
-
-
-    def metadata(self):
-        if self.metadata_id is None:
-            # always give preference to parsed metadata files because they might contain additional
-            # information and may exclude unwanted files
-            metadata_tsv = self.p.metadata_tsv(self.key)
-            if len(metadata_tsv) > 0:
-                id = list(metadata_tsv.keys())[0]
-                self.metadata_id = id
-                self._metadata = metadata_tsv[id]
-                k, i = self.metadata_id
-                self.logger.debug(f"Metadata detected in '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
-
-        if self.metadata_id is None:
-            score_ids = self.score_ids
-            if len(score_ids) > 0:
-                _, indices = zip(*self.score_ids)
-                if len(score_ids) > len(self._metadata):
-                    self._metadata = self.score_metadata()
-                    self.logger.debug(f"Metadata updated from parsed scores at indices {indices}.")
-                else:
-                    self.logger.debug(f"Using metadata from parsed scores at indices {indices}.")
+@function_logger
+def parse_mscx(file: File, logger_cfg={}, labels_cfg={}, read_only=False, ms=None):
+    """Performs a single parse and returns the resulting Score object or None."""
+    path = file.full_path
+    file = file.file
+    logger.debug(f"Attempting to parse {file}")
+    try:
+        score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=ms)
+        if score is None:
+            logger.debug(f"Encountered errors when parsing {file}")
         else:
-            k, i = self.metadata_id
-            self.logger.debug(f"Using metadata from '{self.p.files[k][i]}' @ ID {self.metadata_id}.")
-        if len(self._metadata) == 0:
-            self.logger.info(f"No scores and no metadata TSV file have been parsed so far.")
-        return self._metadata
-
-
-    def score_metadata(self):
-        return self.p.metadata_from_parsed(self.key)
-
-    @property
-    def score_ids(self):
-        parsed = list(self.p._iterids(self.key, only_parsed_mscx=True))
-        n_parsed = len(parsed)
-        if n_parsed == 0:
-            self.logger.debug(f"No scores have been parsed. Use method Corpus.parse_mscx(keys='{self.key}')")
-        return parsed
-
-
-    @property
-    def names(self):
-        """A list of the View's filenames used for matching corresponding files in different folders.
-           If metadata.tsv was parsed, the column ``fnames`` is used as authoritative list for this corpus."""
-        md = self.metadata_from_parsed()
-        if 'fnames' in md.columns:
-            fnames = md.fnames.to_list()
-            if len(fnames) > md.fnames.nunique():
-                vc = md.fnames.value_counts(dropna=False)
-                self.logger.info(f"The following file names occur more than once in the metadata: {vc[vc > 1].to_dict()}")
-            return fnames
-        self.logger.debug("No file names present in metadata.")
-        return []
-
-
-    def detect_ids_by_fname(self, parsed_only: bool = False, names: Collection[str]=None) -> dict:
-        """ Returns a {fname -> {type -> [MatchedFile]}} dict.
-
-        Args:
-            parsed_only:
-                By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
-                Pass True to include match only parsed files in the matching. This will prevent checking if all detected files have
-                actually been matched to an fname.
-            names: If you want to do the matching only for selected fnames, pass these.
-
-        Returns:
-            {fname -> {type -> [MatchedFile]}} dict
-        """
-        result = {}
-        track_matches = False
-        if names is None:
-            names = self.names
-            if not parsed_only:
-                track_matches = True
-        if track_matches:
-            all_file_names = self.p.files[self.key]
-            n_files_to_be_matched = len(all_file_names)
-            counting_matches = Counter({i: 0 for i in range(n_files_to_be_matched)})
-        for fname in names:
-            ids = self.p.fname2ids(fname, self.key)
-            detected = defaultdict(list)
-            for id, fn in ids.items():
-                k, i = id
-                suffix = fn[len(fname):]
-                full_path = self.p.full_paths[k][i]
-                fext = self.p.fexts[k][i]
-                subdir = self.p.subdirs[k][i]
-                match = None
-                if id in self.p._parsed_mscx:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
-                    detected['scores'].append(match)
-                elif id in self.p._tsv_types:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i))
-                    detected[self.p._tsv_types[id]].append(match)
-                elif not parsed_only:
-                    match = MatchedFile(id, full_path, suffix, fext, subdir, str(i)+'*')
-                    typ = path2type(full_path, logger=self.p.logger_names[id])
-                    detected[typ].append(match)
-                if match is not None:
-                    if id in self._id2fname and fname != self._id2fname[id]:
-                        self.logger.warning(f"ID {id}, to be matched with '{fname}' had previously been matched to {self._id2fname[id]}")
-                    self._id2fname[id] = fname
-                    if track_matches:
-                        counting_matches.update([i])
-            result[fname] = dict(detected)
-        if track_matches:
-            metadata_i = None if self.metadata_id is None else self.metadata_id[1]
-            not_matched = [i for i, cnt in counting_matches.items() if cnt == 0 and i != metadata_i]
-            more_than_one = {i: cnt for i, cnt in counting_matches.items() if cnt > 1}
-            if len(not_matched) > 0:
-                n_m_file_names = [all_file_names[i] for i in not_matched]
-                fnames = self.p.fnames[self.key]
-                n_m_fnames = set(fnames[i] for i in not_matched)
-                plural = "s have" if len(not_matched) > 1 else " has"
-                self.logger.warning(f"The following file{plural} not been matched to any fname included in the metadata: {n_m_file_names}")
-                additional_matches = self.detect_ids_by_fname(parsed_only=parsed_only, names=n_m_fnames)
-                result.update({fname + '**': match for fname, match in additional_matches.items()})
-            if len(more_than_one) > 0:
-                rel_paths = self.p.rel_paths[self.key]
-                m_t_o = [(os.path.join(rel_paths[i], all_file_names[i]), cnt) for i, cnt in more_than_one.items()]
-                self.logger.warning(f"Matched with several fnames: {m_t_o}")
-        return result
-
-
-
-
-    def pieces(self, parsed_only=False) -> pd.DataFrame:
-        """ Based on :py:attr:`names`, return a DataFrame that matches the numerical part of IDs of files that
-           correspond to each other.
-
-        Args:
-            parsed_only: By default, all files are taken into account, with the type of not-yet parsed TSV files being inferred from their paths.
-                Pass True to include match only parsed files in the matching.
-
-        Returns:
-            DataFrame matching the :attr:`.names` to IDs (without key component) of scores and TSV files.
-        """
-        if self._state > (0, 0, 0) and \
-            (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv)) == self._state and \
-            parsed_only in self._cached_piece_matrices:
-            self.logger.debug(f"Using cached DataFrame for parameter parsed_only={parsed_only}")
-            return self._cached_piece_matrices[parsed_only]
-        pieces = {} # result
-        self.matches = self.detect_ids_by_fname(parsed_only=parsed_only)
-        for metadata_i, (fname, detected) in enumerate(self.matches.items()):
-            pieces[metadata_i] = dict(fnames=fname) # start building the DataFrame row based on detected matches
-            for typ, matched_files in detected.items():
-                n = len(matched_files)
-                if n == 0:
-                    continue
-                if n == 1:
-                    pieces[metadata_i][typ] = matched_files[0].i_str
-                else:
-                    distinguish = make_distinguishing_strings(matched_files)
-                    for match, dist in zip(matched_files, distinguish):
-                        column = typ if dist == "" else f"{typ}:{dist}"
-                        pieces[metadata_i][column] = match.i_str
-        try:
-            res = pd.DataFrame.from_dict(pieces, orient='index', dtype='string')
-            res.index.name = 'metadata_row'
-        except:
-            print(pieces)
-            raise
-        # caching
-        current_state = (len(self.p.full_paths[self.key]), len(self.p._parsed_mscx), len(self.p._parsed_tsv))
-        if current_state > self._state and (not parsed_only) in self._cached_piece_matrices:
-            del(self._cached_piece_matrices[not parsed_only])
-        self._state = current_state
-        self._cached_piece_matrices[parsed_only] = res
-        return res
-
-    def ids(self):
-        return self.p.ids(self.key)
-
-    def get_piece(self, id):
-        fname = self.id2fname(id)
-        if fname is not None:
-            return self[fname]
+            logger.debug(f"Successfully parsed {file}")
+        return score
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("Process aborted.")
+        raise
+    except Exception as e:
+        logger.error(f"Unable to parse {path} due to the following exception:\n{e}")
         return None
-
-    def id2fname(self, id):
-        if id in self._id2fname:
-            return self._id2fname[id]
-        self.logger.info(f"ID {id} has not been linked to any of the fnames.")
-        return None
-
-    def info(self, return_str=False):
-        info = f"View on key {self.key}"
-        info += '\n' + '_' * len(info) + '\n\n'
-        md = self.metadata_from_parsed()
-        if self.metadata_id is None:
-            score_ids = self.score_ids
-            if len(score_ids) > 0:
-                _, indices = zip(*score_ids)
-                info += f"No metadata.tsv found. Constructed metadata from parsed scores at indices {indices}.\n"
-            else:
-                info += f"No metadata present. Corpus scores and/or metadata.tsv files.\n"
-        else:
-            k, i = self.metadata_id
-            info += f"Found metadata in '{self.p.files[k][i]}' @ ID {self.metadata_id}.\n"
-        if len(md) > 0:
-            piece_matrix = self.pieces()
-            if any('**' in fname for fname in self.matches):
-                info += "fnames marked with ** are not contained in the metadata, consider using 'ms3 extract -D' on this corpus."
-            if len(piece_matrix.columns) == 1:
-                info += "\nNo files detected that would match the file names listed in the metadata"
-            else:
-                info += "\nFile names & associated indices"
-                asterisk = False
-                for _, column in piece_matrix.iteritems():
-                    try:
-                        if column.str.contains('*', regex=False).any():
-                            asterisk = True
-                            break
-                    except:
-                        pass
-                if asterisk:
-                    info += " (* means file has not been parsed; type inferred from path)"
-            info += f":\n\n{piece_matrix.fillna('').to_string()}"
-
-        if return_str:
-            return info
-        print(info)
-
-
-    def iter(self, columns, skip_missing=False, fnames=None, prefer_score=True):
-        """ Iterate through combinations of metadata dicts and DataFrames pertaining to the same piece.
-
-        Parameters
-        ----------
-        columns : list of str
-            One or several columns contained in self.pieces(). If there is a choice between several columns
-            for the same type of DataFrame, either pass a nested list with desired column order
-            or use wildcard notation.
-        skip_missing : :obj:`bool`, optional
-            If one of the requested aspects has no DataFrame available, skip the piece.
-        fnames : :obj:`list`, optional
-            If you want to iterate only through a subset of pieces, pass their fnames as they appear
-            in the metadata.tsv column 'fnames'.
-        prefer_score : :obj:`bool`, optional
-            By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
-
-        Yields
-        ------
-        dict, *pd.DataFrame
-            A metadata dict and one DataFrame (or None) per entry in the parameter ``columns``.
-
-        """
-        standard_cols = list(self.p._dataframes.keys())
-        piece_matrix = self.pieces(parsed_only=True)
-        if fnames is not None:
-            missing = [fn for fn in fnames if fn not in piece_matrix.fnames.values]
-            if len(missing) > 0:
-                fnames = [fn for fn in fnames if fn in piece_matrix.fnames.values]
-                self.logger.warning(f"The following fnames are not listed in the metadata: [{', '.join(missing)}].\nChoose among: [{', '.join(piece_matrix.fnames.values)}")
-        available = '\n'.join(sorted(piece_matrix.columns[1:]))
-        parsed_scores_present = piece_matrix.columns.str.contains('scores').any()
-        n, d = piece_matrix.shape
-        if n == 0 or d == 1:
-            self.logger.error("No files present.")
-            return
-
-        # look for and treat wildcard arguments
-        cols = []
-        if isinstance(columns, str):
-            columns = [columns]
-        for c in columns:
-            if isinstance(c, str) and c[-1] == '*':
-                col_name = c[:-1]
-                resolved = [col for col in piece_matrix.columns if col.startswith(col_name)]
-                resolved = sorted(resolved, key=lambda s: len(s))
-                if col_name in standard_cols and col_name not in resolved and parsed_scores_present:
-                    resolved = [col_name] + resolved
-                if len(resolved) == 0:
-                    self.logger.error(f"Unable to resolve wildcard expression '{c}'. Available columns:\n{available}")
-                    return
-                if len(resolved) == 1:
-                    resolved = resolved[0]
-                self.logger.debug(f"{c} resolved to {resolved}.")
-                cols.append(resolved)
-            else:
-                cols.append(c)
-        self.logger.debug(f"columns parameter {columns} after treating wildcards: {cols}")
-
-        def c_name2std_and_disamb(col):
-            """Intermediary solution"""
-            if col in standard_cols:
-                return col, 'auto'
-            for c in standard_cols:
-                if col.startswith(c):
-                    return c, col
-            raise ValueError(f"Cannot iterate through '{col}'. Check which columns are available for the corpus '{self.key}'.")
-
-        for md, (fname, matches) in zip(self.metadata_from_parsed().to_dict(orient='records'), self.matches.items()):
-            """md = {key->value} metadata; matches = {type->id}"""
-            if fnames is not None and fname not in fnames:
-                continue
-            skip_flat = False # flag that serves the inner loop to make this loop skip yielding
-            result, used_ids, paths = [], [], []
-            piece = self[fname]
-            for c in cols:
-                """c can be a column name or a list of column names from which the first non-empty one will be used"""
-                if isinstance(c, str):
-                    what, disamb = c_name2std_and_disamb(c)
-                    try:
-                        df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
-                    except FileNotFoundError:
-                        df = None
-                else:
-                    for cc in c:
-                        what, disamb = c_name2std_and_disamb(cc)
-                        try:
-                            df, piece_info = piece.get_dataframe(what=what, disambiguation=disamb, prefer_score=prefer_score, return_file_info=True)
-                        except FileNotFoundError:
-                            df = None
-                        if df is not None:
-                            c = cc
-                            break
-                if df is None:
-                    if skip_missing:
-                        skip_flat = True
-                        break
-                    used_ids.append(None)
-                    paths.append(None)
-                else:
-                    used_ids.append(piece_info.id)
-                    paths.append((c, piece_info.full_path))
-                result.append(df)
-            if skip_flat:
-                self.logger.info(f"{md['fnames']} skipped.")
-                continue
-            md['ids'] = used_ids
-            md['paths'] = paths
-            yield (md, *result)
-
-
-    def iter_transformed(self, columns, skip_missing=True, unfold=False, quarterbeats=False, interval_index=False, fnames=None):
-        if not any((unfold, quarterbeats, interval_index)):
-            for md, *dfs in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs):
-                    if skip_missing:
-                        continue
-                    else:
-                        missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
-                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                yield (md, *dfs)
-        else:
-            if isinstance(columns, str):
-                columns = [columns]
-            columns.append('measures*')
-            for md, *dfs, measures in self.iter(columns, skip_missing=False, fnames=fnames):
-                if any(df is None for df in dfs + [measures]):
-                    if skip_missing:
-                        continue
-                    else:
-                        if any(s.contains('measures') for s in columns):
-                            missing = [tsv_type for tsv_type, df in zip(columns, dfs) if df is None]
-                        else:
-                            missing = [tsv_type for tsv_type, df in zip(columns + ['measures'], dfs + [measures]) if df is None]
-                        self.logger.info(f"No [{','.join(missing)}] available for {md['fnames']}.", extra={"message_id": (11, md['fnames'])})
-                dfs = dfs2quarterbeats(dfs, measures, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, logger=self.logger)
-                md['paths'] = md['paths'][:-1]
-                yield (md, *dfs)
-
-
-
-    def iter_notes(self, unfold=False, quarterbeats=False, interval_index=False, skip_missing=True, weight_grace_durations=0, fnames=None):
-        for md, notes in self.iter_transformed(["notes*"], unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, fnames=fnames):
-            if notes is None:
-                msg = f"No notes available for {os.path.join(md['rel_paths'], md['fnames'])}."
-                if skip_missing:
-                    self.logger.warning(msg)
-                    continue
-                else:
-                    self.logger.debug(msg)
-            if weight_grace_durations > 0 and notes is not None:
-                notes = add_weighted_grace_durations(notes, weight=weight_grace_durations)
-            yield md, notes
-
-
-    def match_scores_with_annotations(self, use=None):
-        """ Go through View.pieces() and match parsed scores with parsed annotation files.
-
-        Parameters
-        ----------
-        use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked which one(s) to use.
-            To prevent the interaction, pass a string to subselect a column of ``_.pieces(parsed_only=True)``
-            that has been recognized to contain labels or expanded labels. The values 'labels', 'expanded' and
-            'any' subselect all columns of the respective type(s) and, for each piece, uses the leftmost that is
-            not empty, i.e. that represents a parsed annotation table. This can be useful if there are several
-            annotation tables present for the same piece. To subselect one particular set of annotation tables
-            that can be distinguished through their subdirectory and/or suffix, use the respective column name
-            from ``_.pieces()``. Generally speaking, the value of ``use`` is used to select all columns that
-            start with this exact string.
-
-        Returns
-        -------
-        list of (score_id, tsv_id)
-            IDs of parsed files.
-        """
-        piece_matrix = self.pieces(parsed_only=True)
-        score_cols = [c for c in piece_matrix.columns if c.startswith('scores')]
-        if len(score_cols) == 0:
-            self.logger.warning(f"View '{self.key}' does not include any parsed scores.")
-            return []
-        has_score = piece_matrix[score_cols].notna().any(axis=1)
-        if not has_score.all():
-            self.logger.info(f"For {(~has_score).sum()} pieces listed in the metadata, no parsed score was found.")
-        piece_matrix = piece_matrix[has_score]
-        if use is None or use.lower() == 'any':
-            use_str = ''
-            labels_cols = [c for c in piece_matrix.columns if c.startswith('labels') or c.startswith('expanded')]
-        else:
-            use_str = f" (use={use})"
-            labels_cols = [c for c in piece_matrix.columns if c.startswith(use)]
-        n_cols = len(labels_cols)
-        if n_cols == 0:
-            self.logger.info(f"No parsed annotations found for this view{use_str}:\n{self.info(return_str=True)}")
-            return []
-        display_matrix = piece_matrix.set_index('fnames')[labels_cols].copy()
-        display_matrix.columns = pd.MultiIndex.from_tuples(enumerate(labels_cols), names=['SELECTOR', 'annotations'])
-        display_matrix.index.name = None
-        if n_cols == 1:
-            column_order = [0]
-        else:
-            if use is None:
-                range_str = f"0-{n_cols - 1}"
-                accept_several = display_matrix.isna().any().any()
-                print(f"Several annotation tables available for the parsed scores of View '{self.key}':\n{display_matrix.to_string()}")
-                query = "Please enter one "
-                if accept_several:
-                    print(f"Please pass an integer to select a column or, if you need to define fallback columns, several ({range_str}):")
-                    query += "or several "
-                    plural = 's'
-                else:
-                    print(f"Please select one of the columns by passing an integer between {range_str}:")
-                    plural = ''
-                options = dict(enumerate(labels_cols))
-                query += f"integer{plural} {options}> "
-                permitted = list(options.keys())
-
-                def test_integer(s):
-                    nonlocal permitted, range_str
-                    try:
-                        int_i = int(s)
-                    except:
-                        print(f"Value '{s}' could not be converted to an integer.")
-                        return None
-                    if int_i not in permitted:
-                        print(f"Value '{s}' is not between {range_str}.")
-                        return None
-                    return int_i
-
-                ask_user = True
-                while ask_user:
-                    selection = input(query)
-                    if accept_several:
-                        column_order = []
-                        for i in selection.split():
-                            int_i = test_integer(i)
-                            if int_i is None:
-                                ask_user=True
-                                break
-                            column_order.append(int_i)
-                            ask_user=False
-                    else:
-                        int_i = test_integer(selection)
-                        if int_i is not None:
-                            column_order = [int_i]
-                            ask_user = False
-            else:
-                column_order = list(range(n_cols))
-                self.logger.debug(f"Using this column order:\n{display_matrix.columns}")
-
-        def merge_cols(df):
-            result = df.iloc[:, 0].copy()
-            for _, col in df.iloc[:, 1:].iteritems():
-                if result.notna().all():
-                    break
-                result.fillna(col, inplace=True)
-            return result
-
-        selected_cols = [labels_cols[i] for i in column_order]
-        pairing = pd.concat([
-            merge_cols(piece_matrix[score_cols]).rename('score_ids'),
-            merge_cols(piece_matrix[selected_cols]).rename('labels_ids')
-        ], axis=1)
-        has_annotations = pairing.labels_ids.notna()
-        if not has_annotations.all():
-            self.logger.info(f"Found no annotations for the following sores:\n{piece_matrix.loc[~has_annotations, ['fnames'] + score_cols + labels_cols].to_string()}")
-        id_pairs = list(pairing[has_annotations].itertuples(name=None, index=False))
-        id_pairs = [((self.key, int(score_id)), (self.key, int(labels_id))) for score_id, labels_id in id_pairs]
-        return id_pairs
-
-    def add_detached_annotations(self, use=None, new_key='old', revision_specifier=None):
-        """
-
-        Parameters
-        ----------
-        use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked to input
-            in which order to pick them. Instead, they can specify the name of a column of
-            _.pieces(), especially 'expanded' or 'labels' to be using only these.
-        new_key : :obj:`str`
-            The key under which the detached annotations can be addressed using Score[new_key].
-        revision_specifier : :obj:`str`, optional
-            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-            using compare_labels()), pass a specifier for that git revision.
-            Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
-
-        Returns
-        -------
-
-        """
-        id_pairs = self.match_scores_with_annotations(use=use)
-        if revision_specifier is not None:
-            id_pairs = [(score, self.p._parse_tsv_from_git_revision(tsv, revision_specifier)) for score, tsv in id_pairs]
-        if len(id_pairs) > 0:
-            self.p._add_detached_annotations_by_ids(list_of_pairs=id_pairs, new_key=new_key)
-        else:
-            self.logger.info(f"No scores were matched with annotation tables.")
-
-    def add_labels(self, use=None):
-        id_pairs = self.match_scores_with_annotations(use=use)
-        self.p._add_annotations_by_ids(id_pairs)
-
-    def _get_piece(self, fname):
-        if fname in self._pieces:
-            return self._pieces[fname]
-        if fname in self.names:
-            self._pieces[fname] = PieceView(self, fname)
-            return self._pieces[fname]
-        self.logger.info(f"File name '{fname}' not found in the metadata.")
-        return
-
-    def __getitem__(self, item):
-        piece_matrix = self.pieces(parsed_only=True)
-        matches = piece_matrix.fnames == item
-        found = matches.sum()
-        if found == 0:
-            self.logger.error(f"No files correspond to '{item}' in key {self.key}.")
-            return
-        if found > 1:
-            self.logger.error(f"{found} entries correspond to '{item}':\n{piece_matrix[matches]}")
-            return
-        return self._get_piece(item)
-
-
-    def __iter__(self):
-        """
-
-        Yields
-        ------
-        (str, ms3.parse.Piece)
-            For iterating through the keys and associated View objects.
-        """
-        names = self.names()
-        if len(keys) == 0:
-            self.logger.info("This View does not contain any Pieces.")
-        for n in names:
-            yield n, self._get_piece(n)
-
-
-
-
-
-    ### this would make sense if the arguments of parent's methods could be automatically called with keys=self.key
-    # def __getattr__(self, item):
-    #     return self.p.__getattribute__(item)
-
-
-def make_distinguishing_strings(matched_files):
-    """Takes a list of namedtuples as created by View.detect_ids_by_fname() and returns a list
-    of distinct strings to distinguish files pertaining to the same type."""
-    subdirs = [match.subdir for match in matched_files]
-    if len(set(subdirs)) > 1:
-        distinguish = subdirs
-    else:
-        distinguish = [""] * len(matched_files)  # subdirs do not help with distinction
-    for ix, match in enumerate(matched_files):
-        if match.suffix != "":
-            distinguish[ix] += f"[{match.suffix}]"
-    if len(distinguish) > len(set(distinguish)):
-        # subdirs and suffixes do not distinguish all matches: add file extensions
-        for ix, match in enumerate(matched_files):
-            distinguish[ix] += match.fext
-    return distinguish
-
-
-def disambiguate(matched_files: Collection[namedtuple], disambiguation: str = 'auto') -> namedtuple:
-    """ If only one file of a particular type is available, return that one. Otherwise try to disambiguate.
-
-    Args:
-        matched_files: one namedtuple per file found for a particular fname for a particular type
-        disambiguation: defaults to 'auto', meaning that in case several files are available, the one with the shortest disambiguation
-            string will be selected, where disambiguation strings are composed of subdirectories and suffixes by :func:`make_distinguishing_strings`.
-            Pass a concrete distinguishing string to select a particular file.
-
-    Returns:
-        The disambiguated file.
-
-    Raises:
-        ValueError: Unable to disambiguate
-    """
-    n = len(matched_files)
-    if n == 0:
-        raise ValueError("First argument should not be empty.")
-    if n == 1:
-        return matched_files[0]
-    distinguish = make_distinguishing_strings(matched_files)
-    matches = dict(zip(distinguish, matched_files))
-    if disambiguation is None:
-        raise NotImplementedError(f"Ask for user input for choosing one of {list(matches.keys())}.")
-    if disambiguation == 'auto':
-        shortest_key = sorted(matches, key=lambda s: len(s))[0]
-        return matches[shortest_key]
-    if disambiguation not in matches:
-        raise ValueError(f"Cannot distinguish using '{disambiguation}'. Use one of {list(matches.keys())}.")
-
-
-########################################################################################################################
-########################################################################################################################
-################################################# End of View() ########################################################
-########################################################################################################################
-########################################################################################################################
-
-class PieceView(View):
-
-    def __init__(self,
-                 view: View,
-                 fname: str):
-        self.view = view  # parent View object
-        self.p = view.p
-        self.key = view.key
-        self.fname = fname
-        logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = f"{self.view.logger.name}.{self.fname}"
-        super(Corpus, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
-        matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])
-        if len(matches) != 1:
-            raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
-        self.matches = matches[fname]
-        self.score_available = 'scores' in self.matches
-        self.measures_available = self.score_available or 'measures' in self.matches
-
-
-    def info(self, return_str=False):
-        info = f"View on {self.key} -> {self.fname}\n"
-        info += "-" * len(info) + "\n\n"
-        if self.score_available:
-            plural = "s" if len(self.matches['scores']) > 1 else ""
-            info += f"Corpusd score{plural} available."
-        else:
-            info += "No parsed scores available."
-        info += "\n\n"
-        for typ, matched_files in self.matches.items():
-            info += f"{typ}\n{'-' * len(typ)}\n"
-            if len(matched_files) > 1:
-                distinguish = make_distinguishing_strings(matched_files)
-                matches = dict(zip(distinguish, matched_files))
-                paths = {k: matches[k].full_path for k in sorted(matches, key=lambda s: len(s))}
-                info += pretty_dict(paths)
-            else:
-                info += matched_files[0].full_path
-            info += "\n\n"
-        if return_str:
-            return info
-        print(info)
-
-
-    @lru_cache()
-    def get_dataframe(self, what: Literal['measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'],
-                      unfold: bool = False,
-                      quarterbeats: bool = False,
-                      interval_index: bool = False,
-                      disambiguation: str = 'auto',
-                      prefer_score: bool = True,
-                      return_file_info: bool = False) -> pd.DataFrame:
-        """ Retrieves one DataFrame for the piece.
-
-        Args:
-            what: What kind of DataFrame to retrieve.
-            unfold: Pass True to unfold repeats.
-            quarterbeats:
-            interval_index:
-            disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.
-            prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
-            return_file_info: Set to True if the method should also return a :obj:`namedtuple` with information on the DataFrame
-                being returned. It comes with the fields "id", "full_path", "suffix", "fext", "subdir", "i_str" where the
-                latter is the ID's second component as a string.
-
-        Returns:
-            The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.
-
-        Raises:
-            FileNotFoundError: If no DataFrame of the requested type is available
-        """
-        available = list(self.p._dataframes.keys())
-        if what not in available:
-            raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
-        if self.score_available and (prefer_score or what not in self.matches):
-            file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
-            score = self.p[file_info.id]
-            df = score.mscx.__getattribute__(what)()
-        elif what in self.matches:
-            file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
-            df = self.p[file_info.id]
-        else:
-            raise FileNotFoundError(f"No {what} available for {self.key} -> {self.fname}")
-        if any((unfold, quarterbeats, interval_index)):
-            measures = self.get_dataframe('measures', prefer_score=prefer_score)
-            df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,
-                                   interval_index=interval_index, logger=self.logger)[0]
-        if return_file_info:
-            return df, file_info
-        return df

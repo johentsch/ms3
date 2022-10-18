@@ -1546,7 +1546,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return None
 
     @staticmethod
-    def _make_extension_regex(native=True, convertible=True, tsv=False):
+    def make_extension_regex(native=True, convertible=True, tsv=False):
         assert sum((native, convertible)) > 0, "Select at least one type of extensions."
         exts = []
         if native:

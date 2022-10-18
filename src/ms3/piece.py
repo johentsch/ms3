@@ -1,35 +1,19 @@
 import os
 from collections import defaultdict, Counter
-from dataclasses import dataclass
-from typing import Dict, Collection, Literal, Tuple, Union, List
+from typing import Dict, Collection, Literal, Tuple, Union, List, Generator
 
 import pandas as pd
 
-from .utils import file_type2path_component_map, infer_tsv_type
+from .utils import File, file_type2path_component_map, infer_tsv_type
 from .score import Score
 from .logger import LoggedClass, function_logger
-
-
-@dataclass
-class File:
-    """Storing path and file name information for one file."""
-    ix: int
-    type: str
-    file: str
-    fname: str
-    fext: str
-    subdir: str
-    corpus_path: str
-    rel_path: str
-    full_path: str
-    directory: str
-    suffix: str
+from .view import View, DefaultView
 
 
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
 
-    def __init__(self, fname: str, logger_cfg={}):
+    def __init__(self, fname: str, view: View = None, logger_cfg={}):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.fname = fname
         available_types = ('scores',) + Score.dataframe_types
@@ -47,6 +31,10 @@ class Piece(LoggedClass):
         self.ix2parsed: defaultdict = defaultdict(list)
         """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the identical file information for access via index.
         """
+        self._views: dict = {}
+        self._views[None] = view if view is None else DefaultView('current')
+        self._views['default'] = DefaultView('default')
+        self._views['all'] = View('all')
         # self.parsed_scores: dict = {}
         # """{ix -> :obj:`Score`}"""
         # self.parsed_tsvs: dict = {}
@@ -65,6 +53,29 @@ class Piece(LoggedClass):
         # self.events: pd.DataFrame = None
         # self.chords: pd.DataFrame = None
         # self.form_labels: pd.DataFrame = None
+
+    def set_view(self, current: View = None, **views: View):
+        """Register one or several view_name=View pairs."""
+        if current is not None:
+            self._views[None] = current
+        for view_name, view in views.items():
+            if view.name is None:
+                view.name = view_name
+            self._views[view_name] = view
+
+    def get_view(self, view_name: str = None) -> View:
+        """Retrieve an existing or create a new View object."""
+        if view_name in self._views:
+            return self._views[view_name]
+        self._views[view_name] = View(view_name)
+        self.logger.info(f"New view '{view_name}' created.")
+        return self._views[view_name]
+
+    def __getattr__(self, view_name):
+        if view_name in self._views:
+            self.info(view_name=view_name)
+        else:
+            raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
     def get_parsed_score(self) -> Tuple[File, Score]:
         parsed_scores = self.type2parsed['scores']
@@ -96,7 +107,7 @@ class Piece(LoggedClass):
         self.type2parsed[inferred_type][ix] = parsed_tsv
 
 
-    def automatically_choose_from_disambiguated_files(self, file_type: str, disambiguation : Dict[str, File]):
+    def automatically_choose_from_disambiguated_files(self, file_type: str, disambiguation : Dict[str, File], view_name: str = None):
         if len(disambiguation) == 1:
             return list(disambiguation.keys())[0]
         disamb_series = pd.Series(disambiguation)
@@ -161,7 +172,7 @@ class Piece(LoggedClass):
                             f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
         return self.automatically_choose_from_disambiguated_files(file_type, only_shortest_disamb_str)
 
-    def select_files(self, file_type: str|Collection[str], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Tuple[Dict[str, Union[Literal[None], File, Dict[str, File]]], List[str]]:
+    def select_files(self, file_type: str|Collection[str], view_name: str = None, choose: Literal['all', 'auto', 'ask'] = 'auto') -> Tuple[Dict[str, Union[Literal[None], File, Dict[str, File]]], List[str]]:
         """
 
         Args:
@@ -251,20 +262,41 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def count_types(self, drop_zero=False) -> Dict[str, int]:
-        if drop_zero:
-            return {"found_" + typ: len(files) for typ, files in self.type2files.items() if len(files) > 0}
-        return {"found_" + typ: len(files) for typ, files in self.type2files.items()}
+    def iter_type2files(self, view_name: str = None) -> Generator[Dict[str, List[File]], None, None]:
+        """Iterating through _.type2files.items() under the current or specified view."""
+        view = self.get_view(view_name=view_name)
+        for typ, files in self.type2files.items():
+            yield typ, view.filtered_file_list(files)
 
-    def count_parsed(self, drop_zero=False) -> Dict[str, int]:
-        if drop_zero:
-            return {"parsed_" + typ: len(parsed) for typ, parsed in self.type2parsed.items() if len(parsed) > 0}
-        return {"parsed_" + typ: len(parsed) for typ, parsed in self.type2parsed.items()}
 
-    def __repr__(self):
+    def iter_type2parsed(self, view_name: str = None) -> Generator[Dict[str, List[File]], None, None]:
+        """Iterating through _.type2files.items() under the current or specified view."""
+        view = self.get_view(view_name=view_name)
+        for typ, files in self.type2parsed.items():
+            yield typ, view.filtered_file_list(files)
+
+
+    def count_types(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
+        if drop_zero:
+            return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name) if len(files) > 0}
+        return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name)}
+
+    def count_parsed(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
+        if drop_zero:
+            return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed(view_name=view_name) if len(parsed) > 0}
+        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed(view_name=view_name)}
+
+    def info(self, return_str=False, view_name=None):
+        print(self.get_view(view_name))
         counts = self.count_parsed(drop_zero=True)
         counts.update(self.count_types(drop_zero=True))
-        return str(counts)
+        if return_str:
+            return str(counts)
+        print(counts)
+
+
+    def __repr__(self):
+        return self.info(return_str=True)
 
 
 @function_logger
