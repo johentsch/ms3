@@ -142,7 +142,8 @@ class Piece(LoggedClass):
 
 
 
-    def select_files(self, file_type: str|Collection[str],
+
+    def get_files(self, file_type: str|Collection[str],
                      view_name: str = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -159,7 +160,11 @@ class Piece(LoggedClass):
         """
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         if isinstance(file_type, str):
-            file_type = [file_type]
+            if file_type in ('tsv', 'tsvs'):
+                file_type = list(self.type2files.keys())
+                file_type.remove('scores')
+            else:
+                file_type = [file_type]
         if any(t not in self.type2files for t in file_type):
             unknown = [t for t in file_type if t not in self.type2files]
             file_type = [t for t in file_type if t in self.type2files]
@@ -208,7 +213,11 @@ class Piece(LoggedClass):
             return sum(result.values(), start=[])
         return result
 
+    def get_unparsed_score_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('scores', view_name=view_name, parsed=False, flat=flat)
 
+    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
     def add_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
         if file.fname != self.fname:
@@ -226,38 +235,56 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def iter_type2files(self, view_name: str = None) -> Iterator[Dict[str, List[File]]]:
+    def iter_type2files(self, view_name: str = None, drop_zero: bool = False) -> Iterator[Dict[str, List[File]]]:
         """Iterating through _.type2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
         for typ, files in self.type2files.items():
-            yield typ, view.filtered_file_list(files, 'files')
+            filtered_files = view.filtered_file_list(files, 'files')
+            # the files need to be filtered even if the facet is excluded, for counting excluded files
+            if drop_zero and len(filtered_files) == 0:
+                continue
+            if typ in view.selected_facets:
+                yield typ, filtered_files
 
 
-    def iter_type2parsed_files(self, view_name: str = None) -> Iterator[Dict[str, List[File]]]:
+    def iter_type2parsed_files(self, view_name: str = None, drop_zero: bool = False) -> Iterator[Dict[str, List[File]]]:
         """Iterating through _.type2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
         for typ, ix2file in self.type2parsed.items():
             files = [self.ix2file[ix] for ix in ix2file.keys()]
-            yield typ, view.filtered_file_list(files, 'parsed')
+            filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
+            # the files need to be filtered even if the facet is excluded, for counting excluded files
+            if drop_zero and len(filtered_ixs) == 0:
+                continue
+            if typ in view.selected_facets:
+                yield typ, {ix: ix2file[ix] for ix in filtered_ixs}
 
 
     def count_types(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
-        if drop_zero:
-            return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name) if len(files) > 0}
-        return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name)}
+        return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name, drop_zero=drop_zero)}
 
     def count_parsed(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
-        if drop_zero:
-            return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name) if len(parsed) > 0}
-        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name)}
+       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, drop_zero=drop_zero)}
 
     def info(self, return_str=False, view_name=None):
         print(self.get_view(view_name))
-        counts = self.count_parsed(drop_zero=True)
-        counts.update(self.count_types(drop_zero=True))
+        type2files = dict(self.iter_type2files(view_name=view_name, drop_zero=True))
+        if len(type2files) == 0:
+            msg = "No files selected."
+        else:
+            files_df = pd.concat([pd.DataFrame(files).set_index('ix') for files in type2files.values()],
+                                 keys=type2files.keys(),
+                                 names=['facet', 'ix'])
+            if len(files_df) == 0:
+                msg = "No files selected."
+            else:
+                ixs = files_df.index.get_level_values(1)
+                is_parsed = [str(ix in self.ix2parsed) for ix in ixs]
+                files_df['is_parsed'] = is_parsed
+                msg = files_df[['rel_path', 'is_parsed']].to_string()
         if return_str:
-            return str(counts)
-        print(counts)
+            return msg
+        print(msg)
 
 
     def __repr__(self):

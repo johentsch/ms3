@@ -254,7 +254,7 @@ class Corpus(LoggedClass):
 
 
 
-    def select_files(self, file_type: Union[str, Collection[str]],
+    def get_files(self, file_type: Union[str, Collection[str]],
                      view_name: str = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -274,9 +274,9 @@ class Corpus(LoggedClass):
         result = {}
         if choose == 'ask':
             choose = 'all'
-            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_files(); setting to 'auto'")
+            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files(); setting to 'auto'")
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.select_files(file_type=file_type,
+            type2file = piece.get_files(file_type=file_type,
                                             view_name=view_name,
                                             parsed=parsed,
                                             unparsed=unparsed,
@@ -289,7 +289,7 @@ class Corpus(LoggedClass):
         if choose == 'ask':
             choose = 'all'
             logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
-        result = self.select_files('scores', choose=choose)
+        result = self.get_files('scores', choose=choose)
         result = {fname: list(type2file.values()) for fname, type2file in result.items()}
 
         if all(len(l) == 1 for l in result.values()):
@@ -358,9 +358,10 @@ class Corpus(LoggedClass):
                     self.logger.warning(f"Could not associate {file.file} with any of the pieces.")
                 self.ix2fname[file.ix] = None
             else:
-                if self._pieces[piece_name].add_file(file):
+                piece = self._get_piece(piece_name)
+                if piece.add_file(file):
                     self.ix2fname[file.ix] = piece_name
-                    self.logger_names[file.ix] = self._pieces[piece_name].logger.name
+                    self.logger_names[file.ix] = piece.logger.name
                 else:
                     self.ix2fname[file.ix] = None
 
@@ -1754,6 +1755,11 @@ Available keys: {available_keys}""")
             return {}
         return metadata_dfs
 
+    def get_unparsed_score_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('scores', view_name=view_name, parsed=False, flat=flat)
+
+    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
 
     def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types=None, simulate=None, **kwargs):
@@ -1797,11 +1803,12 @@ Available keys: {available_keys}""")
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
 
-        fname2type2files = self.select_files('scores', view_name=view_name, parsed=not only_new)
-        fname2files = {fname: type2files['scores']
-                       for fname, type2files in fname2type2files.items()
-                       if len(type2files['scores']) > 0}
+        fname2files = self.get_unparsed_score_files(view_name=view_name)
         selected_files = sum(fname2files.values(), start=[])
+        target = len(selected_files)
+        if target == 0:
+            self.logger.debug(f"Nothing to parse.")
+            return
         selected_scores_df = pd.concat([pd.DataFrame(files) for files in fname2files.values()], keys=fname2files.keys())
         self.logger.debug(selected_scores_df.to_string())
         exts = selected_scores_df.fext.value_counts()
@@ -1822,8 +1829,7 @@ Available keys: {available_keys}""")
         ) for ix in selected_scores_df.ix]
 
         ### collect argument tuples for calling parse_musescore_file
-        parse_this = [(file, conf, self.labels_cfg, parallel, self.ms) for file, conf in zip(selected_files, configs)]
-        target = len(parse_this)
+        parse_this = [(file, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
         try:
             if parallel:
                 pool = mp.Pool(mp.cpu_count())
@@ -1848,7 +1854,8 @@ Available keys: {available_keys}""")
                 self._get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
-                    self.logger.info(f"All {target} files have been parsed successfully.")
+                    quantifier = f"The file" if target == 1 else f"All {target} files"
+                    self.logger.info(f"{quantifier} files have been parsed successfully.")
                 else:
                     self.logger.info(f"Only {successful} of the {target} files have been parsed successfully.")
             else:
@@ -1860,7 +1867,7 @@ Available keys: {available_keys}""")
             #self._collect_annotations_objects_references(ids=ids)
             pass
 
-    def parse_tsv(self, cols={}, infer_types=None, level=None, **kwargs):
+    def parse_tsv(self, view_name: str = None, cols={}, infer_types=None, level=None, **kwargs):
         """ Parse TSV files to be able to do something with them.
 
         Parameters
@@ -1890,54 +1897,45 @@ Available keys: {available_keys}""")
         if level is not None:
             self.change_logger_cfg(level=level)
 
-        selected_scores = self.select_files('scores')
+        fname2files = self.get_unparsed_tsv_files(view_name=view_name)
+        selected_files = sum(fname2files.values(), start=[])
+        target = len(selected_files)
+        if target == 0:
+            self.logger.debug(f"Nothing to parse.")
+            return
+        parse_this = [(file, self.ix_logger(file.ix)) for file in selected_files]
+        if len(kwargs) == 0:
+            pool = mp.Pool(mp.cpu_count())
+            parsing_results = pool.starmap(parse_tsv_file, parse_this)
+            pool.close()
+            pool.join()
+            successful_results = {file.ix: df for file, df in zip(selected_files, parsing_results) if df is not None}
+            self.parsed_files.update(successful_results)
+        else:
+            parsing_results = [load_tsv(*params, **kwargs) for params in parse_this]
+            for file, logger in parse_this:
+                logger.debug(f"Trying to load {file.rel_path}")
+                try:
+                    df = load_tsv(path, logger=logger, **kwargs)
+                    parsing_results.append(df)
+                except Exception as e:
+                    parsing_results.append(None)
+                    logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
+                                f"\n{path}\nError: {e}")
+            successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
+            self.parsed_files.update(successful_results)
+        successful = len(successful_results)
+        for ix, df in successful_results.items():
+            self._get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
+        if successful > 0:
+            if successful == target:
+                quantifier = f"The file" if target == 1 else f"All {target} files"
+                self.logger.info(f"{quantifier} files have been parsed successfully.")
+            else:
+                self.logger.info(f"Only {successful} of the {target} files have been parsed successfully.")
+        else:
+            self.logger.info(f"None of the {target} files have been parsed successfully.")
 
-        for id in ids:
-            key, i = id
-            path = self.full_paths[key][i]
-            logger = self.ix_logger(id)
-            try:
-                df = load_tsv(path, **kwargs)
-            except Exception:
-                logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
-                                 f"\n{path}\nError: {sys.exc_info()[1]}")
-                continue
-            label_col = cols['label'] if 'label' in cols else 'label'
-            try:
-                self._parsed_tsv[id] = df
-                if 'label' in cols and label_col in df.columns:
-                    tsv_type = 'labels'
-                else:
-                    tsv_type = infer_tsv_type(df)
-
-                if tsv_type is None:
-                    logger.debug(
-                        f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
-                    self._tsv_types[id] = 'other'
-                else:
-                    self._tsv_types[id] = tsv_type
-                    if tsv_type == 'metadata':
-                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                        logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
-                    else:
-                        self._dataframes[tsv_type][id] = self._parsed_tsv[id]
-                        if tsv_type in ['labels', 'expanded']:
-                            if label_col in df.columns:
-                                logger_cfg = dict(self.logger_cfg)
-                                logger_cfg['name'] = self.logger_names[(key, i)]
-                                self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                          logger_cfg=logger_cfg, level=level)
-                                logger.debug(
-                                    f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
-                            else:
-                                logger.info(
-        f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-        Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
-                        else:
-                            logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
-
-            except Exception as e:
-                self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
         """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
@@ -2033,10 +2031,11 @@ Available keys: {available_keys}""")
 
 
     def pieces(self, parsed_only=False):
-        pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]
-        result = pd.concat(pieces_dfs, keys=self.keys())
-        result.index.names = ['key', 'metadata_row']
-        return result
+        # pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]
+        # result = pd.concat(pieces_dfs, keys=self.keys())
+        # result.index.names = ['key', 'metadata_row']
+        # return result
+        raise NotImplementedError
 
     def output_dataframes(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
                           rests_folder=None, rests_suffix='',
@@ -2652,7 +2651,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 @function_logger
-def parse_musescore_file(file: File, logger_cfg={}, labels_cfg={}, read_only=False, ms=None) -> Score:
+def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) -> Score:
     """Performs a single parse and returns the resulting Score object or None."""
     path = file.full_path
     file = file.file
@@ -2670,3 +2669,14 @@ def parse_musescore_file(file: File, logger_cfg={}, labels_cfg={}, read_only=Fal
     except Exception as e:
         logger.error(f"Unable to parse {path} due to the following exception:\n{e}")
         return None
+
+
+def parse_tsv_file(file, logger):
+    path = file.full_path
+    logger.debug(f"Trying to load {file.rel_path}")
+    try:
+        df = load_tsv(path, logger=logger)
+        return df
+    except Exception as e:
+        logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
+                    f"\n{path}\nError: {e}")

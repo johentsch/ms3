@@ -2015,7 +2015,7 @@ Available keys: {available_keys}""")
             id = (k, i)
             if id not in self._parsed_tsv:
                 if parse_if_necessary:
-                    self.parse_tsv(ids=[id])
+                    self.parse_tsv()
                 else:
                     self.logger.debug(
                         f"Found unparsed metadata for key '{k}' but parse_if_necessary is set to False.")
@@ -2036,7 +2036,7 @@ Available keys: {available_keys}""")
         if simulate is not None:
             self.simulate = simulate
         self.parse_mscx(keys=keys, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
-        self.parse_tsv(keys=keys, fexts=fexts, cols=cols, infer_types=infer_types, level=level, **kwargs)
+        self.parse_tsv(level=level, cols=cols, infer_types=infer_types, **kwargs)
 
 
 
@@ -2077,7 +2077,7 @@ Available keys: {available_keys}""")
             corpus.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
 
 
-    def select_files(self, file_type: Union[str, Collection[str]],
+    def get_files(self, file_type: Union[str, Collection[str]],
                      view_name: str = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -2099,7 +2099,7 @@ Available keys: {available_keys}""")
         """
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            selected = corpus.select_files(file_type=file_type,
+            selected = corpus.get_files(file_type=file_type,
                                            view_name=view_name,
                                            parsed=parsed,
                                            unparsed=unparsed,
@@ -2109,7 +2109,7 @@ Available keys: {available_keys}""")
             result.update(selected)
         return result
 
-    def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
+    def parse_tsv(self, view_name=None, level=None, cols={}, infer_types=None, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -2135,67 +2135,15 @@ Available keys: {available_keys}""")
         Returns
         -------
         None
+
+        Args:
+            view_name:
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        if self.simulate:
-            return
-        if ids is not None:
-            pass
-        elif fexts is None:
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i][1:] not in Score.parseable_formats]
-        else:
-            if isinstance(fexts, str):
-                fexts = [fexts]
-            fexts = [ext if ext[0] == '.' else f".{ext}" for ext in fexts]
-            ids = [(key, i) for key, i in self._iterids(keys) if self.fexts[key][i] in fexts]
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            corpus.parse_tsv(view_name=view_name, cols=cols, infer_types=infer_types, **kwargs)
 
-        for id in ids:
-            key, i = id
-            path = self.full_paths[key][i]
-            logger = self.id_logger(id)
-            try:
-                df = load_tsv(path, **kwargs)
-            except Exception:
-                logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter."
-                                 f"\n{path}\nError: {sys.exc_info()[1]}")
-                continue
-            label_col = cols['label'] if 'label' in cols else 'label'
-            try:
-                self._parsed_tsv[id] = df
-                if 'label' in cols and label_col in df.columns:
-                    tsv_type = 'labels'
-                else:
-                    tsv_type = infer_tsv_type(df)
-
-                if tsv_type is None:
-                    logger.debug(
-                        f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
-                    self._tsv_types[id] = 'other'
-                else:
-                    self._tsv_types[id] = tsv_type
-                    if tsv_type == 'metadata':
-                        self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                        logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
-                    else:
-                        self._dataframes[tsv_type][id] = self._parsed_tsv[id]
-                        if tsv_type in ['labels', 'expanded']:
-                            if label_col in df.columns:
-                                logger_cfg = dict(self.logger_cfg)
-                                logger_cfg['name'] = self.logger_names[(key, i)]
-                                self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                          logger_cfg=logger_cfg, level=level)
-                                logger.debug(
-                                    f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
-                            else:
-                                logger.info(
-        f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-        Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
-                        else:
-                            logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
-
-            except Exception as e:
-                self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
         """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
@@ -2809,6 +2757,8 @@ Available keys: {available_keys}""")
         if isinstance(item, str):
             return self._get_corpus(item)
         elif isinstance(item, tuple):
+            if len(item) == 1:
+                return self._get_corpus(item[0])
             corpus_name, fname_or_ix, *_ = item
             return self._get_corpus(corpus_name)[fname_or_ix]
 
