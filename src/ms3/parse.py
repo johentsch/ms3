@@ -766,7 +766,7 @@ class Parse(LoggedClass):
         if not os.path.isdir(directory):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
-        corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg)
+        corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
         corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
         if len(corpus.files) == 0:
             self.logger.info(f"No parseable files detected in {directory}. Skipping...")

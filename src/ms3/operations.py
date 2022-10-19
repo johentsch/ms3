@@ -21,7 +21,7 @@ def extract(parse_obj,
             quarterbeats=False,
             silence_label_warnings=False,
             **suffixes):
-    parse_obj.parse_mscx(simulate=simulate, parallel=parallel)
+    parse_obj.parse_mscx(parallel=parallel)
     parse_obj.output_dataframes(root_dir=root_dir,
                         notes_folder=notes_folder,
                         notes_and_rests_folder=notes_and_rests_folder,

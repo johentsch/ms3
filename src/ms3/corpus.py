@@ -334,7 +334,7 @@ class Corpus(LoggedClass):
             logger_cfg = dict(self.logger_cfg)
             logger_name = self.logger.name + '.' + fname
             logger_cfg['name'] = logger_name
-            piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg)
+            piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
             piece.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
             self._pieces[fname] = piece
             self.logger_names[fname] = logger_name

@@ -4,7 +4,7 @@ from typing import Dict, Collection, Literal, Tuple, Union, List, Iterator
 
 import pandas as pd
 
-from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict
+from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore
 from .score import Score
 from .logger import LoggedClass, function_logger
 from .view import View, DefaultView
@@ -13,7 +13,7 @@ from .view import View, DefaultView
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
 
-    def __init__(self, fname: str, view: View = None, logger_cfg={}):
+    def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.fname = fname
         available_types = ('scores',) + Score.dataframe_types
@@ -35,6 +35,9 @@ class Piece(LoggedClass):
         self._views[None] = DefaultView('current') if view is None else view
         self._views['default'] = DefaultView('default')
         self._views['all'] = View('all')
+        self._ms = get_musescore(ms, logger=self.logger)
+        """:obj:`str`
+        Path or command of the local MuseScore 3 installation if specified by the user."""
         # self.parsed_scores: dict = {}
         # """{ix -> :obj:`Score`}"""
         # self.parsed_tsvs: dict = {}
@@ -53,6 +56,14 @@ class Piece(LoggedClass):
         # self.events: pd.DataFrame = None
         # self.chords: pd.DataFrame = None
         # self.form_labels: pd.DataFrame = None
+
+    @property
+    def ms(self):
+        return self._ms
+
+    @ms.setter
+    def ms(self, ms):
+        self._ms = get_musescore(ms, logger=self.logger)
 
     def set_view(self, current: View = None, **views: View):
         """Register one or several view_name=View pairs."""
