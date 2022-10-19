@@ -1,5 +1,5 @@
 
-from typing import Literal, Collection, Generator, Tuple
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, List
 
 import io
 import sys, os, re
@@ -18,10 +18,10 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, function_logger
 from .piece import Piece
 from .score import Score
-from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type,\
-     iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
+from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
+    iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, path2parent_corpus
+    update_labels_cfg, write_tsv, path2parent_corpus, File
 from .transformations import dfs2quarterbeats
 from .view import View, DefaultView
 
@@ -350,13 +350,43 @@ class Parse(LoggedClass):
         """Retrieve an existing or create a new View object."""
         if view_name in self._views:
             return self._views[view_name]
-        self._views[view_name] = View(view_name)
+        elif view_name is not None and self._views[None].name == view_name:
+            return self._views[None]
+        self._views[view_name] = self.get_view().copy(view_name=view_name)
         self.logger.info(f"New view '{view_name}' created.")
         return self._views[view_name]
+
+    @property
+    def views(self):
+        print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    def switch_view(self, view_name: str) -> None:
+        if view_name is None:
+            return
+        new_view = self.get_view(view_name)
+        old_view = self.get_view()
+        if old_view.name is not None:
+            self._views[old_view.name] = old_view
+        self._views[None] = new_view
+        new_name = new_view.name
+        if new_name in self._views:
+            del(self._views[new_name])
+        for corpus_name, corpus in self:
+            if new_view.check_token('corpus', corpus_name):
+                if new_view not in corpus._views.values() and\
+                    new_name not in corpus._views and\
+                    corpus.get_view().name != new_name:
+                    corpus.set_view(new_view)
+                else:
+                    corpus.switch_view(new_name, show_info=False)
+        self.info()
+
 
     def __getattr__(self, view_name) -> View:
         if view_name in self._views:
             self.info(view_name=view_name)
+        elif view_name is not None and self._views[None].name == view_name:
+            self.info()
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
@@ -736,7 +766,8 @@ class Parse(LoggedClass):
         if not os.path.isdir(directory):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
-        corpus = Corpus(directory=directory, logger_cfg=logger_cfg)
+        corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg)
+        corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
         if len(corpus.files) == 0:
             self.logger.info(f"No parseable files detected in {directory}. Skipping...")
             return
@@ -1670,25 +1701,34 @@ Available keys: {available_keys}""")
     def iter_corpora(self, view_name: str = None) -> Generator[Tuple[str, Corpus], None, None]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
-        for corpus_name, corpus in  view.filter_by_token('corpora', self):
-            if view_name not in corpus._views or corpus._views[view_name] != view:
+        for corpus_name, corpus in view.filter_by_token('corpora', self):
+            if view_name not in corpus._views:
                 if view_name is None:
                     corpus.set_view(view)
                 else:
                     corpus.set_view(**{view_name: view})
             yield corpus_name, corpus
 
-    def info(self, return_str=False, view_name=None):
+    def info(self, return_str: bool = False,
+             view_name: str = None,
+             show_discarded: bool = False):
         """"""
-        print(self.get_view(view_name))
+        view = self.get_view(view_name)
+        view.reset_filtering_data()
+        excluded_names = set((view_name, view.name, None))
+        other_views = [name for name in self._views.keys() if name not in excluded_names]
+        msg = f"[{'|'.join(other_views)}]\n"
+        msg += f"{view}\n\n"
         all_counts = {corpus_name: corpus.count(view_name=view_name).sum() for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
         counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
         empty_cols = counts_df.columns[counts_df.sum() == 0]
         counts_df = counts_df.drop(columns=empty_cols)
         counts_df.index.rename('corpus', inplace=True)
+        msg += counts_df.to_string() + '\n\n'
+        msg += view.filtering_report(show_discarded=show_discarded)
         if return_str:
-            return counts_df.to_string()
-        print(counts_df)
+            return msg
+        print(msg)
         # ids = list(self._iterids(keys))
         # info = f"{len(ids)} files.\n"
         # if subdirs:
@@ -2000,8 +2040,13 @@ Available keys: {available_keys}""")
 
 
 
-    def parse_mscx(self, keys=None, ids=None, level=None, parallel=True, only_new=True, labels_cfg={}, simulate=False):
-        """ Parse uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
+    def parse_mscx(self,
+                   level: str = None,
+                   parallel: bool = True,
+                   only_new: bool = True,
+                   labels_cfg: dict = {},
+                   view_name:str = None):
+        """ Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
 
@@ -2028,9 +2073,41 @@ Available keys: {available_keys}""")
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        for corpus_name, corpus in self:
-            corpus.parse_mscx()
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            corpus.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
 
+
+    def select_files(self, file_type: Union[str, Collection[str]],
+                     view_name: str = None,
+                     parsed: bool = True,
+                     unparsed: bool = True,
+                     choose: Literal['all', 'auto', 'ask'] = 'all',
+                     flat: bool = False) -> Dict[Tuple[str, str], Union[Dict[str, File], List[File]]]:
+        """
+
+        Args:
+            file_type:
+            view_name:
+            parsed:
+            unparsed:
+            choose:
+            flat:
+
+        Returns:
+            {(corpus_name, fname) -> {type -> [:obj:`File`]}} dict if flat=False (default).
+            {(corpus_name, fname) -> [:obj:`File`]} dict if flat=True.
+        """
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            selected = corpus.select_files(file_type=file_type,
+                                           view_name=view_name,
+                                           parsed=parsed,
+                                           unparsed=unparsed,
+                                           choose=choose,
+                                           flat=flat)
+            selected = {(corpus_name, fname): files for fname, files in selected.items()}
+            result.update(selected)
+        return result
 
     def parse_tsv(self, keys=None, ids=None, fexts=None, cols={}, infer_types=None, level=None, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
@@ -2728,7 +2805,7 @@ Available keys: {available_keys}""")
         return self.corpus_objects[name]
 
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> Corpus:
         if isinstance(item, str):
             return self._get_corpus(item)
         elif isinstance(item, tuple):

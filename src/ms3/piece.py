@@ -1,10 +1,10 @@
 import os
 from collections import defaultdict, Counter
-from typing import Dict, Collection, Literal, Tuple, Union, List, Generator
+from typing import Dict, Collection, Literal, Tuple, Union, List, Iterator
 
 import pandas as pd
 
-from .utils import File, file_type2path_component_map, infer_tsv_type
+from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict
 from .score import Score
 from .logger import LoggedClass, function_logger
 from .view import View, DefaultView
@@ -32,7 +32,7 @@ class Piece(LoggedClass):
         """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the identical file information for access via index.
         """
         self._views: dict = {}
-        self._views[None] = view if view is None else DefaultView('current')
+        self._views[None] = DefaultView('current') if view is None else view
         self._views['default'] = DefaultView('default')
         self._views['all'] = View('all')
         # self.parsed_scores: dict = {}
@@ -67,13 +67,36 @@ class Piece(LoggedClass):
         """Retrieve an existing or create a new View object."""
         if view_name in self._views:
             return self._views[view_name]
+        elif view_name is not None and self._views[None].name == view_name:
+            return self._views[None]
         self._views[view_name] = View(view_name)
         self.logger.info(f"New view '{view_name}' created.")
         return self._views[view_name]
 
+    @property
+    def views(self):
+        print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    def switch_view(self, view_name: str,
+                    show_info: bool = True) -> None:
+        if view_name is None:
+            return
+        new_view = self.get_view(view_name)
+        old_view = self.get_view()
+        if old_view.name is not None:
+            self._views[old_view.name] = old_view
+        self._views[None] = new_view
+        new_name = new_view.name
+        if new_name in self._views:
+            del (self._views[new_name])
+        if show_info:
+            self.info()
+
     def __getattr__(self, view_name):
         if view_name in self._views:
             self.info(view_name=view_name)
+        elif view_name is not None and self._views[None].name == view_name:
+            self.info()
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
@@ -107,142 +130,72 @@ class Piece(LoggedClass):
         self.type2parsed[inferred_type][ix] = parsed_tsv
 
 
-    def automatically_choose_from_disambiguated_files(self, file_type: str, disambiguation : Dict[str, File], view_name: str = None):
-        if len(disambiguation) == 1:
-            return list(disambiguation.keys())[0]
-        disamb_series = pd.Series(disambiguation)
-        files = list(disambiguation.values())
-        files_df = pd.DataFrame(files, index=disamb_series.index)
-        choice_between_n = len(files)
-        if file_type == 'scores':
-            # if a score is requested, check if there is only a single MSCX or otherwise MSCZ file and pick that
-            fexts = files_df.fext.str.lower()
-            fext_counts = fexts.value_counts()
-            if '.mscx' in fext_counts:
-                if fext_counts['.mscx'] == 1:
-                    selected_file = disamb_series[fexts == '.mscx'].iloc[0]
-                    self.logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{self.fname}', '{selected_file.rel_path}' was selected because it is the only "
-                                     f"one in MSCX format.")
-                    return selected_file
-            elif '.mscz' in fext_counts and fext_counts['.mscz'] == 1:
-                selected_file = disamb_series[fexts == '.mscz'].iloc[0]
-                self.logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{self.fname}', '{selected_file.rel_path}' was selected because it is the only "
-                                 f"one in MSCZ format.")
-                return selected_file
-        # as first disambiguation criterion, check if the shortest disambiguation string pertains to 1 file only and pick that
-        disamb_str_lengths = pd.Series(disamb_series.index.map(len), index=disamb_series.index)
-        shortest_length_selector = (disamb_str_lengths == disamb_str_lengths.min())
-        n_have_shortest_length = shortest_length_selector.sum()
-        if n_have_shortest_length == 1:
-            ix = disamb_str_lengths.idxmin()
-            selected_file = disamb_series.loc[ix]
-            self.logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{self.fname}', the one with the shortest disambiguating string '{ix}' was selected.")
-            return selected_file
-        if file_type != 'unknown':
-            # otherwise, check if only one file is lying in a directory with default name
-            subdirs = files_df.subdir
-            default_components = file_type2path_component_map()[file_type]
-            default_components_regex = '|'.join(comp.replace('.', r'\.') for comp in default_components)
-            default_selector = subdirs.str.contains(default_components_regex, regex=True)
-            if default_selector.sum() == 1:
-                subdir = subdirs[default_selector].iloc[0]
-                selected_file = disamb_series[default_selector].iloc[0]
-                self.logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{self.fname}', the one in the default subdir '{subdir}' was selected.")
-                return selected_file
-            # or if only one file contains a default name in its suffix
-            suffixes = files_df.suffix
-            default_selector = suffixes.str.contains(default_components_regex, regex=True)
-            if default_selector.sum() == 1:
-                suffix = suffixes[default_selector].iloc[0]
-                selected_file = disamb_series[default_selector].iloc[0]
-                self.logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{self.fname}', the one in the default suffix '{suffix}' was selected.")
-                return selected_file
-        # if no file was selected, try again with only those having the shortest disambiguation strings
-        if shortest_length_selector.all():
-            # if all disambiguation strings already have the shortest length, as a last resort
-            # fall back to the lexigographically first
-            sorted_disamb_series = disamb_series.sort_index()
-            disamb = sorted_disamb_series.index[0]
-            selected_file = sorted_disamb_series.iloc[0]
-            self.logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with fname '{self.fname}', I selected '{selected_file.rel_path}' "
-                                f"because it's disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
-            return selected_file
-        only_shortest_disamb_str = disamb_series[shortest_length_selector].to_dict()
-        self.logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with fname '{self.fname}', trying again "
-                            f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
-        return self.automatically_choose_from_disambiguated_files(file_type, only_shortest_disamb_str)
 
-    def select_files(self, file_type: str|Collection[str], view_name: str = None, choose: Literal['all', 'auto', 'ask'] = 'auto') -> Tuple[Dict[str, Union[Literal[None], File, Dict[str, File]]], List[str]]:
+    def select_files(self, file_type: str|Collection[str],
+                     view_name: str = None,
+                     parsed: bool = True,
+                     unparsed: bool = True,
+                     choose: Literal['all', 'auto', 'ask'] = 'all',
+                     flat: bool = False) -> Union[Dict[str, File], List[File]]:
         """
 
         Args:
             file_type:
-            choose:
+            choose: If choose == 'all', all dict values will be Lists
 
         Returns:
-            An dict mapping a file_type to an unambiguous :obj:`File` or to a {disambiguated_file_type -> :obj:`File`} dict where keys start with the file type and may have subdirs, suffixes, or file extensions appended.
-            A [file_type] list containing those file_types that have several files to choose from.
-
+            A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
+        assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         if isinstance(file_type, str):
             file_type = [file_type]
         if any(t not in self.type2files for t in file_type):
             unknown = [t for t in file_type if t not in self.type2files]
             file_type = [t for t in file_type if t in self.type2files]
             self.logger.warning(f"Unknown file type(s): {unknown}")
-        type2files = {t: self.type2files[t] for t in file_type}
-        #if any(len(files) > 1 for files in type2files.values()):
+        if unparsed:
+            type2files = {t: self.type2files[t] for t in file_type}
+        else:
+            # i.e., parsed must be True
+            type2files = {t: self.type2files[t] for t in file_type}
+            type2files = {typ: [f for f in files if f.ix in self.ix2parsed] for typ, files in type2files.items()}
+        if not parsed:
+            # i.e., unparsed must be True
+            type2files = {typ: [f for f in files if f.ix not in self.ix2parsed] for typ, files in type2files.items()}
+        view = self.get_view(view_name=view_name)
+        type2files = {typ: view.filtered_file_list(files, 'files') for typ, files in type2files.items()}
         result = {}
         needs_choice = []
         for t, files in type2files.items():
-            if len(files) == 0:
-                result[t] = None
-            elif len(files) == 1:
-                result[t] = files[0]
+            if choose == 'all' or len(files) < 2:
+                result[t] = files
             else:
                 disambiguated = disambiguate_files(files, logger=self.logger)
                 needs_choice.append(t)
                 result[t] = disambiguated
         if choose == 'auto':
             for typ in needs_choice:
-                result[typ] = self.automatically_choose_from_disambiguated_files(typ, result[typ])
+                result[typ] = automatically_choose_from_disambiguated_files(result[typ], self.fname, typ)
         elif choose == 'ask':
             for typ in needs_choice:
                 choices = result[typ]
-                sorted_keys = sorted(choices.keys(), key=lambda s: (len(s), s))
-                choices = {k: choices[k] for k in sorted_keys}
-                file_list = list(choices.values())
-                disamb_strings = pd.Series(choices.keys(), name='disambiguation_str')
-                choices_df = pd.concat([disamb_strings,
-                                        pd.DataFrame(file_list)[['rel_path', 'type', 'ix']]],
-                                       axis=1)
-                choices_df.index.rename('select:', inplace=True)
-                range_str = f"0-{len(choices) - 1}"
-                query = f"Selection [{range_str}]: "
-                print(f"Several '{typ}' available for '{self.fname}':\n{choices_df.to_string()}")
-                print(f"Please select one of the files by passing an integer between {range_str}:")
-                permitted = list(range(len(choices)))
-
-                def test_integer(s):
-                    nonlocal permitted, range_str
-                    try:
-                        int_i = int(s)
-                    except:
-                        print(f"Value '{s}' could not be converted to an integer.")
-                        return None
-                    if int_i not in permitted:
-                        print(f"Value '{s}' is not between {range_str}.")
-                        return None
-                    return int_i
-
-                ask_user = True
-                while ask_user:
-                    selection = input(query)
-                    int_i = test_integer(selection)
-                    if int_i is not None:
-                        result[typ] = file_list[int_i]
-                        ask_user = False
-        return result, needs_choice
+                result[typ] = ask_user_to_choose_from_disambiguated_files(choices, self.fname, typ)
+        elif choose == 'all' and 'scores' in needs_choice:
+            # check if any scores can be differentiated solely by means of their file extension
+            several_score_files = result['scores'].values()
+            subdir_fnames = [(file.subdir, file.fname) for file in several_score_files]
+            if len(set(subdir_fnames)) < len(subdir_fnames):
+                duplicates = {tup: [] for tup, cnt in Counter(subdir_fnames).items() if cnt > 1}
+                for file in several_score_files:
+                    if (file.subdir, file.fname) in duplicates:
+                        duplicates[(file.subdir, file.fname)].append(file.rel_path)
+                display_duplicates = '\n'.join(str(sorted(files)) for files in duplicates.values())
+                self.logger.warning(f"The following scores lie in the same subfolder and have the same name:\n{display_duplicates}.\n"
+                                    f"TSV files extracted from them will be overwriting each other. Consider excluding certain "
+                                    f"file extensions or letting me choose='auto'.")
+        if flat:
+            return sum(result.values(), start=[])
+        return result
 
 
 
@@ -262,18 +215,19 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def iter_type2files(self, view_name: str = None) -> Generator[Dict[str, List[File]], None, None]:
+    def iter_type2files(self, view_name: str = None) -> Iterator[Dict[str, List[File]]]:
         """Iterating through _.type2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
         for typ, files in self.type2files.items():
-            yield typ, view.filtered_file_list(files)
+            yield typ, view.filtered_file_list(files, 'files')
 
 
-    def iter_type2parsed(self, view_name: str = None) -> Generator[Dict[str, List[File]], None, None]:
+    def iter_type2parsed_files(self, view_name: str = None) -> Iterator[Dict[str, List[File]]]:
         """Iterating through _.type2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
-        for typ, files in self.type2parsed.items():
-            yield typ, view.filtered_file_list(files)
+        for typ, ix2file in self.type2parsed.items():
+            files = [self.ix2file[ix] for ix in ix2file.keys()]
+            yield typ, view.filtered_file_list(files, 'parsed')
 
 
     def count_types(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
@@ -283,8 +237,8 @@ class Piece(LoggedClass):
 
     def count_parsed(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
         if drop_zero:
-            return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed(view_name=view_name) if len(parsed) > 0}
-        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed(view_name=view_name)}
+            return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name) if len(parsed) > 0}
+        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name)}
 
     def info(self, return_str=False, view_name=None):
         print(self.get_view(view_name))

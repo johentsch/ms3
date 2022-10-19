@@ -1395,65 +1395,6 @@ def iterable2str(iterable):
     except Exception:
         return iterable
 
-# @function_logger
-# def iterate_subcorpora(path: str,
-#                        prefixes: Iterable = None, # Iterable[str] would require python>=3.9
-#                        suffixes: Iterable = None,
-#                        ignore_case: bool = True) -> Iterator:
-#     """ Recursively walk through subdirectory and files but stop and return path as soon as
-#     at least one file or at least one folder matches at least one prefix or at least one suffix.
-#
-#     Parameters
-#     ----------
-#     path : :obj:`str`
-#         Directory to scan.
-#     prefixes : :obj:`collections.abc.Iterable`, optional
-#         Current directory is returned if at least one contained item starts with one of the prefixes.
-#     suffixes : :obj:`collections.abc.Iterable`, optional
-#         Current directory is returned if at least one contained item ends with one of the suffixes.
-#         Files are tested against suffixes including and excluding file extensions.
-#         Defaults to ``['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded',
-#         'harmonies', 'cadences', 'form_labels', 'MS3']``
-#     ignore_case : :obj:`bool`, optional
-#         Defaults to True, meaning that file and folder names match prefixes and suffixes independent
-#         of capitalization.
-#
-#     Yields
-#     ------
-#     :obj:`str`
-#         Full path of the next subcorpus.
-#
-#     """
-#
-#     def check_fname(s):
-#         if ignore_case:
-#             return any(s.lower().startswith(p) for p in prefixes) or \
-#                    any(s.lower().endswith(suf) for suf in suffixes)
-#         return any(s.startswith(p) for p in prefixes) or \
-#                any(s.endswith(suf) for suf in suffixes)
-#
-#     if prefixes is None:
-#         prefixes = ['metadata.tsv'] + STANDARD_NAMES
-#     if suffixes is None:
-#         suffixes = []
-#
-#     if ignore_case:
-#         prefixes = [p.lower() for p in prefixes]
-#         suffixes = [s.lower() for s in suffixes]
-#
-#     for d, subdirs, files in os.walk(path):
-#         subdirs[:] = sorted(subdirs)
-#         if files != []:
-#             fnames, _ = zip(*[os.path.splitext(f) for f in files])
-#         else:
-#             fnames = []
-#         for item_type, items_to_check in zip(('fname.ext', 'subdirectory', 'fname'), (files, subdirs, fnames)):
-#             if any(check_fname(i) for i in items_to_check):
-#                 match = next(i for i in items_to_check if check_fname(i))
-#                 logger.debug(f"Yielding {d} because the contained {item_type} '{match}' matched.")
-#                 del (subdirs[:])
-#                 yield d
-#                 break
 
 def contains_metadata(path):
     for _, _, files in os.walk(path):
@@ -2246,11 +2187,18 @@ def file_type2path_component_map() -> dict:
     return dict(type2comps)
 
 
-def pretty_dict(d, heading=None):
+def pretty_dict(ugly_dict: dict, heading_key: str = None, heading_value: str = None) -> str:
     """ Turns a dictionary into a string where the keys are printed in a column, separated by '->'.
     """
-    if heading is not None:
-        d = dict(KEY=str(heading), **d)
+    if heading_key is not None or heading_value is not None:
+        head_key = 'KEY' if heading_key is None else heading_key
+        head_val = '' if heading_value is None else heading_value
+        head_val_length = len(head_val) + 4
+        d = {head_key: head_val}
+        d.update(ugly_dict)
+    else:
+        head_val_length = -1
+        d = dict(ugly_dict)
     left = max(len(str(k)) for k in d.keys())
     res = []
     for k, v in d.items():
@@ -2264,8 +2212,8 @@ def pretty_dict(d, heading=None):
             res.extend([f"{ks if i == 0 else '':{left}} -> {l}" for i, l in enumerate(lines)])
         else:
             res.append(f"{ks:{left}} -> {vs}")
-    if heading is not None:
-        res.insert(1, '-' * (left + len(heading) + 4))
+    if head_val_length > -1:
+        res.insert(1, '-' * (left + head_val_length))
     return '\n'.join(res)
 
 
@@ -3839,3 +3787,109 @@ class File:
     full_path: str
     directory: str
     suffix: str
+
+@function_logger
+def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
+                                                  fname: str,
+                                                  file_type: str,
+                                                  ):
+    if len(disambiguated_choices) == 1:
+        return list(disambiguated_choices.keys())[0]
+    disamb_series = pd.Series(disambiguated_choices)
+    files = list(disambiguated_choices.values())
+    files_df = pd.DataFrame(files, index=disamb_series.index)
+    choice_between_n = len(files)
+    if file_type == 'scores':
+        # if a score is requested, check if there is only a single MSCX or otherwise MSCZ file and pick that
+        fexts = files_df.fext.str.lower()
+        fext_counts = fexts.value_counts()
+        if '.mscx' in fext_counts:
+            if fext_counts['.mscx'] == 1:
+                selected_file = disamb_series[fexts == '.mscx'].iloc[0]
+                logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{fname}', '{selected_file.rel_path}' was selected because it is the only "
+                                 f"one in MSCX format.")
+                return selected_file
+        elif '.mscz' in fext_counts and fext_counts['.mscz'] == 1:
+            selected_file = disamb_series[fexts == '.mscz'].iloc[0]
+            logger.debug(f"In order to pick one from the {choice_between_n} scores with fname '{fname}', '{selected_file.rel_path}' was selected because it is the only "
+                             f"one in MSCZ format.")
+            return selected_file
+    # as first disambiguation criterion, check if the shortest disambiguation string pertains to 1 file only and pick that
+    disamb_str_lengths = pd.Series(disamb_series.index.map(len), index=disamb_series.index)
+    shortest_length_selector = (disamb_str_lengths == disamb_str_lengths.min())
+    n_have_shortest_length = shortest_length_selector.sum()
+    if n_have_shortest_length == 1:
+        ix = disamb_str_lengths.idxmin()
+        selected_file = disamb_series.loc[ix]
+        logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one with the shortest disambiguating string '{ix}' was selected.")
+        return selected_file
+    if file_type != 'unknown':
+        # otherwise, check if only one file is lying in a directory with default name
+        subdirs = files_df.subdir
+        default_components = file_type2path_component_map()[file_type]
+        default_components_regex = '|'.join(comp.replace('.', r'\.') for comp in default_components)
+        default_selector = subdirs.str.contains(default_components_regex, regex=True)
+        if default_selector.sum() == 1:
+            subdir = subdirs[default_selector].iloc[0]
+            selected_file = disamb_series[default_selector].iloc[0]
+            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one in the default subdir '{subdir}' was selected.")
+            return selected_file
+        # or if only one file contains a default name in its suffix
+        suffixes = files_df.suffix
+        default_selector = suffixes.str.contains(default_components_regex, regex=True)
+        if default_selector.sum() == 1:
+            suffix = suffixes[default_selector].iloc[0]
+            selected_file = disamb_series[default_selector].iloc[0]
+            logger.debug(f"In order to pick one from the {choice_between_n} '{file_type}' with fname '{fname}', the one in the default suffix '{suffix}' was selected.")
+            return selected_file
+    # if no file was selected, try again with only those having the shortest disambiguation strings
+    if shortest_length_selector.all():
+        # if all disambiguation strings already have the shortest length, as a last resort
+        # fall back to the lexigographically first
+        sorted_disamb_series = disamb_series.sort_index()
+        disamb = sorted_disamb_series.index[0]
+        selected_file = sorted_disamb_series.iloc[0]
+        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with fname '{fname}', I selected '{selected_file.rel_path}' "
+                            f"because it's disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
+        return selected_file
+    only_shortest_disamb_str = disamb_series[shortest_length_selector].to_dict()
+    logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with fname '{fname}', trying again "
+                        f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
+    return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, fname, file_type)
+
+
+def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File], fname: str, file_type: str = ''):
+    sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
+    disambiguated_choices = {k: disambiguated_choices[k] for k in sorted_keys}
+    file_list = list(disambiguated_choices.values())
+    disamb_strings = pd.Series(disambiguated_choices.keys(), name='disambiguation_str')
+    choices_df = pd.concat([disamb_strings,
+                            pd.DataFrame(file_list)[['rel_path', 'type', 'ix']]],
+                           axis=1)
+    choices_df.index.rename('select:', inplace=True)
+    range_str = f"0-{len(disambiguated_choices) - 1}"
+    query = f"Selection [{range_str}]: "
+    print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
+    print(f"Please select one of the files by passing an integer between {range_str}:")
+    permitted = list(range(len(disambiguated_choices)))
+
+    def test_integer(s):
+        nonlocal permitted, range_str
+        try:
+            int_i = int(s)
+        except:
+            print(f"Value '{s}' could not be converted to an integer.")
+            return None
+        if int_i not in permitted:
+            print(f"Value '{s}' is not between {range_str}.")
+            return None
+        return int_i
+
+    ask_user = True
+    while ask_user:
+        selection = input(query)
+        int_i = test_integer(selection)
+        if int_i is not None:
+            choice = file_list[int_i]
+            ask_user = False
+    return choice

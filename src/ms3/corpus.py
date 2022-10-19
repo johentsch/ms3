@@ -1,4 +1,4 @@
-from typing import Literal, Collection, Dict, List, Union, Generator, Tuple
+from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator
 
 import io
 import sys, os, re
@@ -85,7 +85,7 @@ class Corpus(LoggedClass):
         """
 
         self._views: dict = {}
-        self._views[None] = view if view is None else DefaultView('current')
+        self._views[None] = DefaultView('current') if view is None else view
         self._views['default'] = DefaultView('default')
         self._views['all'] = View('all')
 
@@ -120,11 +120,6 @@ class Corpus(LoggedClass):
         from various files. 
         """
 
-        self.selected_pieces: List[str] = []
-        """All actions of the Corpus object are performed only on the selected fnames.
-        Use the method :meth:`reset_piece_selection` to select all pieces.
-        """
-
         self.metadata_tsv: pd.DataFrame = None
         """The parsed 'metadata.tsv' file for the corpus."""
 
@@ -146,7 +141,7 @@ class Corpus(LoggedClass):
         self.collect_fnames_from_scores()
         self.find_and_load_metadata()
         self.create_pieces()
-        self.reset_piece_selection()
+        #self.reset_piece_selection()
         # self.look_for_ignored_warnings(directory, key=top_level)
         # if len(mscx_files) > 0:
         #     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
@@ -173,54 +168,98 @@ class Corpus(LoggedClass):
         """Retrieve an existing or create a new View object."""
         if view_name in self._views:
             return self._views[view_name]
+        if view_name is not None and self._views[None].name == view_name:
+            return self._views[None]
         self._views[view_name] = View(view_name)
         self.logger.info(f"New view '{view_name}' created.")
         return self._views[view_name]
 
+    @property
+    def views(self):
+        print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    def switch_view(self, view_name: str,
+                    show_info: bool = True) -> None:
+        if view_name is None:
+            return
+        new_view = self.get_view(view_name)
+        old_view = self.get_view()
+        if old_view.name is not None:
+            self._views[old_view.name] = old_view
+        self._views[None] = new_view
+        new_name = new_view.name
+        if new_name in self._views:
+            del(self._views[new_name])
+        for fname, piece in self:
+            if new_view.check_token('fname', fname):
+                if new_view not in piece._views.values() and\
+                    new_name not in piece._views and\
+                    piece.get_view().name != new_name:
+                    piece.set_view(new_view)
+                else:
+                    piece.switch_view(new_name, show_info=False)
+        if show_info:
+            self.info()
+
+
     def __getattr__(self, view_name):
         if view_name in self._views:
             self.info(view_name=view_name)
+        elif view_name is not None and self._views[None].name == view_name:
+            self.info()
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
-    def reset_piece_selection(self, pieces_from_metadata: bool = True,
-                                    pieces_outside_metadata: bool = False) -> None:
-        assert pieces_from_metadata + pieces_outside_metadata > 0, "At least one parameter needs to be True"
-        metadata_fnames = self.metadata_fnames()
-        if metadata_fnames is None:
-            metadata_fnames = []
-        if pieces_from_metadata:
-            self.selected_pieces = metadata_fnames
-        else:
-            self.selected_pieces = []
-        if pieces_outside_metadata or self.metadata_tsv is None:
-            outside_fnames = []
-            for fname in self.score_fnames:
-                if fname in metadata_fnames:
-                    continue
-                if any(fname.startswith(md_fname) for md_fname in metadata_fnames):
-                    continue
-                outside_fnames.append(fname)
-            self.selected_pieces += outside_fnames
-        self.selected_pieces = sorted(self.selected_pieces)
-        n_selected, n_overall = len(self.selected_pieces), len(self._pieces)
-        if n_selected == n_overall:
-            self.logger.debug(f"All pieces selected.")
-        else:
-            self.logger.info(f"{n_selected}/{n_overall} pieces selected.")
-
-    def iter_pieces(self, view_name: str = None) -> Generator[Tuple[str, Piece], None, None]:
+    def iter_pieces(self, view_name: str = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
-        for fname, piece in view.filter_by_token('fnames', self):
-            if view_name not in piece._views or piece._views[view_name] != view:
-                if view_name is None:
-                    piece.set_view(view)
+        param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
+        if param_sum == 0:
+            # all excluded, need to update filter counts accordingly
+            key = 'filtered_fnames'
+            discarded_items, *_ = list(zip(*view.filter_by_token('fnames', self)))
+            view._discarded_items[key].extend(discarded_items)
+            filtering_counts = view._last_filtering_counts[key]
+            filtering_counts[[0,1]] = filtering_counts[[1, 0]]
+            yield from []
+        elif param_sum == 2:
+            for fname, piece in view.filter_by_token('fnames', self):
+                if view_name not in piece._views:
+                    if view_name is None:
+                        piece.set_view(view)
+                    else:
+                        piece.set_view(**{view_name: view})
+                yield fname, piece
+        else:
+            # need to differentiate between files that are and are not included in the metadata.tsv file
+            fnames = self.fnames_in_metadata() if view.fnames_in_metadata else self.fnames_not_in_metadata()
+            n_kept, n_discarded = 0, 0
+            discarded_items = []
+            for fname, piece in view.filter_by_token('fnames', self):
+                if fname in fnames:
+                    if view_name not in piece._views:
+                        if view_name is None:
+                            piece.set_view(view)
+                        else:
+                            piece.set_view(**{view_name: view})
+                    yield fname, piece
                 else:
-                    piece.set_view(**{view_name: view})
-            yield fname, piece
+                    discarded_items.append(fname)
+                    n_kept -= 1
+                    n_discarded += 1
+            key = 'filtered_fnames'
+            view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
+            view._discarded_items[key].extend(discarded_items)
 
-    def select_files(self, file_type: Union[str, Collection[str]], choose: Literal['all', 'auto', 'ask'] = 'auto') -> Dict[str, Dict[str, File]]:
+
+
+
+    def select_files(self, file_type: Union[str, Collection[str]],
+                     view_name: str = None,
+                     parsed: bool = True,
+                     unparsed: bool = True,
+                     choose: Literal['all', 'auto', 'ask'] = 'all',
+                     flat: bool = False) -> Dict[str, Union[Dict[str, File], List[File]]]:
         """
 
         Args:
@@ -228,21 +267,27 @@ class Corpus(LoggedClass):
             choose:
 
         Returns:
-            {fname -> {type -> :obj:`File`}} dict if ``file_type`` is a collection.
-            {fname -> :obj:`File`} dict if ``file_type`` is a string.
+            {fname -> {type -> [:obj:`File`]}} dict if flat=False (default).
+            {fname -> [:obj:`File`]} dict if flat=True.
         """
+        assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         result = {}
         if choose == 'ask':
-            choose = 'auto'
+            choose = 'all'
             logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_files(); setting to 'auto'")
-        for piece in self.iter_pieces():
-            type2file, ambiguous_types = piece.select_files(file_type=file_type, choose=choose)
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            type2file = piece.select_files(file_type=file_type,
+                                            view_name=view_name,
+                                            parsed=parsed,
+                                            unparsed=unparsed,
+                                            choose=choose,
+                                            flat=flat)
             result[piece.fname] = type2file
         return result
 
-    def select_score_files(self, choose: Literal['all', 'auto', 'ask'] = 'auto'):
+    def select_score_files(self, choose: Literal['all', 'auto', 'ask'] = 'all'):
         if choose == 'ask':
-            choose = 'auto'
+            choose = 'all'
             logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
         result = self.select_files('scores', choose=choose)
         result = {fname: list(type2file.values()) for fname, type2file in result.items()}
@@ -250,13 +295,21 @@ class Corpus(LoggedClass):
         if all(len(l) == 1 for l in result.values()):
             return {fname: l[0] for fname, l in result.items()}
 
-    def metadata_fnames(self):
+    def fnames_in_metadata(self) -> List[str]:
         if self.metadata_tsv is None:
-            return
+            return  []
         try:
             return sorted(self.metadata_tsv.fname.unique())
         except AttributeError:
             return sorted(self.metadata_tsv.fnames.unique())
+
+    def fnames_not_in_metadata(self) -> List[str]:
+        metadata_fnames = self.fnames_in_metadata()
+        if len(metadata_fnames) == 0:
+            return self.score_fnames
+        return [f for f in self.score_fnames
+                if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
+                ]
 
     def create_pieces(self):
         """Creates and stores one :obj:`Piece` object per fname."""
@@ -268,7 +321,7 @@ class Corpus(LoggedClass):
             # Creating additional pieces only for score names, that don't begin with
             # any of the names contained in the metadata file, interpreting these as
             # having a suffix.
-            metadata_fnames = self.metadata_fnames()
+            metadata_fnames = self.fnames_in_metadata()
             additional_fnames = []
             for fname in self.score_fnames:
                 if fname in metadata_fnames:
@@ -281,7 +334,9 @@ class Corpus(LoggedClass):
             logger_cfg = dict(self.logger_cfg)
             logger_name = self.logger.name + '.' + fname
             logger_cfg['name'] = logger_name
-            self._pieces[fname] = Piece(fname, logger_cfg=logger_cfg)
+            piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg)
+            piece.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
+            self._pieces[fname] = piece
             self.logger_names[fname] = logger_name
         fnames = sorted(fnames, key=len, reverse=True)
         if len(fnames) == 0:
@@ -291,7 +346,7 @@ class Corpus(LoggedClass):
             # try to associate all detected files with one of the created pieces and
             # store the mapping in :attr:`ix2fname`
             piece_name = None
-            if file.fname in self._pieces:
+            if file.fname in fnames:
                 piece_name = file.fname
             else:
                 for fname in fnames:
@@ -304,7 +359,7 @@ class Corpus(LoggedClass):
                 self.ix2fname[file.ix] = None
             else:
                 if self._pieces[piece_name].add_file(file):
-                    self.ix2fname[file.ix] = fname
+                    self.ix2fname[file.ix] = piece_name
                     self.logger_names[file.ix] = self._pieces[piece_name].logger.name
                 else:
                     self.ix2fname[file.ix] = None
@@ -1443,94 +1498,37 @@ Available keys: {available_keys}""")
 
 
 
-    def info(self, return_str=False, view_name: str = None):
+    def info(self,  return_str: bool = False,
+             view_name: str = None,
+             show_discarded: bool = False):
         """"""
-        print(self.get_view(view_name))
+        view = self.get_view(view_name)
+        view.reset_filtering_data()
+        msg = f"{view}\n\n"
         all_pieces_df = self.count(drop_zero=True, view_name=view_name)
         if self.metadata_tsv is None:
-            info = "No 'metadata.tsv' file is present.\n\n"
-            info += all_pieces_df.to_string()
+            msg += "No 'metadata.tsv' file is present.\n\n"
+            msg += all_pieces_df.to_string()
         else:
-            metadata_fnames = set(self.metadata_fnames())
+            metadata_fnames = set(self.fnames_in_metadata())
             included_selector = all_pieces_df.index.isin(metadata_fnames)
             if included_selector.all():
-                info = "All pieces are listed in 'metadata.tsv':\n\n"
-                info += all_pieces_df.to_string()
+                msg += "All pieces are listed in 'metadata.tsv':\n\n"
+                msg += all_pieces_df.to_string()
             elif not included_selector.any():
-                info = "None of the pieces is actually listed in 'metadata.tsv'.\n\n"
-                info += all_pieces_df.to_string()
+                msg = "None of the pieces is actually listed in 'metadata.tsv'.\n\n"
+                msg += all_pieces_df.to_string()
             else:
-                info = "Only the following pieces are listed in 'metadata.tsv':\n\n"
-                info += all_pieces_df[included_selector].to_string()
+                msg = "Only the following pieces are listed in 'metadata.tsv':\n\n"
+                msg += all_pieces_df[included_selector].to_string()
                 not_included = ~included_selector
                 plural = "These ones here are" if not_included.sum() > 1 else "This one is"
-                info += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
-                info += all_pieces_df[not_included].to_string()
-        # ids = list(self._iterids(keys))
-        # info = f"{len(ids)} files.\n"
-        # if subdirs:
-        #     exts = self.count_extensions(keys, per_subdir=True)
-        #     for key, subdir_exts in exts.items():
-        #         info += key + '\n'
-        #         for line in pretty_dict(subdir_exts).split('\n'):
-        #             info += '    ' + line + '\n'
-        # else:
-        #     exts = self.count_extensions(keys, per_key=True)
-        #     info += pretty_dict(exts, heading='EXTENSIONS')
-        # parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
-        # parsed_mscx = len(parsed_mscx_ids)
-        # ext_counts = self.count_extensions(keys, per_key=False)
-        # others = len(self._score_ids(opposite=True))
-        # mscx = len(self._score_ids())
-        # by_conversion = len(self._score_ids(native=False))
-        # if parsed_mscx > 0:
-        #
-        #     if parsed_mscx == mscx:
-        #         info += f"\n\nAll {mscx} MSCX files have been parsed."
-        #     else:
-        #         info += f"\n\n{parsed_mscx}/{mscx} MSCX files have been parsed."
-        #     annotated = sum(True for id in parsed_mscx_ids if id in self._annotations)
-        #     if annotated == mscx:
-        #         info += f"\n\nThey all have annotations attached."
-        #     else:
-        #         info += f"\n\n{annotated} of them have annotations attached."
-        #     if annotated > 0:
-        #         layers = self.count_annotation_layers(keys, which='attached', per_key=True)
-        #         info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #
-        #     detached = sum(True for id in parsed_mscx_ids if self._parsed_mscx[id].has_detached_annotations)
-        #     if detached > 0:
-        #         info += f"\n\n{detached} of them have detached annotations:"
-        #         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
-        #         try:
-        #             info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #         except:
-        #             print(layers)
-        #             raise
-        # elif '.mscx' in ext_counts:
-        #     if mscx > 0:
-        #         info += f"\n\nNone of the {mscx} score files have been parsed."
-        #         if by_conversion > 0 and self.ms is None:
-        #             info += f"\n{by_conversion} files would need to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
-        # if self.ms is not None:
-        #     info += "\n\nMuseScore 3 executable has been found."
-        #
-        #
-        # parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
-        # parsed_tsv = len(parsed_tsv_ids)
-        # if parsed_tsv > 0:
-        #     annotations = sum(True for id in parsed_tsv_ids if id in self._annotations)
-        #     if parsed_tsv == others:
-        #         info += f"\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
-        #     else:
-        #         info += f"\n\n{parsed_tsv}/{others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
-        #     if annotations > 0:
-        #         layers = self.count_annotation_layers(keys, which='tsv', per_key=True)
-        #         info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #
+                msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
+                msg += all_pieces_df[not_included].to_string()
+        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
         if return_str:
-            return info
-        print(info)
+            return msg
+        print(msg)
 
 
     def iter(self, columns, keys=None, skip_missing=False):
@@ -1767,8 +1765,13 @@ Available keys: {available_keys}""")
 
 
 
-    def parse_mscx(self, level=None, parallel=True, only_new=True, labels_cfg={}):
-        """ Corpus uncompressed MuseScore 3 files (MSCX) and store the resulting read-only Score objects. If they need
+    def parse_mscx(self,
+                   level: str = None,
+                   parallel: bool = True,
+                   only_new: bool = True,
+                   labels_cfg: dict = {},
+                   view_name:str = None):
+        """ Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
 
@@ -1794,22 +1797,21 @@ Available keys: {available_keys}""")
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
 
-        selected_scores = self.select_files('scores')
-        selected_files = list(selected_scores.values())
-        # ToDo: implement only_new parameter
-        if len(selected_scores) == 0:
-            self.logger.info(f"No parseable scores found {reason}.")
-            return
-        selected_scores_df = pd.DataFrame(selected_files, index=selected_scores.keys())
+        fname2type2files = self.select_files('scores', view_name=view_name, parsed=not only_new)
+        fname2files = {fname: type2files['scores']
+                       for fname, type2files in fname2type2files.items()
+                       if len(type2files['scores']) > 0}
+        selected_files = sum(fname2files.values(), start=[])
+        selected_scores_df = pd.concat([pd.DataFrame(files) for files in fname2files.values()], keys=fname2files.keys())
         self.logger.debug(selected_scores_df.to_string())
         exts = selected_scores_df.fext.value_counts()
 
         if any(ext[1:].lower() in Score.convertible_formats for ext in exts.index) and parallel:
             msg = f"The file extensions [{', '.join(ext[1:] for ext in exts.index if ext[1:].lower() in Score.convertible_formats )}] " \
                   f"require temporary conversion with your local MuseScore, which is not possible with parallel " \
-                  f"processing. Corpus with parallel=False or exclude these files from parsing."
+                  f"processing. Parse with parallel=False or set View.include_convertible=False."
             if self.ms is None:
-                msg += "\n\nIn case you want to temporarily convert these files, you will also have to set the" \
+                msg += "\nIn case you want to temporarily convert these files, you will also have to set the " \
                        "property ms of this object to the path of your MuseScore 3 executable."
             self.logger.error(msg)
             return
@@ -1819,13 +1821,13 @@ Available keys: {available_keys}""")
             name=self.logger_names[ix]
         ) for ix in selected_scores_df.ix]
 
-        ### collect argument tuples for calling parse_mscx
+        ### collect argument tuples for calling parse_musescore_file
         parse_this = [(file, conf, self.labels_cfg, parallel, self.ms) for file, conf in zip(selected_files, configs)]
         target = len(parse_this)
         try:
             if parallel:
                 pool = mp.Pool(mp.cpu_count())
-                res = pool.starmap(parse_mscx, parse_this)
+                res = pool.starmap(parse_musescore_file, parse_this)
                 pool.close()
                 pool.join()
                 successful_results = {file.ix: score for file, score in zip(selected_files, res) if score is not None}
@@ -1838,12 +1840,12 @@ Available keys: {available_keys}""")
                             log_capture_handler.log_queue.extend(score.captured_logs)
                 successful = len(successful_results)
             else:
-                parsing_results = [parse_mscx(*params) for params in parse_this]
+                parsing_results = [parse_musescore_file(*params) for params in parse_this]
                 successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
                 self.parsed_files.update(successful_results)
                 successful = len(successful_results)
-            for fname, (ix, score) in zip(selected_scores.keys(), successful_results.items()):
-                self._get_piece(fname).add_parsed_score(ix, score)
+            for ix, score in successful_results.items():
+                self._get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
                     self.logger.info(f"All {target} files have been parsed successfully.")
@@ -2617,61 +2619,6 @@ Load one of the identically named files with a different key using add_dir(key='
         """ Override the method of superclass """
         return self.__dict__
 
-    # def expand_labels(self, keys=None, how='dcml'):
-    #     keys = self._treat_key_param(keys)
-    #     scores = {id: score for id, score in self._parsed.items() if id[0] in keys}
-    #     res = {}
-    #     for id, score in scores.items():
-    #         if score.mscx._annotations is not None:
-    #             exp = score.annotations.expanded
-    #             self._expandedlists[id] = exp
-    #             res[id + ('expanded',)] = exp
-    #     return res
-
-
-    # def __getattr__(self, item):
-    #     if item in self.fexts: # is an existing key
-    #         fexts = self.fexts[item]
-    #         res = {}
-    #         for i, ext in enumerate(fexts):
-    #             id = (item, i)
-    #             ix = str(self._index[id])
-    #             if ext == '.mscx':
-    #                 if id in self._parsed_mscx:
-    #                     ix += " (parsed)"
-    #                     val = str(self._parsed_mscx[id])
-    #                 else:
-    #                     ix += " (not parsed)"
-    #                     val = self.full_paths[item][i]
-    #             else:
-    #                 if id in self._parsed_tsv:
-    #                     df = self._parsed_tsv[id]
-    #                     if isinstance(df, Annotations):
-    #                         ix += " (parsed annotations)"
-    #                         val = str(df)
-    #                     else:
-    #                         t = self._tsv_types[id] if id in self._tsv_types else 'unrecognized DataFrame'
-    #                         ix += f" (parsed {t}, length {len(df)})"
-    #                         val = df.head(5).to_string()
-    #                 else:
-    #                     ix += " (not parsed)"
-    #                     val = self.full_paths[item][i]
-    #             ix += f"\n{'-' * len(ix)}\n"
-    #             if ext != '.mscx':
-    #                 ix += f"{self.full_paths[item][i]}\n"
-    #             print(f"{ix}{val}\n")
-    #     else:
-    #         raise AttributeError(item)
-
-    # def __getattr__(self, item):
-    #     ext = f".{item}"
-    #     ids = [(k, i) for k, i in self._iterids() if self.fexts[k][i] == ext]
-    #     if len(ids) == 0:
-    #         self.logger.info(f"Includes no files with the extension {ext}")
-    #     return ids
-
-
-
 
     def __getitem__(self, item) -> Piece:
         if isinstance(item, str):
@@ -2679,7 +2626,7 @@ Load one of the identically named files with a different key using add_dir(key='
         raise NotImplementedError("Currently subscripting works with fnames only.")
 
 
-    def __iter__(self) -> Generator[Tuple[str, Piece], None, None]:
+    def __iter__(self) -> Iterator[Tuple[str, Piece]]:
         """  Iterate through all (fname, Piece) tuples, regardless of any Views.
 
         Yields: (fname, Piece) tuples
@@ -2705,7 +2652,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 @function_logger
-def parse_mscx(file: File, logger_cfg={}, labels_cfg={}, read_only=False, ms=None):
+def parse_musescore_file(file: File, logger_cfg={}, labels_cfg={}, read_only=False, ms=None) -> Score:
     """Performs a single parse and returns the resulting Score object or None."""
     path = file.full_path
     file = file.file
