@@ -14,7 +14,8 @@ Category: TypeAlias = Literal['corpora',
                               'folders',
                               'fnames',
                               'files',
-                              'suffixes'
+                              'suffixes',
+                              'facets'
                                 ]
 
 Categories: TypeAlias = Union[Category, Collection[Category]]
@@ -32,8 +33,10 @@ class View(LoggedClass):
         'fnames',
         'files',
         'suffixes',
+        'facets',
     )
-    singular2category = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix'),
+    available_facets = ('scores',) + Score.dataframe_types + ('unknown',)
+    singular2category = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
                                    categories))
     tsv_regex = re.compile(r"\.tsv$", re.IGNORECASE)
     convertible_regex = Score.make_extension_regex(native=False, convertible=True, tsv=False)
@@ -54,6 +57,7 @@ class View(LoggedClass):
         self.name: str = view_name
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
+        self.selected_facets = self.available_facets
         self.fnames_in_metadata: bool = True
         self.fnames_not_in_metadata: bool = not only_metadata
         self.include_convertible = include_convertible
@@ -76,9 +80,10 @@ class View(LoggedClass):
                  exclude_review: bool = None):
         if logger_cfg is None:
             logger_cfg = dict(self.logger_cfg)
-        new_view = self.__class__(view_name=view_name)
+        new_view = self.__class__(view_name=view_name, logger_cfg=logger_cfg)
         new_view.including = deepcopy(self.including)
         new_view.excluding = deepcopy(self.excluding)
+        new_view.update_facet_selection()
         new_view.fnames_in_metadata = self.fnames_in_metadata
         if only_metadata is None:
             new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
@@ -156,7 +161,7 @@ class View(LoggedClass):
     def reset_filtering_data(self):
         self._last_filtering_counts = defaultdict(empty_counts)
         self._discarded_items = defaultdict(list)
-
+        self.update_facet_selection()
 
 
     def filter_by_token(self, category: Category, tuples: Iterable[tuple]) -> Iterator[tuple]:
@@ -223,7 +228,8 @@ class View(LoggedClass):
                         msg += f":\n{discarded[key]}\n\n"
                     else:
                         msg += ", but unfortunately I don't know which ones.\n"
-                msg += '.\n'
+                else:
+                    msg += '.\n'
         return msg
 
     def info(self, return_str=False):
@@ -277,6 +283,25 @@ class View(LoggedClass):
             # assumes this to be iterable
             return [self.resolve_categories(categ) for categ in category]
 
+    def update_facet_selection(self):
+        selected, discarded = [], []
+        for facet in self.available_facets:
+            if self.check_token('facet', facet):
+                selected.append(facet)
+            else:
+                discarded.append(facet)
+        self.selected_facets = selected
+        key = 'filtered_facets'
+        if len(discarded) == 0:
+            if key in self._last_filtering_counts:
+                del(self._last_filtering_counts[key])
+            if key in self._discarded_items:
+                del(self._discarded_items[key])
+            return
+        n_kept, n_discarded = len(selected), len(discarded)
+        counts = np.array([n_kept, n_discarded, n_kept+n_discarded])
+        self._last_filtering_counts[key] = counts
+        self._discarded_items[key] = discarded
 
     def include(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
@@ -286,6 +311,8 @@ class View(LoggedClass):
             for rgx in regex:
                 if rgx not in self.including[what_to_include]:
                     self.including[what_to_include].append(rgx)
+            if what_to_include == 'facets':
+                self.update_facet_selection()
 
 
     def exclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
@@ -296,7 +323,8 @@ class View(LoggedClass):
             for rgx in regex:
                 if rgx not in self.excluding[what_to_exclude]:
                     self.excluding[what_to_exclude].append(rgx)
-
+            if what_to_exclude == 'facets':
+                self.update_facet_selection()
 
     def uninclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
