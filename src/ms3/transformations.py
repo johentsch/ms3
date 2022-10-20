@@ -87,16 +87,28 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         else:
             quarterbeats = new_cols['quarterbeats']
             present_qb = quarterbeats.notna()
+            selected_qb = quarterbeats[present_qb].astype(float)
+            qb_are_sorted = (selected_qb.sort_values().index == selected_qb.index).all()
+            if not qb_are_sorted:
+                unordered_index_pairs = [[ix_a, ix_b] for (ix_a, a), (ix_b, b) in zip(selected_qb.items(), selected_qb[1:].items()) if b < a]
+                n_problems = len(unordered_index_pairs)
+                fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
+                logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df}\n"
+                               f"Each second row will not have a 'duration_qb' value.")
+                present_and_in_the_right_order = present_qb & ~(selected_qb > selected_qb.shift(-1))
+                selected_qb = quarterbeats[present_and_in_the_right_order].astype(float)
             try:
-                ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
+                ivs = make_interval_index_from_breaks(selected_qb,
                                                       end_value=float(offset_dict['end']), logger=logger)
                 duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
-                duration_qb.loc[present_qb] = ivs.length
+                if qb_are_sorted:
+                    duration_qb.loc[present_qb] = ivs.length
+                else:
+                    duration_qb.loc[present_and_in_the_right_order] = ivs.length
                 new_cols['duration_qb'] = duration_qb
             except Exception as e:
                 logger.warning(
-                    f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
-                    f"needs to be larger than the last quarterbeat). Error:\n{e}")
+                    f"Error while creating durations from quarterbeats column. Error:\n{e}")
     if len(new_cols) > 0:
         df = pd.concat(list(new_cols.values()) + [df], axis=1)
         logger.debug(f"Prepended the columns {list(new_cols.keys())}.")
