@@ -21,8 +21,8 @@ class TestEquivalence():
         for sd in first_level_subdirs(directory):
             corpus = os.path.join(directory, sd)
             c.add_corpus(corpus)
-        assert a.count_extensions(per_key=True) == c.count_extensions(per_key=True)
-        assert len(b.count_extensions(per_key=True)) == 1
+        assert a.count_extensions() == c.count_extensions()
+        assert len(b.count_extensions()) == 1
 
 def assert_all_loggers_level(level):
     for name, logger in iter_ms3_loggers():

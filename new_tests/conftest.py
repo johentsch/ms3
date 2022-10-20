@@ -94,13 +94,13 @@ def parse_obj(directory, request):
             p.add_files(files_without_inferrable_metadata)
         if request.param == "files_correct_without_metadata":
             key = "frankenstein"
-            p.add_files(files_with_inferrable_metadata, key=key)
+            p.add_files(files_with_inferrable_metadata, corpus_name=key)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger=logger):
-                p.add_files(path, key=key)
+                p.add_files(path, corpus_name=key)
         if request.param == "files_with_correct_key":
             p.add_dir(os.path.join(directory, 'outputs'))
             for path in files:
-                p.add_files(path, key='sweelinck_keyboard')
+                p.add_files(path, corpus_name='sweelinck_keyboard')
 
     return p
 

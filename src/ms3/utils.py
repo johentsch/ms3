@@ -1,6 +1,5 @@
 import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple
-from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction as frac
@@ -8,7 +7,7 @@ from functools import reduce
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List
+from typing import Collection, Union, Dict, Tuple, List, Iterable
 from zipfile import ZipFile as Zip
 
 import pandas as pd

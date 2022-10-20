@@ -1,11 +1,11 @@
+from functools import lru_cache
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator
 
 import io
 import sys, os, re
-from functools import lru_cache
 import json
 import pathos.multiprocessing as mp
-from collections import Counter, defaultdict, namedtuple
+from collections import Counter, defaultdict
 
 import pandas as pd
 import numpy as np
@@ -16,12 +16,10 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, infer_tsv_type, \
-    iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, path2type, \
+from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
+    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
-from .transformations import add_weighted_grace_durations, dfs2quarterbeats
 from .view import DefaultView, View
 
 
@@ -29,6 +27,11 @@ class Corpus(LoggedClass):
     """
     Collection of scores and TSV files that can be matched to each other based on their file names.
     """
+
+    default_count_index = pd.MultiIndex.from_product([
+        ('scores',) + Score.dataframe_types,
+        ('found', 'parsed')
+    ])
 
     def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
         """
@@ -78,10 +81,6 @@ class Corpus(LoggedClass):
         """
         ``[File]`` list of :obj:`File` data objects containing information on the file location
         etc. for all detected files. 
-        """
-
-        self.files_df: pd.DataFrame = pd.DataFrame()
-        """ DataFrame containing information on all detected files.
         """
 
         self._views: dict = {}
@@ -138,10 +137,11 @@ class Corpus(LoggedClass):
         """Sorted list of unique file names of all detected scores"""
 
         self.detect_parseable_files()
+        assert len(self.files) > 0, f"The path {self.corpus_path} contains no files that I can parse."
         self.collect_fnames_from_scores()
         self.find_and_load_metadata()
         self.create_pieces()
-        #self.reset_piece_selection()
+        self.register_files_with_pieces()
         # self.look_for_ignored_warnings(directory, key=top_level)
         # if len(mscx_files) > 0:
         #     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
@@ -232,7 +232,7 @@ class Corpus(LoggedClass):
                 yield fname, piece
         else:
             # need to differentiate between files that are and are not included in the metadata.tsv file
-            fnames = self.fnames_in_metadata() if view.fnames_in_metadata else self.fnames_not_in_metadata()
+            fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
             n_kept, n_discarded = 0, 0
             discarded_items = []
             for fname, piece in view.filter_by_token('fnames', self):
@@ -254,7 +254,7 @@ class Corpus(LoggedClass):
 
 
 
-    def get_files(self, file_type: Union[str, Collection[str]],
+    def get_files(self, file_type: Union[str, Collection[str]] = None,
                      view_name: str = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -274,7 +274,7 @@ class Corpus(LoggedClass):
         result = {}
         if choose == 'ask':
             choose = 'all'
-            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files(); setting to 'auto'")
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files(); setting to 'auto'")
         for fname, piece in self.iter_pieces(view_name=view_name):
             type2file = piece.get_files(file_type=file_type,
                                             view_name=view_name,
@@ -288,57 +288,86 @@ class Corpus(LoggedClass):
     def select_score_files(self, choose: Literal['all', 'auto', 'ask'] = 'all'):
         if choose == 'ask':
             choose = 'all'
-            logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
         result = self.get_files('scores', choose=choose)
         result = {fname: list(type2file.values()) for fname, type2file in result.items()}
 
         if all(len(l) == 1 for l in result.values()):
             return {fname: l[0] for fname, l in result.items()}
 
-    def fnames_in_metadata(self) -> List[str]:
+    @lru_cache()
+    def fnames_in_metadata(self, metadata_ix) -> List[str]:
+        """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
+        those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply
+        self.metadata_ix and serves caching.
+        """
         if self.metadata_tsv is None:
             return  []
         try:
-            return sorted(self.metadata_tsv.fname.unique())
-        except AttributeError:
-            return sorted(self.metadata_tsv.fnames.unique())
+            fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in self.metadata_tsv.columns)
+            return sorted(self.metadata_tsv[fname_col].unique())
+        except StopIteration:
+            file = self.files[metadata_ix]
+            self.logger.warning(f"The file {file.rel_path} is missing a column called 'fname' or 'fnames':\n{self.metadata_tsv.columns}")
+            return []
 
     def fnames_not_in_metadata(self) -> List[str]:
-        metadata_fnames = self.fnames_in_metadata()
+        """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
+        those that are not listed in the 'metadata.tsv' file for this corpus.
+        """
+        metadata_fnames = self.fnames_in_metadata(self.metadata_ix)
         if len(metadata_fnames) == 0:
             return self.score_fnames
         return [f for f in self.score_fnames
                 if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
                 ]
 
-    def create_pieces(self):
+    def get_fnames(self,
+                   fnames_in_metadata: bool = True,
+                   fnames_not_in_metadata: bool = True) -> List[str]:
+        """ fnames (file names without extension and suffix) serve as IDs for pieces. Use
+        this function to retrieve them.
+
+        Args:
+            fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus
+            fnames_not_in_metadata: fnames that are not listed in the 'metadata.tsv' file for this corpus
+
+        Returns:
+
+        """
+        result = []
+        if fnames_in_metadata:
+            result.extend(self.fnames_in_metadata(self.metadata_ix))
+        if fnames_not_in_metadata:
+            result.extend(self.fnames_not_in_metadata())
+        return sorted(result)
+
+    def create_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
         """Creates and stores one :obj:`Piece` object per fname."""
-        if self.metadata_tsv is None:
-            fnames = self.score_fnames
-        else:
-            # if metadata.tsv was found and not all score names are present in it,
-            # the file may reflect a selection of pieces or needs to be updated.
-            # Creating additional pieces only for score names, that don't begin with
-            # any of the names contained in the metadata file, interpreting these as
-            # having a suffix.
-            metadata_fnames = self.fnames_in_metadata()
-            additional_fnames = []
-            for fname in self.score_fnames:
-                if fname in metadata_fnames:
-                    continue
-                if any(fname.startswith(md_fname) for md_fname in metadata_fnames):
-                    continue
-                additional_fnames.append(fname)
-            fnames = sorted(metadata_fnames + additional_fnames)
+        if fnames is None:
+            fnames = self.get_fnames()
+        elif isinstance(fnames, str):
+            fnames = [fnames]
         for fname in fnames:
+            if fname in self._pieces:
+                self.logger.debug(f"Piece({fname}) existed already, skipping...")
+                continue
             logger_cfg = dict(self.logger_cfg)
-            logger_name = self.logger.name + '.' + fname
+            logger_name = self.logger.name + '.' + fname.replace('.', '')
             logger_cfg['name'] = logger_name
             piece = Piece(fname, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
             piece.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
             self._pieces[fname] = piece
             self.logger_names[fname] = logger_name
+
+
+    def register_files_with_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
+        if fnames is None:
+            fnames = self.get_fnames()
+        elif isinstance(fnames, str):
+            fnames = [fnames]
         fnames = sorted(fnames, key=len, reverse=True)
+        # sort so that longest fnames come first for preventing errors when detecting suffixes
         if len(fnames) == 0:
             self.logger.warning(f"Corpus contains neither scores nor metadata.")
             return
@@ -358,8 +387,8 @@ class Corpus(LoggedClass):
                     self.logger.warning(f"Could not associate {file.file} with any of the pieces.")
                 self.ix2fname[file.ix] = None
             else:
-                piece = self._get_piece(piece_name)
-                if piece.add_file(file):
+                piece = self.get_piece(piece_name)
+                if piece.register_file(file):
                     self.ix2fname[file.ix] = piece_name
                     self.logger_names[file.ix] = piece.logger.name
                 else:
@@ -369,29 +398,72 @@ class Corpus(LoggedClass):
     def find_and_load_metadata(self) -> None:
         """Checks if a 'metadata.tsv' is present at the default path and parses or creates it."""
         metadata_path = os.path.join(self.corpus_path, 'metadata.tsv')
-        full_paths = self.files_df['full_path'].values
-        if metadata_path in full_paths:
-            ixs, = np.where(full_paths == metadata_path)
-            self.metadata_ix = ixs[0]
-            self.metadata_tsv = load_tsv(metadata_path)
-            self.parsed_files[self.metadata_ix] = self.metadata_tsv
+        if not os.path.isfile(metadata_path):
+            return
+        try:
+            file = next(file for file in self.files if file.full_path == metadata_path)
+        except StopIteration:
+            self.logger.warning(f"Metadata file exists but had not been among the detected files: {metadata_path}")
+            file = self.add_file_paths([metadata_path])[0]
+        self.metadata_ix = file.ix
+        self.metadata_tsv = load_tsv(metadata_path)
+        self.parsed_files[self.metadata_ix] = self.metadata_tsv
 
-    def get_files_of_type(self, file_type: str) -> pd.DataFrame:
-        """Filters :attr:`files_df` by its 'type' column."""
-        return self.files_df[self.files_df.type == file_type].copy()
 
     def collect_fnames_from_scores(self) -> None:
         """Construct sorted list of fnames from all detected scores."""
-        detected_scores = self.get_files_of_type('scores')
+        files_df = pd.DataFrame(self.files)
+        detected_scores = files_df.loc[files_df.type == 'scores']
         self.score_fnames = sorted(detected_scores.fname.unique())
+
+    def add_file_paths(self, paths: Collection[str]) -> List[File]:
+        resolved_paths = [resolve_dir(p) for p in paths]
+        not_a_file = [p for p in paths if not os.path.isfile(p)]
+        if len(not_a_file) > 0:
+            if len(not_a_file) == 1:
+                msg = f"No existing file at {not_a_file[0]}."
+            else:
+                msg = f"These are not paths of existing files: {not_a_file}"
+            self.logger.warning(msg)
+            resolved_paths = [p for p in paths if os.path.isfile(p)]
+        score_extensions = ['.' + ext for ext in Score.parseable_formats]
+        detected_extensions = score_extensions + ['.tsv']
+        newly_added = []
+        for full_path in resolved_paths:
+            current_path, file = os.path.split(full_path)
+            file_name, file_ext = os.path.splitext(file)
+            if file_ext not in detected_extensions:
+                continue
+            current_subdir = os.path.relpath(current_path, self.corpus_path)
+            rel_path = os.path.join(current_subdir, file)
+            if current_subdir.startswith('..'):
+                self.logger.warning(f"The file {rel_path} is lies outside the corpus folder {self.corpus_path}. "
+                                    f"This may lead to invalid relative paths in the metadata.tsv.")
+            file_type = path2type(full_path, logger=self.logger)
+            F = File(
+                ix=len(self.files),
+                type=file_type,
+                file=file,
+                fname=file_name,
+                fext=file_ext,
+                subdir=current_subdir,
+                corpus_path=self.corpus_path,
+                rel_path=rel_path,
+                full_path=full_path,
+                directory=current_path,
+                suffix='',
+            )
+            self.files.append(F)
+            newly_added.append(F)
+        return newly_added
 
     def detect_parseable_files(self) -> None:
         """Walks through the corpus_path and collects information on all parseable files."""
         score_extensions = ['.' + ext for ext in Score.parseable_formats]
         detected_extensions = score_extensions + ['.tsv']
         for current_path, subdirs, files in os.walk(self.corpus_path):
-            current_subdir = os.path.relpath(current_path, self.corpus_path)
             subdirs[:] = sorted(sd for sd in subdirs if not sd.startswith('.'))
+            current_subdir = os.path.relpath(current_path, self.corpus_path)
             parseable_files = [(f,) + os.path.splitext(f) for f in files if os.path.splitext(f)[1] in detected_extensions]
             for file, file_name, file_ext in sorted(parseable_files):
                 full_path = os.path.join(current_path, file)
@@ -411,7 +483,6 @@ class Corpus(LoggedClass):
                     suffix='',
                 )
                 self.files.append(F)
-        self.files_df = pd.DataFrame(self.files).set_index('ix')
 
     def _add_annotations_by_ids(self, list_of_pairs, staff=None, voice=None, harmony_layer=1,
                                 check_for_clashes=False):
@@ -1055,48 +1126,22 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, keys=None, ids=None, per_key=False, per_subdir=False):
-        """ Count file extensions.
+    def count_extensions(self, view_name: str = None):
+        """"""
+        selected_files = self.get_files(view_name=view_name, flat=True)
+        return {fname: Counter(file.fext for file in files) for fname, files in selected_files.items()}
 
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) for which to count file extensions.  By default, all keys are selected.
-        ids : :obj:`~collections.abc.Collection`
-            If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.
-        per_key : :obj:`bool`, optional
-            If set to True, the results are returned as a dict {key: Counter},
-            otherwise the counts are summed up in one Counter.
-        per_subdir : :obj:`bool`, optional
-            If set to True, the results are returned as {key: {subdir: Counter} }. ``per_key=True`` is therefore implied.
+    def get_parsed_score_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('scores', view_name=view_name, unparsed=False, flat=flat)
 
-        Returns
-        -------
-        :obj:`dict`
-            By default, the function returns a Counter of file extensions (Counters are converted to dicts).
-            If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
-            If ``per_subdir`` is set to True, a dictionary {key: {subdir: Counter} } is returned.
-        """
+    def get_parsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
 
-        if per_subdir:
-            res_dict = defaultdict(dict)
-            for k, subdir, ixs in self._iter_subdir_selectors(keys=keys, ids=ids):
-                res_dict[k][subdir] = dict(Counter(iter_selection(self.fexts[k], ixs)))
-            return dict(res_dict)
-        else:
-            res_dict = {}
-            if ids is not None:
-                grouped_ids = group_id_tuples(ids)
-                for k, ixs in grouped_ids.items():
-                    res_dict[k] = Counter(iter_selection(self.fexts[k], ixs))
-            else:
-                keys = self._treat_key_param(keys)
-                for k in keys:
-                    res_dict[k] = Counter(self.fexts[k])
-            if per_key:
-                return {k: dict(v) for k, v in res_dict.items()}
-            return dict(sum(res_dict.values(), Counter()))
+    def get_unparsed_score_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('scores', view_name=view_name, parsed=False, flat=flat)
 
+    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
 
     def count_labels(self, keys=None, per_key=False):
@@ -1347,10 +1392,6 @@ Available keys: {available_keys}""")
         return res
 
 
-    def get_piece(self, id):
-        key, i = id
-        return self[key].get_piece(id)
-
 
     def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
@@ -1467,11 +1508,12 @@ Available keys: {available_keys}""")
 
         return idx, names
 
-    def count(self, types: bool = True,
-              parsed: bool = True,
-              as_dict: bool = False,
-              drop_zero: bool = False,
-              view_name: str = None) -> Union[pd.DataFrame, dict]:
+    def count_files(self,
+                    types: bool = True,
+                    parsed: bool = True,
+                    as_dict: bool = False,
+                    drop_zero: bool = False,
+                    view_name: str = None) -> Union[pd.DataFrame, dict]:
         assert types + parsed > 0, "At least one parameter needs to be True"
         fname2counts = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
@@ -1492,10 +1534,26 @@ Available keys: {available_keys}""")
         if as_dict:
             return fname2counts
         df = pd.DataFrame.from_dict(fname2counts, orient='index')
+        try:
+            df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
+        except TypeError:
+            pass
         if drop_zero:
             empty_cols = df.columns[df.sum() == 0]
             return df.drop(columns=empty_cols)
         return df
+
+    def _summed_file_count(self,
+                            types=True,
+                            parsed=True,
+                            view_name: str = None) -> pd.Series:
+        """The sum of _.count_files() but returning zero-filled Series if no fnames have been selected."""
+        file_count = self.count_files(types=types, parsed=parsed, drop_zero=False, view_name=view_name)
+        if len(file_count) == 0 and types and parsed:
+            return pd.Series(0, index=self.default_count_index)
+        return file_count.sum()
+
+
 
 
 
@@ -1506,12 +1564,12 @@ Available keys: {available_keys}""")
         view = self.get_view(view_name)
         view.reset_filtering_data()
         msg = f"{view}\n\n"
-        all_pieces_df = self.count(drop_zero=True, view_name=view_name)
+        all_pieces_df = self.count_files(drop_zero=True, view_name=view_name)
         if self.metadata_tsv is None:
             msg += "No 'metadata.tsv' file is present.\n\n"
             msg += all_pieces_df.to_string()
         else:
-            metadata_fnames = set(self.fnames_in_metadata())
+            metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
             included_selector = all_pieces_df.index.isin(metadata_fnames)
             if included_selector.all():
                 msg += "All pieces are listed in 'metadata.tsv':\n\n"
@@ -1851,7 +1909,7 @@ Available keys: {available_keys}""")
                 self.parsed_files.update(successful_results)
                 successful = len(successful_results)
             for ix, score in successful_results.items():
-                self._get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
+                self.get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
                     quantifier = f"The file" if target == 1 else f"All {target} files"
@@ -1903,7 +1961,7 @@ Available keys: {available_keys}""")
         if target == 0:
             self.logger.debug(f"Nothing to parse.")
             return
-        parse_this = [(file, self.ix_logger(file.ix)) for file in selected_files]
+        parse_this = [(file, get_logger(self.ix_logger(file.ix))) for file in selected_files]
         if len(kwargs) == 0:
             pool = mp.Pool(mp.cpu_count())
             parsing_results = pool.starmap(parse_tsv_file, parse_this)
@@ -1916,17 +1974,17 @@ Available keys: {available_keys}""")
             for file, logger in parse_this:
                 logger.debug(f"Trying to load {file.rel_path}")
                 try:
-                    df = load_tsv(path, logger=logger, **kwargs)
+                    df = load_tsv(file.full_path, logger=logger, **kwargs)
                     parsing_results.append(df)
                 except Exception as e:
                     parsing_results.append(None)
                     logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
-                                f"\n{path}\nError: {e}")
+                                f"\n{file.rel_path}\nError: {e}")
             successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
             self.parsed_files.update(successful_results)
         successful = len(successful_results)
         for ix, df in successful_results.items():
-            self._get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
+            self.get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
         if successful > 0:
             if successful == target:
                 quantifier = f"The file" if target == 1 else f"All {target} files"
@@ -2619,10 +2677,14 @@ Load one of the identically named files with a different key using add_dir(key='
         return self.__dict__
 
 
-    def __getitem__(self, item) -> Piece:
-        if isinstance(item, str):
-            return self._get_piece(item)
-        raise NotImplementedError("Currently subscripting works with fnames only.")
+    def __getitem__(self, fname_or_ix) -> Piece:
+        if isinstance(fname_or_ix, str):
+            return self.get_piece(fname_or_ix)
+        if isinstance(fname_or_ix, int):
+            assert fname_or_ix in self.ix2fname, f"This Corpus does not include a file with index {fname_or_ix}."
+            fname = self.ix2fname[fname_or_ix]
+            return self.get_piece(fname)[fname_or_ix]
+        raise TypeError(f"Index needs to be fname (str) or ix (int), not {fname_or_ix} ({type(fname_or_ix)})")
 
 
     def __iter__(self) -> Iterator[Tuple[str, Piece]]:
@@ -2639,7 +2701,7 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _get_piece(self, fname) -> Piece:
+    def get_piece(self, fname) -> Piece:
         """Returns the :obj:`Piece` object for fname."""
         assert fname in self._pieces, f"'{fname}' is not a piece in this corpus."
         return self._pieces[fname]
@@ -2657,7 +2719,7 @@ def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) ->
     file = file.file
     logger.debug(f"Attempting to parse {file}")
     try:
-        score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=ms)
+        score = Score(path, read_only=read_only, logger_cfg=logger_cfg, ms=ms)
         if score is None:
             logger.debug(f"Encountered errors when parsing {file}")
         else:
@@ -2671,11 +2733,11 @@ def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) ->
         return None
 
 
-def parse_tsv_file(file, logger):
+def parse_tsv_file(file, logger) -> pd.DataFrame:
     path = file.full_path
     logger.debug(f"Trying to load {file.rel_path}")
     try:
-        df = load_tsv(path, logger=logger)
+        df = load_tsv(path)
         return df
     except Exception as e:
         logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."

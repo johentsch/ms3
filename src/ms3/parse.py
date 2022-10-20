@@ -326,7 +326,7 @@ class Parse(LoggedClass):
             for d in directory:
                 self.add_dir(directory=d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
         if paths is not None:
-            _ = self.add_files(paths, key=key, exclude_re=exclude_re)
+            _ = self.add_files(paths, corpus_name=key, exclude_re=exclude_re)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -766,7 +766,11 @@ class Parse(LoggedClass):
         if not os.path.isdir(directory):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
-        corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
+        try:
+            corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
+        except AssertionError:
+            self.logger.debug(f"{directory} contains no parseable files.")
+            return
         corpus.set_view(**{view_name: view for view_name, view in self._views.items() if view_name is not None})
         if len(corpus.files) == 0:
             self.logger.info(f"No parseable files detected in {directory}. Skipping...")
@@ -903,17 +907,19 @@ class Parse(LoggedClass):
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
-    def add_files(self, paths, key=None, exclude_re=None):
+    def add_files(self, paths, corpus_name=None, exclude_re=None):
         """
 
         Parameters
         ----------
         paths : :obj:`~collections.abc.Collection`
             The paths of the files you want to add to the object.
-        key : :obj:`str`
+        corpus_name : :obj:`str`
             | Pass a string to identify the loaded files.
-            | If None is passed, paths relative to :py:attr:`last_scanned_dir` are used as keys. If :py:meth:`add_dir`
-              hasn't been used before, the longest common prefix of all paths is used.
+            | If None is passed, :meth:`.utils.path2parent_corpus` will try to see if one of the
+            | superdirectories is a corpus and use its name. Otherwise, if only one corpus
+            | is available, that one will be chosen. If no corpus_name can be inferred, the files
+            | will not be added.
 
         Returns
         -------
@@ -926,31 +932,31 @@ class Parse(LoggedClass):
         if isinstance(paths, str):
             paths = [paths]
         unpack_json_paths(paths, logger=self.logger)
-        if key is None:
+        if corpus_name is None:
             # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
             for path in paths:
                 parent_corpus = path2parent_corpus(path)
                 if parent_corpus is not None:
-                    key = os.path.basename(parent_corpus)
-                    self.logger.info(f"Using key='{key}' because the directory contains 'metadata.tsv' or is a git repository.")
+                    corpus_name = os.path.basename(parent_corpus)
+                    self.logger.info(f"Using key='{corpus_name}' because the directory contains 'metadata.tsv' or is a git repository.")
                     metadata_path = os.path.join(parent_corpus, 'metadata.tsv')
                     if metadata_path not in paths:
                         paths.append(metadata_path)
                         self.logger.info(f"{metadata_path} was automatically added.")
                     break
-        if key is None:
+        if corpus_name is None:
             # if only one key is available, pick that one
             keys = self.keys()
             if len(keys) == 1:
-                key = keys[0]
-                self.logger.info(f"Using key='{key}' because it is the only one currently in use.")
+                corpus_name = keys[0]
+                self.logger.info(f"Using key='{corpus_name}' because it is the only one currently in use.")
             else:
                 self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.",
                                   extra={"message_id": (8,)})
                 return []
-        if key not in self.files:
-            self.logger.debug(f"Adding '{key}' as new corpus.")
-            self.files[key] = []
+        if corpus_name not in self.files:
+            self.logger.debug(f"Adding '{corpus_name}' as new corpus.")
+            self.files[corpus_name] = []
         if isinstance(paths, str):
             paths = [paths]
         if exclude_re is not None:
@@ -963,13 +969,13 @@ class Parse(LoggedClass):
             self.last_scanned_dir = os.getcwd()
 
         self.logger.debug(f"Attempting to add {len(paths)} files...")
-        if key is None:
+        if corpus_name is None:
             ids = [self._handle_path(p, path2parent_corpus(p)) for p in paths]
         else:
-            ids = [self._handle_path(p, key) for p in paths]
+            ids = [self._handle_path(p, corpus_name) for p in paths]
         if sum(True for x in ids if x[0] is not None) > 0:
             selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
-            exts = self.count_extensions(ids=added_ids, per_key=True)
+            exts = self.count_extensions()
             self.logger.debug(f"{len(added_ids)} paths stored:\n{pretty_dict(exts, 'EXTENSIONS')}")
             return added_ids
         else:
@@ -1242,7 +1248,7 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, keys=None, ids=None, per_key=False, per_subdir=False):
+    def count_extensions(self, view_name: str = None, per_piece: bool = False):
         """ Count file extensions.
 
         Parameters
@@ -1263,26 +1269,15 @@ Available keys: {available_keys}""")
             By default, the function returns a Counter of file extensions (Counters are converted to dicts).
             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
             If ``per_subdir`` is set to True, a dictionary {key: {subdir: Counter} } is returned.
-        """
 
-        if per_subdir:
-            res_dict = defaultdict(dict)
-            for k, subdir, ixs in self._iter_subdir_selectors(keys=keys, ids=ids):
-                res_dict[k][subdir] = dict(Counter(iter_selection(self.fexts[k], ixs)))
-            return dict(res_dict)
-        else:
-            res_dict = {}
-            if ids is not None:
-                grouped_ids = group_id_tuples(ids)
-                for k, ixs in grouped_ids.items():
-                    res_dict[k] = Counter(iter_selection(self.fexts[k], ixs))
-            else:
-                keys = self._treat_key_param(keys)
-                for k in keys:
-                    res_dict[k] = Counter(self.fexts[k])
-            if per_key:
-                return {k: dict(v) for k, v in res_dict.items()}
-            return dict(sum(res_dict.values(), Counter()))
+        Args:
+            view_name:
+        """
+        extension_counters = {corpus_name: corpus.count_extensions(view_name) for corpus_name, corpus in self.iter_corpora(view_name)}
+        if per_piece:
+            return {(corpus_name, fname): dict(cnt) for corpus_name, fname2cnt in extension_counters.items() for fname, cnt in fname2cnt.items()}
+        return {corpus_name: dict(sum(fname2cnt.values(), start=Counter())) for corpus_name, fname2cnt in extension_counters.items()}
+
 
 
 
@@ -1578,10 +1573,6 @@ Available keys: {available_keys}""")
         return res
 
 
-    def get_piece(self, id):
-        key, i = id
-        return self[key].get_piece(id)
-
 
     def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
@@ -1709,6 +1700,50 @@ Available keys: {available_keys}""")
                     corpus.set_view(**{view_name: view})
             yield corpus_name, corpus
 
+    def count_files(self,
+                    types=True,
+                    parsed=True,
+                    as_dict: bool = False,
+                    drop_zero: bool = True,
+                    view_name: str = None) -> Union[pd.DataFrame, dict]:
+        all_counts = {corpus_name: corpus._summed_file_count(types=types, parsed=parsed, view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
+        counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
+        if drop_zero:
+            empty_cols = counts_df.columns[counts_df.sum() == 0]
+            counts_df = counts_df.drop(columns=empty_cols)
+        if as_dict:
+            return counts_df.to_dict(orient='index')
+        counts_df.index.rename('corpus', inplace=True)
+        return counts_df
+
+    def get_parsed_score_files(self, view_name: str = None):
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+            result[corpus_name] = sum(fname2files.values(), [])
+        return result
+
+    def get_parsed_tsv_files(self, view_name: str = None):
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=True)
+            result[corpus_name] = sum(fname2files.values(), [])
+        return result
+
+    def get_unparsed_score_files(self, view_name: str = None):
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
+            result[corpus_name] = sum(fname2files.values(), [])
+        return result
+
+    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=True)
+            result[corpus_name] = sum(fname2files.values(), [])
+        return result
+
     def info(self, return_str: bool = False,
              view_name: str = None,
              show_discarded: bool = False):
@@ -1719,11 +1754,7 @@ Available keys: {available_keys}""")
         other_views = [name for name in self._views.keys() if name not in excluded_names]
         msg = f"[{'|'.join(other_views)}]\n"
         msg += f"{view}\n\n"
-        all_counts = {corpus_name: corpus.count(view_name=view_name).sum() for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
-        empty_cols = counts_df.columns[counts_df.sum() == 0]
-        counts_df = counts_df.drop(columns=empty_cols)
-        counts_df.index.rename('corpus', inplace=True)
+        counts_df = self.count_files(view_name=view_name)
         msg += counts_df.to_string() + '\n\n'
         msg += view.filtering_report(show_discarded=show_discarded)
         if return_str:
@@ -2031,12 +2062,13 @@ Available keys: {available_keys}""")
 
 
 
-    def parse(self, keys=None, level=None, parallel=True, only_new=True, labels_cfg={}, fexts=None, cols={}, infer_types=None, simulate=None, **kwargs):
-        """ Shorthand for executing parse_mscx and parse_tsv at a time."""
-        if simulate is not None:
-            self.simulate = simulate
-        self.parse_mscx(keys=keys, level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
-        self.parse_tsv(level=level, cols=cols, infer_types=infer_types, **kwargs)
+    def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
+        """ Shorthand for executing parse_mscx and parse_tsv at a time.
+        Args:
+            view_name:
+        """
+        self.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
+        self.parse_tsv(level=level, cols=cols, infer_types=infer_types, view_name=view_name, **kwargs)
 
 
 
@@ -2843,10 +2875,10 @@ Available keys: {available_keys}""")
         return result
 
 
-    def _get_piece(self, corpus_name, fname) -> Piece:
-        """Returns a new or existing :obj:`Piece` object, as long as ``key`` exists."""
+    def get_piece(self, corpus_name: str, fname: str) -> Piece:
+        """Returns an existing :obj:`Piece` object."""
         assert corpus_name in self.corpus_objects, f"'{corpus_name}' is not an existing corpus. Choose from {list(self.corpus_objects.keys())}"
-        return self.corpus_objects[corpus_name]._get_piece(fname)
+        return self.corpus_objects[corpus_name].get_piece(fname)
 ########################################################################################################################
 ########################################################################################################################
 ################################################# End of Parse() ########################################################

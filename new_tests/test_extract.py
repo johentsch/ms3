@@ -124,7 +124,7 @@ class TestEmptyParse():
         #     assert any(record._message_type == 7 for record in caplog.records), f"Expected a {MessageType(7)}. Got {caplog.records}."
         # if name == 'files_without_key':
         #     assert any(record._message_type == 8 for record in caplog.records), print(f"Expected a {MessageType(7)}. Got {caplog.records}.")
-        assert self.parse_obj.count_extensions(per_key=True) == expected_keys
+        assert self.parse_obj.count_extensions() == expected_keys
 
     def test_metadata(self, expected_tsv_lines):
         p = self.parse_obj
@@ -195,8 +195,8 @@ class TestParsedParse():
             "files_without_key": (3, 0),
             "everything": (21, 29),
             "redundant": (2, 0),
-            "regular_dirs": (8, 25),
-            "regular_dirs_at_once": (8, 25),
+            "regular_dirs": (8, 22),
+            "regular_dirs_at_once": (8, 22),
             "without_metadata": (3, 0),
         }
         name2expected = defaultdict(lambda: (0,0))
@@ -223,11 +223,13 @@ class TestParsedParse():
 
 
     def test_keys(self, expected_keys):
-        assert self.parsed_parse_obj.count_extensions(per_key=True) == expected_keys
+        assert self.parsed_parse_obj.count_extensions() == expected_keys
 
     def test_n_parsed(self, n_parsed_files):
         p = self.parsed_parse_obj
-        parsed_files = (len(p._parsed_mscx), len(p._parsed_tsv))
+        n_parsed_scores = sum(map(len, p.get_parsed_score_files().values()))
+        n_parsed_tsvs = sum(map(len, p.get_parsed_tsv_files().values()))
+        parsed_files = (n_parsed_scores, n_parsed_tsvs)
         assert parsed_files == n_parsed_files
 
     def test_extracting_concatenated_dataframes(self):

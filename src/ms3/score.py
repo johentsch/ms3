@@ -119,7 +119,7 @@ class MSCX(LoggedClass):
         if level is not None:
             logger_cfg = dict(logger_cfg)
             logger_cfg['level'] = level
-        print(f"MSCX logger: {logger_cfg['name']}")
+
         super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
         if os.path.isfile(mscx_src):
             self.mscx_src = mscx_src
@@ -1642,10 +1642,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if ext.lower() in self.convertible_formats and self.ms is None:
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(self.musescore_file)
-        logger_cfg = self.logger_cfg.copy()
+        logger_cfg = dict(self.logger_cfg)
         logger_cfg['name'] = self.logger_names[extension]
         musescore_file = resolve_dir(self.musescore_file)
-        print(logger_cfg, extension, self.logger_names[extension])
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:

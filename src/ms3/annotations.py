@@ -4,7 +4,7 @@ from functools import lru_cache
 import pandas as pd
 
 from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
-    map_dict, name2format, resolve_dir, rgb2format, column_order, update_cfg
+    map_dict, name2format, resolve_dir, rgb2format, column_order, update_cfg, FORM_DETECTION_REGEX
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -49,7 +49,9 @@ class Annotations(LoggedClass):
         """
         super().__init__(subclass='Annotations', logger_cfg=logger_cfg)
         if infer_types is None:
-            self.regex_dict = {'dcml': DCML_DOUBLE_REGEX}
+            self.regex_dict = {'dcml': DCML_DOUBLE_REGEX,
+                               'form_labels': FORM_DETECTION_REGEX,
+                               }
         else:
             self.regex_dict = infer_types
         self._expanded = None

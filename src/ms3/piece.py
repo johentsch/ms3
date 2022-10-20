@@ -1,14 +1,16 @@
 import os
 from collections import defaultdict, Counter
-from typing import Dict, Collection, Literal, Tuple, Union, List, Iterator
+from typing import Dict, Collection, Literal, Tuple, Union, List, Iterator, TypeAlias
 
 import pandas as pd
 
-from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore
+from .annotations import Annotations
+from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore, load_tsv
 from .score import Score
 from .logger import LoggedClass, function_logger
 from .view import View, DefaultView
 
+ParsedFile: TypeAlias = Union[Score, pd.DataFrame]
 
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
@@ -17,19 +19,22 @@ class Piece(LoggedClass):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.fname = fname
         available_types = ('scores',) + Score.dataframe_types
-        self.type2files: defaultdict = defaultdict(list)
+        self.type2files: Dict[str, List[File]] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
         """
         self.type2files.update({typ: [] for typ in available_types})
-        self.ix2file: defaultdict = defaultdict(list)
-        """{ix -> :obj:`File`} dict storing the identical file information for access via index.
+        self.ix2file: Dict[int, File] = defaultdict(list)
+        """{ix -> :obj:`File`} dict storing the registered file information for access via index.
         """
-        self.type2parsed: defaultdict = defaultdict(dict)
+        self.type2parsed: Dict[str, Dict[int, ParsedFile]] = defaultdict(dict)
         """{typ -> {ix -> :obj:`pandas.DataFrame`|:obj:`Score`}} dict storing parsed files for associated types.
         """
         self.type2parsed.update({typ: {} for typ in available_types})
-        self.ix2parsed: defaultdict = defaultdict(list)
-        """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the identical file information for access via index.
+        self.ix2parsed: Dict[int, ParsedFile] = {}
+        """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the parsed files for access via index.
+        """
+        self.ix2annotations: Dict[int, Annotations] = {}
+        """{ix -> :obj:`Annotations`} dict storing Annotations objects for the parsed labels and expanded labels.
         """
         self._views: dict = {}
         self._views[None] = DefaultView('current') if view is None else view
@@ -111,24 +116,66 @@ class Piece(LoggedClass):
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
-    def get_parsed_score(self) -> Tuple[File, Score]:
-        parsed_scores = self.type2parsed['scores']
-        if len(parsed_scores) == 0:
-            return None, None
-        for ix, score_obj in parsed_scores.items():
-            break
+    def parse_file_at_index(self, ix: int) -> None:
+        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
         file = self.ix2file[ix]
+        if file.type == 'scores':
+            logger_cfg = dict(self.logger_cfg)
+            score = Score(file.full_path, logger_cfg=logger_cfg, ms=self.ms)
+            if score is None:
+                self.logger.warning(f"Parsing {file.rel_path} failed.")
+            else:
+                self.add_parsed_score(ix, score)
+        else:
+            df = load_tsv(file.full_path)
+            if df is None:
+                self.logger.warning(f"Parsing {file.rel_path} failed.")
+            else:
+                self.add_parsed_tsv(ix, df)
+
+
+
+    def __getitem__(self, ix) -> ParsedFile:
+        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
+        if ix not in self.ix2parsed:
+            self.parse_file_at_index(ix)
+        if ix not in self.ix2parsed:
+            file = self.ix2file[ix]
+            raise RuntimeError(f"Unable to parse '{file.rel_path}'.")
+        return self.ix2parsed[ix]
+
+
+    def get_first_parsed_score(self, view_name: str = None) -> Tuple[File, Score]:
+        parsed_scores = self.get_parsed_score_files(view_name)
+        if len(parsed_scores) == 0:
+            if len(self.type2parsed['scores']) > 0:
+                ixs = list(self.type2parsed['scores'].keys())
+                plural = f"a parsed score at index {ixs[0]}" if len(ixs) == 1 else f"parsed scores at indices {ixs}"
+                if view_name is None:
+                    view_name = self.get_view().name
+                self.logger.info(f"Piece('{self.fname}') has {plural}, but they don't seem to be included in this View (name {view_name}).")
+            return None, None
+        file = parsed_scores[0]
+        score_obj = self.ix2parsed[file.ix]
         if len(parsed_scores) > 1:
             self.info(f"Several parsed scores are available for '{self.fname}'. Picked '{file.rel_path}'")
         return file, score_obj
 
-    def add_parsed_score(self, ix: int, score_obj: Score):
+    def add_parsed_score(self, ix: int, score_obj: Score) -> None:
         assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
+        if score_obj is None:
+            file = self.ix2file[ix]
+            self.logger.debug(f"I was promised the parsed score for '{file.rel_path}' but received None.")
+            return
         self.ix2parsed[ix] = score_obj
         self.type2parsed['scores'][ix] = score_obj
 
-    def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame):
+    def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
         assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
+        if parsed_tsv is None:
+            file = self.ix2file[ix]
+            self.logger.debug(f"I was promised the parsed DataFrame for '{file.rel_path}' but received None.")
+            return
         self.ix2parsed[ix] = parsed_tsv
         inferred_type = infer_tsv_type(parsed_tsv)
         file = self.ix2file[ix]
@@ -139,11 +186,49 @@ class Piece(LoggedClass):
             file.type = inferred_type
             self.type2files[inferred_type].append(file)
         self.type2parsed[inferred_type][ix] = parsed_tsv
+        if inferred_type in ('labels', 'expanded'):
+            self.ix2annotations = Annotations(df = parsed_tsv)
+
+    def make_annotation_objects(self, view_name: str = None, label_col='label'):
+        selected_files = self.get_files(['labels', 'expanded'], unparsed=False, view_name=view_name)
+        try:
+            self._parsed_tsv[id] = df
+            if 'label' in cols and label_col in df.columns:
+                tsv_type = 'labels'
+            else:
+                tsv_type = infer_tsv_type(df)
+
+            if tsv_type is None:
+                logger.debug(
+                    f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
+                self._tsv_types[id] = 'other'
+            else:
+                self._tsv_types[id] = tsv_type
+                if tsv_type == 'metadata':
+                    self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
+                    logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
+                else:
+                    self._dataframes[tsv_type][id] = self._parsed_tsv[id]
+                    if tsv_type in ['labels', 'expanded']:
+                        if label_col in df.columns:
+                            logger_cfg = dict(self.logger_cfg)
+                            logger_cfg['name'] = self.logger_names[(key, i)]
+                            self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
+                                                                logger_cfg=logger_cfg, level=level)
+                            logger.debug(
+                                f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
+                        else:
+                            logger.info(
+                                f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+                Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+                    else:
+                        logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
+
+        except Exception as e:
+            self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
 
-
-
-    def get_files(self, file_type: str|Collection[str],
+    def get_files(self, file_type: str|Collection[str] = None,
                      view_name: str = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -159,7 +244,9 @@ class Piece(LoggedClass):
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
-        if isinstance(file_type, str):
+        if file_type is None:
+            file_type = list(self.type2files.keys())
+        elif isinstance(file_type, str):
             if file_type in ('tsv', 'tsvs'):
                 file_type = list(self.type2files.keys())
                 file_type.remove('scores')
@@ -213,13 +300,27 @@ class Piece(LoggedClass):
             return sum(result.values(), start=[])
         return result
 
+    def get_parsed_score_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('scores', view_name=view_name, unparsed=False, flat=flat)
+
+    def get_parsed_tsv_files(self, view_name: str = None, flat: bool = True):
+        return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+
     def get_unparsed_score_files(self, view_name: str = None, flat: bool = True):
         return self.get_files('scores', view_name=view_name, parsed=False, flat=flat)
 
     def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
         return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
-    def add_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
+    def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
+        ix = file.ix
+        if ix in self.ix2file:
+            existing_file = self.ix2file[ix]
+            if file.full_path == existing_file.full_path:
+                self.logger.debug(f"File '{file.rel_path}' was already registered for {self.fname}.")
+                return
+            else:
+                self.logger.debug(f"File '{existing_file.rel_path}' replaced with '{file.rel_path}'")
         if file.fname != self.fname:
             if file.fname.startswith(self.fname):
                 file.suffix = file.fname[len(self.fname):]
@@ -248,16 +349,16 @@ class Piece(LoggedClass):
 
 
     def iter_type2parsed_files(self, view_name: str = None, drop_zero: bool = False) -> Iterator[Dict[str, List[File]]]:
-        """Iterating through _.type2files.items() under the current or specified view."""
+        """Iterating through _.type2files.items() under the current or specified view and selecting only parsed files."""
         view = self.get_view(view_name=view_name)
-        for typ, ix2file in self.type2parsed.items():
-            files = [self.ix2file[ix] for ix in ix2file.keys()]
+        for typ, ix2parsed in self.type2parsed.items():
+            files = [self.ix2file[ix] for ix in ix2parsed.keys()]
             filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if drop_zero and len(filtered_ixs) == 0:
                 continue
             if typ in view.selected_facets:
-                yield typ, {ix: ix2file[ix] for ix in filtered_ixs}
+                yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
     def count_types(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
