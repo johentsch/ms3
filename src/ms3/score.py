@@ -117,7 +117,9 @@ class MSCX(LoggedClass):
             Store the Score object to which this MSCX object is attached.
         """
         if level is not None:
+            logger_cfg = dict(logger_cfg)
             logger_cfg['level'] = level
+        print(f"MSCX logger: {logger_cfg['name']}")
         super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
         if os.path.isfile(mscx_src):
             self.mscx_src = mscx_src
@@ -1353,7 +1355,8 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
-        """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
+        """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them, without taking
+        labels_cfg into account (don't decode the labels).
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
         By default, ``delete`` is set to True, meaning that if you call :py:meth:`output_mscx` afterwards,
         the created MuseScore file will not contain the detached labels.
@@ -1384,7 +1387,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not key.isidentifier():
             self.logger.warning(
                 f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
-        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, drop=delete)
+        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=True, decode=False, drop=delete)
         if len(df) == 0:
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
@@ -1408,6 +1411,40 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         return {t: self._name2regex[t] for t in self._types_to_infer}
 
+    def get_labels(self, key=None, interval_index: bool = False) -> pd.DataFrame:
+        """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags, of the score or another set of annotations.
+        Corresponds to calling :meth:`~.annotations.Annotations.get_labels` on the selected object (by default, the one
+        representing labels attached to the score) with the current :attr:`._labels_cfg`.
+        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
+        |offset_x|, |offset_y|, |regex_match|
+
+
+        Args:
+            key:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+        """
+        detached_annotations = list(self._detached_annotations.keys())
+        if key is None:
+            if self.mscx._annotations is None:
+                msg = "The score does not contain any annotations."
+                if len(detached_annotations) > 0:
+                    msg += f" Available set of labels: {detached_annotations}"
+                self.logger.info(msg)
+                return None
+            else:
+                labels = self.mscx._annotations.get_labels(**self.labels_cfg)
+        else:
+            assert key in detached_annotations, f"No annotations available for key '{key}': {detached_annotations}"
+            labels = self._detached_annotations[key].get_labels(**self.labels_cfg)
+        if 'quarterbeats' not in labels.columns:
+            if self.mscx is None:
+                self.logger.warning(f"Could not add quarterbeats to the detached labels with key '{key}' because no score has been parsed yet.")
+            else:
+                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(), interval_index=interval_index)
+        return labels
 
     def new_type(self, name, regex, description='', infer=True):
         """ Declare a custom label type. A type consists of a name, a regular expression and,
@@ -1538,7 +1575,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
-            self.logger_names[key] = f"{self.logger.name}.{key}"  # logger
+            logger_name = self.logger.name
+            if logger_name == 'ms3.Score':
+                logger_name += '.' + file_name.replace('.', '')
+            logger_name += '.' + key
+            self.logger_names[key] = logger_name  # logger
             return key
         else:
             raise ValueError(f"Path not found: {path}.")
@@ -1602,8 +1643,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
             raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
         extension = self._handle_path(self.musescore_file)
         logger_cfg = self.logger_cfg.copy()
+        logger_cfg['name'] = self.logger_names[extension]
         musescore_file = resolve_dir(self.musescore_file)
-
+        print(logger_cfg, extension, self.logger_names[extension])
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:

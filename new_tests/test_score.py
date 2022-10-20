@@ -58,10 +58,10 @@ class TestScore:
     def test_removing_and_reinserting_labels(self, score_object,):
         if not score_object.mscx.has_annotations:
             return
-        before = score_object.annotations.df
+        before = score_object.get_labels()
         assert len(before) == len(score_object.mscx.parsed.soup.find_all('Harmony')), "Not all <Harmony> tags appear in _.annotations.df !"
         score_object.detach_labels('labels')
-        after = score_object.labels.df
+        after = score_object.get_labels('labels')
         assert_dfs_equal(before, after)
         score_object.attach_labels('labels')
         assert_output_mscx_identical(score_object, '_label_reinsertion')
