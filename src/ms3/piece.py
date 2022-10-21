@@ -1,16 +1,17 @@
 import os
 from collections import defaultdict, Counter
-from typing import Dict, Collection, Literal, Tuple, Union, List, Iterator, TypeAlias
+from typing import Dict, Collection, Literal, Tuple, Union, Iterator, Optional, overload
 
 import pandas as pd
 
 from .annotations import Annotations
-from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore, load_tsv
+from .typing import FileList, ParsedFile, FileDict
+from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore, load_tsv, \
+    metadata2series
 from .score import Score
 from .logger import LoggedClass, function_logger
 from .view import View, DefaultView
 
-ParsedFile: TypeAlias = Union[Score, pd.DataFrame]
 
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
@@ -19,7 +20,7 @@ class Piece(LoggedClass):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.fname = fname
         available_types = ('scores',) + Score.dataframe_types
-        self.type2files: Dict[str, List[File]] = defaultdict(list)
+        self.type2files: Dict[str, FileList] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
         """
         self.type2files.update({typ: [] for typ in available_types})
@@ -33,6 +34,10 @@ class Piece(LoggedClass):
         self.ix2parsed: Dict[int, ParsedFile] = {}
         """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the parsed files for access via index.
         """
+        self.parsed_scores: Dict[int, Score] = {}
+        """Subset of :attr:`ix2parsed`"""
+        self.parsed_tsvs: Dict[int, pd.DataFrame] = {}
+        """Subset of :attr:`ix2parsed`"""
         self.ix2annotations: Dict[int, Annotations] = {}
         """{ix -> :obj:`Annotations`} dict storing Annotations objects for the parsed labels and expanded labels.
         """
@@ -43,6 +48,7 @@ class Piece(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
+        self._tsv_metadata: dict = None
         # self.parsed_scores: dict = {}
         # """{ix -> :obj:`Score`}"""
         # self.parsed_tsvs: dict = {}
@@ -70,6 +76,37 @@ class Piece(LoggedClass):
     def ms(self, ms):
         self._ms = get_musescore(ms, logger=self.logger)
 
+    @overload
+    def score_metadata(self, force: bool, as_dict: Literal[False]) -> pd.Series:
+        ...
+    @overload
+    def score_metadata(self, force: bool, as_dict: Literal[True]) -> dict:
+        ...
+    def score_metadata(self, force: bool = True, as_dict: bool = False) -> Union[pd.Series, dict]:
+        """
+
+        Args:
+            force: Make sure you retrieve metadata, even if a score has to be automatically
+            selected and parsed for that (default).
+
+        Returns:
+
+        """
+        file, score = self.get_parsed_score(force=force)
+        if score is None:
+            return None
+        meta_dict = score.mscx.metadata
+        meta_dict['subdirectory'] = file.subdir
+        meta_dict['fname'] = self.fname
+        meta_dict['rel_path'] = file.rel_path
+        if as_dict:
+            return meta_dict
+        return metadata2series(meta_dict)
+
+    @property
+    def tsv_metadata(self):
+        return self._tsv_metadata
+
     def set_view(self, current: View = None, **views: View):
         """Register one or several view_name=View pairs."""
         if current is not None:
@@ -79,7 +116,7 @@ class Piece(LoggedClass):
                 view.name = view_name
             self._views[view_name] = view
 
-    def get_view(self, view_name: str = None) -> View:
+    def get_view(self, view_name: Optional[str] = None) -> View:
         """Retrieve an existing or create a new View object."""
         if view_name in self._views:
             return self._views[view_name]
@@ -93,7 +130,7 @@ class Piece(LoggedClass):
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
-    def switch_view(self, view_name: str,
+    def switch_view(self, view_name: Optional[str],
                     show_info: bool = True) -> None:
         if view_name is None:
             return
@@ -145,7 +182,7 @@ class Piece(LoggedClass):
         return self.ix2parsed[ix]
 
 
-    def get_first_parsed_score(self, view_name: str = None) -> Tuple[File, Score]:
+    def get_first_parsed_score(self, view_name: Optional[str] = None) -> Tuple[File, Score]:
         parsed_scores = self.get_parsed_score_files(view_name)
         if len(parsed_scores) == 0:
             if len(self.type2parsed['scores']) > 0:
@@ -168,6 +205,7 @@ class Piece(LoggedClass):
             self.logger.debug(f"I was promised the parsed score for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = score_obj
+        self.parsed_scores[ix] = score_obj
         self.type2parsed['scores'][ix] = score_obj
 
     def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
@@ -177,6 +215,7 @@ class Piece(LoggedClass):
             self.logger.debug(f"I was promised the parsed DataFrame for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = parsed_tsv
+        self.parsed_tsvs[ix] = parsed_tsv
         inferred_type = infer_tsv_type(parsed_tsv)
         file = self.ix2file[ix]
         if file.type != inferred_type:
@@ -189,56 +228,78 @@ class Piece(LoggedClass):
         if inferred_type in ('labels', 'expanded'):
             self.ix2annotations = Annotations(df = parsed_tsv)
 
-    def make_annotation_objects(self, view_name: str = None, label_col='label'):
-        selected_files = self.get_files(['labels', 'expanded'], unparsed=False, view_name=view_name)
-        try:
-            self._parsed_tsv[id] = df
-            if 'label' in cols and label_col in df.columns:
-                tsv_type = 'labels'
-            else:
-                tsv_type = infer_tsv_type(df)
+    # def make_annotation_objects(self, view_name: Optional[str] = None, label_col='label'):
+    #     selected_files = self.get_files(['labels', 'expanded'], unparsed=False, view_name=view_name)
+    #     try:
+    #         self._parsed_tsv[id] = df
+    #         if 'label' in cols and label_col in df.columns:
+    #             tsv_type = 'labels'
+    #         else:
+    #             tsv_type = infer_tsv_type(df)
+    #
+    #         if tsv_type is None:
+    #             logger.debug(
+    #                 f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
+    #             self._tsv_types[id] = 'other'
+    #         else:
+    #             self._tsv_types[id] = tsv_type
+    #             if tsv_type == 'metadata':
+    #                 self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
+    #                 logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
+    #             else:
+    #                 self._dataframes[tsv_type][id] = self._parsed_tsv[id]
+    #                 if tsv_type in ['labels', 'expanded']:
+    #                     if label_col in df.columns:
+    #                         logger_cfg = dict(self.logger_cfg)
+    #                         logger_cfg['name'] = self.logger_names[(key, i)]
+    #                         self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
+    #                                                             logger_cfg=logger_cfg, level=level)
+    #                         logger.debug(
+    #                             f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
+    #                     else:
+    #                         logger.info(
+    #                             f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
+    #             Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
+    #                 else:
+    #                     logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
+    #
+    #     except Exception as e:
+    #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
-            if tsv_type is None:
-                logger.debug(
-                    f"No label column '{label_col}' was found in {self.rel_paths[key][i]} and its content could not be inferred. Columns: {df.columns.to_list()}")
-                self._tsv_types[id] = 'other'
-            else:
-                self._tsv_types[id] = tsv_type
-                if tsv_type == 'metadata':
-                    self._metadata = pd.concat([self._metadata, self._parsed_tsv[id]])
-                    logger.debug(f"{self.rel_paths[key][i]} parsed as metadata.")
-                else:
-                    self._dataframes[tsv_type][id] = self._parsed_tsv[id]
-                    if tsv_type in ['labels', 'expanded']:
-                        if label_col in df.columns:
-                            logger_cfg = dict(self.logger_cfg)
-                            logger_cfg['name'] = self.logger_names[(key, i)]
-                            self._annotations[id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                                                logger_cfg=logger_cfg, level=level)
-                            logger.debug(
-                                f"{self.rel_paths[key][i]} parsed as annotation table and an Annotations object was created.")
-                        else:
-                            logger.info(
-                                f"""The file {self.rel_paths[key][i]} was recognized to contain labels but no label column '{label_col}' was found in {df.columns.to_list()}
-                Specify parse_tsv(key='{key}', cols={{'label'=label_column_name}}).""")
-                    else:
-                        logger.debug(f"{self.rel_paths[key][i]} parsed as {tsv_type} table.")
-
-        except Exception as e:
-            self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
-
-
-    def get_files(self, file_type: str|Collection[str] = None,
-                     view_name: str = None,
-                     parsed: bool = True,
-                     unparsed: bool = True,
-                     choose: Literal['all', 'auto', 'ask'] = 'all',
-                     flat: bool = False) -> Union[Dict[str, File], List[File]]:
+    def get_file(self, file_type: str,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                 ) -> Optional[File]:
         """
 
         Args:
             file_type:
             choose: If choose == 'all', all dict values will be Lists
+
+        Returns:
+            A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
+        """
+        assert isinstance(file_type, str), "Request one file_type at a time or use "
+        files = self.get_files(file_type=file_type, view_name=view_name, parsed=parsed, unparsed=unparsed, flat=True)
+        if len(files) == 0:
+            return None
+        if len(files) == 1:
+            return files[0]
+        return disambiguate_files(files, choose=choose, logger=self.logger)
+
+    def get_files(self,
+                  file_type: Union[str, Collection[str]] = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False) -> Union[FileDict, FileList]:
+        """
+
+        Args:
+            file_type:
 
         Returns:
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
@@ -273,7 +334,7 @@ class Piece(LoggedClass):
             if choose == 'all' or len(files) < 2:
                 result[t] = files
             else:
-                disambiguated = disambiguate_files(files, logger=self.logger)
+                disambiguated = files2disambiguation_dict(files, logger=self.logger)
                 needs_choice.append(t)
                 result[t] = disambiguated
         if choose == 'auto':
@@ -300,16 +361,45 @@ class Piece(LoggedClass):
             return sum(result.values(), start=[])
         return result
 
-    def get_parsed_score_files(self, view_name: str = None, flat: bool = True):
-        return self.get_files('scores', view_name=view_name, unparsed=False, flat=flat)
+    def get_parsed_score(self, view_name: Optional[str] = None, force: bool = True) -> Tuple[File, Score]:
+        score_file = self.get_file('scores', view_name=view_name, unparsed=False)
+        if score_file is not None:
+            return score_file, self.ix2parsed[score_file.ix]
+        if len(self.parsed_scores) > 0:
+            ixs = list(self.parsed_scores.keys())
+            if force:
+                selected_file = disambiguate_files([self.ix2file[ix] for ix in ixs], self.fname, 'scores')
+                return selected_file, self.ix2parsed[selected_file.ix]
+            if len(self.parsed_scores) == 1:
+                plural = f"is one available at ix {ixs[0]}."
+            else:
+                plural = f"are some available at ixs {ixs}."
+            self.logger.info(f"This view does not comprise any parsed scores, but there {plural}")
+        elif force:
+            if len(self.type2files) == 0:
+                return None, None
+            selected_file = self.get_file('scores') # under the current view
+            if selected_file is None:
+                files = self.type2files['scores']
+                selected_file = disambiguate_files(files, self.fname, 'scores')
+            ix = selected_file.ix
+            self.parse_file_at_index(ix)
+            if ix in self.ix2parsed:
+                return selected_file, self.ix2parsed[ix]
+            return None, None
+        return None, None
 
-    def get_parsed_tsv_files(self, view_name: str = None, flat: bool = True):
+
+    def get_parsed_score_files(self, view_name: Optional[str] = None) -> FileList:
+        return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+
+    def get_unparsed_score_files(self, view_name: Optional[str] = None) -> FileList:
+        return self.get_files('scores', view_name=view_name, parsed=False, flat=True)
+
+    def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
         return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
 
-    def get_unparsed_score_files(self, view_name: str = None, flat: bool = True):
-        return self.get_files('scores', view_name=view_name, parsed=False, flat=flat)
-
-    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+    def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
         return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
     def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
@@ -336,7 +426,7 @@ class Piece(LoggedClass):
         self.ix2file[file.ix] = file
         return True
 
-    def iter_type2files(self, view_name: str = None, drop_zero: bool = False) -> Iterator[Dict[str, List[File]]]:
+    def iter_type2files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
         """Iterating through _.type2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
         for typ, files in self.type2files.items():
@@ -348,7 +438,7 @@ class Piece(LoggedClass):
                 yield typ, filtered_files
 
 
-    def iter_type2parsed_files(self, view_name: str = None, drop_zero: bool = False) -> Iterator[Dict[str, List[File]]]:
+    def iter_type2parsed_files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
         """Iterating through _.type2files.items() under the current or specified view and selecting only parsed files."""
         view = self.get_view(view_name=view_name)
         for typ, ix2parsed in self.type2parsed.items():
@@ -361,10 +451,10 @@ class Piece(LoggedClass):
                 yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
-    def count_types(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
+    def count_types(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
         return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name, drop_zero=drop_zero)}
 
-    def count_parsed(self, drop_zero=False, view_name: str = None) -> Dict[str, int]:
+    def count_parsed(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, drop_zero=drop_zero)}
 
     def info(self, return_str=False, view_name=None):
@@ -393,7 +483,7 @@ class Piece(LoggedClass):
 
 
 @function_logger
-def disambiguate_files(files: Collection[File]) -> Dict[str, File]:
+def files2disambiguation_dict(files: Collection[File]) -> FileDict:
     """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
     of distinct strings to distinguish files pertaining to the same type."""
     N_target = len(files)
@@ -444,3 +534,24 @@ def disambiguate_files(files: Collection[File]) -> Dict[str, File]:
     logger.warning(f"The following files could not be ambiguated: {ambiguate_files}.\n"
                    f"In the result, only these remain: {remaining_ones}.")
     return result
+
+@function_logger
+def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
+    """Receives a collection of :obj:`File` with the aim to pick one of them.
+    First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
+    suffixes.
+
+    Args:
+        files:
+        choose: If 'auto' (default), the file with the shortest disambiguation string is chosen. Set to True
+            if you want to be asked to manually choose a file.
+
+    Returns:
+        The selected file.
+    """
+    if len(files) == 1:
+        return files[0]
+    disambiguation_dict = files2disambiguation_dict(files, logger=logger)
+    if choose == 'ask':
+        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
+    return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)

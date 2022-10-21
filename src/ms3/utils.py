@@ -19,12 +19,19 @@ from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg, LogCapturer
 
-METADATA_COLUMN_ORDER = ['fname', 'subdirectory', 'last_mc', 'last_mn', 'length_qb',
-                         'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions', 'TimeSig', 'KeySig',
-                         'label_count', 'annotated_key', 'annotators',
-                         'reviewers', 'composer', 'workTitle', 'movementNumber', 'movementTitle',
+METADATA_COLUMN_ORDER = ['fname',
+                         # automatically computed columns
+                         'last_mc', 'last_mn', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets',
+                         'n_onset_positions', 'TimeSig', 'KeySig', 'label_count', 'harmony_version', 'annotated_key',
+                         # metadata from the files metadata fields
+                         ## custom fields
+                         'composed_start', 'composed_end', 'annotators', 'reviewers', 'score_integrity',
+                         ## default fields
+                         'composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                         'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ambitus']
+                         'mscVersion', 'platform', 'source', 'translator', 'musescore',
+                         # ambitus and all the rest
+                         'ambitus']
 
 STANDARD_COLUMN_ORDER = [
     'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',
@@ -1880,7 +1887,7 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
 
 
 
-def metadata2series(d):
+def metadata2series(d: dict) -> pd.Series:
     """ Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
     Uses: ambitus2oneliner(), dict2oneliner(), parts_info()
 
@@ -3791,7 +3798,7 @@ class File:
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
                                                   fname: str,
                                                   file_type: str,
-                                                  ):
+                                                  ) -> File:
     if len(disambiguated_choices) == 1:
         return list(disambiguated_choices.keys())[0]
     disamb_series = pd.Series(disambiguated_choices)

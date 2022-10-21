@@ -1,24 +1,16 @@
 import re
 from collections import defaultdict
 from copy import deepcopy
-from typing import TypeAlias, Collection, Literal, Union, Iterable, List, Dict, Iterator
+from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional
 
 import numpy as np
 import numpy.typing as npt
 
 from .score import Score
+from .typing import FileList, Category, Categories
 from .utils import File
 from .logger import LoggedClass
 
-Category: TypeAlias = Literal['corpora',
-                              'folders',
-                              'fnames',
-                              'files',
-                              'suffixes',
-                              'facets'
-                                ]
-
-Categories: TypeAlias = Union[Category, Collection[Category]]
 
 def empty_counts():
     """Array for counting kept items, discarded items, and their sum."""
@@ -43,7 +35,7 @@ class View(LoggedClass):
     registered_regexes = (convertible_regex, review_regex, tsv_regex)
 
     def __init__(self,
-                 view_name: str = None,
+                 view_name: Optional[str] = None,
                  logger_cfg: dict = {},
                  only_metadata: bool = False,
                  include_convertible: bool = True,
@@ -72,7 +64,7 @@ class View(LoggedClass):
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    def copy(self, view_name: str = None,
+    def copy(self, view_name: Optional[str] = None,
                  logger_cfg: dict = None,
                  only_metadata: bool = None,
                  include_convertible: bool = None,
@@ -183,7 +175,7 @@ class View(LoggedClass):
         self._discarded_items[key].extend(discarded_items)
 
 
-    def filtered_file_list(self, files: Collection[File], key: str = None) -> List[File]:
+    def filtered_file_list(self, files: Collection[File], key: str = None) -> FileList:
         """ Keep only the files that pass _.check_file().
 
         Args:
@@ -277,7 +269,7 @@ class View(LoggedClass):
                 if category in self.singular2category:
                     return self.singular2category[category]
                 else:
-                    self.logger.error(f"'{category}' is not one of the known categories {self.singular2category}")
+                    self.logger.error(f"'{category}' is not one of the known categories {self.categories}")
             return category
         else:
             # assumes this to be iterable
@@ -355,7 +347,7 @@ class View(LoggedClass):
 class DefaultView(View):
 
     def __init__(self,
-                 view_name: str = None,
+                 view_name: Optional[str] = None,
                  logger_cfg: dict = {},
                  only_metadata: bool = True,
                  include_convertible: bool = False,

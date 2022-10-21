@@ -1,5 +1,5 @@
 
-from typing import Literal, Collection, Generator, Tuple, Union, Dict, List
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional
 
 import io
 import sys, os, re
@@ -18,10 +18,11 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, function_logger
 from .piece import Piece
 from .score import Score
+from .typing import FileDict, FileList, CorpusFnameTuple
 from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
     iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, path2parent_corpus, File
+    update_labels_cfg, write_tsv, path2parent_corpus
 from .transformations import dfs2quarterbeats
 from .view import View, DefaultView
 
@@ -346,7 +347,7 @@ class Parse(LoggedClass):
                     corpus.set_view(**{view_name: view})
 
 
-    def get_view(self, view_name: str = None) -> View:
+    def get_view(self, view_name: Optional[str] = None) -> View:
         """Retrieve an existing or create a new View object."""
         if view_name in self._views:
             return self._views[view_name]
@@ -360,7 +361,7 @@ class Parse(LoggedClass):
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
-    def switch_view(self, view_name: str) -> None:
+    def switch_view(self, view_name: Optional[str]) -> None:
         if view_name is None:
             return
         new_view = self.get_view(view_name)
@@ -1248,7 +1249,7 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, view_name: str = None, per_piece: bool = False):
+    def count_extensions(self, view_name: Optional[str] = None, per_piece: bool = False):
         """ Count file extensions.
 
         Parameters
@@ -1458,7 +1459,7 @@ Available keys: {available_keys}""")
         {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
         """
 
-        if len(self._parsed_mscx) == 0:
+        if self.count_parsed_scores() == 0:
             self.logger.error("No scores have been parsed so far.")
             return {}
         if ids is not None:
@@ -1689,7 +1690,7 @@ Available keys: {available_keys}""")
 
         return idx, names
 
-    def iter_corpora(self, view_name: str = None) -> Generator[Tuple[str, Corpus], None, None]:
+    def iter_corpora(self, view_name: Optional[str] = None) -> Generator[Tuple[str, Corpus], None, None]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
         for corpus_name, corpus in view.filter_by_token('corpora', self):
@@ -1705,7 +1706,7 @@ Available keys: {available_keys}""")
                     parsed=True,
                     as_dict: bool = False,
                     drop_zero: bool = True,
-                    view_name: str = None) -> Union[pd.DataFrame, dict]:
+                    view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
         all_counts = {corpus_name: corpus._summed_file_count(types=types, parsed=parsed, view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
         counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
         if drop_zero:
@@ -1716,36 +1717,65 @@ Available keys: {available_keys}""")
         counts_df.index.rename('corpus', inplace=True)
         return counts_df
 
-    def get_parsed_score_files(self, view_name: str = None):
+    def get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
-    def get_parsed_tsv_files(self, view_name: str = None):
-        result = {}
-        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
-        return result
 
-    def get_unparsed_score_files(self, view_name: str = None):
+    def get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
-    def get_unparsed_tsv_files(self, view_name: str = None, flat: bool = True):
+    def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=True)
-            result[corpus_name] = sum(fname2files.values(), [])
+            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+            if flat:
+                result[corpus_name] = sum(fname2files.values(), [])
+            else:
+                dd = defaultdict(list)
+                for fname, typ2files in fname2files.items():
+                    for typ, files in typ2files.items():
+                        dd[typ].extend(files)
+                result[corpus_name] = dict(dd)
         return result
 
+    def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+            if flat:
+                result[corpus_name] = sum(fname2files.values(), [])
+            else:
+                dd = defaultdict(list)
+                for fname, typ2files in fname2files.items():
+                    for typ, files in typ2files.items():
+                        dd[typ].extend(files)
+                result[corpus_name] = dict(dd)
+        return result
+
+
+    def count_parsed_scores(self, view_name: Optional[str] = None) -> int:
+        return sum(map(len, self.get_parsed_score_files(view_name=view_name).values()))
+
+    def count_parsed_tsvs(self, view_name: Optional[str] = None) -> int:
+        return sum(map(len, self.get_parsed_tsv_files(view_name=view_name).values()))
+
+    def count_unparsed_scores(self, view_name: Optional[str] = None) -> int:
+        return sum(map(len, self.get_parsed_score_files(view_name=view_name).values()))
+
+    def count_unparsed_tsvs(self, view_name: Optional[str] = None) -> int:
+        return sum(map(len, self.get_parsed_tsv_files(view_name=view_name).values()))
+
+
     def info(self, return_str: bool = False,
-             view_name: str = None,
+             view_name: Optional[str] = None,
              show_discarded: bool = False):
         """"""
         view = self.get_view(view_name)
@@ -2028,37 +2058,19 @@ Available keys: {available_keys}""")
             self.logger.info(f"No {what} have been parsed so far.")
             return df
 
-    def metadata_tsv(self, keys=None, parse_if_necessary=True):
-        """Returns a {id -> DataFrame} dictionary with all metadata.tsv files. To retrieve parsed
-        files recognized as containing metadata independent of their names, use :py:meth:`get_tsvs`."""
-        keys = self._treat_key_param(keys)
-        if len(self._parsed_tsv) == 0:
-            if not parse_if_necessary:
-                self.logger.debug(f"No TSV files have been parsed so far. Use Parse.parse_tsv().")
-                return pd.DataFrame()
-        metadata_dfs = {}
-        for k in keys:
-            try:
-                i = self.files[k].index('metadata.tsv')
-            except ValueError:
-                self.logger.debug(f"Key '{k}' does not include a file named 'metadata.tsv'.")
-                return metadata_dfs
-            id = (k, i)
-            if id not in self._parsed_tsv:
-                if parse_if_necessary:
-                    self.parse_tsv()
-                else:
-                    self.logger.debug(
-                        f"Found unparsed metadata for key '{k}' but parse_if_necessary is set to False.")
-            if id in self._parsed_tsv:
-                metadata_dfs[id] = self._parsed_tsv[id]
-            elif parse_if_necessary:
-                self.logger.debug(f"Could not find the DataFrame for the freshly parsed {self.full_paths[k][i]}.")
-        n_found = len(metadata_dfs)
-        if n_found == 0:
-            self.logger.debug(f"No metadata.tsv files have been found for they keys {', '.join(keys)}")
-            return {}
-        return metadata_dfs
+    def score_metadata(self, view_name: Optional[str] = None) -> pd.DataFrame:
+        metadata_dfs = {corpus_name: corpus.score_metadata(view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        return metadata
+
+    def metadata_tsv(self, view_name: Optional[str] = None) -> pd.DataFrame:
+        metadata_dfs = {corpus_name: corpus.metadata_tsv
+                        for corpus_name, corpus in self.iter_corpora(view_name=view_name)
+                        if corpus.metadata_tsv is not None
+                        }
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        return metadata
+
 
 
 
@@ -2110,11 +2122,11 @@ Available keys: {available_keys}""")
 
 
     def get_files(self, file_type: Union[str, Collection[str]],
-                     view_name: str = None,
+                     view_name: Optional[str] = None,
                      parsed: bool = True,
                      unparsed: bool = True,
                      choose: Literal['all', 'auto', 'ask'] = 'all',
-                     flat: bool = False) -> Dict[Tuple[str, str], Union[Dict[str, File], List[File]]]:
+                     flat: bool = False) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         """
 
         Args:
@@ -2779,6 +2791,10 @@ Available keys: {available_keys}""")
         """ Override the method of superclass """
         return self.__dict__
 
+    def iter_pieces(self) -> Tuple[CorpusFnameTuple, Piece]:
+        for corpus_name, corpus in self:
+            for fname, piece in corpus:
+                yield (corpus_name, fname), piece
 
     def _get_corpus(self, name):
         assert name in self.corpus_objects, f"Don't have a corpus called '{name}', only {list(self.corpus_objects.keys())}"
@@ -2791,9 +2807,11 @@ Available keys: {available_keys}""")
         elif isinstance(item, tuple):
             if len(item) == 1:
                 return self._get_corpus(item[0])
-            corpus_name, fname_or_ix, *_ = item
-            return self._get_corpus(corpus_name)[fname_or_ix]
-
+            if len(item) == 2:
+                corpus_name, fname_or_ix = item
+                return self._get_corpus(corpus_name)[fname_or_ix]
+            corpus_name, *remainder = item
+            return self._get_corpus(corpus_name)[tuple(remainder)]
 
     def __iter__(self) -> Generator[Tuple[str, Corpus], None, None]:
         """  Iterate through all (corpus_name, Corpus) tuples, regardless of any Views.
