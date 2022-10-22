@@ -1,13 +1,13 @@
 import os,sys, platform, re, shutil, subprocess
-from collections import defaultdict, namedtuple
+from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction as frac
-from functools import reduce
+from functools import reduce, lru_cache
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable
+from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -18,6 +18,7 @@ from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg, LogCapturer
+from ._typing import FileDict, Facet
 
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
@@ -3701,7 +3702,7 @@ def overlapping_chunk_per_interval(df, intervals, truncate=True):
     return chunks
 
 
-def infer_tsv_type(df):
+def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
     """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
         'notes': ['tpc', 'midi'],
@@ -3712,15 +3713,15 @@ def infer_tsv_type(df):
         'expanded': ['numeral'],
         'labels': ['harmony_layer', 'label_type'],
         'cadences': ['cadence'],
-        'metadata': ['last_mn', 'md5'],
+        'metadata': ['fname'],
         'form_labels': ['form_label', 'a'],
     }
     for t, columns in type2cols.items():
-        if any(True for c in columns if c in df.columns):
+        if any(c in df.columns for c in columns):
             return t
-    if any(True for c in ['mc', 'mn'] if c in df.columns):
+    if any(c in df.columns for c in ['mc', 'mn']):
         return 'labels'
-    return
+    return 'unknown'
 
 
 def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
@@ -3899,3 +3900,168 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
             choice = file_list[int_i]
             ask_user = False
     return choice
+
+
+@function_logger
+def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
+    """Receives a collection of :obj:`File` with the aim to pick one of them.
+    First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
+    suffixes.
+
+    Args:
+        files:
+        choose: If 'auto' (default), the file with the shortest disambiguation string is chosen. Set to True
+            if you want to be asked to manually choose a file.
+
+    Returns:
+        The selected file.
+    """
+    if len(files) == 1:
+        return files[0]
+    if choose not in ('auto', 'ask'):
+        self.logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
+        choose = 'auto'
+    disambiguation_dict = files2disambiguation_dict(files, logger=logger)
+    if choose == 'ask':
+        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
+    return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
+
+@function_logger
+def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
+    files = [tup[0] for tup in tuples_with_file_as_first_element]
+    selected = disambiguate_files(files, fname=fname, file_type=file_type, choose=choose, logger=logger)
+    for tup in tuples_with_file_as_first_element:
+        if tup[0] == selected:
+            return tup
+
+
+@function_logger
+def files2disambiguation_dict(files: Collection[File]) -> FileDict:
+    """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
+    of distinct strings to distinguish files pertaining to the same type."""
+    N_target = len(files)
+    if N_target == 0:
+        return {}
+    if N_target== 1:
+        f = files[0]
+        return {f.type: f}
+    disambiguation = [f.type for f in files]
+    if len(set(disambiguation)) == N_target:
+        # done disambiguating
+        return dict(zip(disambiguation, files))
+    # first, try to disambiguate based on the files' sub-directories
+    subdirs = []
+    for f in files:
+        file_type = f.type
+        subdir = f.subdir.strip(r"\/.")
+        if subdir.startswith(file_type):
+            subdir = subdir[len(file_type):]
+        if subdir.strip(r"\/") == '':
+            subdir = ''
+        subdirs.append(subdir)
+    if len(set(subdirs)) > 1:
+        # files can (partially) be disambiguated because they are in different sub-directories
+        disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
+    if len(set(disambiguation)) == N_target:
+        # done disambiguating
+        return dict(zip(disambiguation, files))
+    # next, try adding detected suffixes
+    for ix, f in enumerate(files):
+        if f.suffix != '':
+            disambiguation[ix] += f"[{f.suffix}]"
+    if len(set(disambiguation)) == N_target:
+        # done disambiguating
+        return dict(zip(disambiguation, files))
+    # now, add file extensions to disambiguate further
+    if len(set(f.fext for f in files)) > 1:
+        for ix, f in enumerate(files):
+            disambiguation[ix] += f.fext
+    if len(set(disambiguation)) == N_target:
+        # done disambiguating
+        return dict(zip(disambiguation, files))
+    str_counts = Counter(disambiguation)
+    duplicate_disambiguation_strings = [s for s, cnt in str_counts.items() if cnt > 1]
+    ambiguate_files = {s: [f for disamb, f in zip(disambiguation, files) if disamb == s] for s in duplicate_disambiguation_strings}
+    result = dict(zip(disambiguation, files))
+    remaining_ones = {s: result[s] for s in duplicate_disambiguation_strings}
+    logger.warning(f"The following files could not be ambiguated: {ambiguate_files}.\n"
+                   f"In the result, only these remain: {remaining_ones}.")
+    return result
+
+
+def literal_type2tuple(typ: TypeVar) -> Tuple[str]:
+    """Turns the first Literal included in the TypeVar into a list of values. The first literal value
+    needs to be a string, otherwise the function may lead to unexpected behaviour.
+    """
+    if isinstance(typ.__args__[0], str):
+        return typ.__args__
+    return literal_type2tuple(typ.__args__[0])
+
+
+@lru_cache
+@function_logger
+def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None]],
+                                   typ: Optional[Union[TypeVar, Tuple[str]]],
+                                   none_means_all: bool = True,
+                                   ) -> Optional[List[str]]:
+    """ Makes sure that an input value is a list of strings and that all strings are valid w.r.t. to
+    the type's expected literal values (strings).
+
+    Args:
+        argument:
+            If string, wrapped in a list, otherwise expected to be a tuple of strings (passing a list will fail).
+            If None, a list of all possible values according to the type is returned if none_means_all.
+        typ:
+            A typing.Literal declaration or a TypeVar where the first component is one, or a tuple of allowed values.
+            All allowed values should be strings.
+        none_means_all:
+            By default, None values are replaced with all allowed values, if specified.
+            Pass False to return None in this case.
+
+    Returns:
+        The list of accepted strings.
+        The list of rejected strings.
+    """
+    if typ is None:
+        allowed = None
+    else:
+        if isinstance(typ, tuple):
+            allowed = typ
+        else:
+            allowed = literal_type2tuple(typ)
+    if argument is None:
+        if none_means_all and allowed is not None:
+            return list(allowed)
+        else:
+            return
+    if isinstance(argument, str):
+        argument = [argument]
+    if allowed is None:
+        return argument
+    accepted, rejected = [], []
+    for arg in argument:
+        (rejected, accepted)[arg in allowed].append(arg)
+    n_rejected = len(rejected)
+    if n_rejected > 0:
+        if n_rejected == 1:
+            logger.warning(f"This is not an accepted value: {rejected[0]}\n"
+                           f"Choose from {allowed}")
+        else:
+            logger.warning(f"These are not accepted value, only: {rejected}"
+                           f"Choose from {allowed}")
+    if len(accepted) > 0:
+        return accepted
+    logger.warning(f"Pass at least one of {allowed}.")
+    return
+
+@function_logger
+def treat_facets_argument(facets, facet_type_var: TypeVar = Facet):
+    if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
+        selected_facets = list(literal_type2tuple(facet_type_var))
+        if 'scores' in selected_facets:
+            selected_facets.remove('scores')
+    else:
+        if isinstance(facets, list):
+            facets = tuple(facets)
+        selected_facets = argument_and_literal_type2list(facets, facet_type_var, none_means_all=False, logger=logger)
+    return selected_facets
