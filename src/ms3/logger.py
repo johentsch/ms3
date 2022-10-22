@@ -1,8 +1,7 @@
 import logging, sys, os
 from contextlib import contextmanager
 from functools import wraps
-from enum import Enum
-
+from enum import Enum, unique
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -19,6 +18,7 @@ LEVELS = {
     'N': logging.NOTSET
 }
 
+@unique
 class MessageType(Enum):
     """Enumerated constants of message types."""
     NO_TYPE = 0  # 0 is reserved as no type message
