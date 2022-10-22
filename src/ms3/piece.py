@@ -1,15 +1,16 @@
-import os
 from collections import defaultdict, Counter
-from typing import Dict, Collection, Literal, Tuple, Union, Iterator, Optional, overload
+from typing import Dict, Literal, Union, Iterator, Optional, overload, List
 
 import pandas as pd
 
 from .annotations import Annotations
-from .typing import FileList, ParsedFile, FileDict
-from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, pretty_dict, get_musescore, load_tsv, \
-    metadata2series
+from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
+    FileDataframeTuple
+from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
+    files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, treat_facets_argument, \
+    disambiguate_parsed_files
 from .score import Score
-from .logger import LoggedClass, function_logger
+from .logger import LoggedClass
 from .view import View, DefaultView
 
 
@@ -20,11 +21,11 @@ class Piece(LoggedClass):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.fname = fname
         available_types = ('scores',) + Score.dataframe_types
-        self.type2files: Dict[str, FileList] = defaultdict(list)
+        self.facet2files: Dict[str, FileList] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
         """
-        self.type2files.update({typ: [] for typ in available_types})
-        self.ix2file: Dict[int, File] = defaultdict(list)
+        self.facet2files.update({typ: [] for typ in available_types})
+        self.files: Dict[int, File] = defaultdict(list)
         """{ix -> :obj:`File`} dict storing the registered file information for access via index.
         """
         self.type2parsed: Dict[str, Dict[int, ParsedFile]] = defaultdict(dict)
@@ -34,9 +35,9 @@ class Piece(LoggedClass):
         self.ix2parsed: Dict[int, ParsedFile] = {}
         """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the parsed files for access via index.
         """
-        self.parsed_scores: Dict[int, Score] = {}
+        self.ix2parsed_score: Dict[int, Score] = {}
         """Subset of :attr:`ix2parsed`"""
-        self.parsed_tsvs: Dict[int, pd.DataFrame] = {}
+        self.ix2parsed_tsv: Dict[int, pd.DataFrame] = {}
         """Subset of :attr:`ix2parsed`"""
         self.ix2annotations: Dict[int, Annotations] = {}
         """{ix -> :obj:`Annotations`} dict storing Annotations objects for the parsed labels and expanded labels.
@@ -49,10 +50,6 @@ class Piece(LoggedClass):
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
         self._tsv_metadata: dict = None
-        # self.parsed_scores: dict = {}
-        # """{ix -> :obj:`Score`}"""
-        # self.parsed_tsvs: dict = {}
-        # """{ix -> :obj:`pandas.DataFrame`}"""
         # self.score_obj: Score = None
         # self.score_metadata: pd.Series = None
         # """:obj:`pandas.Series`
@@ -77,12 +74,12 @@ class Piece(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
 
     @overload
-    def score_metadata(self, force: bool, as_dict: Literal[False]) -> pd.Series:
+    def score_metadata(self, as_dict: Literal[False]) -> pd.Series:
         ...
     @overload
-    def score_metadata(self, force: bool, as_dict: Literal[True]) -> dict:
+    def score_metadata(self, as_dict: Literal[True]) -> dict:
         ...
-    def score_metadata(self, force: bool = True, as_dict: bool = False) -> Union[pd.Series, dict]:
+    def score_metadata(self, as_dict: bool = False) -> Union[pd.Series, dict]:
         """
 
         Args:
@@ -92,7 +89,7 @@ class Piece(LoggedClass):
         Returns:
 
         """
-        file, score = self.get_parsed_score(force=force)
+        file, score = self.get_parsed_score()
         if score is None:
             return None
         meta_dict = score.mscx.metadata
@@ -116,120 +113,78 @@ class Piece(LoggedClass):
                 view.name = view_name
             self._views[view_name] = view
 
-    def get_view(self, view_name: Optional[str] = None) -> View:
-        """Retrieve an existing or create a new View object."""
+    def get_view(self,
+                 view_name: Optional[str] = None,
+                 **config
+                 ) -> View:
+        """Retrieve an existing or create a new View object, potentially while updating the config."""
         if view_name in self._views:
-            return self._views[view_name]
+            view = self._views[view_name]
         elif view_name is not None and self._views[None].name == view_name:
-            return self._views[None]
-        self._views[view_name] = View(view_name)
-        self.logger.info(f"New view '{view_name}' created.")
-        return self._views[view_name]
+            view = self._views[None]
+        else:
+            view = self.get_view().copy(new_name=view_name)
+            self._views[view_name] = view
+            self.logger.info(f"New view '{view_name}' created.")
+        if len(config) > 0:
+            view.update_config(**config)
+        return view
 
     @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
-    def switch_view(self, view_name: Optional[str],
-                    show_info: bool = True) -> None:
-        if view_name is None:
-            return
-        new_view = self.get_view(view_name)
-        old_view = self.get_view()
-        if old_view.name is not None:
-            self._views[old_view.name] = old_view
-        self._views[None] = new_view
-        new_name = new_view.name
-        if new_name in self._views:
-            del (self._views[new_name])
-        if show_info:
-            self.info()
-
     def __getattr__(self, view_name):
         if view_name in self._views:
-            self.info(view_name=view_name)
+            self.switch_view(view_name, show_info=False)
+            return self
         elif view_name is not None and self._views[None].name == view_name:
-            self.info()
+            return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
-    def parse_file_at_index(self, ix: int) -> None:
-        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
-        file = self.ix2file[ix]
-        if file.type == 'scores':
-            logger_cfg = dict(self.logger_cfg)
-            score = Score(file.full_path, logger_cfg=logger_cfg, ms=self.ms)
-            if score is None:
-                self.logger.warning(f"Parsing {file.rel_path} failed.")
-            else:
-                self.add_parsed_score(ix, score)
-        else:
-            df = load_tsv(file.full_path)
-            if df is None:
-                self.logger.warning(f"Parsing {file.rel_path} failed.")
-            else:
-                self.add_parsed_tsv(ix, df)
-
-
-
     def __getitem__(self, ix) -> ParsedFile:
-        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
-        if ix not in self.ix2parsed:
-            self.parse_file_at_index(ix)
-        if ix not in self.ix2parsed:
-            file = self.ix2file[ix]
-            raise RuntimeError(f"Unable to parse '{file.rel_path}'.")
-        return self.ix2parsed[ix]
+        return self.get_parsed_at_index(ix)
 
 
-    def get_first_parsed_score(self, view_name: Optional[str] = None) -> Tuple[File, Score]:
-        parsed_scores = self.get_parsed_score_files(view_name)
-        if len(parsed_scores) == 0:
-            if len(self.type2parsed['scores']) > 0:
-                ixs = list(self.type2parsed['scores'].keys())
-                plural = f"a parsed score at index {ixs[0]}" if len(ixs) == 1 else f"parsed scores at indices {ixs}"
-                if view_name is None:
-                    view_name = self.get_view().name
-                self.logger.info(f"Piece('{self.fname}') has {plural}, but they don't seem to be included in this View (name {view_name}).")
-            return None, None
-        file = parsed_scores[0]
-        score_obj = self.ix2parsed[file.ix]
-        if len(parsed_scores) > 1:
-            self.info(f"Several parsed scores are available for '{self.fname}'. Picked '{file.rel_path}'")
-        return file, score_obj
-
+    def __repr__(self):
+        return self.info(return_str=True)
     def add_parsed_score(self, ix: int, score_obj: Score) -> None:
-        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.fname}' does not include a file with index {ix}."
         if score_obj is None:
-            file = self.ix2file[ix]
+            file = self.files[ix]
             self.logger.debug(f"I was promised the parsed score for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = score_obj
-        self.parsed_scores[ix] = score_obj
+        self.ix2parsed_score[ix] = score_obj
         self.type2parsed['scores'][ix] = score_obj
 
     def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
-        assert ix in self.ix2file, f"Piece '{self.fname}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.fname}' does not include a file with index {ix}."
         if parsed_tsv is None:
-            file = self.ix2file[ix]
+            file = self.files[ix]
             self.logger.debug(f"I was promised the parsed DataFrame for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = parsed_tsv
-        self.parsed_tsvs[ix] = parsed_tsv
+        self.ix2parsed_tsv[ix] = parsed_tsv
         inferred_type = infer_tsv_type(parsed_tsv)
-        file = self.ix2file[ix]
+        file = self.files[ix]
         if file.type != inferred_type:
-            self.logger.info(f"File {file.rel_path} turned out to be a '{inferred_type}' instead of a '{file.type}', "
+            if inferred_type == 'unknown':
+                self.logger.info(f"After parsing '{file.rel_path}', the original guess that it contains '{file.type}' "
+                                 f"seems to be False and I'm attributing it to the facet '{file.type}'.")
+            else:
+                self.logger.info(f"File {file.rel_path} turned out to contain '{inferred_type}' instead of '{file.type}', "
                              f"as I had guessed from its path.")
-            self.type2files[file.type].remove(file)
+            self.facet2files[file.type].remove(file)
             file.type = inferred_type
-            self.type2files[inferred_type].append(file)
+            self.facet2files[inferred_type].append(file)
         self.type2parsed[inferred_type][ix] = parsed_tsv
         if inferred_type in ('labels', 'expanded'):
             self.ix2annotations = Annotations(df = parsed_tsv)
 
     # def make_annotation_objects(self, view_name: Optional[str] = None, label_col='label'):
-    #     selected_files = self.get_files(['labels', 'expanded'], unparsed=False, view_name=view_name)
+    #     selected_files = self.get_files_of_types(['labels', 'expanded'], unparsed=False, view_name=view_name)
     #     try:
     #         self._parsed_tsv[id] = df
     #         if 'label' in cols and label_col in df.columns:
@@ -266,7 +221,68 @@ class Piece(LoggedClass):
     #     except Exception as e:
     #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
-    def get_file(self, file_type: str,
+    def count_parsed(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
+       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, drop_zero=drop_zero)}
+
+    def count_types(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
+        return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, drop_zero=drop_zero)}
+
+
+    def extract_dataframes(self,
+                           facets: ScoreFacets = None,
+                           view_name: Optional[str] = None,
+                           force: bool = True,
+                           choose: Literal['auto', 'ask'] = 'auto',
+                           unfold: bool = False,
+                           interval_index: bool = False,
+                           flat=False) -> Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]:
+        """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
+        If you want to retrieve parse TSV files, use :py:meth:`get_tsvs`.
+
+        Parameters
+        ----------
+        view_name
+        flat : :obj:`bool`, optional
+            By default, you get a nested dictionary {list_type -> {index -> list}}.
+            By passing True you get a dictionary {(id, list_type) -> list}
+        unfold : :obj:`bool`, optional
+            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
+            Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
+            is set to True.
+        interval_index : :obj:`bool`, optional
+            Sets ``quarterbeats`` to True. Pass True to replace the indices of the returned DataFrames by
+            :obj:`pandas.IntervalIndex <pandas.IntervalIndex>` with quarterbeat intervals. Rows that don't have a
+            quarterbeat position are removed.
+
+        Returns
+        -------
+        """
+        selected_facets = treat_facets_argument(facets, ScoreFacet, logger=self.logger)
+        if selected_facets is None:
+            return
+        result = defaultdict(list)
+        score_files = self.get_parsed_scores(view_name=view_name,
+                                             force=force,
+                                             choose=choose
+                                             )
+        if len(score_files) == 0:
+            return
+        for file, score_obj in score_files:
+            if score_obj is None:
+                self.logger.info(f"No parsed score found for '{self.fname}'")
+                continue
+            for facet in selected_facets:
+                df = getattr(score_obj.mscx, facet)(interval_index=interval_index)
+                if unfold:
+                    raise NotImplementedError(f"Unfolding is currently not available.")
+                result[facet].append((file, df))
+        if flat:
+            return sum(result.values(), [])
+        return dict(result)
+
+
+
+    def get_file_of_type(self, file_type: Facet,
                   view_name: Optional[str] = None,
                   parsed: bool = True,
                   unparsed: bool = True,
@@ -276,67 +292,63 @@ class Piece(LoggedClass):
 
         Args:
             file_type:
-            choose: If choose == 'all', all dict values will be Lists
+            choose:
 
         Returns:
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
-        assert isinstance(file_type, str), "Request one file_type at a time or use "
-        files = self.get_files(file_type=file_type, view_name=view_name, parsed=parsed, unparsed=unparsed, flat=True)
+        assert isinstance(file_type, str), "Request one file_type at a time or use _.get_files_of_types"
+        files = self.get_files_of_types(facets=file_type,
+                                        view_name=view_name,
+                                        parsed=parsed,
+                                        unparsed=unparsed,
+                                        choose=choose,
+                                        flat=True)
         if len(files) == 0:
             return None
         if len(files) == 1:
             return files[0]
-        return disambiguate_files(files, choose=choose, logger=self.logger)
 
-    def get_files(self,
-                  file_type: Union[str, Collection[str]] = None,
-                  view_name: Optional[str] = None,
-                  parsed: bool = True,
-                  unparsed: bool = True,
-                  choose: Literal['all', 'auto', 'ask'] = 'all',
-                  flat: bool = False) -> Union[FileDict, FileList]:
+
+    def get_files_of_types(self,
+                           facets: FacetArguments = None,
+                           view_name: Optional[str] = None,
+                           parsed: bool = True,
+                           unparsed: bool = True,
+                           choose: Literal['all', 'auto', 'ask'] = 'all',
+                           flat: bool = False) -> Union[FileDict, FileList]:
         """
 
         Args:
-            file_type:
+            facets:
 
         Returns:
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
-        if file_type is None:
-            file_type = list(self.type2files.keys())
-        elif isinstance(file_type, str):
-            if file_type in ('tsv', 'tsvs'):
-                file_type = list(self.type2files.keys())
-                file_type.remove('scores')
-            else:
-                file_type = [file_type]
-        if any(t not in self.type2files for t in file_type):
-            unknown = [t for t in file_type if t not in self.type2files]
-            file_type = [t for t in file_type if t in self.type2files]
-            self.logger.warning(f"Unknown file type(s): {unknown}")
+        selected_facets = treat_facets_argument(facets, logger=self.logger)
+        if selected_facets is None:
+            return
         if unparsed:
-            type2files = {t: self.type2files[t] for t in file_type}
+            facet2files = {f: self.facet2files[f] for f in selected_facets}
         else:
             # i.e., parsed must be True
-            type2files = {t: self.type2files[t] for t in file_type}
-            type2files = {typ: [f for f in files if f.ix in self.ix2parsed] for typ, files in type2files.items()}
+            facet2files = {f: self.facet2files[f] for f in selected_facets}
+            facet2files = {typ: [f for f in files if f.ix in self.ix2parsed] for typ, files in facet2files.items()}
         if not parsed:
             # i.e., unparsed must be True
-            type2files = {typ: [f for f in files if f.ix not in self.ix2parsed] for typ, files in type2files.items()}
+            facet2files = {typ: [f for f in files if f.ix not in self.ix2parsed] for typ, files in facet2files.items()}
         view = self.get_view(view_name=view_name)
-        type2files = {typ: view.filtered_file_list(files, 'files') for typ, files in type2files.items()}
+        facet2files = {typ: view.filtered_file_list(files, 'files') for typ, files in facet2files.items()}
         result = {}
         needs_choice = []
-        for t, files in type2files.items():
+        for facet, files in facet2files.items():
             if choose == 'all' or len(files) < 2:
-                result[t] = files
+                result[facet] = files
             else:
                 disambiguated = files2disambiguation_dict(files, logger=self.logger)
-                needs_choice.append(t)
-                result[t] = disambiguated
+                needs_choice.append(facet)
+                result[facet] = disambiguated
         if choose == 'auto':
             for typ in needs_choice:
                 result[typ] = automatically_choose_from_disambiguated_files(result[typ], self.fname, typ)
@@ -361,51 +373,202 @@ class Piece(LoggedClass):
             return sum(result.values(), start=[])
         return result
 
-    def get_parsed_score(self, view_name: Optional[str] = None, force: bool = True) -> Tuple[File, Score]:
-        score_file = self.get_file('scores', view_name=view_name, unparsed=False)
-        if score_file is not None:
-            return score_file, self.ix2parsed[score_file.ix]
-        if len(self.parsed_scores) > 0:
-            ixs = list(self.parsed_scores.keys())
-            if force:
-                selected_file = disambiguate_files([self.ix2file[ix] for ix in ixs], self.fname, 'scores')
-                return selected_file, self.ix2parsed[selected_file.ix]
-            if len(self.parsed_scores) == 1:
-                plural = f"is one available at ix {ixs[0]}."
-            else:
-                plural = f"are some available at ixs {ixs}."
-            self.logger.info(f"This view does not comprise any parsed scores, but there {plural}")
-        elif force:
-            if len(self.type2files) == 0:
-                return None, None
-            selected_file = self.get_file('scores') # under the current view
-            if selected_file is None:
-                files = self.type2files['scores']
-                selected_file = disambiguate_files(files, self.fname, 'scores')
-            ix = selected_file.ix
+    def get_parsed_at_index(self,
+                            ix: int) -> ParsedFile:
+        assert ix in self.files, f"Piece '{self.fname}' does not include a file with index {ix}."
+        if ix not in self.ix2parsed:
             self.parse_file_at_index(ix)
-            if ix in self.ix2parsed:
-                return selected_file, self.ix2parsed[ix]
-            return None, None
-        return None, None
+        if ix not in self.ix2parsed:
+            file = self.files[ix]
+            raise RuntimeError(f"Unable to parse '{file.rel_path}'.")
+        return self.ix2parsed[ix]
+
+    def get_one_parsed_of_type(self,
+                               facet: Facet,
+                               view_name: Optional[str] = None,
+                               choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTuple:
+        assert isinstance(facet, str), "Request one facet at a time or use _.get_all_parsed_of_types"
+        files = self.get_all_parsed_of_types(facets=facet,
+                                             view_name=view_name,
+                                             force=False,
+                                             choose=choose,
+                                             flat=True)
+        if len(files) == 0:
+            unparsed_file = self.get_file_of_type(facet, view_name=view_name, parsed=False, choose=choose)
+            return self.get_parsed_at_index(unparsed_file.ix)
+        if len(files) == 1:
+            return files[0]
 
 
-    def get_parsed_score_files(self, view_name: Optional[str] = None) -> FileList:
-        return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+    def get_all_parsed_of_types(self,
+                                facets: Facets = None,
+                                view_name: Optional[str] = None,
+                                force: bool = False,
+                                choose: Literal['all', 'auto', 'ask'] = 'all',
+                                flat: bool = False
+                                ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
+        """Return multiple parsed files."""
+        selected_facets = treat_facets_argument(facets, logger=self.logger)
+        if selected_facets is None:
+            return [] if flat else {}
+        facet2files = self.get_files_of_types(selected_facets, view_name=view_name, choose=choose)
+        result = {}
+        for facet, files in facet2files.items():
+            unparsed_ixs = [file.ix for file in files if file.ix not in self.ix2parsed]
+            n_unparsed = len(unparsed_ixs)
+            if force:
+                if len(unparsed_ixs) > 0:
+                    for ix in unparsed_ixs:
+                        self.parse_file_at_index(ix)
+            elif n_unparsed > 0:
+                plural = 'files' if n_unparsed > 1 else 'facet'
+                self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
+            parsed_files = [(file, self.ix2parsed[file.ix]) for file in files if file.ix in self.ix2parsed]
+            if choose == 'all' or len(parsed_files) < 2:
+                result[facet] = parsed_files
+            else:
+                selected = disambiguate_parsed_files(parsed_files,
+                                                     self.fname,
+                                                     facet,
+                                                     choose=choose,
+                                                     logger=self.logger
+                                                     )
+                result[facet] = [selected]
+        if flat:
+            return sum(result.values(), start=[])
+        return result
 
-    def get_unparsed_score_files(self, view_name: Optional[str] = None) -> FileList:
-        return self.get_files('scores', view_name=view_name, parsed=False, flat=True)
+    def get_all_parsed_of_type(self,
+                                facet: Facet = None,
+                                view_name: Optional[str] = None,
+                                force: bool = False,
+                                choose: Literal['all', 'auto', 'ask'] = 'all',
+                                flat: bool = False
+                                ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
+        """Alias for :meth:`get_all_parsed_of_types`"""
+        return self.get_all_parsed_of_types(
+            facets=facet,
+            view_name=view_name,
+            force=force,
+            choose=choose,
+            flat=flat
+        )
 
-    def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
-        return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
 
-    def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
-        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+
+    def get_parsed_score(self,
+                         view_name: Optional[str] = None,
+                         choose: Literal['auto', 'ask'] = 'auto') -> FileScoreTuple:
+        return self.get_one_parsed_of_type('scores', view_name=view_name, choose=choose)
+
+    def get_parsed_scores(self,
+                         view_name: Optional[str] = None,
+                         force: bool = False,
+                         choose: Literal['all', 'auto', 'ask'] = 'all') -> List[FileScoreTuple]:
+        return self.get_all_parsed_of_types('scores', view_name=view_name, force=force, choose=choose, flat=True)
+
+    def get_parsed_tsv(self,
+                       file_type: TSVtype,
+                       view_name: Optional[str] = None,
+                       choose: Literal['auto', 'ask'] = 'auto',
+         ) -> FileDataframeTuple:
+        return self.get_one_parsed_of_type(file_type, view_name=view_name, choose=choose)
+
+    def get_parsed_tsvs(self,
+                       file_type: TSVtype,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['all', 'auto', 'ask'] = 'all',
+         ) -> List[FileDataframeTuple]:
+        return self.get_all_parsed_of_types(file_type, view_name=view_name, force=force, choose=choose, flat=True)
+
+    def _get_parsed_score_files(self, view_name: Optional[str] = None) -> FileList:
+        return self.get_files_of_types('scores', view_name=view_name, unparsed=False, flat=True)
+
+    def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
+        return self.get_files_of_types('tsv', view_name=view_name, unparsed=False, flat=flat)
+
+    def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> FileList:
+        return self.get_files_of_types('scores', view_name=view_name, parsed=False, flat=True)
+
+    def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileDict, FileList]:
+        return self.get_files_of_types('tsv', view_name=view_name, parsed=False, flat=flat)
+
+    def info(self, return_str=False, view_name=None, show_discarded: bool = False):
+        view = self.get_view(view_name)
+        view.reset_filtering_data()
+        excluded_names = set((view_name, view.name, None))
+        other_views = [name for name in self._views.keys() if name not in excluded_names]
+        msg = f"[{'|'.join(other_views)}]\n"
+        msg += f"{view}\n\n"
+        facet2files = dict(self.iter_facet2files(view_name=view_name, drop_zero=True))
+        if len(facet2files) == 0:
+            msg += "No files selected."
+        else:
+            files_df = pd.concat([pd.DataFrame(files).set_index('ix') for files in facet2files.values()],
+                                 keys=facet2files.keys(),
+                                 names=['facet', 'ix'])
+            if len(files_df) == 0:
+                msg += "No files selected."
+            else:
+                ixs = files_df.index.get_level_values(1)
+                is_parsed = [str(ix in self.ix2parsed) for ix in ixs]
+                files_df['is_parsed'] = is_parsed
+                msg += files_df[['rel_path', 'is_parsed']].to_string()
+        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
+        if return_str:
+            return msg
+        print(msg)
+
+
+    def iter_facet2files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
+        """Iterating through _.facet2files.items() under the current or specified view."""
+        view = self.get_view(view_name=view_name)
+        for typ, files in self.facet2files.items():
+            filtered_files = view.filtered_file_list(files, 'files')
+            # the files need to be filtered even if the facet is excluded, for counting excluded files
+            if drop_zero and len(filtered_files) == 0:
+                continue
+            if typ in view.selected_facets:
+                yield typ, filtered_files
+
+
+    def iter_type2parsed_files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
+        """Iterating through _.facet2files.items() under the current or specified view and selecting only parsed files."""
+        view = self.get_view(view_name=view_name)
+        for typ, ix2parsed in self.type2parsed.items():
+            files = [self.files[ix] for ix in ix2parsed.keys()]
+            filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
+            # the files need to be filtered even if the facet is excluded, for counting excluded files
+            if drop_zero and len(filtered_ixs) == 0:
+                continue
+            if typ in view.selected_facets:
+                yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
+
+
+    def parse_file_at_index(self, ix: int) -> None:
+        assert ix in self.files, f"Piece '{self.fname}' does not include a file with index {ix}."
+        file = self.files[ix]
+        if file.type == 'scores':
+            logger_cfg = dict(self.logger_cfg)
+            score = Score(file.full_path, logger_cfg=logger_cfg, ms=self.ms)
+            if score is None:
+                self.logger.warning(f"Parsing {file.rel_path} failed.")
+            else:
+                self.add_parsed_score(ix, score)
+        else:
+            df = load_tsv(file.full_path)
+            if df is None:
+                self.logger.warning(f"Parsing {file.rel_path} failed.")
+            else:
+                self.add_parsed_tsv(ix, df)
+
+
 
     def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
         ix = file.ix
-        if ix in self.ix2file:
-            existing_file = self.ix2file[ix]
+        if ix in self.files:
+            existing_file = self.files[ix]
             if file.full_path == existing_file.full_path:
                 self.logger.debug(f"File '{file.rel_path}' was already registered for {self.fname}.")
                 return
@@ -422,136 +585,24 @@ class Piece(LoggedClass):
                 else:
                     self.logger.warning(f"{file.file} does not contain '{self.fname}' and is ignored.")
                     return False
-        self.type2files[file.type].append(file)
-        self.ix2file[file.ix] = file
+        self.facet2files[file.type].append(file)
+        self.files[file.ix] = file
         return True
 
-    def iter_type2files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
-        """Iterating through _.type2files.items() under the current or specified view."""
-        view = self.get_view(view_name=view_name)
-        for typ, files in self.type2files.items():
-            filtered_files = view.filtered_file_list(files, 'files')
-            # the files need to be filtered even if the facet is excluded, for counting excluded files
-            if drop_zero and len(filtered_files) == 0:
-                continue
-            if typ in view.selected_facets:
-                yield typ, filtered_files
+    def switch_view(self, view_name: Optional[str],
+                    show_info: bool = True) -> None:
+        if view_name is None:
+            return
+        new_view = self.get_view(view_name)
+        old_view = self.get_view()
+        if old_view.name is not None:
+            self._views[old_view.name] = old_view
+        self._views[None] = new_view
+        new_name = new_view.name
+        if new_name in self._views:
+            del (self._views[new_name])
+        if show_info:
+            self.info()
 
 
-    def iter_type2parsed_files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
-        """Iterating through _.type2files.items() under the current or specified view and selecting only parsed files."""
-        view = self.get_view(view_name=view_name)
-        for typ, ix2parsed in self.type2parsed.items():
-            files = [self.ix2file[ix] for ix in ix2parsed.keys()]
-            filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
-            # the files need to be filtered even if the facet is excluded, for counting excluded files
-            if drop_zero and len(filtered_ixs) == 0:
-                continue
-            if typ in view.selected_facets:
-                yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
-
-    def count_types(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
-        return {"found_" + typ: len(files) for typ, files in self.iter_type2files(view_name=view_name, drop_zero=drop_zero)}
-
-    def count_parsed(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
-       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, drop_zero=drop_zero)}
-
-    def info(self, return_str=False, view_name=None):
-        print(self.get_view(view_name))
-        type2files = dict(self.iter_type2files(view_name=view_name, drop_zero=True))
-        if len(type2files) == 0:
-            msg = "No files selected."
-        else:
-            files_df = pd.concat([pd.DataFrame(files).set_index('ix') for files in type2files.values()],
-                                 keys=type2files.keys(),
-                                 names=['facet', 'ix'])
-            if len(files_df) == 0:
-                msg = "No files selected."
-            else:
-                ixs = files_df.index.get_level_values(1)
-                is_parsed = [str(ix in self.ix2parsed) for ix in ixs]
-                files_df['is_parsed'] = is_parsed
-                msg = files_df[['rel_path', 'is_parsed']].to_string()
-        if return_str:
-            return msg
-        print(msg)
-
-
-    def __repr__(self):
-        return self.info(return_str=True)
-
-
-@function_logger
-def files2disambiguation_dict(files: Collection[File]) -> FileDict:
-    """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
-    of distinct strings to distinguish files pertaining to the same type."""
-    N_target = len(files)
-    if N_target == 0:
-        return {}
-    if N_target== 1:
-        f = files[0]
-        return {f.type: f}
-    disambiguation = [f.type for f in files]
-    if len(set(disambiguation)) == N_target:
-        # done disambiguating
-        return dict(zip(disambiguation, files))
-    # first, try to disambiguate based on the files' sub-directories
-    subdirs = []
-    for f in files:
-        file_type = f.type
-        subdir = f.subdir.strip(r"\/.")
-        if subdir.startswith(file_type):
-            subdir = subdir[len(file_type):]
-        if subdir.strip(r"\/") == '':
-            subdir = ''
-        subdirs.append(subdir)
-    if len(set(subdirs)) > 1:
-        # files can (partially) be disambiguated because they are in different sub-directories
-        disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
-    if len(set(disambiguation)) == N_target:
-        # done disambiguating
-        return dict(zip(disambiguation, files))
-    # next, try adding detected suffixes
-    for ix, f in enumerate(files):
-        if f.suffix != '':
-            disambiguation[ix] += f"[{f.suffix}]"
-    if len(set(disambiguation)) == N_target:
-        # done disambiguating
-        return dict(zip(disambiguation, files))
-    # now, add file extensions to disambiguate further
-    if len(set(f.fext for f in files)) > 1:
-        for ix, f in enumerate(files):
-            disambiguation[ix] += f.fext
-    if len(set(disambiguation)) == N_target:
-        # done disambiguating
-        return dict(zip(disambiguation, files))
-    str_counts = Counter(disambiguation)
-    duplicate_disambiguation_strings = [s for s, cnt in str_counts.items() if cnt > 1]
-    ambiguate_files = {s: [f for disamb, f in zip(disambiguation, files) if disamb == s] for s in duplicate_disambiguation_strings}
-    result = dict(zip(disambiguation, files))
-    remaining_ones = {s: result[s] for s in duplicate_disambiguation_strings}
-    logger.warning(f"The following files could not be ambiguated: {ambiguate_files}.\n"
-                   f"In the result, only these remain: {remaining_ones}.")
-    return result
-
-@function_logger
-def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
-    """Receives a collection of :obj:`File` with the aim to pick one of them.
-    First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
-    suffixes.
-
-    Args:
-        files:
-        choose: If 'auto' (default), the file with the shortest disambiguation string is chosen. Set to True
-            if you want to be asked to manually choose a file.
-
-    Returns:
-        The selected file.
-    """
-    if len(files) == 1:
-        return files[0]
-    disambiguation_dict = files2disambiguation_dict(files, logger=logger)
-    if choose == 'ask':
-        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
-    return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)

@@ -18,7 +18,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, function_logger
 from .piece import Piece
 from .score import Score
-from .typing import FileDict, FileList, CorpusFnameTuple
+from ._typing import FileDict, FileList, CorpusFnameTuple
 from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
     iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
@@ -347,21 +347,29 @@ class Parse(LoggedClass):
                     corpus.set_view(**{view_name: view})
 
 
-    def get_view(self, view_name: Optional[str] = None) -> View:
-        """Retrieve an existing or create a new View object."""
+    def get_view(self,
+                 view_name: Optional[str] = None,
+                 **config
+                 ) -> View:
+        """Retrieve an existing or create a new View object, potentially while updating the config."""
         if view_name in self._views:
-            return self._views[view_name]
+            view = self._views[view_name]
         elif view_name is not None and self._views[None].name == view_name:
-            return self._views[None]
-        self._views[view_name] = self.get_view().copy(view_name=view_name)
-        self.logger.info(f"New view '{view_name}' created.")
-        return self._views[view_name]
+            view = self._views[None]
+        else:
+            view = self.get_view().copy(new_name=view_name)
+            self._views[view_name] = view
+            self.logger.info(f"New view '{view_name}' created.")
+        if len(config) > 0:
+            view.update_config(**config)
+        return view
 
     @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
-    def switch_view(self, view_name: Optional[str]) -> None:
+    def switch_view(self, view_name: Optional[str],
+                    show_info: bool = True) -> None:
         if view_name is None:
             return
         new_view = self.get_view(view_name)
@@ -380,14 +388,16 @@ class Parse(LoggedClass):
                     corpus.set_view(new_view)
                 else:
                     corpus.switch_view(new_name, show_info=False)
-        self.info()
+        if show_info:
+            self.info()
 
 
     def __getattr__(self, view_name) -> View:
         if view_name in self._views:
-            self.info(view_name=view_name)
+            self.switch_view(view_name, show_info=False)
+            return self
         elif view_name is not None and self._views[None].name == view_name:
-            self.info()
+            return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
@@ -1720,7 +1730,7 @@ Available keys: {available_keys}""")
     def get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+            fname2files = corpus.get_files_of_types('scores', view_name=view_name, unparsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
@@ -1728,14 +1738,14 @@ Available keys: {available_keys}""")
     def get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
+            fname2files = corpus.get_files_of_types('scores', view_name=view_name, parsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
     def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+            fname2files = corpus.get_files_of_types('tsv', view_name=view_name, unparsed=False, flat=flat)
             if flat:
                 result[corpus_name] = sum(fname2files.values(), [])
             else:
@@ -1749,7 +1759,7 @@ Available keys: {available_keys}""")
     def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+            fname2files = corpus.get_files_of_types('tsv', view_name=view_name, parsed=False, flat=flat)
             if flat:
                 result[corpus_name] = sum(fname2files.values(), [])
             else:
@@ -1785,6 +1795,9 @@ Available keys: {available_keys}""")
         msg = f"[{'|'.join(other_views)}]\n"
         msg += f"{view}\n\n"
         counts_df = self.count_files(view_name=view_name)
+        has_metadata = pd.Series([self._get_corpus(corpus_name).metadata_tsv is not None for corpus_name in counts_df.index],)
+        has_metadata = has_metadata.map({True: 'yes', False: 'no'})
+        counts_df.insert(0, 'metadata', has_metadata.values)
         msg += counts_df.to_string() + '\n\n'
         msg += view.filtering_report(show_discarded=show_discarded)
         if return_str:
@@ -2080,7 +2093,7 @@ Available keys: {available_keys}""")
             view_name:
         """
         self.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
-        self.parse_tsv(level=level, cols=cols, infer_types=infer_types, view_name=view_name, **kwargs)
+        self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
 
 
@@ -2121,7 +2134,7 @@ Available keys: {available_keys}""")
             corpus.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
 
 
-    def get_files(self, file_type: Union[str, Collection[str]],
+    def get_files_of_types(self, file_type: Union[str, Collection[str]],
                      view_name: Optional[str] = None,
                      parsed: bool = True,
                      unparsed: bool = True,
@@ -2143,7 +2156,7 @@ Available keys: {available_keys}""")
         """
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            selected = corpus.get_files(file_type=file_type,
+            selected = corpus.get_files_of_types(file_type=file_type,
                                            view_name=view_name,
                                            parsed=parsed,
                                            unparsed=unparsed,
@@ -2903,55 +2916,6 @@ Available keys: {available_keys}""")
 ################################################# End of Parse() ########################################################
 ########################################################################################################################
 ########################################################################################################################
-
-
-def make_distinguishing_strings(matched_files):
-    """Takes a list of namedtuples as created by View.detect_ids_by_fname() and returns a list
-    of distinct strings to distinguish files pertaining to the same type."""
-    subdirs = [match.subdir for match in matched_files]
-    if len(set(subdirs)) > 1:
-        distinguish = subdirs
-    else:
-        distinguish = [""] * len(matched_files)  # subdirs do not help with distinction
-    for ix, match in enumerate(matched_files):
-        if match.suffix != "":
-            distinguish[ix] += f"[{match.suffix}]"
-    if len(distinguish) > len(set(distinguish)):
-        # subdirs and suffixes do not distinguish all matches: add file extensions
-        for ix, match in enumerate(matched_files):
-            distinguish[ix] += match.fext
-    return distinguish
-
-
-def disambiguate(matched_files: Collection[namedtuple], disambiguation: str = 'auto') -> namedtuple:
-    """ If only one file of a particular type is available, return that one. Otherwise try to disambiguate.
-
-    Args:
-        matched_files: one namedtuple per file found for a particular fname for a particular type
-        disambiguation: defaults to 'auto', meaning that in case several files are available, the one with the shortest disambiguation
-            string will be selected, where disambiguation strings are composed of subdirectories and suffixes by :func:`make_distinguishing_strings`.
-            Pass a concrete distinguishing string to select a particular file.
-
-    Returns:
-        The disambiguated file.
-
-    Raises:
-        ValueError: Unable to disambiguate
-    """
-    n = len(matched_files)
-    if n == 0:
-        raise ValueError("First argument should not be empty.")
-    if n == 1:
-        return matched_files[0]
-    distinguish = make_distinguishing_strings(matched_files)
-    matches = dict(zip(distinguish, matched_files))
-    if disambiguation is None:
-        raise NotImplementedError(f"Ask for user input for choosing one of {list(matches.keys())}.")
-    if disambiguation == 'auto':
-        shortest_key = sorted(matches, key=lambda s: len(s))[0]
-        return matches[shortest_key]
-    if disambiguation not in matches:
-        raise ValueError(f"Cannot distinguish using '{disambiguation}'. Use one of {list(matches.keys())}.")
 
 
 ########################################################################################################################
