@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from .score import Score
-from .typing import FileList, Category, Categories
+from ._typing import FileList, Category, Categories
 from .utils import File
 from .logger import LoggedClass
 
@@ -36,11 +36,11 @@ class View(LoggedClass):
 
     def __init__(self,
                  view_name: Optional[str] = None,
-                 logger_cfg: dict = {},
                  only_metadata: bool = False,
                  include_convertible: bool = True,
                  include_tsv: bool = True,
                  exclude_review: bool = False,
+                 **logger_cfg
                  ):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
         assert view_name is None or isinstance(view_name, str), f"Name of the view should be a string, not '{type(view_name)}'"
@@ -64,30 +64,32 @@ class View(LoggedClass):
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    def copy(self, view_name: Optional[str] = None,
-                 logger_cfg: dict = None,
-                 only_metadata: bool = None,
-                 include_convertible: bool = None,
-                 include_tsv: bool = None,
-                 exclude_review: bool = None):
-        if logger_cfg is None:
-            logger_cfg = dict(self.logger_cfg)
-        new_view = self.__class__(view_name=view_name, logger_cfg=logger_cfg)
+    def copy(self, new_name: str):
+        new_view = self.__class__(view_name=new_name)
         new_view.including = deepcopy(self.including)
         new_view.excluding = deepcopy(self.excluding)
         new_view.update_facet_selection()
         new_view.fnames_in_metadata = self.fnames_in_metadata
-        if only_metadata is None:
-            new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
-        else:
-            new_view.fnames_not_in_metadata = not only_metadata
-        if include_convertible is not None:
-            new_view.include_convertible = include_convertible
-        if include_tsv is not None:
-            new_view.include_tsv = include_tsv
-        if exclude_review is not None:
-            new_view.exclude_review = exclude_review
         return new_view
+
+    def update_config(self,
+                     view_name: Optional[str] = None,
+                     only_metadata: bool = None,
+                     include_convertible: bool = None,
+                     include_tsv: bool = None,
+                     exclude_review: bool = None,
+                     **logger_cfg):
+        for param, value in zip(('view_name', 'only_metadata', 'include_convertible', 'include_tsv', 'exclude_review'),
+                                (view_name, only_metadata, include_convertible, include_tsv, exclude_review)
+                                ):
+            if value is None:
+                continue
+            old_value = getattr(self, param)
+            if value != old_value:
+                setattr(self, param, value)
+                self.logger.debug(f"Set '{param}' (previously {old_value}) to {value}.")
+        if 'level' in logger_cfg:
+            self.change_logger_cfg(level=logger_cfg['level'])
 
     @property
     def include_convertible(self):
@@ -237,6 +239,8 @@ class View(LoggedClass):
             msg_components.append("excludes fnames that are not contained in the metadata")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
+        if not self.include_tsv:
+            msg_components.append("disregards all TSV files")
         if self.exclude_review:
             msg_components.append("excludes review files and folders")
         included_re = {what_to_include: [f'"{rgx}"' for rgx in regexes if rgx not in self.registered_regexes]
@@ -348,16 +352,16 @@ class DefaultView(View):
 
     def __init__(self,
                  view_name: Optional[str] = None,
-                 logger_cfg: dict = {},
                  only_metadata: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
+                 **logger_cfg
                  ):
         super().__init__(view_name=view_name,
-                         logger_cfg=logger_cfg,
                          only_metadata=only_metadata,
                          include_convertible=include_convertible,
                          include_tsv=include_tsv,
                          exclude_review=exclude_review,
+                         **logger_cfg
                          )
