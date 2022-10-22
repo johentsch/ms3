@@ -891,7 +891,7 @@ class Score(LoggedClass):
     Formats that ms3 can parse.
     """
 
-    dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'events', 'chords', 'cadences', 'form_labels')
+    dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'form_labels', 'cadences', 'events', 'chords')
 
     def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
                  parser='bs4', ms=None):
