@@ -1760,7 +1760,7 @@ Available keys: {available_keys}""")
             #self._collect_annotations_objects_references(ids=ids)
             pass
 
-    def parse_tsv(self, view_name: Optional[str] = None, cols={}, infer_types=None, level=None, **kwargs):
+    def parse_tsv(self, view_name: Optional[str] = None, cols={}, infer_types=None, level=None, only_new: bool = True, **kwargs):
         """ Parse TSV files to be able to do something with them.
 
         Parameters
@@ -1789,8 +1789,10 @@ Available keys: {available_keys}""")
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-
-        fname2files = self.get_unparsed_tsv_files(view_name=view_name)
+        if only_new:
+            fname2files = self.get_unparsed_tsv_files(view_name=view_name)
+        else:
+            fname2files = self.get_files_of_types('tsv', view_name=view_name, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:

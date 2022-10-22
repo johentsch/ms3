@@ -2153,7 +2153,7 @@ Available keys: {available_keys}""")
             result.update(selected)
         return result
 
-    def parse_tsv(self, view_name=None, level=None, cols={}, infer_types=None, **kwargs):
+    def parse_tsv(self, view_name=None, level=None, cols={}, infer_types=None, only_new=True, **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -2181,12 +2181,13 @@ Available keys: {available_keys}""")
         None
 
         Args:
+            only_new:
             view_name:
         """
         if level is not None:
             self.change_logger_cfg(level=level)
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            corpus.parse_tsv(view_name=view_name, cols=cols, infer_types=infer_types, **kwargs)
+            corpus.parse_tsv(view_name=view_name, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
