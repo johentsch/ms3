@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
@@ -275,6 +275,37 @@ class Corpus(LoggedClass):
                     suffix='',
                 )
                 self.files.append(F)
+
+
+
+    def extract_facets(self,
+                       facets: ScoreFacets = None,
+                       view_name: Optional[str] = None,
+                       force: bool = True,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       unfold: bool = False,
+                       interval_index: bool = False,
+                       flat=False) -> Dict[str, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+        """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
+        If you want to retrieve parsed TSV files, use :py:meth:`get_all_parsed`.
+
+        """
+
+        result = {}
+        if choose == 'ask':
+            # choose = 'all'
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); you will be asked for every ambiguous file")
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            type2file = piece.extract_facets(facets=facets,
+                                             view_name=view_name,
+                                             force=force,
+                                             choose=choose,
+                                             unfold=unfold,
+                                             interval_index=interval_index,
+                                             flat=flat)
+            result[piece.piece_name] = type2file
+        return result
+
 
     def find_and_load_metadata(self) -> None:
         """Checks if a 'metadata.tsv' is present at the default path and parses or creates it."""
@@ -927,7 +958,7 @@ class Corpus(LoggedClass):
         -------
 
         """
-        d = self.extract_dataframes(keys, flat=False, unfold=unfold, interval_index=interval_index, **{which: True})
+        d = self.extract_facets(keys, flat=False, unfold=unfold, interval_index=interval_index, **{which: True})
         d = d[which] if which in d else {}
         msg = {
             'cadences': 'cadence lists',
@@ -1517,65 +1548,6 @@ Available keys: {available_keys}""")
 
 
 
-    def extract_dataframes(self, view_name=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False, labels=False, chords=False, expanded=False,
-                           cadences=False, form_labels=False, flat=False, unfold=False, interval_index=False):
-        """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
-        If you want to retrieve parse TSV files, use :py:meth:`get_tsvs`.
-
-        Parameters
-        ----------
-        view_name
-        ids
-        notes
-        rests
-        notes_and_rests
-        measures
-        events
-        labels
-        chords
-        expanded
-        cadences
-        form_labels
-        simulate
-        flat : :obj:`bool`, optional
-            By default, you get a nested dictionary {list_type -> {index -> list}}.
-            By passing True you get a dictionary {(id, list_type) -> list}
-        unfold : :obj:`bool`, optional
-            Pass True if lists should reflect repetitions and voltas to create a correct playthrough.
-            Defaults to False, meaning that all measures including second endings are included, unless ``quarterbeats``
-            is set to True.
-        interval_index : :obj:`bool`, optional
-            Sets ``quarterbeats`` to True. Pass True to replace the indices of the returned DataFrames by
-            :obj:`pandas.IntervalIndex <pandas.IntervalIndex>` with quarterbeat intervals. Rows that don't have a
-            quarterbeat position are removed.
-
-        Returns
-        -------
-        """
-
-        if len(self.ix2parsed) == 0:
-            self.logger.error("No files have been parsed so far.")
-            return {}
-        bool_params = Score.dataframe_types
-        l = locals()
-        file_types = [tsv_type for tsv_type in Score.dataframe_types if l[tsv_type]]
-        res = {} if flat else defaultdict(dict)
-        for fname, piece in self.iter_pieces():
-            file, score_obj = piece.get_parsed_score()
-            if score_obj is None:
-                self.logger.info(f"No parsed score found for '{fname}'")
-                continue
-            for typ in file_types:
-                df = getattr(score_obj.mscx, typ)()
-                if df is None:
-                    continue
-                if flat:
-                    res[(file.ix, typ)] = df
-                else:
-                    res[typ][file.ix] = df
-        return dict(res)
-
-
     def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
                  events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False, flat=False):
         """Retrieve a dictionary with the selected feature matrices from the parsed TSV files.
@@ -1726,11 +1698,11 @@ Available keys: {available_keys}""")
         fname2counts = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
             if types:
-                type_count = piece.count_types(view_name=view_name)
+                type_count = piece.count_types(view_name=view_name, include_empty=True)
                 if not parsed:
                     fname2counts[fname] = type_count
             if parsed:
-                parsed_count = piece.count_parsed()
+                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True)
                 if not types:
                     fname2counts[fname] = parsed_count
             if types & parsed:
@@ -1998,9 +1970,9 @@ Available keys: {available_keys}""")
         df_params = {p: True for p in folder_params.keys()}
         if silence_label_warnings:
             with temporarily_suppress_warnings(self) as self:
-                dataframes = self.extract_dataframes(keys, flat=True, unfold=unfold, **df_params)
+                dataframes = self.extract_facets(keys, flat=True, unfold=unfold, **df_params)
         else:
-            dataframes = self.extract_dataframes(keys, flat=True, unfold=unfold, **df_params)
+            dataframes = self.extract_facets(keys, flat=True, unfold=unfold, **df_params)
         modus = 'would ' if simulate else ''
         if len(dataframes) == 0 and metadata_path is None:
             self.logger.info(f"No files {modus}have been written.")
