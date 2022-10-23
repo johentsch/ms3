@@ -20,7 +20,7 @@ from ._typing import FileDict, FileList, ParsedFile
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, path2parent_corpus
+    update_labels_cfg, write_metadata, write_tsv, path2parent_corpus, available_views2str
 from .view import DefaultView, View
 
 
@@ -34,7 +34,7 @@ class Corpus(LoggedClass):
         ('found', 'parsed')
     ])
 
-    def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
+    def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, ms=None, level=None, **logger_cfg):
         """
 
         Parameters
@@ -64,13 +64,12 @@ class Corpus(LoggedClass):
         """
         directory = resolve_dir(directory)
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
-        self.corpus_path = directory
-        """obj:`dict`
-        {key -> path} dictionary with each corpus's base directory.
-        """
-        logger_cfg = dict(logger_cfg)
+        self.corpus_path: str = directory
+        """Path where the corpus is located."""
+        self.corpus_name =  os.path.basename(directory).strip(r'\/')
+        """Folder name of the corpus."""
         if 'name' not in logger_cfg or logger_cfg['name'] is None or logger_cfg['name'] == '':
-            logger_cfg['name'] = 'ms3.' + os.path.basename(directory).strip(r'\/').replace('.', '')
+            logger_cfg['name'] = 'ms3.' + self.corpus_name.replace('.', '')
         if level is not None:
             logger_cfg['level'] = level
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
@@ -85,8 +84,7 @@ class Corpus(LoggedClass):
         """
 
         self._views: dict = {}
-        self._views[None] = DefaultView('current') if view is None else view
-        self._views['default'] = DefaultView('default')
+        self._views[None] = DefaultView() if view is None else view
         self._views['all'] = View('all')
 
         self._ms = get_musescore(ms, logger=self.logger)
@@ -295,7 +293,7 @@ class Corpus(LoggedClass):
             choose = 'all'
             self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); setting to 'auto'")
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_files_of_types(facets=file_type, view_name=view_name, parsed=parsed, unparsed=unparsed, flat=flat)
+            type2file = piece.get_files(facets=file_type, view_name=view_name, parsed=parsed, unparsed=unparsed, flat=flat)
             result[piece.fname] = type2file
         return result
 
@@ -414,6 +412,7 @@ class Corpus(LoggedClass):
                 if 'metadata' in file.fname:
                     if not file.fname.endswith('metadata'):
                         match = re.search('metadata', file.fname)
+                        file.suffix = file.fname[match.end():]
                     self.ix2metadata_file[file.ix] = file
                 else:
                     self.logger.warning(f"Could not associate {file.file} with any of the pieces. Stored as orphan.")
@@ -1576,12 +1575,18 @@ Available keys: {available_keys}""")
              view_name: Optional[str] = None,
              show_discarded: bool = False):
         """"""
+        header = f"Corpus '{self.corpus_name}'"
+        header += "\n" + "-" * len(header) + "\n"
+        header += f"Location: {self.corpus_path}\n"
+
+        # start info message with the names of the available views, the header, and info on the active view.
         view = self.get_view(view_name)
         view.reset_filtering_data()
-        excluded_names = set((view_name, view.name, None))
-        other_views = [name for name in self._views.keys() if name not in excluded_names]
-        msg = f"[{'|'.join(other_views)}]\n"
-        msg += f"{view}\n\n"
+        msg = available_views2str(self._views, view_name)
+        msg += header
+        msg += f"View: {view}\n\n"
+
+        # a table counting the number of parseable files under the active view
         all_pieces_df = self.count_files(drop_zero=True, view_name=view_name)
         if self.metadata_tsv is None:
             msg += "No 'metadata.tsv' file is present.\n\n"

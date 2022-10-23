@@ -18,7 +18,7 @@ from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg, LogCapturer
-from ._typing import FileDict, Facet
+from ._typing import FileDict, Facet, ViewDict
 
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
@@ -3795,6 +3795,10 @@ class File:
     directory: str
     suffix: str
 
+    def __repr__(self):
+        suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
+        return f"{self.ix}: '{self.rel_path}'{suffix}"
+
 @function_logger
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
                                                   fname: str,
@@ -4055,7 +4059,7 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     return
 
 @function_logger
-def treat_facets_argument(facets, facet_type_var: TypeVar = Facet):
+def treat_facets_argument(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
     if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
         selected_facets = list(literal_type2tuple(facet_type_var))
         if 'scores' in selected_facets:
@@ -4063,5 +4067,15 @@ def treat_facets_argument(facets, facet_type_var: TypeVar = Facet):
     else:
         if isinstance(facets, list):
             facets = tuple(facets)
-        selected_facets = argument_and_literal_type2list(facets, facet_type_var, none_means_all=False, logger=logger)
+        selected_facets = argument_and_literal_type2list(facets, facet_type_var, none_means_all=none_means_all, logger=logger)
+    logger.debug(f"Resolved argument '{facets}' to {selected_facets}.")
     return selected_facets
+
+def bold_font(s):
+    return f"\033[1m{s}\033[0;0m"
+
+def available_views2str(views_dict: ViewDict, active_view_name: str = None) -> str:
+    view_names = {key: view.name if key is None else key for key, view in views_dict.items()}
+    current_view = view_names[active_view_name]
+    view_list = [bold_font(current_view)] + [name for name in view_names.values() if name != current_view]
+    return f"[{'|'.join(view_list)}]\n"

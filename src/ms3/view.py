@@ -35,7 +35,7 @@ class View(LoggedClass):
     registered_regexes = (convertible_regex, review_regex, tsv_regex)
 
     def __init__(self,
-                 view_name: Optional[str] = None,
+                 view_name: Optional[str] = 'all',
                  only_metadata: bool = False,
                  include_convertible: bool = True,
                  include_tsv: bool = True,
@@ -351,7 +351,7 @@ class View(LoggedClass):
 class DefaultView(View):
 
     def __init__(self,
-                 view_name: Optional[str] = None,
+                 view_name: Optional[str] = 'default',
                  only_metadata: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,

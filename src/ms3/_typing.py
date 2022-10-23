@@ -5,6 +5,7 @@ import pandas as pd
 if TYPE_CHECKING:
     from .score import Score
     from .utils import File
+    from .view import View
 
 CorpusFnameTuple = Tuple[str, str]
 FileDict: TypeAlias = Dict[str, 'File']
@@ -61,3 +62,4 @@ Facets: TypeAlias = Union[Facet, MultipleFacets]
 FacetArguments = Union[FacetArgument, MultipleFacetArguments]
 ScoreFacets: TypeAlias = Union[ScoreFacet, MultipleScoreFacets]
 TSVtypes = Union[TSVtype, MultipleTSVtypes]
+ViewDict = Dict[str, 'View']

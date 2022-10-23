@@ -22,7 +22,7 @@ from ._typing import FileDict, FileList, CorpusFnameTuple
 from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
     iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, path2parent_corpus
+    update_labels_cfg, write_tsv, path2parent_corpus, available_views2str
 from .transformations import dfs2quarterbeats
 from .view import View, DefaultView
 
@@ -45,7 +45,7 @@ def unpack_json_paths(paths: Collection[str]) -> None:
 
 def legacy_params2view(paths=None, file_re=None, folder_re=None, exclude_re=None) -> View:
     if all(param is None for param in (paths, file_re, folder_re, exclude_re)):
-        return DefaultView('current')
+        return DefaultView()
     view = View("Gerhardt")
     if file_re is not None:
         view.include('files', file_re)
@@ -67,8 +67,8 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :py:attr:`~.score.Score` objects).
     """
 
-    def __init__(self, directory=None, paths=None, file_re=None, folder_re='.*', exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, logger_cfg={}, ms=None, level=None, **kwargs):
+    def __init__(self, directory=None, paths=None, file_re=None, folder_re=None, exclude_re=None,
+                 recursive=True, simulate=False, labels_cfg={}, ms=None, level=None, **logger_cfg):
         """
 
         Parameters
@@ -112,55 +112,7 @@ class Parse(LoggedClass):
         """obj:`dict`
         {corpus_name -> :obj:`Corpus`} dictionary with one object per Corpus.
         """
-        # # defaultdicts with keys as keys, each holding a list with file information (therefore accessed via [key][i] )
-        # self.full_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [full_path]}`` dictionary of the full paths of all detected files.
-        # """
-        #
-        # self.rel_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [rel_path]}`` dictionary of the relative (to :obj:`.scan_paths`) paths of all detected files.
-        # """
-        #
-        # self.subdirs = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [subdir]}`` dictionary that differs from :obj:`.rel_paths` only if ``key`` is included in the file's
-        # relative path: In these cases only the part after ``key`` is kept.
-        # This is useful to inspect subdirectories in the case where keys correspond to subcorpora.
-        # """
-        #
-        # self.scan_paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [scan_path]}`` dictionary of the scan_paths from which each file was detected.
-        # """
-        #
-        # self.paths = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [path]}`` dictionary of the paths of all detected files (without file name).
-        # """
-        #
-        # self.files = {}
-        # """:obj:`dict`
-        # ``{key: [file]}`` dictionary of file names with extensions of all detected files. Keys
-        # serve as inventory of available corpora, e.g. in self.keys().
-        # """
-        #
-        # self.id2file_info = {}
-        # """:obj:`dict`
-        # ``{(key, i): [File]}`` dictionary of :obj:`File` objects.
-        # """
-        #
-        # self.fnames = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [fname]}`` dictionary of file names without extensions of all detected files.
-        # """
-        #
-        # self.fexts = defaultdict(list)
-        # """:obj:`collections.defaultdict`
-        # ``{key: [fext]}`` dictionary of file extensions of all detected files.
-        # """
-        #
+
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
@@ -255,8 +207,7 @@ class Parse(LoggedClass):
         # """
         #
         self._views: dict = {}
-        self._views[None] = legacy_params2view(paths=None, file_re=None, folder_re=None, exclude_re=None)
-        self._views['default'] = DefaultView('default')
+        self._views[None] = legacy_params2view(paths=paths, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re)
         self._views['all'] = View('all')
         #
         # self._ignored_warnings = defaultdict(list)
@@ -325,9 +276,9 @@ class Parse(LoggedClass):
             if isinstance(directory, str):
                 directory = [directory]
             for d in directory:
-                self.add_dir(directory=d, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
+                self.add_dir(directory=d, recursive=recursive)
         if paths is not None:
-            _ = self.add_files(paths, corpus_name=key, exclude_re=exclude_re)
+            _ = self.add_files(paths)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -475,7 +426,7 @@ class Parse(LoggedClass):
         if ids is not None:
             grouped_ids = group_id_tuples(ids)
         else:
-            grouped_ids = {k: list(range(len(self.fnames[k]))) for k in self._treat_key_param(keys)}
+            grouped_ids = {k: list(range(len(self.piece_names[k]))) for k in self._treat_key_param(keys)}
         return grouped_ids
 
     def _concat_id_df_dict(self, dict_of_dataframes, id_index=False, third_level_name=None):
@@ -693,7 +644,7 @@ class Parse(LoggedClass):
 
 
 
-    def add_dir(self, directory, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs):
+    def add_dir(self, directory, recursive=True, **logger_cfg) -> None:
         """
         This method decides if the directory ``directory`` contains several corpora or if it is a corpus
         itself, and calls _.add_corpus() for every corpus.
@@ -720,11 +671,8 @@ class Parse(LoggedClass):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
 
-        logger_cfg = dict(self.logger_cfg)
-        potential_corpus_name = os.path.basename(directory).strip(r"\/")
-        logger_cfg['name'] = self.logger.name + '.' + potential_corpus_name.replace('.', '')
         if not recursive:
-            self.add_corpus(directory, logger_cfg=logger_cfg, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+            self.add_corpus(directory, )
             return
 
         # new corpus/corpora to be added
@@ -732,20 +680,14 @@ class Parse(LoggedClass):
         n_corpora = len(subdir_corpora)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
-            self.add_corpus(directory, logger_cfg=logger_cfg, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive, **kwargs)
+            self.add_corpus(directory, logger_cfg=logger_cfg, **logger_cfg)
         else:
             self.logger.debug(f"{n_corpora} individual corpora detected in {directory}.")
-            if exclude_re is not None:
-                subdir_corpora = [d for d in subdir_corpora if re.search(exclude_re, os.path.basename(d)) is None]
             for corpus_path in subdir_corpora:
-                logger_cfg = dict(self.logger_cfg)
-                corpus_name = os.path.basename(corpus_path).strip(r"\/")
-                logger_cfg['name'] = self.logger.name + '.' + corpus_name.replace('.', '')
-                self.add_corpus(corpus_path, corpus_name=corpus_name, logger_cfg=logger_cfg, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re, recursive=recursive)
+                self.add_corpus(corpus_path, **logger_cfg)
 
 
-
-    def add_corpus(self, directory, corpus_name=None, logger_cfg={}, file_re=None, folder_re='.*', exclude_re=None, recursive=True, **kwargs) -> None:
+    def add_corpus(self, directory, corpus_name=None, **logger_cfg) -> None:
         """
         This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
         under the same key, considering them as one corpus.
@@ -770,15 +712,20 @@ class Parse(LoggedClass):
             whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
         recursive : :obj:`bool`, optional
             By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-        **kwargs:
-            User other folder names than the default ones.
+        **logger_cfg:
+
         """
         directory = resolve_dir(directory)
         if not os.path.isdir(directory):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
+        new_logger_cfg = dict(self.logger_cfg)
+        new_logger_cfg.update(logger_cfg)
+        if corpus_name is None:
+            corpus_name = os.path.basename(directory).strip(r"\/")
+        logger_cfg['name'] = self.logger.name + '.' + corpus_name.replace('.', '')
         try:
-            corpus = Corpus(directory=directory, view=self.get_view(), logger_cfg=logger_cfg, ms=self.ms)
+            corpus = Corpus(directory=directory, view=self.get_view(), ms=self.ms, **logger_cfg)
         except AssertionError:
             self.logger.debug(f"{directory} contains no parseable files.")
             return
@@ -1788,12 +1735,17 @@ Available keys: {available_keys}""")
              view_name: Optional[str] = None,
              show_discarded: bool = False):
         """"""
+        header = f"All corpora"
+        header += "\n" + "-" * len(header) + "\n"
+
+        # start info message with the names of the available views, the header, and info on the active view.
         view = self.get_view(view_name)
         view.reset_filtering_data()
-        excluded_names = set((view_name, view.name, None))
-        other_views = [name for name in self._views.keys() if name not in excluded_names]
-        msg = f"[{'|'.join(other_views)}]\n"
-        msg += f"{view}\n\n"
+        msg = available_views2str(self._views, view_name)
+        msg += header
+        msg += f"View: {view}\n\n"
+
+        # Show info on all pieces and files included in the active view
         counts_df = self.count_files(view_name=view_name)
         has_metadata = pd.Series([self._get_corpus(corpus_name).metadata_tsv is not None for corpus_name in counts_df.index],)
         has_metadata = has_metadata.map({True: 'yes', False: 'no'})
