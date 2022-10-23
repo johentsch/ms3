@@ -73,7 +73,7 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import Literal
+from typing import Literal, Optional
 
 import pandas as pd
 
@@ -182,14 +182,17 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    def cadences(self):
+    def cadences(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
         """:obj:`pandas.DataFrame`
         DataFrame representing all cadence annotations in the score.
         """
-        exp = self.expanded()
+        exp = self.expanded(interval_index=interval_index)
         if exp is None or 'cadence' not in exp.columns:
             return None
-        return exp[exp.cadence.notna()]
+        cadences = exp[exp.cadence.notna()]
+        if len(cadences) == 0:
+            return
+        return cadences
 
     def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
@@ -230,7 +233,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self.parsed.events(interval_index=interval_index)
 
 
-    def expanded(self, interval_index: bool = False) -> pd.DataFrame:
+    def expanded(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in <Harmony> tags which could
         be matched against one of the registered regular expressions and split into feature columns. Currently this
         method is hard-coded to return expanded DCML harmony labels only but it takes into account the current
@@ -249,6 +252,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._annotations is None:
             return None
         expanded = self._annotations.expand_dcml(**self.labels_cfg)
+        if expanded is None:
+            labels = self.labels()
+            self.logger.warning(f"Annotations are present but expansion failed due to errors.")
+            return None
         has_chord = expanded.chord.notna()
         if not has_chord.all():
             # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
@@ -282,7 +289,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -304,7 +311,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return
         return form
 
-    def labels(self, interval_index: bool = False) -> pd.DataFrame:
+    def labels(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score, as returned by calling
         :meth:`~.annotations.Annotations.get_labels` on the object at :attr:`._annotations` with the current :attr:`._labels_cfg`.
         Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
@@ -321,7 +328,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.info("The score does not contain any annotations.")
             return None
         labels = self._annotations.get_labels(**self.labels_cfg)
-        labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index)
+        labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return labels
 
     def measures(self, interval_index: bool = False) -> pd.DataFrame:
@@ -1443,7 +1450,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             if self.mscx is None:
                 self.logger.warning(f"Could not add quarterbeats to the detached labels with key '{key}' because no score has been parsed yet.")
             else:
-                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(), interval_index=interval_index)
+                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(), interval_index=interval_index, logger=self.logger)
         return labels
 
     def new_type(self, name, regex, description='', infer=True):
