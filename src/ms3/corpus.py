@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, ParsedFile
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
@@ -317,16 +317,18 @@ class Corpus(LoggedClass):
                 if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
                 ]
 
-    def get_files_of_types(self, file_type: Union[str, Collection[str]] = None,
-                     view_name: Optional[str] = None,
-                     parsed: bool = True,
-                     unparsed: bool = True,
-                     choose: Literal['all', 'auto', 'ask'] = 'all',
-                     flat: bool = False) -> Dict[str, Union[FileDict, FileList]]:
+    def get_files(self, facets: Union[str, Collection[str]] = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty = False,
+                  ) -> Dict[str, Union[FileDict, FileList]]:
         """
 
         Args:
-            file_type:
+            facets:
             choose:
 
         Returns:
@@ -336,11 +338,59 @@ class Corpus(LoggedClass):
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         result = {}
         if choose == 'ask':
-            choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); setting to 'auto'")
+            #choose = 'all'
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); you will be asked for every ambiguous file")
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_files(facets=file_type, view_name=view_name, parsed=parsed, unparsed=unparsed, flat=flat)
-            result[piece.fname] = type2file
+            type2file = piece.get_files(facets=facets,
+                                        view_name=view_name,
+                                        parsed=parsed,
+                                        unparsed=unparsed,
+                                        choose=choose,
+                                        flat=flat,
+                                        include_empty=include_empty)
+            if len(type2file) == 0 and not include_empty:
+                continue
+            result[piece.piece_name] = type2file
+        return result
+
+    def get_all_parsed(self, facets: Union[str, Collection[str]] = None,
+                  view_name: Optional[str] = None,
+                  force: bool = False,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty=False,
+                  ) -> Dict[str, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]:
+        """
+
+        Args:
+            facets:
+            choose:
+
+        Returns:
+            {fname -> {type -> [:obj:`File`]}} dict if flat=False (default).
+            {fname -> [:obj:`File`]} dict if flat=True.
+        """
+        result = {}
+        if choose == 'ask':
+            # choose = 'all'
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_all_parsed(); you will be asked for every ambiguous file")
+        if force:
+            tmp_choose = 'auto' if choose == 'ask' else choose
+            unparsed_files = self.get_files(facets, view_name=view_name, parsed=False, choose=tmp_choose, flat=True)
+            n_unparsed = len(sum(unparsed_files.values(), []))
+            if n_unparsed > 10:
+                self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
+                                    f"Next time, call _.parse() on me, so we can speed this up!")
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            type2file = piece.get_all_parsed(facets=facets,
+                                             view_name=view_name,
+                                             force=force,
+                                             choose=choose,
+                                             flat=flat,
+                                             include_empty=include_empty)
+            if len(type2file) == 0 and not include_empty:
+                continue
+            result[piece.piece_name] = type2file
         return result
 
     def get_fnames(self,
@@ -504,9 +554,9 @@ class Corpus(LoggedClass):
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
         if only_new:
-            fname2files = self.get_unparsed_score_files(view_name=view_name)
+            fname2files = self._get_unparsed_score_files(view_name=view_name)
         else:
-            fname2files = self.get_files_of_types('scores', view_name=view_name, flat=True)
+            fname2files = self.get_files('scores', view_name=view_name, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -602,9 +652,9 @@ class Corpus(LoggedClass):
         if level is not None:
             self.change_logger_cfg(level=level)
         if only_new:
-            fname2files = self.get_unparsed_tsv_files(view_name=view_name)
+            fname2files = self._get_unparsed_tsv_files(view_name=view_name)
         else:
-            fname2files = self.get_files_of_types('tsv', view_name=view_name, flat=True)
+            fname2files = self.get_files('tsv', view_name=view_name, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -701,7 +751,7 @@ class Corpus(LoggedClass):
         if choose == 'ask':
             choose = 'all'
             self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
-        result = self.get_files_of_types('scores', choose=choose)
+        result = self.get_files('scores', choose=choose)
         result = {fname: list(type2file.values()) for fname, type2file in result.items()}
 
         if all(len(l) == 1 for l in result.values()):
@@ -1316,20 +1366,20 @@ Available keys: {available_keys}""")
 
     def count_extensions(self, view_name: Optional[str] = None):
         """"""
-        selected_files = self.get_files_of_types(view_name=view_name, flat=True)
+        selected_files = self.get_files(view_name=view_name, flat=True)
         return {fname: Counter(file.fext for file in files) for fname, files in selected_files.items()}
 
-    def get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
-        return self.get_files_of_types('scores', view_name=view_name, unparsed=False, flat=True)
+    def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
+        return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
 
-    def get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
-        return self.get_files_of_types('scores', view_name=view_name, parsed=False, flat=True)
+    def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
+        return self.get_files('scores', view_name=view_name, parsed=False, flat=True)
 
-    def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat=True) -> Dict[str, Union[FileDict, FileList]]:
-        return self.get_files_of_types('tsv', view_name=view_name, unparsed=False, flat=flat)
+    def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat=True) -> Dict[str, Union[FileDict, FileList]]:
+        return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
 
-    def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[str, Union[FileDict, FileList]]:
-        return self.get_files_of_types('tsv', view_name=view_name, parsed=False, flat=flat)
+    def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[str, Union[FileDict, FileList]]:
+        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
 
     def count_labels(self, keys=None, per_key=False):
@@ -1700,6 +1750,8 @@ Available keys: {available_keys}""")
             empty_cols = df.columns[df.sum() == 0]
             return df.drop(columns=empty_cols)
         return df
+
+
 
     def _summed_file_count(self,
                             types=True,

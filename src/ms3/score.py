@@ -1640,7 +1640,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if ext.lower() not in permitted_extensions:
             raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
-            raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
+            raise ValueError(f"To parse a {ext} file, use 'ms3 convert' command or set the attribute 'ms' for temporal on-the-fly conversion.")
         extension = self._handle_path(self.musescore_file)
         logger_cfg = dict(self.logger_cfg)
         logger_cfg['name'] = self.logger_names[extension]

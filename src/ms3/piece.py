@@ -220,11 +220,11 @@ class Piece(LoggedClass):
     #     except Exception as e:
     #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
-    def count_parsed(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
-       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, drop_zero=drop_zero)}
+    def count_parsed(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
+       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, include_empty=include_empty)}
 
-    def count_types(self, drop_zero=False, view_name: Optional[str] = None) -> Dict[str, int]:
-        return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, drop_zero=drop_zero)}
+    def count_types(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
+        return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty)}
 
 
     def extract_dataframes(self,
@@ -320,7 +320,7 @@ class Piece(LoggedClass):
                   unparsed: bool = True,
                   choose: Literal['all', 'auto', 'ask'] = 'all',
                   flat: bool = False,
-                  include_empty_facets: bool = False,
+                  include_empty: bool = False,
                   ) -> Union[FileDict, FileList]:
         """
 
@@ -349,7 +349,7 @@ class Piece(LoggedClass):
         needs_choice = []
         for facet, files in facet2files.items():
             n_files = len(files)
-            if n_files == 0 and not include_empty_facets:
+            if n_files == 0 and not include_empty:
                 continue
             elif choose == 'all' or n_files < 2:
                 result[facet] = files
@@ -359,11 +359,11 @@ class Piece(LoggedClass):
                 result[facet] = disambiguated
         if choose == 'auto':
             for typ in needs_choice:
-                result[typ] = automatically_choose_from_disambiguated_files(result[typ], self.piece_name, typ)
+                result[typ] = [automatically_choose_from_disambiguated_files(result[typ], self.piece_name, typ)]
         elif choose == 'ask':
             for typ in needs_choice:
                 choices = result[typ]
-                result[typ] = ask_user_to_choose_from_disambiguated_files(choices, self.piece_name, typ)
+                result[typ] = [ask_user_to_choose_from_disambiguated_files(choices, self.piece_name, typ)]
         elif choose == 'all' and 'scores' in needs_choice:
             # check if any scores can be differentiated solely by means of their file extension
             several_score_files = result['scores'].values()
@@ -418,7 +418,7 @@ class Piece(LoggedClass):
                        force: bool = False,
                        choose: Literal['all', 'auto', 'ask'] = 'all',
                        flat: bool = False,
-                       include_empty_facets: bool = False
+                       include_empty: bool = False
                        ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
         """Return multiple parsed files."""
         selected_facets = treat_facets_argument(facets, logger=self.logger)
@@ -438,7 +438,7 @@ class Piece(LoggedClass):
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
             parsed_files = [(file, self.ix2parsed[file.ix]) for file in files if file.ix in self.ix2parsed]
             n_parsed = len(parsed_files)
-            if n_parsed == 0 and not include_empty_facets:
+            if n_parsed == 0 and not include_empty:
                 continue
             elif choose == 'all' or n_parsed < 2:
                 # no disambiguation required
@@ -523,7 +523,7 @@ class Piece(LoggedClass):
         msg += f"View: {view}\n\n"
 
         # Show info on all files included in the active view
-        facet2files = dict(self.iter_facet2files(view_name=view_name, drop_zero=True))
+        facet2files = dict(self.iter_facet2files(view_name=view_name, include_empty=False))
         if len(facet2files) == 0:
             msg += "No files selected."
         else:
@@ -543,26 +543,26 @@ class Piece(LoggedClass):
         print(msg)
 
 
-    def iter_facet2files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
+    def iter_facet2files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
         """Iterating through _.facet2files.items() under the current or specified view."""
         view = self.get_view(view_name=view_name)
         for typ, files in self.facet2files.items():
             filtered_files = view.filtered_file_list(files, 'files')
             # the files need to be filtered even if the facet is excluded, for counting excluded files
-            if drop_zero and len(filtered_files) == 0:
+            if len(filtered_files) == 0 and not include_empty:
                 continue
             if typ in view.selected_facets:
                 yield typ, filtered_files
 
 
-    def iter_type2parsed_files(self, view_name: Optional[str] = None, drop_zero: bool = False) -> Iterator[Dict[str, FileList]]:
+    def iter_type2parsed_files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
         """Iterating through _.facet2files.items() under the current or specified view and selecting only parsed files."""
         view = self.get_view(view_name=view_name)
         for typ, ix2parsed in self.type2parsed.items():
             files = [self.files[ix] for ix in ix2parsed.keys()]
             filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
             # the files need to be filtered even if the facet is excluded, for counting excluded files
-            if drop_zero and len(filtered_ixs) == 0:
+            if len(filtered_ixs) == 0 and not include_empty:
                 continue
             if typ in view.selected_facets:
                 yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}

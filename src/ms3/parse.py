@@ -1677,7 +1677,7 @@ Available keys: {available_keys}""")
     def get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files_of_types('scores', view_name=view_name, unparsed=False, flat=True)
+            fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
@@ -1685,14 +1685,14 @@ Available keys: {available_keys}""")
     def get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files_of_types('scores', view_name=view_name, parsed=False, flat=True)
+            fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
     def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files_of_types('tsv', view_name=view_name, unparsed=False, flat=flat)
+            fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
             if flat:
                 result[corpus_name] = sum(fname2files.values(), [])
             else:
@@ -1706,7 +1706,7 @@ Available keys: {available_keys}""")
     def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            fname2files = corpus.get_files_of_types('tsv', view_name=view_name, parsed=False, flat=flat)
+            fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
             if flat:
                 result[corpus_name] = sum(fname2files.values(), [])
             else:
@@ -2108,12 +2108,12 @@ Available keys: {available_keys}""")
         """
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            selected = corpus.get_files_of_types(file_type=file_type,
-                                           view_name=view_name,
-                                           parsed=parsed,
-                                           unparsed=unparsed,
-                                           choose=choose,
-                                           flat=flat)
+            selected = corpus.get_files(facets=file_type,
+                                        view_name=view_name,
+                                        parsed=parsed,
+                                        unparsed=unparsed,
+                                        choose=choose,
+                                        flat=flat)
             selected = {(corpus_name, fname): files for fname, files in selected.items()}
             result.update(selected)
         return result
