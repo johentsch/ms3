@@ -384,7 +384,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             chords = self.cl()
         else:
             chords = self.get_chords(mode=mode)
-        chords = add_quarterbeats_col(chords, self.offset_dict(), interval_index=interval_index)
+        chords = add_quarterbeats_col(chords, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return chords
 
 
@@ -407,7 +407,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
         events = column_order(self.add_standard_cols(self._events))
-        events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index)
+        events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return events
 
 
@@ -430,7 +430,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         form = self.fl(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer)
         if form is None:
             return
-        form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index)
+        form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return form
 
     def fl(self, detection_regex: str = None, exclude_harmony_layer=False) -> pd.DataFrame:
@@ -537,7 +537,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         notes = self.nl()
-        notes = add_quarterbeats_col(notes, self.offset_dict(), interval_index=interval_index)
+        notes = add_quarterbeats_col(notes, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return notes
 
     def nl(self, recompute: bool = False) -> pd.DataFrame:
@@ -562,7 +562,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         nrl = self.nrl()
-        nrl = add_quarterbeats_col(nrl, self.offset_dict(), interval_index=interval_index)
+        nrl = add_quarterbeats_col(nrl, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return nrl
 
     def nrl(self, recompute: bool = False) -> pd.DataFrame:
@@ -604,7 +604,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
-        rests = add_quarterbeats_col(rests, self.offset_dict(), interval_index=interval_index)
+        rests = add_quarterbeats_col(rests, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return rests
 
     def rl(self, recompute: bool = False) -> pd.DataFrame:
@@ -786,7 +786,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             main_cols.extend(lyr_cols)
             if 'syllabic' in df.columns:
                 # turn the 'syllabic' column into the typical dashs
-                empty = pd.Series(index=df.index)
+                empty = pd.Series(index=df.index, dtype='string')
                 for col in columns:
                     syl_start, syl_mid, syl_end = [empty.where(col.isna() | (df.syllabic != which), '-').fillna('')
                                                    for which in ['begin', 'middle', 'end']]

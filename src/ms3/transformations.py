@@ -970,7 +970,7 @@ def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.arr
     if 'duration_qb' in df.columns:
         df = df.drop(columns='duration_qb')
 
-    result = add_quarterbeats_col(df, offset_dict, interval_index=True)
+    result = add_quarterbeats_col(df, offset_dict, interval_index=True, logger=logger)
     if warn_na and not boolean_mask.iloc[0]:
         logger.warning("Boolean mask started with False, meaning that a part of the DataFrame is excluded from the segmentation.")
     return result
