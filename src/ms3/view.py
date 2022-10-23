@@ -43,7 +43,7 @@ class View(LoggedClass):
                  **logger_cfg
                  ):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
-        assert view_name is None or isinstance(view_name, str), f"Name of the view should be a string, not '{type(view_name)}'"
+        assert isinstance(view_name, str), f"Name of the view should be a string, not '{type(view_name)}'"
         if view_name is not None and not view_name.isidentifier():
             self.logger.info(f"The string '{view_name}' cannot be used as attribute name.")
         self.name: str = view_name

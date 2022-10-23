@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
@@ -348,7 +348,49 @@ class Corpus(LoggedClass):
                 if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
                 ]
 
-    def get_files(self, facets: Union[str, Collection[str]] = None,
+    def get_facets(self,
+                   facets: ScoreFacets = None,
+                   view_name: Optional[str] = None,
+                   force: bool = False,
+                   choose: Literal['all', 'auto', 'ask'] = 'all',
+                   unfold: bool = False,
+                   interval_index: bool = False,
+                   flat=False
+                   ) -> Dict[str, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+        """
+
+        Args:
+            facets:
+            choose:
+
+        """
+        result = {}
+        if choose == 'ask':
+            # choose = 'all'
+            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_all_parsed(); you will be asked for every ambiguous file")
+        if force:
+            tmp_choose = 'auto' if choose == 'ask' else choose
+            unparsed_files = self.get_files(facets, view_name=view_name, parsed=False, choose=tmp_choose, flat=True)
+            n_unparsed = len(sum(unparsed_files.values(), []))
+            if n_unparsed > 10:
+                self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
+                                    f"Next time, call _.parse() on me, so we can speed this up!")
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            type2file = piece.get_facets(facets=facets,
+                                         view_name=view_name,
+                                         force=force,
+                                         choose=choose,
+                                         unfold=unfold,
+                                         interval_index=interval_index,
+                                         flat=flat,
+                                         )
+            if len(type2file) == 0 and not include_empty:
+                continue
+            result[piece.piece_name] = type2file
+        return result
+
+
+    def get_files(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
                   parsed: bool = True,
                   unparsed: bool = True,
@@ -384,7 +426,7 @@ class Corpus(LoggedClass):
             result[piece.piece_name] = type2file
         return result
 
-    def get_all_parsed(self, facets: Union[str, Collection[str]] = None,
+    def get_all_parsed(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
                   force: bool = False,
                   choose: Literal['all', 'auto', 'ask'] = 'all',
@@ -543,6 +585,10 @@ class Corpus(LoggedClass):
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
             view._discarded_items[key].extend(discarded_items)
 
+    def _parse_file_at_index(self, ix: int):
+        fname = self.ix2fname[ix]
+        piece = self.get_piece(fname)
+        piece._parse_file_at_index(ix)
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
         """ Shorthand for executing parse_mscx and parse_tsv at a time.
@@ -788,23 +834,27 @@ class Corpus(LoggedClass):
         if all(len(l) == 1 for l in result.values()):
             return {fname: l[0] for fname, l in result.items()}
 
-    def set_view(self, current: View = None, **views: View):
+    def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
-        if current is not None:
-            self._views[None] = current
+        if active is not None:
+            active_name = active.name
+            if active_name in self.view_names:
+                self.switch_view(active_name, show_info=False, propagate=False)
+            self._views[None] = active
         for view_name, view in views.items():
-            if view.name is None:
+            if view.name != view_name:
                 view.name = view_name
             self._views[view_name] = view
         for fname, piece in self:
-            if current is not None and current.check_token('fname', fname):
-                piece.set_view(current)
+            if active is not None:
+                piece.set_view(active)
             for view_name, view in views.items():
-                if view.check_token('fname', fname):
-                    piece.set_view(**{view_name:view})
+                piece.set_view(**{view_name:view})
 
     def switch_view(self, view_name: Optional[str],
-                    show_info: bool = True) -> None:
+                    show_info: bool = True,
+                    propagate: bool = True,
+                    ) -> None:
         if view_name is None:
             return
         new_view = self.get_view(view_name)
@@ -815,14 +865,11 @@ class Corpus(LoggedClass):
         new_name = new_view.name
         if new_name in self._views:
             del(self._views[new_name])
-        for fname, piece in self:
-            if new_view.check_token('fname', fname):
-                if new_view not in piece._views.values() and\
-                    new_name not in piece._views and\
-                    piece.get_view().name != new_name:
+        if propagate:
+            for fname, piece in self:
+                active_view = piece.get_view()
+                if active_view.name != new_name or active_view != new_view:
                     piece.set_view(new_view)
-                else:
-                    piece.switch_view(new_name, show_info=False)
         if show_info:
             self.info()
 
@@ -831,6 +878,9 @@ class Corpus(LoggedClass):
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
+    @property
+    def view_names(self):
+        return {view.name if name is None else name for name, view in self._views.items()}
 
     #####################
     # OLD, needs adapting

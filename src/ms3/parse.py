@@ -319,35 +319,35 @@ class Parse(LoggedClass):
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
-    def switch_view(self, view_name: Optional[str],
-                    show_info: bool = True) -> None:
+    @property
+    def view_names(self):
+        return {view.name if name is None else name for name, view in self._views.items()}
+
+    def switch_view(self, view_name: str,
+                    show_info: bool = True,
+                    propagate = True,
+                    ) -> None:
         if view_name is None:
             return
         new_view = self.get_view(view_name)
         old_view = self.get_view()
-        if old_view.name is not None:
-            self._views[old_view.name] = old_view
+        self._views[old_view.name] = old_view
         self._views[None] = new_view
         new_name = new_view.name
         if new_name in self._views:
             del(self._views[new_name])
-        for corpus_name, corpus in self:
-            if new_view.check_token('corpus', corpus_name):
-                if new_view not in corpus._views.values() and\
-                    new_name not in corpus._views and\
-                    corpus.get_view().name != new_name:
+        if propagate:
+            for corpus_name, corpus in self:
+                active_view = corpus.get_view()
+                if active_view.name != new_name or active_view != new_view:
                     corpus.set_view(new_view)
-                else:
-                    corpus.switch_view(new_name, show_info=False)
         if show_info:
             self.info()
 
 
     def __getattr__(self, view_name) -> View:
-        if view_name in self._views:
+        if view_name in self.view_names:
             self.switch_view(view_name, show_info=False)
-            return self
-        elif view_name is not None and self._views[None].name == view_name:
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
@@ -1747,10 +1747,18 @@ Available keys: {available_keys}""")
 
         # Show info on all pieces and files included in the active view
         counts_df = self.count_files(view_name=view_name)
-        has_metadata = pd.Series([self._get_corpus(corpus_name).metadata_tsv is not None for corpus_name in counts_df.index],)
-        has_metadata = has_metadata.map({True: 'yes', False: 'no'})
-        counts_df.insert(0, 'metadata', has_metadata.values)
-        msg += counts_df.to_string() + '\n\n'
+        if counts_df.isna().any().any():
+            counts_df = counts_df.fillna(0).astype('int')
+        additional_columns = []
+        for corpus_name in counts_df.index:
+            corpus = self._get_corpus(corpus_name)
+            has_metadata = 'no' if corpus.metadata_tsv is None else 'yes'
+            corpus_view = corpus.get_view().name
+            additional_columns.append([has_metadata, corpus_view])
+        additional_columns = pd.DataFrame(additional_columns, columns=[('', 'metadata'), ('', 'view')], index=counts_df.index)
+        info_df = pd.concat([additional_columns, counts_df], axis=1)
+        info_df.columns = pd.MultiIndex.from_tuples(info_df.columns)
+        msg += info_df.to_string() + '\n\n'
         msg += view.filtering_report(show_discarded=show_discarded)
         if return_str:
             return msg

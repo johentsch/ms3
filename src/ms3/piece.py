@@ -103,10 +103,13 @@ class Piece(LoggedClass):
     def tsv_metadata(self):
         return self._tsv_metadata
 
-    def set_view(self, current: View = None, **views: View):
+    def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
-        if current is not None:
-            self._views[None] = current
+        if active is not None:
+            active_name = active.name
+            if active_name in self._views:
+                self.switch_view(active_name, show_info=False)
+            self._views[None] = active
         for view_name, view in views.items():
             if view.name is None:
                 view.name = view_name
@@ -226,6 +229,32 @@ class Piece(LoggedClass):
     def count_types(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
         return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty)}
 
+    def extract_facet(self,
+                      facet: ScoreFacet,
+                      view_name: Optional[str] = None,
+                      force: bool = False,
+                      choose: Literal['auto', 'ask'] = 'auto',
+                      unfold: bool = False,
+                      interval_index: bool = False,
+                 ) -> Optional[FileDataframeTuple]:
+        if isinstance(facet, list):
+            facet = tuple(facet)
+        facets = argument_and_literal_type2list(facet, ScoreFacet)
+        assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
+        assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
+        df_list = self.extract_facets(facets=facet,
+                                      view_name=view_name,
+                                      force=force,
+                                      choose=choose,
+                                      unfold=unfold,
+                                      interval_index=interval_index,
+                                      flat=True
+                                      )
+        if len(df_list) == 0:
+            return None
+        if len(df_list) == 1:
+            return df_list[0]
 
     def extract_facets(self,
                        facets: ScoreFacets = None,
@@ -246,7 +275,7 @@ class Piece(LoggedClass):
                                              choose=choose
                                              )
         if len(score_files) == 0:
-            return [] if flat else {}
+            return [] if flat else {facet: [] for facet in selected_facets}
         for file, score_obj in score_files:
             if score_obj is None:
                 self.logger.info(f"No parsed score found for '{self.piece_name}'")
@@ -263,7 +292,9 @@ class Piece(LoggedClass):
             return sum(result.values(), [])
         else:
             result = {facet: result[facet] if facet in result else [] for facet in selected_facets}
-        return dict(result)
+        return result
+
+
 
     def get_facets(self,
                    facets: ScoreFacets = None,
@@ -276,7 +307,7 @@ class Piece(LoggedClass):
         selected_facets = treat_facets_argument(facets, ScoreFacet, logger=self.logger)
         assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
 
-        def make_result(extracted_facets, parsed_facets):
+        def merge_dicts(extracted_facets, parsed_facets):
             nonlocal selected_facets
             result = defaultdict(list)
             for facet in selected_facets:
@@ -288,6 +319,15 @@ class Piece(LoggedClass):
                     result[facet].extend(parsed_facets[facet])
                 if not (present_in_score or present_as_tsv):
                     result[facet] = []
+            return result
+
+        def make_result(extracted_facets, parsed_facets=None):
+            if parsed_facets is None:
+                result = extracted_facets
+            else:
+                result = merge_dicts(extracted_facets, parsed_facets)
+            if flat:
+                return sum(result.values(), [])
             return dict(result)
 
         if choose == 'all':
@@ -303,26 +343,77 @@ class Piece(LoggedClass):
                                                 )
             # TODO: Unfold & interval_index for parsed facets
             return make_result(extracted_facets, parsed_facets)
+
         # The rest below makes sure that there is only one DataFrame per facet, if available
         extracted_facets = self.extract_facets(facets=selected_facets,
                                                view_name=view_name,
-                                               force=force,
+                                               force=False,
                                                choose=choose,
                                                unfold=unfold,
                                                interval_index=interval_index,
                                                )
         missing_facets = [facet for facet in selected_facets if len(extracted_facets[facet]) == 0]
         if len(missing_facets) == 0:
-            return extracted_facets
+            return make_result(extracted_facets)
+        # facets missing, looked for parsed TSV files
         parsed_facets = self.get_all_parsed(facets=missing_facets,
                                         view_name=view_name,
-                                        force=True,
+                                        force=False,
                                         choose=choose,
                                         include_empty=True
                                         )
-        return make_result(extracted_facets, parsed_facets)
+        result = merge_dicts(extracted_facets, parsed_facets)
+        missing_facets = [facet for facet in selected_facets if len(result[facet]) == 0]
+        if len(missing_facets) == 0 or not force:
+            return make_result(result)
+        # there are still facets missing; force-parse TSV files first
+        parsed_facets = self.get_all_parsed(facets=missing_facets,
+                                            view_name=view_name,
+                                            force=True,
+                                            choose=choose,
+                                            include_empty=True
+                                            )
+        result = merge_dicts(result, parsed_facets)
+        missing_facets = [facet for facet in selected_facets if len(result[facet]) == 0]
+        if len(missing_facets) == 0 or not force:
+            return make_result(result)
+        # there are still facets missing; force-parse scores as last resort
+        extracted_facets = self.extract_facets(facets=selected_facets,
+                                               view_name=view_name,
+                                               force=True,
+                                               choose=choose,
+                                               unfold=unfold,
+                                               interval_index=interval_index,
+                                               )
+        return make_result(result, extracted_facets)
 
 
+    def get_facet(self,
+                  facet: ScoreFacet,
+                  view_name: Optional[str] = None,
+                  force: bool = False,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False,
+                  ) -> Optional[FileDataframeTuple]:
+        if isinstance(facet, list):
+            facet = tuple(facet)
+        facets = argument_and_literal_type2list(facet, ScoreFacet)
+        assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
+        assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
+        df_list = self.get_facets(facets=facet,
+                                  view_name=view_name,
+                                  force=force,
+                                  choose=choose,
+                                  unfold=unfold,
+                                  interval_index=interval_index,
+                                  flat=True
+                                  )
+        if len(df_list) == 0:
+            return None
+        if len(df_list) == 1:
+            return df_list[0]
 
     def get_file(self, facet: Facet,
                  view_name: Optional[str] = None,
@@ -344,6 +435,7 @@ class Piece(LoggedClass):
         facets = argument_and_literal_type2list(facet, Facet)
         assert facets is not None, f"Pass a valid facet {Facet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.get_files"
+        assert choose != 'all', "If you want to choose='all', use _.get_files() (plural)."
         files = self.get_files(facets=facet,
                                view_name=view_name,
                                parsed=parsed,
@@ -428,7 +520,7 @@ class Piece(LoggedClass):
                              ix: int) -> ParsedFile:
         assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
         if ix not in self.ix2parsed:
-            self.parse_file_at_index(ix)
+            self._parse_file_at_index(ix)
         if ix not in self.ix2parsed:
             file = self.files[ix]
             raise RuntimeError(f"Unable to parse '{file.rel_path}'.")
@@ -443,6 +535,7 @@ class Piece(LoggedClass):
         facets = argument_and_literal_type2list(facet, Facet)
         assert facets is not None, f"Pass a valid facet {Facet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.get_all_parsed"
+        assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
                                     force=False,
@@ -456,7 +549,7 @@ class Piece(LoggedClass):
 
 
     def get_all_parsed(self,
-                       facets: Facets = None,
+                       facets: FacetArguments = None,
                        view_name: Optional[str] = None,
                        force: bool = False,
                        choose: Literal['all', 'auto', 'ask'] = 'all',
@@ -475,7 +568,7 @@ class Piece(LoggedClass):
             if force:
                 if len(unparsed_ixs) > 0:
                     for ix in unparsed_ixs:
-                        self.parse_file_at_index(ix)
+                        self._parse_file_at_index(ix)
             elif n_unparsed > 0:
                 plural = 'files' if n_unparsed > 1 else 'facet'
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
@@ -611,7 +704,7 @@ class Piece(LoggedClass):
                 yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
-    def parse_file_at_index(self, ix: int) -> None:
+    def _parse_file_at_index(self, ix: int) -> None:
         assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
         file = self.files[ix]
         if file.type == 'scores':

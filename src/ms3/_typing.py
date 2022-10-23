@@ -55,11 +55,11 @@ ScoreFacet: TypeAlias = Literal[
 TSVtype: TypeAlias = Union[ScoreFacet, Literal['metadata', 'unknown']]
 """All available types a TSV file can be recognized as."""
 MultipleFacets: TypeAlias = Collection[Facet]
-MultipleFacetArguments: TypeAlias = Collection[FacetArgument]
+#MultipleFacetArguments: TypeAlias = Collection[FacetArgument]
 MultipleScoreFacets: TypeAlias = Collection[ScoreFacet]
 MultipleTSVtypes: TypeAlias = Collection[TSVtype]
 Facets: TypeAlias = Union[Facet, MultipleFacets]
-FacetArguments = Union[FacetArgument, MultipleFacetArguments]
+FacetArguments = Union[FacetArgument, MultipleFacets]
 ScoreFacets: TypeAlias = Union[ScoreFacet, MultipleScoreFacets]
 TSVtypes = Union[TSVtype, MultipleTSVtypes]
 ViewDict = Dict[str, 'View']
