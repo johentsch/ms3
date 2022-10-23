@@ -20,7 +20,7 @@ from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacet
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, path2parent_corpus, available_views2str
+    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing
 from .view import DefaultView, View
 
 
@@ -135,14 +135,6 @@ class Corpus(LoggedClass):
         self.ix2orphan_file: Dict[int, File] = {}
         """{ix -> File} dict for collecting all metadata files."""
 
-        self.ix2parsed: Dict[int, ParsedFile] = {}
-        """{ix -> Score or DataFrame}"""
-
-        self.ix2parsed_score: Dict[int, Score] = {}
-        """Subset of :attr:`ix2parsed`"""
-
-        self.ix2parsed_tsv: Dict[int, pd.DataFrame] = {}
-        """Subset of :attr:`ix2parsed`"""
 
         self.score_fnames: List[str] = []
         """Sorted list of unique file names of all detected scores"""
@@ -160,6 +152,60 @@ class Corpus(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
+    @property
+    def ix2parsed(self) -> Dict[int, ParsedFile]:
+        result = {}
+        for _, piece in self.iter_pieces():
+            result.update(piece.ix2parsed)
+        return result
+
+    @property
+    def ix2parsed_score(self) -> Dict[int, Score]:
+        result = {}
+        for _, piece in self.iter_pieces():
+            result.update(piece.ix2parsed_score)
+        return result
+
+    @property
+    def ix2parsed_tsv(self) -> Dict[int, pd.DataFrame]:
+        result = {}
+        for _, piece in self.iter_pieces():
+            result.update(piece.ix2parsed_tsv)
+        return result
+
+    @property
+    def ix2annotations(self) -> Dict[int, ParsedFile]:
+        result = {}
+        for _, piece in self.iter_pieces():
+            result.update(piece.ix2annotations)
+        return result
+
+    @property
+    def n_parsed(self):
+        return len(self.ix2parsed)
+
+    @property
+    def n_parsed_scores(self):
+        return len(self.ix2parsed_score)
+
+    @property
+    def n_unparsed_scores(self):
+        return len(self._get_unparsed_score_files())
+
+
+    @property
+    def n_parsed_tsvs(self):
+        return len(self.ix2parsed_tsv)
+
+    @property
+    def n_unparsed_tsvs(self):
+        return len(self._get_unparsed_tsv_files())
+
+    @property
+    def n_annotations(self):
+        return len(self.ix2annotations)
+
+
     def __getattr__(self, view_name):
         if view_name in self._views:
             self.switch_view(view_name, show_info=False)
@@ -168,6 +214,56 @@ class Corpus(LoggedClass):
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
+    def ix_logger(self, ix):
+        return get_logger(self.logger_names[ix])
+
+
+    def count_files(self,
+                    detected: bool = True,
+                    parsed: bool = True,
+                    as_dict: bool = False,
+                    drop_zero: bool = False,
+                    view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
+        assert detected + parsed > 0, "At least one parameter needs to be True"
+        fname2counts = {}
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            if detected:
+                type_count = piece.count_types(view_name=view_name, include_empty=True)
+                if not parsed:
+                    fname2counts[fname] = type_count
+            if parsed:
+                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True)
+                if not detected:
+                    fname2counts[fname] = parsed_count
+            if detected & parsed:
+                alternating_counts = {}
+                for (k1, v1), (k2, v2) in zip(type_count.items(), parsed_count.items()):
+                    alternating_counts[k1] = v1
+                    alternating_counts[k2] = v2
+                fname2counts[fname] = alternating_counts
+        if as_dict:
+            return fname2counts
+        df = pd.DataFrame.from_dict(fname2counts, orient='index')
+        try:
+            df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
+        except TypeError:
+            pass
+        if drop_zero:
+            empty_cols = df.columns[df.sum() == 0]
+            return df.drop(columns=empty_cols)
+        return df
+
+
+
+    def _summed_file_count(self,
+                            types=True,
+                            parsed=True,
+                            view_name: Optional[str] = None) -> pd.Series:
+        """The sum of _.count_files() but returning zero-filled Series if no fnames have been selected."""
+        file_count = self.count_files(detected=types, parsed=parsed, drop_zero=False, view_name=view_name)
+        if len(file_count) == 0 and types and parsed:
+            return pd.Series(0, index=self.default_count_index)
+        return file_count.sum()
 
     def add_file_paths(self, paths: Collection[str]) -> FileList:
         resolved_paths = [resolve_dir(p) for p in paths]
@@ -215,6 +311,43 @@ class Corpus(LoggedClass):
         files_df = pd.DataFrame(self.files)
         detected_scores = files_df.loc[files_df.type == 'scores']
         self.score_fnames = sorted(detected_scores.fname.unique())
+
+    def create_metadata_tsv(self,
+                            suffix='',
+                            view_name: Optional[str] = None,
+                            overwrite: bool = False,
+                            force: bool = True) -> Optional[str]:
+        """Creates a 'metadata.tsv' file for the current view."""
+        path = os.path.join(self.corpus_path, 'metadata' + suffix + '.tsv')
+        already_there = os.path.isfile(path)
+        if already_there:
+            if overwrite and suffix == '':
+                self.logger.warning("For security reasons I won't overwrite the 'metadata.tsv' file of this repo. "
+                                    "Consider updating it or delete it yourself.")
+                return
+            elif not overwrite:
+                self.logger.warning(f"{path} existed already. Consider updating it.")
+                return
+        metadata = self.score_metadata(view_name=view_name, force=force)
+        metadata = prepare_metadata_for_writing(metadata)
+        metadata.to_csv(path, sep='\t', index=False)
+        if already_there:
+            self.info(f"{path} overwritten.")
+        else:
+            self.info(f"{path} created.")
+        file = self.add_file_paths([path])[0]
+        metadata_df = load_tsv(path)
+        self.ix2parsed[file.ix] = metadata_df
+        if suffix == '':
+            self.metadata_ix = file.ix
+            self.metadata_tsv = metadata_df
+
+
+
+
+
+
+
 
     def create_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
         """Creates and stores one :obj:`Piece` object per fname."""
@@ -308,7 +441,7 @@ class Corpus(LoggedClass):
 
 
     def find_and_load_metadata(self) -> None:
-        """Checks if a 'metadata.tsv' is present at the default path and parses or creates it."""
+        """Checks if a 'metadata.tsv' is present at the default path and parses it."""
         metadata_path = os.path.join(self.corpus_path, 'metadata.tsv')
         if not os.path.isfile(metadata_path):
             return
@@ -815,24 +948,25 @@ class Corpus(LoggedClass):
                     self.ix2fname[file.ix] = None
 
 
-    def score_metadata(self, view_name: Optional[str] = None, force: bool = True):
+    def score_metadata(self, view_name: Optional[str] = None, force: bool = False):
         fnames, rows = [], []
-        for fname, piece in self.iter_pieces(view_name=view_name):
+        if force:
+            iter_pieces = self
+        else:
+            iter_pieces = self.iter_pieces(view_name=view_name)
+        for fname, piece in iter_pieces:
             fnames.append(fname)
-            rows.append(piece.score_metadata(force=force))
+            try:
+                rows.append(piece.score_metadata())
+            except ValueError:
+                print(fname)
+                print(piece.score_metadata())
+                raise
         df = pd.DataFrame(rows, index=fnames)
         if len(df) > 0:
-            return column_order(df, METADATA_COLUMN_ORDER).sort_index()
+            return column_order(df, METADATA_COLUMN_ORDER, sort=False).sort_index()
         return df
-    def select_score_files(self, choose: Literal['all', 'auto', 'ask'] = 'all'):
-        if choose == 'ask':
-            choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.select_score_files(); setting to 'auto'")
-        result = self.get_files('scores', choose=choose)
-        result = {fname: list(type2file.values()) for fname, type2file in result.items()}
 
-        if all(len(l) == 1 for l in result.values()):
-            return {fname: l[0] for fname, l in result.items()}
 
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
@@ -1734,56 +1868,6 @@ Available keys: {available_keys}""")
         self._quarter_offsets[unfold][id] = offsets
         return offsets
 
-    def ix_logger(self, ix):
-        return get_logger(self.logger_names[ix])
-
-
-    def count_files(self,
-                    types: bool = True,
-                    parsed: bool = True,
-                    as_dict: bool = False,
-                    drop_zero: bool = False,
-                    view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
-        assert types + parsed > 0, "At least one parameter needs to be True"
-        fname2counts = {}
-        for fname, piece in self.iter_pieces(view_name=view_name):
-            if types:
-                type_count = piece.count_types(view_name=view_name, include_empty=True)
-                if not parsed:
-                    fname2counts[fname] = type_count
-            if parsed:
-                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True)
-                if not types:
-                    fname2counts[fname] = parsed_count
-            if types & parsed:
-                alternating_counts = {}
-                for (k1, v1), (k2, v2) in zip(type_count.items(), parsed_count.items()):
-                    alternating_counts[k1] = v1
-                    alternating_counts[k2] = v2
-                fname2counts[fname] = alternating_counts
-        if as_dict:
-            return fname2counts
-        df = pd.DataFrame.from_dict(fname2counts, orient='index')
-        try:
-            df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
-        except TypeError:
-            pass
-        if drop_zero:
-            empty_cols = df.columns[df.sum() == 0]
-            return df.drop(columns=empty_cols)
-        return df
-
-
-
-    def _summed_file_count(self,
-                            types=True,
-                            parsed=True,
-                            view_name: Optional[str] = None) -> pd.Series:
-        """The sum of _.count_files() but returning zero-filled Series if no fnames have been selected."""
-        file_count = self.count_files(types=types, parsed=parsed, drop_zero=False, view_name=view_name)
-        if len(file_count) == 0 and types and parsed:
-            return pd.Series(0, index=self.default_count_index)
-        return file_count.sum()
 
 
 

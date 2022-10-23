@@ -1,5 +1,5 @@
 
-from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List
 
 import io
 import sys, os, re
@@ -1296,6 +1296,11 @@ Available keys: {available_keys}""")
             return {k: dict(v) for k, v in res_dict.items()}
         return dict(sum(res_dict.values(), Counter()))
 
+    def create_missing_metadata_tsv(self,
+                                    view_name: Optional[str] = None) -> None:
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
+            if corpus.metadata_tsv is None:
+                path = corpus.create_metadata_tsv()
 
 
     def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, harmony_layer=None, delete=True):

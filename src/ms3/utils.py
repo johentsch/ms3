@@ -13,6 +13,7 @@ from zipfile import ZipFile as Zip
 import pandas as pd
 import numpy as np
 import webcolors
+from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
@@ -1558,7 +1559,13 @@ def parse_interval_index_column(df, column=None, closed='left'):
     iix = pd.IntervalIndex.from_arrays(values[0], values[1], closed=closed)
     return iix
 
-def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype=False, **kwargs):
+def load_tsv(path,
+             index_col=None,
+             sep='\t',
+             converters={},
+             dtype={},
+             stringtype=False,
+             **kwargs) -> Optional[pd.DataFrame]:
     """ Loads the TSV file `path` while applying correct type conversion and parsing tuples.
 
     Parameters
@@ -1675,9 +1682,12 @@ def load_tsv(path, index_col=None, sep='\t', converters={}, dtype={}, stringtype
 
     if stringtype:
         types = {col: 'string' if typ == str else typ for col, typ in types.items()}
-    df = pd.read_csv(path, sep=sep, index_col=index_col,
-                       dtype=types,
-                       converters=conv, **kwargs)
+    try:
+        df = pd.read_csv(path, sep=sep, index_col=index_col,
+                           dtype=types,
+                           converters=conv, **kwargs)
+    except EmptyDataError:
+        return
     if 'mn' in df:
         mn_volta = mn2int(df.mn)
         df.mn = mn_volta.mn
@@ -2835,7 +2845,7 @@ def update_labels_cfg(labels_cfg):
 
 
 @function_logger
-def write_metadata(df, path, markdown=True, index=False):
+def write_metadata(df, path, markdown=False, index=False):
     path = resolve_dir(path)
     if os.path.isdir(path):
         tsv_path = os.path.join(path, 'metadata.tsv')
@@ -2867,16 +2877,7 @@ def write_metadata(df, path, markdown=True, index=False):
             logger.warning(f"Updating existing metadata at {tsv_path} failed with the following error:\n{sys.exc_info()[1]}")
             write_this = df
             msg = 'Replaced '
-    convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in df}
-    if len(convert_to_str) > 0:
-        write_this = write_this.astype(convert_to_str, errors='ignore')
-    write_this.sort_index(inplace=True)
-    write_this = column_order(write_this, METADATA_COLUMN_ORDER, sort=False)
-    staff_cols, other_cols = [], []
-    for col in write_this.columns:
-        staff_cols.append(col) if re.match(r"^staff_(\d+)", col) else other_cols.append(col)
-    staff_cols = sorted(staff_cols, key=lambda s: int(re.match(r"^staff_(\d+)", s)[1]))
-    write_this = write_this[other_cols + staff_cols]
+    write_this = prepare_metadata_for_writing(write_this)
     write_this.to_csv(tsv_path, sep='\t', index=index)
     logger.info(f"{msg} {tsv_path}")
     if markdown:
@@ -2914,6 +2915,20 @@ def write_metadata(df, path, markdown=True, index=False):
                 f.write('\n\n')
             f.write(md_table)
         logger.info(f"{msg} {readme}")
+
+
+def prepare_metadata_for_writing(metadata_df):
+    convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in metadata_df}
+    if len(convert_to_str) > 0:
+        metadata_df = metadata_df.astype(convert_to_str, errors='ignore')
+    metadata_df.sort_index(inplace=True)
+    metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
+    staff_cols, other_cols = [], []
+    for col in metadata_df.columns:
+        staff_cols.append(col) if re.match(r"^staff_(\d+)", col) else other_cols.append(col)
+    staff_cols = sorted(staff_cols, key=lambda s: int(re.match(r"^staff_(\d+)", s)[1]))
+    metadata_df = metadata_df[other_cols + staff_cols]
+    return metadata_df
 
 
 @function_logger

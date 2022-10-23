@@ -538,12 +538,11 @@ class Piece(LoggedClass):
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
-                                    force=False,
                                     choose=choose,
                                     flat=True)
         if len(files) == 0:
             unparsed_file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
-            return self._get_parsed_at_index(unparsed_file.ix)
+            return unparsed_file, self._get_parsed_at_index(unparsed_file.ix)
         if len(files) == 1:
             return files[0]
 
