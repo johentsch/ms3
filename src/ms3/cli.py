@@ -139,7 +139,7 @@ def empty(args):
     }
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
               recursive=args.nonrecursive, logger_cfg=logger_cfg)
-    p.parse_mscx(parallel=False)
+    p.parse_scores(parallel=False)
     p.detach_labels()
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]

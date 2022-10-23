@@ -21,7 +21,7 @@ def extract(parse_obj,
             quarterbeats=False,
             silence_label_warnings=False,
             **suffixes):
-    parse_obj.parse_mscx(parallel=parallel)
+    parse_obj.parse_scores(parallel=parallel)
     parse_obj.output_dataframes(root_dir=root_dir,
                         notes_folder=notes_folder,
                         notes_and_rests_folder=notes_and_rests_folder,
@@ -49,14 +49,14 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
     check_logger = get_logger("ms3.check", level=parse_obj.logger.getEffectiveLevel())
     if not labels_only:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
-            parse_obj.parse_mscx(parallel=parallel, only_new=False)
+            parse_obj.parse_scores(parallel=parallel, only_new=False)
             warnings = captured_warnings.content_list
         if len(warnings) > 0:
             all_warnings.extend(warnings)
             check_logger.warning("Warnings detected while parsing scores (see above).")
     else:
         with temporarily_suppress_warnings(parse_obj) as parse_obj:
-            parse_obj.parse_mscx(parallel=parallel)
+            parse_obj.parse_scores(parallel=parallel)
     if not scores_only:
         with capture_parse_logs(parse_obj.logger) as captured_warnings:
             expanded = parse_obj.get_dataframes(expanded=True)

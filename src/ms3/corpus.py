@@ -591,15 +591,15 @@ class Corpus(LoggedClass):
         piece._parse_file_at_index(ix)
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
-        """ Shorthand for executing parse_mscx and parse_tsv at a time.
+        """ Shorthand for executing parse_scores and parse_tsv at a time.
         Args:
             view_name:
         """
-        self.parse_mscx(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
+        self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
 
-    def parse_mscx(self,
+    def parse_scores(self,
                    level: str = None,
                    parallel: bool = True,
                    only_new: bool = True,
@@ -1097,7 +1097,7 @@ class Corpus(LoggedClass):
         """:obj:`pandas.DataFrame`
         Returns an overview of the parsed scores."""
         if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed yet. Use parse() or parse_mscx()")
+            self.logger.info("No scores have been parsed yet. Use parse() or parse_scores()")
             return None
         ids = list(self._iterids(only_parsed_mscx=True))
         ix = self.ids2idx(ids, pandas_index=True)
@@ -1273,7 +1273,7 @@ Continuing with {annotation_key}.""")
 
     def check_labels(self, keys=None, ids=None):
         if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            self.logger.info("No scores have been parsed so far. Use parse_scores()")
             return
         if ids is None:
             ids = list(self._iterids(keys, only_parsed_mscx=True))
@@ -1286,7 +1286,7 @@ Continuing with {annotation_key}.""")
 
     def color_non_chord_tones(self, keys=None, ids=None, color_name='red'):
         if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed so far. Use parse_mscx()")
+            self.logger.info("No scores have been parsed so far. Use parse_scores()")
             return
         if ids is None:
             ids = list(self._iterids(keys, only_parsed_mscx=True))
@@ -1314,7 +1314,7 @@ Continuing with {annotation_key}.""")
             Set to False to also retrieve lists that had already been retrieved.
         """
         if len(self._parsed_mscx) == 0:
-            self.logger.debug("No scores have been parsed so far. Use Corpus.parse_mscx()")
+            self.logger.debug("No scores have been parsed so far. Use Corpus.parse_scores()")
             return
         if ids is None:
             only_new = False
@@ -1441,7 +1441,7 @@ Available keys: {available_keys}""")
         else:
             res = make_series(sum(res_dict.values(), Counter()))
         if len(res) == 0:
-            self.logger.info("No annotations found. Maybe no scores have been parsed using parse_mscx()?")
+            self.logger.info("No annotations found. Maybe no scores have been parsed using parse_scores()?")
         return res
 
 
@@ -1486,7 +1486,7 @@ Available keys: {available_keys}""")
             res_dict[key].update(self._annotations[(key, i)].harmony_layer_counts)
         if len(res_dict) == 0:
             if len(self._parsed_mscx) == 0:
-                self.logger.error("No scores have been parsed so far. Use parse_mscx().")
+                self.logger.error("No scores have been parsed so far. Use parse_scores().")
             else:
                 self.logger.info("None of the scores contain annotations.")
         if per_key:
@@ -2365,7 +2365,7 @@ Load one of the identically named files with a different key using add_dir(key='
         fname = self.fnames[key][i]
 
         if id not in self._parsed_mscx:
-            logger.error(f"No Score object found. Call parse_mscx() first.")
+            logger.error(f"No Score object found. Call parse_scores() first.")
             return
         path = self._calculate_path(ix=i, root_dir=root_dir, folder=folder)
         if path is None:
