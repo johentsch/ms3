@@ -795,9 +795,10 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
             trailing_numbers = " " + trailing_numbers_match.group()
             substring = original_substring[:trailing_numbers_position]
         lowercase = substring.lower()
+        check_lower = fallback_to_lowercase and (lowercase != substring)
         if substring in abbreviations:
             resolved = abbreviations[substring] + trailing_numbers
-        elif fallback_to_lowercase and lowercase in abbreviations:
+        elif check_lower and lowercase in abbreviations:
             resolved = abbreviations[lowercase] + trailing_numbers
         else:
             resolved = original_substring
@@ -831,11 +832,17 @@ def distribute_tokens_over_levels(levels: Collection[str],
     mc_string = '' if mc is None else f"MC {mc}: "
     for level_str, token_str in zip(levels, tokens):
         split_level_info = pd.Series(level_str.split('&'))
+        # turn layer indications into a DataFrame with the columns ['level', 'form_tree', and 'reading']
         analytical_layers = split_level_info.str.extract(FORM_LEVEL_REGEX)
         levels_include_reading = analytical_layers.reading.notna().any()
+        # reading indications become part of the token and each will be followed by a colon
         analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
+        # propagate information that has been omitted in the second and following indications,
+        # e.g. 2a&b -> [2a:, 2b:]; 1aii&iii -> [1aii:, 1aiii:]; 1ai&b -> [1ai:, 1b] (i.e., readings are not propagated)
         analytical_layers = analytical_layers.fillna(method='ffill')
         analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
+        # split token into alternative components, replace special with normal white-space characters, and strip each
+        # component from white space and separating commas
         token_alternatives = [re.sub(r'\s+',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
         token_alternatives = [t for t in token_alternatives if t != '']
         if len(abbreviations) > 0:
@@ -968,7 +975,7 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
             check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
             if check_double_attribution.any().any():
-                logger.debug(
+                logger.warning(
                     "Did not distribute levels to all form types because some had already been individually specified.")
             res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
         fl_multiindex = pd.concat([fl], keys=[''], axis=1)
