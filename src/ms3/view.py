@@ -205,7 +205,7 @@ class View(LoggedClass):
         self._discarded_items[key].extend(discarded_items)
         return result
 
-    def filtering_report(self, drop_zero=True, show_discarded=False):
+    def filtering_report(self, drop_zero=True, show_discarded=True):
         aggregated_counts = defaultdict(empty_counts)
         for key, counts in self._last_filtering_counts.items():
             key = key.replace('filtered_', '')
@@ -245,9 +245,9 @@ class View(LoggedClass):
             msg_components.append("disregards all TSV files")
         if self.exclude_review:
             msg_components.append("excludes review files and folders")
-        included_re = {what_to_include: [f'"{rgx}"' for rgx in regexes if rgx not in self.registered_regexes]
+        included_re = {what_to_include: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_include, regexes in self.including.items()}
-        excluded_re = {what_to_exclude: [f'"{rgx}"' for rgx in regexes if rgx not in self.registered_regexes]
+        excluded_re = {what_to_exclude: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_exclude, regexes in self.excluding.items()}
         msg_components.extend([f"includes only {what_to_include} containing {re_strings[0] if len(re_strings) == 1 else 'one of ' + str(re_strings)}"
                             for what_to_include, re_strings in included_re.items()

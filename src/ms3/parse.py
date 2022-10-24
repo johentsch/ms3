@@ -326,6 +326,9 @@ class Parse(LoggedClass):
     def n_unparsed_tsvs(self):
         return sum(corpus.n_unparsed_tsvs for _, corpus in self)
 
+    @property
+    def view(self):
+        return self.get_view()
 
     @property
     def views(self):
@@ -2303,7 +2306,7 @@ Available keys: {available_keys}""")
             cols = dict(label='label')
             infer_types = None
         self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
+                                            **logger_cfg)
         self.logger.debug(
             f"{rel_path} successfully parsed from commit {short_sha}.")
         return new_id
@@ -2956,29 +2959,6 @@ Available keys: {available_keys}""")
 #         self.score_available = 'scores' in self.matches
 #         self.measures_available = self.score_available or 'measures' in self.matches
 #
-#
-#     def info(self, return_str=False):
-#         info = f"View on {self.key} -> {self.fname}\n"
-#         info += "-" * len(info) + "\n\n"
-#         if self.score_available:
-#             plural = "s" if len(self.matches['scores']) > 1 else ""
-#             info += f"Parsed score{plural} available."
-#         else:
-#             info += "No parsed scores available."
-#         info += "\n\n"
-#         for typ, matched_files in self.matches.items():
-#             info += f"{typ}\n{'-' * len(typ)}\n"
-#             if len(matched_files) > 1:
-#                 distinguish = make_distinguishing_strings(matched_files)
-#                 matches = dict(zip(distinguish, matched_files))
-#                 paths = {k: matches[k].full_path for k in sorted(matches, key=lambda s: len(s))}
-#                 info += pretty_dict(paths)
-#             else:
-#                 info += matched_files[0].full_path
-#             info += "\n\n"
-#         if return_str:
-#             return info
-#         print(info)
 #
 #
 #     @lru_cache()

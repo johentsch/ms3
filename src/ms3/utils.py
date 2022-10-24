@@ -3732,9 +3732,9 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
         'events': ['event'],
         'chords': ['chord_id'],
         'rests': ['nominal_duration'],
-        'measures': ['act_dur'],
         'expanded': ['numeral'],
-        'labels': ['harmony_layer', 'label_type'],
+        'labels': ['harmony_layer', 'label', 'label_type'],
+        'measures': ['act_dur'],
         'cadences': ['cadence'],
         'metadata': ['fname'],
         'form_labels': ['form_label', 'a'],
@@ -4065,9 +4065,16 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
         argument = [argument]
     if allowed is None:
         return argument
+    else:
+        singular_dict = {allwd[:-1]: allwd for allwd in allowed}
     accepted, rejected = [], []
     for arg in argument:
-        (rejected, accepted)[arg in allowed].append(arg)
+        if arg in allowed:
+            accepted.append(arg)
+        elif arg in singular_dict:
+            accepted.append(singular_dict[arg])
+        else:
+            rejected.append(arg)
     n_rejected = len(rejected)
     if n_rejected > 0:
         if n_rejected == 1:

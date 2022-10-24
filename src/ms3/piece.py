@@ -244,7 +244,7 @@ class Piece(LoggedClass):
                  ) -> Optional[FileDataframeTuple]:
         if isinstance(facet, list):
             facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, ScoreFacet)
+        facets = argument_and_literal_type2list(facet, ScoreFacet, logger=self.logger)
         assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
@@ -403,7 +403,7 @@ class Piece(LoggedClass):
                   ) -> Optional[FileDataframeTuple]:
         if isinstance(facet, list):
             facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, ScoreFacet)
+        facets = argument_and_literal_type2list(facet, ScoreFacet, logger=self.logger)
         assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
@@ -437,7 +437,7 @@ class Piece(LoggedClass):
         """
         if isinstance(facet, list):
             facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, Facet)
+        facets = argument_and_literal_type2list(facet, Facet, logger=self.logger)
         assert facets is not None, f"Pass a valid facet {Facet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.get_files"
         assert choose != 'all', "If you want to choose='all', use _.get_files() (plural)."
@@ -537,7 +537,7 @@ class Piece(LoggedClass):
                    choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTuple:
         if isinstance(facet, list):
             facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, Facet)
+        facets = argument_and_literal_type2list(facet, Facet, logger=self.logger)
         assert facets is not None, f"Pass a valid facet {Facet.__args__}"
         assert len(facets) == 1, "Request one facet at a time or use _.get_all_parsed"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
@@ -733,7 +733,7 @@ class Piece(LoggedClass):
             existing_file = self.files[ix]
             if file.full_path == existing_file.full_path:
                 self.logger.debug(f"File '{file.rel_path}' was already registered for {self.name}.")
-                return
+                return None
             else:
                 self.logger.debug(f"File '{existing_file.rel_path}' replaced with '{file.rel_path}'")
         if file.fname != self.name:

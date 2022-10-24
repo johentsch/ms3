@@ -849,7 +849,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             logger_cfg = self.logger_cfg.copy()
             # logger_cfg['name'] += '.annotations'
             self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
+                                            **logger_cfg)
         else:
             self._annotations = None
 
@@ -1166,7 +1166,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return reached, goal
 
-        prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict)
+        prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict, **self.logger_cfg)
         reached = self.mscx.add_labels(prepared_annotations)
         if remove_detached:
             if reached == goal:
@@ -1342,11 +1342,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
             old_df[k] = v
         if add_to_rna:
             old_df['harmony_layer'] = 1
-            anno = Annotations(df=old_df)
+            anno = Annotations(df=old_df, **self.logger_cfg)
             anno.remove_initial_dots()
         else:
             old_df['harmony_layer'] = 0
-            anno = Annotations(df=old_df)
+            anno = Annotations(df=old_df, **self.logger_cfg)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
@@ -1401,7 +1401,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = f"{self.logger.name}.{key}"
         self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
-                                                      logger_cfg=logger_cfg)
+                                                      **logger_cfg)
         if delete:
             self._mscx.delete_labels(df)
         return
@@ -1478,7 +1478,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             for key in self:
                 self[key].infer_types(self.get_infer_regex())
 
-    def load_annotations(self, tsv_path=None, anno_obj=None, key='tsv', cols={}, infer=True):
+    def load_annotations(self, tsv_path=None, anno_obj=None, df=None, key='tsv', cols={}, infer=True):
         """ Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
@@ -1502,18 +1502,20 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         assert key is not None, "Key cannot be None."
-        assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
+        assert sum(arg is not None for arg in (tsv_path, anno_obj, df)) == 1, "Pass either tsv_path or anno_obj or df."
         inf_dict = self.get_infer_regex() if infer else {}
         mscx = None if self._mscx is None else self._mscx
         if tsv_path is not None:
             key = self._handle_path(tsv_path, key)
             logger_cfg = self.logger_cfg.copy()
             logger_cfg['name'] = f"{self.logger_names[key]}"
-            self._detached_annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
-                                                          logger_cfg=logger_cfg)
+            anno_obj = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
+                                                          **logger_cfg)
+        elif df is not None:
+            anno_obj = Annotations(df=df, infer_types=inf_dict, cols=cols, mscx_obj=mscx, **self.logger_cfg)
         else:
             anno_obj.mscx_obj = mscx
-            self._detached_annotations[key] = anno_obj
+        self._detached_annotations[key] = anno_obj
 
     def store_annotations(self, key='annotations', tsv_path=None, **kwargs):
         """ Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method

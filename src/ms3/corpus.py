@@ -285,7 +285,11 @@ class Corpus(LoggedClass):
         score_extensions = ['.' + ext for ext in Score.parseable_formats]
         detected_extensions = score_extensions + ['.tsv']
         newly_added = []
+        existing_paths = pd.DataFrame(self.files).full_path.to_list()
         for full_path in resolved_paths:
+            if full_path in existing_paths:
+                self.logger.debug(f"Skipping {full_path} because it was already there.")
+                continue
             current_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
             if file_ext not in detected_extensions:
@@ -311,6 +315,8 @@ class Corpus(LoggedClass):
             )
             self.files.append(F)
             newly_added.append(F)
+        if len(self._pieces) > 0:
+            self.register_files_with_pieces(newly_added)
         return newly_added
 
     def collect_fnames_from_scores(self) -> None:
@@ -669,17 +675,18 @@ class Corpus(LoggedClass):
         else:
             metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
             included_selector = counts_df.index.isin(metadata_fnames)
+            n_pieces = len(counts_df)
             if included_selector.all():
-                msg += "All pieces are listed in 'metadata.tsv':\n\n"
+                msg += f"All {n_pieces} pieces are listed in 'metadata.tsv':\n\n"
                 msg += counts_df.to_string()
             elif not included_selector.any():
-                msg = "None of the pieces is actually listed in 'metadata.tsv'.\n\n"
+                msg = f"None of the {n_pieces} pieces is actually listed in 'metadata.tsv'.\n\n"
                 msg += counts_df.to_string()
             else:
-                msg = "Only the following pieces are listed in 'metadata.tsv':\n\n"
+                msg = f"Only the following {included_selector.sum()} pieces are listed in 'metadata.tsv':\n\n"
                 msg += counts_df[included_selector].to_string()
                 not_included = ~included_selector
-                plural = "These ones here are" if not_included.sum() > 1 else "This one is"
+                plural = f"These {not_included.sum()} here are" if not_included.sum() > 1 else "This one is"
                 msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
                 msg += counts_df[not_included].to_string()
         msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
@@ -922,7 +929,7 @@ class Corpus(LoggedClass):
             self.logger.info(f"None of the {target} files have been parsed successfully.")
 
 
-    def register_files_with_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
+    def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
         if fnames is None:
             fnames = self.get_fnames()
         elif isinstance(fnames, str):
@@ -932,7 +939,9 @@ class Corpus(LoggedClass):
         if len(fnames) == 0:
             self.logger.warning(f"Corpus contains neither scores nor metadata.")
             return
-        for file in self.files:
+        if files is None:
+            files = self.files
+        for file in files:
             # try to associate all detected files with one of the created pieces and
             # store the mapping in :attr:`ix2fname`
             piece_name = None
@@ -955,7 +964,10 @@ class Corpus(LoggedClass):
                 self.ix2fname[file.ix] = None
             else:
                 piece = self.get_piece(piece_name)
-                if piece.register_file(file):
+                registration_result = piece.register_file(file)
+                if registration_result is None:
+                    self.logger.debug(f"Skipping '{file.rel_path}' because it had already been registered with Piece('{piece_name}').")
+                elif registration_result:
                     self.ix2fname[file.ix] = piece_name
                     self.logger_names[file.ix] = piece.logger.name
                 else:
@@ -1023,6 +1035,9 @@ class Corpus(LoggedClass):
         if show_info:
             self.info()
 
+    @property
+    def view(self):
+        return self.get_view()
 
     @property
     def views(self):
@@ -2050,7 +2065,7 @@ Available keys: {available_keys}""")
             cols = dict(label='label')
             infer_types = None
         self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
+                                            **logger_cfg)
         self.logger.debug(
             f"{rel_path} successfully parsed from commit {short_sha}.")
         return new_id

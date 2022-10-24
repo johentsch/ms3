@@ -39,7 +39,7 @@ def make_parse_obj(args):
     simulate = args.test if hasattr(args, 'test') else False
     ms = args.musescore if hasattr(args, 'musescore') else None
     return Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
-              logger_cfg=logger_cfg, simulate=simulate, ms=ms)
+              simulate=simulate, ms=ms, **logger_cfg)
 
 
 def make_suffixes(args):
@@ -64,7 +64,7 @@ def add(args):
         'path': args.log,
     }
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
-              recursive=args.nonrecursive, logger_cfg=logger_cfg)
+              recursive=args.nonrecursive, **logger_cfg)
     p.parse(parallel=False)
     if args.replace:
         p.detach_labels()
@@ -138,7 +138,7 @@ def empty(args):
         'path': args.log,
     }
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
-              recursive=args.nonrecursive, logger_cfg=logger_cfg)
+              recursive=args.nonrecursive, **logger_cfg)
     p.parse_scores(parallel=False)
     p.detach_labels()
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
@@ -188,7 +188,7 @@ def metadata(args):
     regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
 
     p = Parse(args.dir, paths=args.file, file_re=regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              logger_cfg=logger_cfg)
+              **logger_cfg)
     if not any('metadata' in fnames for fnames in p.fnames.values()):
         p.logger.info("metadata.tsv not found.")
         return
@@ -243,7 +243,7 @@ def transform(args):
     }
 
     p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              logger_cfg=logger_cfg, simulate=args.test)
+              simulate=args.test, **logger_cfg)
     p.parse_tsv()
     for param in params:
         if param == 'metadata':
