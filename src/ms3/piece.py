@@ -19,7 +19,7 @@ class Piece(LoggedClass):
 
     def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
-        self.piece_name = fname
+        self.name = fname
         available_types = ('scores',) + Score.dataframe_types
         self.facet2files: Dict[str, FileList] = defaultdict(list)
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
@@ -93,7 +93,7 @@ class Piece(LoggedClass):
             return None
         meta_dict = score.mscx.metadata
         meta_dict['subdirectory'] = file.subdir
-        meta_dict['fname'] = self.piece_name
+        meta_dict['fname'] = self.name
         meta_dict['rel_path'] = file.rel_path
         if as_dict:
             return meta_dict
@@ -152,7 +152,7 @@ class Piece(LoggedClass):
     def __repr__(self):
         return self.info(return_str=True)
     def add_parsed_score(self, ix: int, score_obj: Score) -> None:
-        assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
         if score_obj is None:
             file = self.files[ix]
             self.logger.debug(f"I was promised the parsed score for '{file.rel_path}' but received None.")
@@ -162,7 +162,7 @@ class Piece(LoggedClass):
         self.type2parsed['scores'][ix] = score_obj
 
     def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
-        assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
         if parsed_tsv is None:
             file = self.files[ix]
             self.logger.debug(f"I was promised the parsed DataFrame for '{file.rel_path}' but received None.")
@@ -226,7 +226,7 @@ class Piece(LoggedClass):
     def count_parsed(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
        return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, include_empty=include_empty)}
 
-    def count_types(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
+    def count_detected(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
         return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty)}
 
     def extract_facet(self,
@@ -278,7 +278,7 @@ class Piece(LoggedClass):
             return [] if flat else {facet: [] for facet in selected_facets}
         for file, score_obj in score_files:
             if score_obj is None:
-                self.logger.info(f"No parsed score found for '{self.piece_name}'")
+                self.logger.info(f"No parsed score found for '{self.name}'")
                 continue
             for facet in selected_facets:
                 df = getattr(score_obj.mscx, facet)(interval_index=interval_index)
@@ -494,11 +494,11 @@ class Piece(LoggedClass):
                 result[facet] = disambiguated
         if choose == 'auto':
             for typ in needs_choice:
-                result[typ] = [automatically_choose_from_disambiguated_files(result[typ], self.piece_name, typ)]
+                result[typ] = [automatically_choose_from_disambiguated_files(result[typ], self.name, typ)]
         elif choose == 'ask':
             for typ in needs_choice:
                 choices = result[typ]
-                result[typ] = [ask_user_to_choose_from_disambiguated_files(choices, self.piece_name, typ)]
+                result[typ] = [ask_user_to_choose_from_disambiguated_files(choices, self.name, typ)]
         elif choose == 'all' and 'scores' in needs_choice:
             # check if any scores can be differentiated solely by means of their file extension
             several_score_files = result['scores'].values()
@@ -518,7 +518,7 @@ class Piece(LoggedClass):
 
     def _get_parsed_at_index(self,
                              ix: int) -> ParsedFile:
-        assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
         if ix not in self.ix2parsed:
             self._parse_file_at_index(ix)
         if ix not in self.ix2parsed:
@@ -580,7 +580,7 @@ class Piece(LoggedClass):
                 result[facet] = parsed_files
             else:
                 selected = disambiguate_parsed_files(parsed_files,
-                                                     self.piece_name,
+                                                     self.name,
                                                      facet,
                                                      choose=choose,
                                                      logger=self.logger
@@ -647,7 +647,7 @@ class Piece(LoggedClass):
         return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
 
     def info(self, return_str=False, view_name=None, show_discarded: bool = False):
-        header = f"Piece '{self.piece_name}'"
+        header = f"Piece '{self.name}'"
         header += "\n" + "-" * len(header) + "\n"
 
         # start info message with the names of the available views, the header, and info on the active view.
@@ -704,7 +704,7 @@ class Piece(LoggedClass):
 
 
     def _parse_file_at_index(self, ix: int) -> None:
-        assert ix in self.files, f"Piece '{self.piece_name}' does not include a file with index {ix}."
+        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
         file = self.files[ix]
         if file.type == 'scores':
             logger_cfg = dict(self.logger_cfg)
@@ -727,20 +727,20 @@ class Piece(LoggedClass):
         if ix in self.files:
             existing_file = self.files[ix]
             if file.full_path == existing_file.full_path:
-                self.logger.debug(f"File '{file.rel_path}' was already registered for {self.piece_name}.")
+                self.logger.debug(f"File '{file.rel_path}' was already registered for {self.name}.")
                 return
             else:
                 self.logger.debug(f"File '{existing_file.rel_path}' replaced with '{file.rel_path}'")
-        if file.fname != self.piece_name:
-            if file.fname.startswith(self.piece_name):
-                file.suffix = file.fname[len(self.piece_name):]
+        if file.fname != self.name:
+            if file.fname.startswith(self.name):
+                file.suffix = file.fname[len(self.name):]
                 self.logger.debug(f"Recognized suffix '{file.suffix}' for {file.file}.")
             elif reject_incongruent_fnames:
-                if self.piece_name in file.fname:
-                    self.logger.info(f"{file.file} seems to come with a prefix w.r.t. '{self.piece_name}' and is ignored.")
+                if self.name in file.fname:
+                    self.logger.info(f"{file.file} seems to come with a prefix w.r.t. '{self.name}' and is ignored.")
                     return False
                 else:
-                    self.logger.warning(f"{file.file} does not contain '{self.piece_name}' and is ignored.")
+                    self.logger.warning(f"{file.file} does not contain '{self.name}' and is ignored.")
                     return False
         self.facet2files[file.type].append(file)
         self.files[file.ix] = file
