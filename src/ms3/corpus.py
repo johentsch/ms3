@@ -66,10 +66,10 @@ class Corpus(LoggedClass):
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
         self.corpus_path: str = directory
         """Path where the corpus is located."""
-        self.corpus_name =  os.path.basename(directory).strip(r'\/')
+        self.name =  os.path.basename(directory).strip(r'\/')
         """Folder name of the corpus."""
         if 'name' not in logger_cfg or logger_cfg['name'] is None or logger_cfg['name'] == '':
-            logger_cfg['name'] = 'ms3.' + self.corpus_name.replace('.', '')
+            logger_cfg['name'] = 'ms3.' + self.name.replace('.', '')
         if level is not None:
             logger_cfg['level'] = level
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
@@ -155,28 +155,28 @@ class Corpus(LoggedClass):
     @property
     def ix2parsed(self) -> Dict[int, ParsedFile]:
         result = {}
-        for _, piece in self.iter_pieces():
+        for _, piece in self:
             result.update(piece.ix2parsed)
         return result
 
     @property
     def ix2parsed_score(self) -> Dict[int, Score]:
         result = {}
-        for _, piece in self.iter_pieces():
+        for _, piece in self:
             result.update(piece.ix2parsed_score)
         return result
 
     @property
     def ix2parsed_tsv(self) -> Dict[int, pd.DataFrame]:
         result = {}
-        for _, piece in self.iter_pieces():
+        for _, piece in self:
             result.update(piece.ix2parsed_tsv)
         return result
 
     @property
     def ix2annotations(self) -> Dict[int, ParsedFile]:
         result = {}
-        for _, piece in self.iter_pieces():
+        for _, piece in self:
             result.update(piece.ix2annotations)
         return result
 
@@ -190,16 +190,16 @@ class Corpus(LoggedClass):
 
     @property
     def n_unparsed_scores(self):
-        return len(self._get_unparsed_score_files())
+        return sum(file.ix not in self.ix2parsed_score for file in self.files if file.type == 'scores')
 
 
     @property
     def n_parsed_tsvs(self):
-        return len(self.ix2parsed_tsv)
+        return len(self.ix2parsed_tsv)# + len(self.ix2metadata_file)
 
     @property
     def n_unparsed_tsvs(self):
-        return len(self._get_unparsed_tsv_files())
+        return sum(file.ix not in self.ix2parsed_tsv and file.ix not in self.ix2metadata_file for file in self.files if file.type != 'scores')
 
     @property
     def n_annotations(self):
@@ -228,7 +228,7 @@ class Corpus(LoggedClass):
         fname2counts = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
             if detected:
-                type_count = piece.count_types(view_name=view_name, include_empty=True)
+                type_count = piece.count_detected(view_name=view_name, include_empty=True)
                 if not parsed:
                     fname2counts[fname] = type_count
             if parsed:
@@ -414,7 +414,7 @@ class Corpus(LoggedClass):
     def extract_facets(self,
                        facets: ScoreFacets = None,
                        view_name: Optional[str] = None,
-                       force: bool = True,
+                       force: bool = False,
                        choose: Literal['auto', 'ask'] = 'auto',
                        unfold: bool = False,
                        interval_index: bool = False,
@@ -436,7 +436,7 @@ class Corpus(LoggedClass):
                                              unfold=unfold,
                                              interval_index=interval_index,
                                              flat=flat)
-            result[piece.piece_name] = type2file
+            result[piece.name] = type2file
         return result
 
 
@@ -488,7 +488,8 @@ class Corpus(LoggedClass):
                    choose: Literal['all', 'auto', 'ask'] = 'all',
                    unfold: bool = False,
                    interval_index: bool = False,
-                   flat=False
+                   flat=False,
+                   include_empty: bool = False,
                    ) -> Dict[str, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
         """
 
@@ -519,7 +520,7 @@ class Corpus(LoggedClass):
                                          )
             if len(type2file) == 0 and not include_empty:
                 continue
-            result[piece.piece_name] = type2file
+            result[piece.name] = type2file
         return result
 
 
@@ -556,7 +557,7 @@ class Corpus(LoggedClass):
                                         include_empty=include_empty)
             if len(type2file) == 0 and not include_empty:
                 continue
-            result[piece.piece_name] = type2file
+            result[piece.name] = type2file
         return result
 
     def get_all_parsed(self, facets: FacetArguments = None,
@@ -596,7 +597,7 @@ class Corpus(LoggedClass):
                                              include_empty=include_empty)
             if len(type2file) == 0 and not include_empty:
                 continue
-            result[piece.piece_name] = type2file
+            result[piece.name] = type2file
         return result
 
     def get_fnames(self,
@@ -640,7 +641,7 @@ class Corpus(LoggedClass):
              view_name: Optional[str] = None,
              show_discarded: bool = False):
         """"""
-        header = f"Corpus '{self.corpus_name}'"
+        header = f"Corpus '{self.name}'"
         header += "\n" + "-" * len(header) + "\n"
         header += f"Location: {self.corpus_path}\n"
 
@@ -777,14 +778,20 @@ class Corpus(LoggedClass):
         exts = selected_scores_df.fext.value_counts()
 
         if any(ext[1:].lower() in Score.convertible_formats for ext in exts.index) and parallel:
-            msg = f"The file extensions [{', '.join(ext[1:] for ext in exts.index if ext[1:].lower() in Score.convertible_formats )}] " \
+            needs_conversion = [ext for ext in exts.index if ext[1:].lower() in Score.convertible_formats]
+            msg = f"The file extensions [{', '.join(needs_conversion)}] " \
                   f"require temporary conversion with your local MuseScore, which is not possible with parallel " \
                   f"processing. Parse with parallel=False or set View.include_convertible=False."
             if self.ms is None:
                 msg += "\nIn case you want to temporarily convert these files, you will also have to set the " \
                        "property ms of this object to the path of your MuseScore 3 executable."
-            self.logger.error(msg)
-            return
+            selected_files = [file for file in selected_files if file.fext not in needs_conversion]
+            msg += f"\nAfter filtering out the files, the target was reduced from N={target} to {len(selected_files)}."
+            target = len(selected_files)
+            self.logger.warning(msg)
+            if target == 0:
+                return
+
 
 
         configs = [dict(
