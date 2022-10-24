@@ -1586,10 +1586,14 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, view_name: Optional[str] = None):
+    def count_extensions(self, view_name: Optional[str] = None, include_metadata: bool = False):
         """"""
         selected_files = self.get_files(view_name=view_name, flat=True)
-        return {fname: Counter(file.fext for file in files) for fname, files in selected_files.items()}
+        result = {fname: Counter(file.fext for file in files) for fname, files in selected_files.items()}
+        if include_metadata and 'metadata' not in result:
+            result['metadata'] = Counter(file.fext for file in self.ix2metadata_file.values())
+        return result
+
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
         return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
