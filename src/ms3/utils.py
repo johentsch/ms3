@@ -1,3 +1,4 @@
+import json
 import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
@@ -4101,3 +4102,19 @@ def available_views2str(views_dict: ViewDict, active_view_name: str = None) -> s
     current_view = view_names[active_view_name]
     view_list = [bold_font(current_view)] + [name for name in view_names.values() if name != current_view]
     return f"[{'|'.join(view_list)}]\n"
+
+
+@function_logger
+def unpack_json_paths(paths: Collection[str]) -> None:
+    """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
+    json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
+    if len(json_ixs) > 0:
+        for i in reversed(json_ixs):
+            try:
+                with open(paths[i]) as f:
+                    loaded_paths = json.load(f)
+                paths.extend(loaded_paths)
+                logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
+                del (paths[i])
+            except Exception:
+                logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")

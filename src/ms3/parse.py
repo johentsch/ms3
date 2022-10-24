@@ -1,12 +1,10 @@
-
+import re
 from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator
 
 import io
-import sys, os, re
-from functools import lru_cache
-import json
+import sys, os
 import traceback
-from collections import Counter, defaultdict, namedtuple
+from collections import Counter, defaultdict
 
 import pandas as pd
 import numpy as np
@@ -15,51 +13,14 @@ from gitdb.exc import BadName
 
 from .corpus import Corpus
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, function_logger
+from .logger import LoggedClass, get_logger
 from .piece import Piece
 from .score import Score
 from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTuple, FacetArguments, FileParsedTuple
-from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
-    iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
+from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, path2parent_corpus, available_views2str
-from .transformations import dfs2quarterbeats
-from .view import View, DefaultView
-
-@function_logger
-def unpack_json_paths(paths: Collection[str]) -> None:
-    """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
-    json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
-    if len(json_ixs) > 0:
-        for i in reversed(json_ixs):
-            try:
-                with open(paths[i]) as f:
-                    loaded_paths = json.load(f)
-                paths.extend(loaded_paths)
-                logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
-                del (paths[i])
-            except Exception:
-                logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
-
-
-
-def legacy_params2view(paths=None, file_re=None, folder_re=None, exclude_re=None) -> View:
-    if all(param is None for param in (paths, file_re, folder_re, exclude_re)):
-        return DefaultView()
-    view = View("Gerhardt")
-    if file_re is not None:
-        view.include('files', file_re)
-    if folder_re is not None and folder_re != '.*':
-        view.include('folders', folder_re)
-    if exclude_re is not None:
-        view.exclude(('files', 'folders'), exclude_re)
-    if paths is not None:
-        if isinstance(paths, str):
-            paths = [paths]
-        unpack_json_paths(paths)
-        regexes = [re.escape(os.path.basename(p)) for p in paths]
-        view.include('files', *regexes)
-    return view
+    update_labels_cfg, write_tsv, available_views2str
+from .view import View, create_view_from_parameters, DefaultView
 
 
 class Parse(LoggedClass):
@@ -67,12 +28,28 @@ class Parse(LoggedClass):
     Class for storing and manipulating the information from multiple parses (i.e. :py:attr:`~.score.Score` objects).
     """
 
-    def __init__(self, directory=None, paths=None, file_re=None, folder_re=None, exclude_re=None,
-                 recursive=True, simulate=False, labels_cfg={}, ms=None, level=None, **logger_cfg):
+    def __init__(self, 
+                 directory: str = None, 
+                 recursive: bool = True, 
+                 only_metadata_fnames: bool = True, 
+                 include_convertible: bool = False,
+                 include_tsv: bool = True, 
+                 exclude_review: bool = True, 
+                 paths: Optional[Collection[str]] = None, 
+                 file_re: Optional[Union[str, re.Pattern]] = None,
+                 folder_re: Optional[Union[str, re.Pattern]] = None, 
+                 exclude_re: Optional[Union[str, re.Pattern]] = None,
+                 simulate: bool = False,
+                 labels_cfg: dict = {},
+                 ms=None,
+                 **logger_cfg):
         """
 
         Parameters
         ----------
+        include_convertible
+        include_tsv
+        exclude_review
         directory, key, index, file_re, folder_re, exclude_re, recursive : optional
             Arguments for the method :py:meth:`~ms3.parse.add_dir`.
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
@@ -93,11 +70,9 @@ class Parse(LoggedClass):
             and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
-        level: :obj:`str`
+        only_metadata_fnames: :obj:`str`
             Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
-        if level is not None:
-            logger_cfg['level'] = level
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
@@ -207,8 +182,18 @@ class Parse(LoggedClass):
         # """
         #
         self._views: dict = {}
-        self._views[None] = legacy_params2view(paths=paths, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re)
-        self._views['all'] = View('all')
+        initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+                                                        include_convertible=include_convertible,
+                                                        include_tsv=include_tsv,
+                                                        exclude_review=exclude_review,
+                                                        paths=paths,
+                                                        file_re=file_re,
+                                                        folder_re=folder_re,
+                                                        exclude_re=exclude_re)
+        self._views[None] = initial_view
+        if initial_view.name != 'default':
+            self._views['default'] = DefaultView()
+        self._views['all'] = View()
         #
         # self._ignored_warnings = defaultdict(list)
         # """:obj:`collections.defaultdict`
@@ -314,6 +299,10 @@ class Parse(LoggedClass):
         if len(config) > 0:
             view.update_config(**config)
         return view
+
+    @property
+    def n_detected(self):
+        return sum(corpus.n_detected for _, corpus in self)
 
     @property
     def n_parsed(self):
@@ -1805,19 +1794,25 @@ Available keys: {available_keys}""")
 
         # Show info on all pieces and files included in the active view
         counts_df = self.count_files(view_name=view_name)
-        if counts_df.isna().any().any():
-            counts_df = counts_df.fillna(0).astype('int')
-        additional_columns = []
-        for corpus_name in counts_df.index:
-            corpus = self._get_corpus(corpus_name)
-            has_metadata = 'no' if corpus.metadata_tsv is None else 'yes'
-            corpus_view = corpus.get_view().name
-            additional_columns.append([has_metadata, corpus_view])
-        additional_columns = pd.DataFrame(additional_columns, columns=[('', 'metadata'), ('', 'view')], index=counts_df.index)
-        info_df = pd.concat([additional_columns, counts_df], axis=1)
-        info_df.columns = pd.MultiIndex.from_tuples(info_df.columns)
-        msg += info_df.to_string() + '\n\n'
-        msg += view.filtering_report(show_discarded=show_discarded)
+        if len(counts_df) == 0:
+            if self.n_detected == 0:
+                msg += 'No files detected. Use _.add_corpus().'
+            else:
+                msg += 'No files selected under the current view. You could use _.all to see everything.'
+        else:
+            if counts_df.isna().any().any():
+                counts_df = counts_df.fillna(0).astype('int')
+            additional_columns = []
+            for corpus_name in counts_df.index:
+                corpus = self._get_corpus(corpus_name)
+                has_metadata = 'no' if corpus.metadata_tsv is None else 'yes'
+                corpus_view = corpus.get_view().name
+                additional_columns.append([has_metadata, corpus_view])
+            additional_columns = pd.DataFrame(additional_columns, columns=[('', 'metadata'), ('', 'view')], index=counts_df.index)
+            info_df = pd.concat([additional_columns, counts_df], axis=1)
+            info_df.columns = pd.MultiIndex.from_tuples(info_df.columns)
+            msg += info_df.to_string() + '\n\n'
+            msg += view.filtering_report(show_discarded=show_discarded)
         if return_str:
             return msg
         print(msg)

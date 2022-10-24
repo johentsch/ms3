@@ -43,7 +43,12 @@ class Piece(LoggedClass):
         """{ix -> :obj:`Annotations`} dict storing Annotations objects for the parsed labels and expanded labels.
         """
         self._views: dict = {}
-        self._views[None] = DefaultView() if view is None else view
+        if view is None:
+            self._views[None] = DefaultView()
+        else:
+            self._views[None] = view
+            if view.name != 'default':
+                self._views['default'] = DefaultView()
         self._views['all'] = View('all')
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`

@@ -1,3 +1,5 @@
+import os
+import random
 import re
 from collections import defaultdict
 from copy import deepcopy
@@ -8,7 +10,7 @@ import numpy.typing as npt
 
 from .score import Score
 from ._typing import FileList, Category, Categories
-from .utils import File
+from .utils import File, unpack_json_paths
 from .logger import LoggedClass
 
 
@@ -36,7 +38,7 @@ class View(LoggedClass):
 
     def __init__(self,
                  view_name: Optional[str] = 'all',
-                 only_metadata: bool = False,
+                 only_metadata_fnames: bool = False,
                  include_convertible: bool = True,
                  include_tsv: bool = True,
                  exclude_review: bool = False,
@@ -51,7 +53,7 @@ class View(LoggedClass):
         self.excluding: dict = {c: [] for c in self.categories}
         self.selected_facets = self.available_facets
         self.fnames_in_metadata: bool = True
-        self.fnames_not_in_metadata: bool = not only_metadata
+        self.fnames_not_in_metadata: bool = not only_metadata_fnames
         self.include_convertible = include_convertible
         self.include_tsv = include_tsv
         self.exclude_review = exclude_review
@@ -216,7 +218,7 @@ class View(LoggedClass):
         msg = ''
         for key, (_, n_discarded, N) in aggregated_counts.items():
             if not drop_zero or n_discarded > 0:
-                msg += f"{n_discarded}/{N} {key} have been discarded"
+                msg += f"{n_discarded}/{N} {key} are excluded from this view"
                 if show_discarded:
                     if len(discarded[key]) > 0:
                         msg += f":\n{discarded[key]}\n\n"
@@ -352,16 +354,56 @@ class DefaultView(View):
 
     def __init__(self,
                  view_name: Optional[str] = 'default',
-                 only_metadata: bool = True,
+                 only_metadata_fnames: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
                  **logger_cfg
                  ):
         super().__init__(view_name=view_name,
-                         only_metadata=only_metadata,
+                         only_metadata_fnames=only_metadata_fnames,
                          include_convertible=include_convertible,
                          include_tsv=include_tsv,
                          exclude_review=exclude_review,
                          **logger_cfg
                          )
+
+
+def create_view_from_parameters(only_metadata_fnames: bool = True,
+                                include_convertible: bool = False,
+                                include_tsv: bool = True,
+                                exclude_review: bool = True,
+                                paths=None, 
+                                file_re=None, 
+                                folder_re=None, 
+                                exclude_re=None,
+                                ) -> View:
+    no_legacy_params = all(param is None for param in (paths, file_re, folder_re, exclude_re)) 
+    all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
+    if no_legacy_params and all_default:
+        return DefaultView()
+    ferocious_name = get_ferocious_name()
+    view = View(ferocious_name,
+                only_metadata_fnames=only_metadata_fnames,
+                include_convertible=include_convertible,
+                include_tsv=include_tsv,
+                exclude_review=exclude_review,
+                )
+    if file_re is not None:
+        view.include('files', file_re)
+    if folder_re is not None and folder_re != '.*':
+        view.include('folders', folder_re)
+    if exclude_re is not None:
+        view.exclude(('files', 'folders'), exclude_re)
+    if paths is not None:
+        if isinstance(paths, str):
+            paths = [paths]
+        unpack_json_paths(paths)
+        regexes = [re.escape(os.path.basename(p)) for p in paths]
+        view.include('files', *regexes)
+    return view
+
+
+def get_ferocious_name():
+    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ferocious_names.txt')
+    return random.choice(open(path, 'r', encoding='utf-8').readlines()).strip('\n')

@@ -34,7 +34,7 @@ class Corpus(LoggedClass):
         ('found', 'parsed')
     ])
 
-    def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, ms=None, level=None, **logger_cfg):
+    def __init__(self, directory, view: View = None, simulate=False, labels_cfg={}, ms=None, **logger_cfg):
         """
 
         Parameters
@@ -59,8 +59,6 @@ class Corpus(LoggedClass):
             and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
-        level: :obj:`str`
-            Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
         directory = resolve_dir(directory)
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
@@ -69,9 +67,7 @@ class Corpus(LoggedClass):
         self.name =  os.path.basename(directory).strip(r'\/')
         """Folder name of the corpus."""
         if 'name' not in logger_cfg or logger_cfg['name'] is None or logger_cfg['name'] == '':
-            logger_cfg['name'] = 'ms3.' + self.name.replace('.', '')
-        if level is not None:
-            logger_cfg['level'] = level
+            logger_cfg['name'] = 'ms3.Corpus.' + self.name.replace('.', '')
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Corpus', logger_cfg=logger_cfg)
@@ -84,7 +80,12 @@ class Corpus(LoggedClass):
         """
 
         self._views: dict = {}
-        self._views[None] = DefaultView() if view is None else view
+        if view is None:
+            self._views[None] = DefaultView()
+        else:
+            self._views[None] = view
+            if view.name != 'default':
+                self._views['default'] = DefaultView()
         self._views['all'] = View('all')
 
         self._ms = get_musescore(ms, logger=self.logger)
@@ -179,6 +180,10 @@ class Corpus(LoggedClass):
         for _, piece in self:
             result.update(piece.ix2annotations)
         return result
+
+    @property
+    def n_detected(self):
+        return len(self.files)
 
     @property
     def n_parsed(self):
