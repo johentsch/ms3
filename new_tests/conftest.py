@@ -31,29 +31,28 @@ def directory():
 @pytest.fixture(
     scope="session",
     params=[
-        "regular_dirs_at_once",
+        "regex",
         "everything",
-        "file_re_with_key",
-        "file_re_without_key",
-        "without_metadata",
-        "redundant",
-        "regular_dirs",
-        "chaotic_dirs",
-        "hidden_dirs",
-        "files_without_key",
-        "files_with_inferred_key",
-        "files_with_wrong_key",
-        "files_correct_without_metadata",
-        "files_with_correct_key",
+        # "regular_dirs_at_once",
+        # "file_re_without_key",
+        # "without_metadata",
+        # "redundant",
+        # "regular_dirs",
+        # "chaotic_dirs",
+        # "hidden_dirs",
+        # "files_without_key",
+        # "files_with_inferred_key",
+        # "files_with_wrong_key",
+        # "files_correct_without_metadata",
+        # "files_with_correct_key",
     ]
 )
-def parse_obj(directory, request):
+def parse_obj(directory, request) -> Parse:
     logger = get_logger('ms3.tests')
+    if request.param == 'regex':
+        return Parse(directory=directory, file_re='WWV', folder_re='MS3')
     if request.param == 'everything':
-        return Parse(directory=directory)
-    if request.param == 'file_re_with_key':
-        p = Parse(directory=directory, key = 'sweelinck', file_re="SwWV", logger_cfg=dict(level='d'))
-        return p
+        return Parse(directory=directory).all
     if request.param == 'file_re_without_key':
         p = Parse(directory=directory, file_re="SwWV")
         return p
@@ -113,16 +112,16 @@ def parse_obj(directory, request):
     ],
     ids=[
         "parsed_tsv",
-        "parsed_mscx",
+        "parse_scores",
         "parsed_all",
     ],
 )
-def parsed_parse_obj(parse_obj, request):
+def parsed_parse_obj(parse_obj, request) -> Parse:
     p = deepcopy(parse_obj)
     if request.param == 0:
         p.parse_tsv()
     elif request.param == 1:
-        p.parse_mscx()
+        p.parse_scores()
     elif request.param == 2:
         p.parse()
     else:
@@ -130,7 +129,7 @@ def parsed_parse_obj(parse_obj, request):
     return p
 
 @pytest.fixture(scope="class")
-def parse_objects(parse_obj, request):
+def parse_objects(parse_obj: Parse, request):
     request.cls.parse_obj = parse_obj
 
 @pytest.fixture(scope="class")

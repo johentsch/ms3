@@ -9,8 +9,8 @@ class TestEquivalence():
     def test_parallel(self, directory):
         a = Parse(directory)
         b = Parse(directory)
-        a.parse_mscx()
-        b.parse_mscx(parallel=False)
+        a.parse_scores()
+        b.parse_scores(parallel=False)
         assert a.info(return_str=True) == b.info(return_str=True)
 
     def test_add_corpus(self, directory):
@@ -48,10 +48,10 @@ class TestLogging():
         a = Parse(directory, logger_cfg=cfg)
         b = Parse(directory, logger_cfg=cfg)
         with capture_parse_logs(a.logger) as captured_msgs:
-            a.parse_mscx(parallel=False)
+            a.parse_scores(parallel=False)
             non_parallel_msgs = captured_msgs.content_list
         with capture_parse_logs(b.logger) as captured_msgs:
-            b.parse_mscx(parallel=True)
+            b.parse_scores(parallel=True)
             parallel_msgs = captured_msgs.content_list
         for msg in non_parallel_msgs:
             assert msg in parallel_msgs
