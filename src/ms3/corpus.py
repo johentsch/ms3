@@ -3,7 +3,7 @@ from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Opti
 
 import io
 import sys, os, re
-import json
+from itertools import zip_longest
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
 
@@ -242,9 +242,11 @@ class Corpus(LoggedClass):
                     fname2counts[fname] = parsed_count
             if detected & parsed:
                 alternating_counts = {}
-                for (k1, v1), (k2, v2) in zip(type_count.items(), parsed_count.items()):
-                    alternating_counts[k1] = v1
-                    alternating_counts[k2] = v2
+                for (k1, v1), (k2, v2) in zip_longest(type_count.items(), parsed_count.items(), fillvalue=(None, None)):
+                    if k1 is not None:
+                        alternating_counts[k1] = v1
+                    if k2 is not None:
+                        alternating_counts[k2] = v2
                 fname2counts[fname] = alternating_counts
         if as_dict:
             return fname2counts
@@ -658,26 +660,28 @@ class Corpus(LoggedClass):
         msg += f"View: {view}\n\n"
 
         # a table counting the number of parseable files under the active view
-        all_pieces_df = self.count_files(drop_zero=True, view_name=view_name)
+        counts_df = self.count_files(drop_zero=True, view_name=view_name)
+        if counts_df.isna().any().any():
+            counts_df = counts_df.fillna(0).astype('int')
         if self.metadata_tsv is None:
             msg += "No 'metadata.tsv' file is present.\n\n"
-            msg += all_pieces_df.to_string()
+            msg += counts_df.to_string()
         else:
             metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
-            included_selector = all_pieces_df.index.isin(metadata_fnames)
+            included_selector = counts_df.index.isin(metadata_fnames)
             if included_selector.all():
                 msg += "All pieces are listed in 'metadata.tsv':\n\n"
-                msg += all_pieces_df.to_string()
+                msg += counts_df.to_string()
             elif not included_selector.any():
                 msg = "None of the pieces is actually listed in 'metadata.tsv'.\n\n"
-                msg += all_pieces_df.to_string()
+                msg += counts_df.to_string()
             else:
                 msg = "Only the following pieces are listed in 'metadata.tsv':\n\n"
-                msg += all_pieces_df[included_selector].to_string()
+                msg += counts_df[included_selector].to_string()
                 not_included = ~included_selector
                 plural = "These ones here are" if not_included.sum() > 1 else "This one is"
                 msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
-                msg += all_pieces_df[not_included].to_string()
+                msg += counts_df[not_included].to_string()
         msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
         if return_str:
             return msg
