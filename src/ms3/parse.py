@@ -1,5 +1,5 @@
 
-from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List
+from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator
 
 import io
 import sys, os, re
@@ -18,7 +18,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, CorpusFnameTuple
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTuple, FacetArguments, FileParsedTuple
 from .utils import column_order, get_musescore, group_id_tuples, infer_tsv_type, \
     iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
@@ -316,6 +316,29 @@ class Parse(LoggedClass):
         return view
 
     @property
+    def n_parsed(self):
+        return sum(corpus.n_parsed for _, corpus in self)
+
+    @property
+    def n_parsed_scores(self):
+        return sum(corpus.n_parsed_scores for _, corpus in self)
+
+    @property
+    def n_parsed_tsvs(self):
+        return sum(corpus.n_parsed_tsvs for _, corpus in self)
+
+
+    @property
+    def n_unparsed_scores(self):
+        return sum(corpus.n_unparsed_scores for _, corpus in self)
+
+
+    @property
+    def n_unparsed_tsvs(self):
+        return sum(corpus.n_unparsed_tsvs for _, corpus in self)
+
+
+    @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
@@ -344,6 +367,138 @@ class Parse(LoggedClass):
         if show_info:
             self.info()
 
+    def _aggregate_corpus_data(self,
+                               method,
+                               view_name=None,
+                               concatenate=False,
+                               **kwargs
+                               ):
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name):
+            corpus_method= getattr(corpus, method)
+            corpus_result = corpus_method(view_name=view_name, **kwargs)
+            for fname, piece_result in corpus_result.items():
+                result[(corpus_name, fname)] = piece_result
+        if concatenate:
+            keys, dataframes = [], []
+            flat = kwargs['flat']
+            for corpus_fname, piece_result in result.items():
+                if flat:
+                    n_tuples = len(piece_result)
+                    if n_tuples == 0:
+                        continue
+                    keys.append(corpus_fname)
+                    if n_tuples == 1:
+                        dataframes.append(piece_result[0][1])
+                    else:
+                        files, dfs = list(zip(*piece_result))
+                        ix_level = [file.rel_path for file in files]
+                        concat = pd.concat(dfs, keys=ix_level)
+                        dataframes.append(concat)
+                else:
+                    for facet, file_dataframe_tuples in piece_result.items():
+                        n_tuples = len(file_dataframe_tuples)
+                        if n_tuples == 0:
+                            continue
+                        keys.append(corpus_fname + (facet,))
+                        if n_tuples == 1:
+                            dataframes.append(file_dataframe_tuples[0][1])
+                        else:
+                            files, dfs = list(zip(*file_dataframe_tuples))
+                            ix_level = [file.rel_path for file in files]
+                            concat = pd.concat(dfs, keys=ix_level)
+                            dataframes.append(concat)
+            if len(dataframes) > 0:
+                result = pd.concat(dataframes, keys=keys)
+                nlevels = result.index.nlevels
+                level_names = ['corpus', 'fname']
+                if not flat:
+                    level_names.append('facet')
+                if len(level_names) < nlevels - 1:
+                    level_names.append('ix')
+                level_names.append('i')
+                result.index.rename(level_names, inplace=True)
+            else:
+                return pd.DataFrame()
+        return result
+
+    def get_all_parsed(self, facets: FacetArguments = None,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                       flat: bool = False,
+                       include_empty=False,
+                       concatenate: bool = True,
+                       ) -> Dict[CorpusFnameTuple, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]:
+        return self._aggregate_corpus_data('get_all_parsed',
+                                           facets=facets,
+                                           view_name=view_name,
+                                           force=force,
+                                           choose=choose,
+                                           flat=flat,
+                                           include_empty=include_empty,
+                                           concatenate=concatenate)
+
+    def extract_facets(self,
+                       facets: ScoreFacets = None,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       unfold: bool = False,
+                       interval_index: bool = False,
+                       flat=False,
+                       concatenate=True) -> Dict[CorpusFnameTuple, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+        return self._aggregate_corpus_data('extract_facets',
+                                           facets=facets,
+                                           view_name=view_name,
+                                           force=force,
+                                           choose=choose,
+                                           unfold=unfold,
+                                           interval_index=interval_index,
+                                           flat=flat,
+                                           concatenate=concatenate,
+                                           )
+
+    def get_facets(self,
+                   facets: ScoreFacets = None,
+                   view_name: Optional[str] = None,
+                   force: bool = False,
+                   choose: Literal['all', 'auto', 'ask'] = 'all',
+                   unfold: bool = False,
+                   interval_index: bool = False,
+                   flat=False,
+                   include_empty=False,
+                   concatenate=True,
+                   ) -> Dict[CorpusFnameTuple, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+        return self._aggregate_corpus_data('get_facets',
+                                           facets=facets,
+                                           view_name=view_name,
+                                           force=force,
+                                           choose=choose,
+                                           unfold=unfold,
+                                           interval_index=interval_index,
+                                           flat=flat,
+                                           include_empty=include_empty,
+                                           concatenate=concatenate,
+                                           )
+
+    def get_files(self, facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty=False,
+                  ) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
+        return self._aggregate_corpus_data('get_files',
+                                           facets=facets,
+                                           view_name=view_name,
+                                           parsed=parsed,
+                                           unparsed=unparsed,
+                                           choose=choose,
+                                           flat=flat,
+                                           include_empty=include_empty
+                                           )
 
     def __getattr__(self, view_name) -> View:
         if view_name in self.view_names:
@@ -680,7 +835,7 @@ class Parse(LoggedClass):
         n_corpora = len(subdir_corpora)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
-            self.add_corpus(directory, logger_cfg=logger_cfg, **logger_cfg)
+            self.add_corpus(directory, **logger_cfg)
         else:
             self.logger.debug(f"{n_corpora} individual corpora detected in {directory}.")
             for corpus_path in subdir_corpora:
@@ -864,86 +1019,6 @@ class Parse(LoggedClass):
                                     f"which was, however, indicated in {path}.", extra={"message_id": (14, to_be_configured)})
             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
-
-    def add_files(self, paths, corpus_name=None, exclude_re=None):
-        """
-
-        Parameters
-        ----------
-        paths : :obj:`~collections.abc.Collection`
-            The paths of the files you want to add to the object.
-        corpus_name : :obj:`str`
-            | Pass a string to identify the loaded files.
-            | If None is passed, :meth:`.utils.path2parent_corpus` will try to see if one of the
-            | superdirectories is a corpus and use its name. Otherwise, if only one corpus
-            | is available, that one will be chosen. If no corpus_name can be inferred, the files
-            | will not be added.
-
-        Returns
-        -------
-        :obj:`list`
-            The IDs of the added files.
-        """
-        if paths is None or len(paths) == 0:
-            self.logger.debug(f"add_files() was called with paths = '{paths}'.")
-            return []
-        if isinstance(paths, str):
-            paths = [paths]
-        unpack_json_paths(paths, logger=self.logger)
-        if corpus_name is None:
-            # try to see if any of the paths is part of a corpus (superdir has 'metadata.tsv')
-            for path in paths:
-                parent_corpus = path2parent_corpus(path)
-                if parent_corpus is not None:
-                    corpus_name = os.path.basename(parent_corpus)
-                    self.logger.info(f"Using key='{corpus_name}' because the directory contains 'metadata.tsv' or is a git repository.")
-                    metadata_path = os.path.join(parent_corpus, 'metadata.tsv')
-                    if metadata_path not in paths:
-                        paths.append(metadata_path)
-                        self.logger.info(f"{metadata_path} was automatically added.")
-                    break
-        if corpus_name is None:
-            # if only one key is available, pick that one
-            keys = self.keys()
-            if len(keys) == 1:
-                corpus_name = keys[0]
-                self.logger.info(f"Using key='{corpus_name}' because it is the only one currently in use.")
-            else:
-                self.logger.error(f"Couldn't add individual files because no key was specified and no key could be inferred.",
-                                  extra={"message_id": (8,)})
-                return []
-        if corpus_name not in self.files:
-            self.logger.debug(f"Adding '{corpus_name}' as new corpus.")
-            self.files[corpus_name] = []
-        if isinstance(paths, str):
-            paths = [paths]
-        if exclude_re is not None:
-            paths = [p for p in paths if re.search(exclude_re, p) is None]
-        if self.last_scanned_dir is None:
-            # if len(paths) > 1:
-            #     self.last_scanned_dir = commonprefix(paths, os.path.sep)
-            # else:
-            #     self.last_scanned_dir = os.path.dirname(paths[0])
-            self.last_scanned_dir = os.getcwd()
-
-        self.logger.debug(f"Attempting to add {len(paths)} files...")
-        if corpus_name is None:
-            ids = [self._handle_path(p, path2parent_corpus(p)) for p in paths]
-        else:
-            ids = [self._handle_path(p, corpus_name) for p in paths]
-        if sum(True for x in ids if x[0] is not None) > 0:
-            selector, added_ids = zip(*[(i, x) for i, x in enumerate(ids) if x[0] is not None])
-            exts = self.count_extensions()
-            self.logger.debug(f"{len(added_ids)} paths stored:\n{pretty_dict(exts, 'EXTENSIONS')}")
-            return added_ids
-        else:
-            self.logger.info("No files added.")
-            return []
-
-
-    def annotation_objects(self):
-        """Iterator through all annotation objects."""
-        yield from self._annotations.items()
 
 
 
@@ -1206,7 +1281,11 @@ Available keys: {available_keys}""")
         return res
 
 
-    def count_extensions(self, view_name: Optional[str] = None, per_piece: bool = False):
+    def count_extensions(self,
+                         view_name: Optional[str] = None,
+                         per_piece: bool = False,
+                         include_metadata: bool = False,
+                         ):
         """ Count file extensions.
 
         Parameters
@@ -1231,10 +1310,10 @@ Available keys: {available_keys}""")
         Args:
             view_name:
         """
-        extension_counters = {corpus_name: corpus.count_extensions(view_name) for corpus_name, corpus in self.iter_corpora(view_name)}
+        extension_counters = {corpus_name: corpus.count_extensions(view_name, include_metadata=include_metadata) for corpus_name, corpus in self.iter_corpora(view_name)}
         if per_piece:
             return {(corpus_name, fname): dict(cnt) for corpus_name, fname2cnt in extension_counters.items() for fname, cnt in fname2cnt.items()}
-        return {corpus_name: dict(sum(fname2cnt.values(), start=Counter())) for corpus_name, fname2cnt in extension_counters.items()}
+        return {corpus_name: dict(sum(fname2cnt.values(), Counter())) for corpus_name, fname2cnt in extension_counters.items()}
 
 
 
@@ -1625,32 +1704,6 @@ Available keys: {available_keys}""")
         return get_logger(self.logger_names[id])
 
 
-    def ids2idx(self, ids=None, pandas_index=False):
-        """ Receives a list of IDs and returns a list of index tuples or a pandas index created from it.
-
-        Parameters
-        ----------
-        ids
-        pandas_index
-
-        Returns
-        -------
-        :obj:`pandas.Index` or :obj:`pandas.MultiIndex` or ( list(tuple()), tuple() )
-        """
-        if ids is None:
-            ids = list(self._iterids())
-        elif ids == []:
-            if pandas_index:
-                return pd.Index([])
-            return list(), tuple()
-        idx = ids
-        names = ['key', 'i']
-
-        if pandas_index:
-            idx = pd.MultiIndex.from_tuples(idx, names=names)
-            return idx
-
-        return idx, names
 
     def iter_corpora(self, view_name: Optional[str] = None) -> Generator[Tuple[str, Corpus], None, None]:
         """Iterate through corpora under the current or specified view."""
@@ -1664,12 +1717,12 @@ Available keys: {available_keys}""")
             yield corpus_name, corpus
 
     def count_files(self,
-                    types=True,
+                    detected=True,
                     parsed=True,
                     as_dict: bool = False,
                     drop_zero: bool = True,
                     view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
-        all_counts = {corpus_name: corpus._summed_file_count(types=types, parsed=parsed, view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
+        all_counts = {corpus_name: corpus._summed_file_count(types=detected, parsed=parsed, view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
         counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
         if drop_zero:
             empty_cols = counts_df.columns[counts_df.sum() == 0]
@@ -1679,7 +1732,7 @@ Available keys: {available_keys}""")
         counts_df.index.rename('corpus', inplace=True)
         return counts_df
 
-    def get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
+    def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('scores', view_name=view_name, unparsed=False, flat=True)
@@ -1687,14 +1740,14 @@ Available keys: {available_keys}""")
         return result
 
 
-    def get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
+    def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[CorpusFnameTuple, FileList]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('scores', view_name=view_name, parsed=False, flat=True)
             result[corpus_name] = sum(fname2files.values(), [])
         return result
 
-    def get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
+    def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
@@ -1708,7 +1761,7 @@ Available keys: {available_keys}""")
                 result[corpus_name] = dict(dd)
         return result
 
-    def get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
+    def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[CorpusFnameTuple, Union[FileDict, FileList]]:
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             fname2files = corpus.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
@@ -1724,16 +1777,16 @@ Available keys: {available_keys}""")
 
 
     def count_parsed_scores(self, view_name: Optional[str] = None) -> int:
-        return sum(map(len, self.get_parsed_score_files(view_name=view_name).values()))
+        return sum(map(len, self._get_parsed_score_files(view_name=view_name).values()))
 
     def count_parsed_tsvs(self, view_name: Optional[str] = None) -> int:
-        return sum(map(len, self.get_parsed_tsv_files(view_name=view_name).values()))
+        return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
 
     def count_unparsed_scores(self, view_name: Optional[str] = None) -> int:
-        return sum(map(len, self.get_parsed_score_files(view_name=view_name).values()))
+        return sum(map(len, self._get_parsed_score_files(view_name=view_name).values()))
 
     def count_unparsed_tsvs(self, view_name: Optional[str] = None) -> int:
-        return sum(map(len, self.get_parsed_tsv_files(view_name=view_name).values()))
+        return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
 
 
     def info(self, return_str: bool = False,
@@ -2792,7 +2845,7 @@ Available keys: {available_keys}""")
             corpus_name, *remainder = item
             return self._get_corpus(corpus_name)[tuple(remainder)]
 
-    def __iter__(self) -> Generator[Tuple[str, Corpus], None, None]:
+    def __iter__(self) -> Iterator[Tuple[str, Corpus]]:
         """  Iterate through all (corpus_name, Corpus) tuples, regardless of any Views.
 
         Yields: (corpus_name, Corpus) tuples
@@ -2888,94 +2941,94 @@ Available keys: {available_keys}""")
 ################################################# End of View() ########################################################
 ########################################################################################################################
 ########################################################################################################################
-
-class PieceView(View):
-
-    def __init__(self,
-                 view: View,
-                 fname: str):
-        self.view = view  # parent View object
-        self.p = view.p
-        self.key = view.key
-        self.fname = fname
-        logger_cfg = self.p.logger_cfg
-        logger_cfg['name'] = f"{self.view.logger.name}.{self.fname}"
-        super(Parse, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
-        matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])
-        if len(matches) != 1:
-            raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
-        self.matches = matches[fname]
-        self.score_available = 'scores' in self.matches
-        self.measures_available = self.score_available or 'measures' in self.matches
-
-
-    def info(self, return_str=False):
-        info = f"View on {self.key} -> {self.fname}\n"
-        info += "-" * len(info) + "\n\n"
-        if self.score_available:
-            plural = "s" if len(self.matches['scores']) > 1 else ""
-            info += f"Parsed score{plural} available."
-        else:
-            info += "No parsed scores available."
-        info += "\n\n"
-        for typ, matched_files in self.matches.items():
-            info += f"{typ}\n{'-' * len(typ)}\n"
-            if len(matched_files) > 1:
-                distinguish = make_distinguishing_strings(matched_files)
-                matches = dict(zip(distinguish, matched_files))
-                paths = {k: matches[k].full_path for k in sorted(matches, key=lambda s: len(s))}
-                info += pretty_dict(paths)
-            else:
-                info += matched_files[0].full_path
-            info += "\n\n"
-        if return_str:
-            return info
-        print(info)
-
-
-    @lru_cache()
-    def get_dataframe(self, what: Literal['measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'],
-                      unfold: bool = False,
-                      quarterbeats: bool = False,
-                      interval_index: bool = False,
-                      disambiguation: str = 'auto',
-                      prefer_score: bool = True,
-                      return_file_info: bool = False) -> pd.DataFrame:
-        """ Retrieves one DataFrame for the piece.
-
-        Args:
-            what: What kind of DataFrame to retrieve.
-            unfold: Pass True to unfold repeats.
-            quarterbeats:
-            interval_index:
-            disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.
-            prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
-            return_file_info: Set to True if the method should also return a :obj:`namedtuple` with information on the DataFrame
-                being returned. It comes with the fields "id", "full_path", "suffix", "fext", "subdir", "i_str" where the
-                latter is the ID's second component as a string.
-
-        Returns:
-            The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.
-
-        Raises:
-            FileNotFoundError: If no DataFrame of the requested type is available
-        """
-        available = list(self.p._dataframes.keys())
-        if what not in available:
-            raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
-        if self.score_available and (prefer_score or what not in self.matches):
-            file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
-            score = self.p[file_info.id]
-            df = score.mscx.__getattribute__(what)()
-        elif what in self.matches:
-            file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
-            df = self.p[file_info.id]
-        else:
-            raise FileNotFoundError(f"No {what} available for {self.key} -> {self.fname}")
-        if any((unfold, quarterbeats, interval_index)):
-            measures = self.get_dataframe('measures', prefer_score=prefer_score)
-            df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,
-                                   interval_index=interval_index, logger=self.logger)[0]
-        if return_file_info:
-            return df, file_info
-        return df
+#
+# class PieceView(View):
+#
+#     def __init__(self,
+#                  view: View,
+#                  fname: str):
+#         self.view = view  # parent View object
+#         self.p = view.p
+#         self.key = view.key
+#         self.fname = fname
+#         logger_cfg = self.p.logger_cfg
+#         logger_cfg['name'] = f"{self.view.logger.name}.{self.fname}"
+#         super(Parse, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
+#         matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])
+#         if len(matches) != 1:
+#             raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
+#         self.matches = matches[fname]
+#         self.score_available = 'scores' in self.matches
+#         self.measures_available = self.score_available or 'measures' in self.matches
+#
+#
+#     def info(self, return_str=False):
+#         info = f"View on {self.key} -> {self.fname}\n"
+#         info += "-" * len(info) + "\n\n"
+#         if self.score_available:
+#             plural = "s" if len(self.matches['scores']) > 1 else ""
+#             info += f"Parsed score{plural} available."
+#         else:
+#             info += "No parsed scores available."
+#         info += "\n\n"
+#         for typ, matched_files in self.matches.items():
+#             info += f"{typ}\n{'-' * len(typ)}\n"
+#             if len(matched_files) > 1:
+#                 distinguish = make_distinguishing_strings(matched_files)
+#                 matches = dict(zip(distinguish, matched_files))
+#                 paths = {k: matches[k].full_path for k in sorted(matches, key=lambda s: len(s))}
+#                 info += pretty_dict(paths)
+#             else:
+#                 info += matched_files[0].full_path
+#             info += "\n\n"
+#         if return_str:
+#             return info
+#         print(info)
+#
+#
+#     @lru_cache()
+#     def get_dataframe(self, what: Literal['measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'],
+#                       unfold: bool = False,
+#                       quarterbeats: bool = False,
+#                       interval_index: bool = False,
+#                       disambiguation: str = 'auto',
+#                       prefer_score: bool = True,
+#                       return_file_info: bool = False) -> pd.DataFrame:
+#         """ Retrieves one DataFrame for the piece.
+#
+#         Args:
+#             what: What kind of DataFrame to retrieve.
+#             unfold: Pass True to unfold repeats.
+#             quarterbeats:
+#             interval_index:
+#             disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.
+#             prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
+#             return_file_info: Set to True if the method should also return a :obj:`namedtuple` with information on the DataFrame
+#                 being returned. It comes with the fields "id", "full_path", "suffix", "fext", "subdir", "i_str" where the
+#                 latter is the ID's second component as a string.
+#
+#         Returns:
+#             The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.
+#
+#         Raises:
+#             FileNotFoundError: If no DataFrame of the requested type is available
+#         """
+#         available = list(self.p._dataframes.keys())
+#         if what not in available:
+#             raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
+#         if self.score_available and (prefer_score or what not in self.matches):
+#             file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
+#             score = self.p[file_info.id]
+#             df = score.mscx.__getattribute__(what)()
+#         elif what in self.matches:
+#             file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
+#             df = self.p[file_info.id]
+#         else:
+#             raise FileNotFoundError(f"No {what} available for {self.key} -> {self.fname}")
+#         if any((unfold, quarterbeats, interval_index)):
+#             measures = self.get_dataframe('measures', prefer_score=prefer_score)
+#             df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,
+#                                    interval_index=interval_index, logger=self.logger)[0]
+#         if return_file_info:
+#             return df, file_info
+#         return df
