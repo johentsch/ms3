@@ -3,7 +3,7 @@ import random
 import re
 from collections import defaultdict
 from copy import deepcopy
-from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional
+from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
@@ -30,7 +30,7 @@ class View(LoggedClass):
         'facets',
     )
     available_facets = ('scores',) + Score.dataframe_types + ('unknown',)
-    singular2category = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
+    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
                                    categories))
     tsv_regex = re.compile(r"\.tsv$", re.IGNORECASE)
     convertible_regex = Score.make_extension_regex(native=False, convertible=True, tsv=False)
@@ -45,10 +45,8 @@ class View(LoggedClass):
                  **logger_cfg
                  ):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
-        assert isinstance(view_name, str), f"Name of the view should be a string, not '{type(view_name)}'"
-        if view_name is not None and not view_name.isidentifier():
-            self.logger.info(f"The string '{view_name}' cannot be used as attribute name.")
-        self.name: str = view_name
+        self._name: str = ''
+        self.name = view_name
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
         self.selected_facets = self.available_facets
@@ -65,6 +63,25 @@ class View(LoggedClass):
         self._discarded_items: Dict[str, List[str]] = defaultdict(list)
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+    @staticmethod
+    def check_name(view_name) -> Tuple[bool, str]:
+        if not isinstance(view_name, str):
+            return False, f"Name of the view should be a string, not '{type(view_name)}'"
+        if not view_name.isidentifier():
+            return False, f"The string '{view_name}' cannot be used as attribute name."
+        return True, ''
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        name_valid, msg = self.check_name(new_name)
+        if not name_valid:
+            raise ValueError(msg)
+        self._name = new_name
 
     def copy(self, new_name: str):
         new_view = self.__class__(view_name=new_name)
@@ -131,7 +148,7 @@ class View(LoggedClass):
 
     def check_token(self, category: Category, token: str) -> bool:
         """Checks if a string pertaining to a certain category should be included in the view or not."""
-        category = self.resolve_categories(category)
+        category = self.resolve_category(category)
         if any(re.search(rgx, token) is not None for rgx in self.excluding[category]):
             return False
         if len(self.including[category]) == 0:
@@ -162,13 +179,13 @@ class View(LoggedClass):
 
     def filter_by_token(self, category: Category, tuples: Iterable[tuple]) -> Iterator[tuple]:
         """Filters out those tuples where the token (first element) does not pass _.check_token(category, token)."""
-        category = self.resolve_categories(category)
+        category = self.resolve_category(category)
         n_kept, n_discarded, N = 0, 0, 0
         discarded_items = []
         for tup in tuples:
             N += 1
             token, *_ = tup
-            if self.check_token(category=category, token=token):
+            if self.check_token(category, token=token):
                 n_kept += 1
                 yield tup
             else:
@@ -190,7 +207,7 @@ class View(LoggedClass):
 
         """
         if len(files) == 0:
-            return files
+            return []
         result, discarded_items = [], []
         for file in files:
             if self.check_file(file):
@@ -268,18 +285,21 @@ class View(LoggedClass):
             return msg
         print(msg)
 
-
-    def resolve_categories(self, category):
+    def resolve_category(self, category: Category) -> Category:
         if isinstance(category, str):
             if category not in self.categories:
                 if category in self.singular2category:
                     return self.singular2category[category]
                 else:
-                    self.logger.error(f"'{category}' is not one of the known categories {self.categories}")
+                    raise ValueError(f"'{category}' is not one of the known categories {self.categories}")
             return category
         else:
-            # assumes this to be iterable
-            return [self.resolve_categories(categ) for categ in category]
+            raise ValueError(f"Pass a single category string ∈ {self.categories}, not a '{type(category)}'")
+
+    def resolve_categories(self, categories: Categories) -> List[str]:
+        if isinstance(categories, str):
+            categories = [categories]
+        return [self.resolve_category(categ) for categ in categories]
 
     def update_facet_selection(self):
         selected, discarded = [], []
@@ -303,8 +323,6 @@ class View(LoggedClass):
 
     def include(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_include in categories:
             for rgx in regex:
                 if rgx not in self.including[what_to_include]:
@@ -315,8 +333,6 @@ class View(LoggedClass):
 
     def exclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_exclude in categories:
             for rgx in regex:
                 if rgx not in self.excluding[what_to_exclude]:
@@ -326,8 +342,6 @@ class View(LoggedClass):
 
     def uninclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_uninclude in categories:
             for rgx in regex:
                 try:
@@ -338,8 +352,6 @@ class View(LoggedClass):
 
     def unexclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_unexclude in categories:
             for rgx in regex:
                 try:

@@ -1000,7 +1000,7 @@ class Corpus(LoggedClass):
         """Register one or several view_name=View pairs."""
         if active is not None:
             active_name = active.name
-            if active_name in self.view_names:
+            if active_name in self._views:
                 self.switch_view(active_name, show_info=False, propagate=False)
             self._views[None] = active
         for view_name, view in views.items():
@@ -1013,7 +1013,7 @@ class Corpus(LoggedClass):
             for view_name, view in views.items():
                 piece.set_view(**{view_name:view})
 
-    def switch_view(self, view_name: Optional[str],
+    def switch_view(self, view_name: str,
                     show_info: bool = True,
                     propagate: bool = True,
                     ) -> None:
@@ -1039,9 +1039,25 @@ class Corpus(LoggedClass):
     def view(self):
         return self.get_view()
 
+    @view.setter
+    def view(self, new_view: View):
+        if not isinstance(new_view, View):
+            return TypeError("If you want to switch to an existing view by its name, use its name like an attribute or "
+                             "call _.switch_view().")
+        self.set_view(new_view)
+
     @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    @property
+    def view_name(self):
+        return self.get_view().name
+
+    @view_name.setter
+    def view_name(self, new_name):
+        view = self.get_view()
+        view.name = new_name
 
     @property
     def view_names(self):

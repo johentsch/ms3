@@ -267,17 +267,17 @@ class Parse(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    def set_view(self, current: View = None, **views: View):
+    def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
-        if current is not None:
-            self._views[None] = current
+        if active is not None:
+            self._views[None] = active
         for view_name, view in views.items():
             if view.name is None:
                 view.name = view_name
             self._views[view_name] = view
         for corpus_name, corpus in self:
-            if current is not None and current.check_token('corpus', corpus_name):
-                corpus.set_view(current)
+            if active is not None and active.check_token('corpus', corpus_name):
+                corpus.set_view(active)
             for view_name, view in views.items():
                 if view.check_token('corpus', corpus_name):
                     corpus.set_view(**{view_name: view})
@@ -294,8 +294,10 @@ class Parse(LoggedClass):
             view = self._views[None]
         else:
             view = self.get_view().copy(new_name=view_name)
+            old_name = view.name
+            view.name = view_name
             self._views[view_name] = view
-            self.logger.info(f"New view '{view_name}' created.")
+            self.logger.info(f"New view '{view_name}' created as a copy of '{old_name}'.")
         if len(config) > 0:
             view.update_config(**config)
         return view
@@ -330,9 +332,25 @@ class Parse(LoggedClass):
     def view(self):
         return self.get_view()
 
+    @view.setter
+    def view(self, new_view: View):
+        if not isinstance(new_view, View):
+            return TypeError("If you want to switch to an existing view, use its name like an attribute or "
+                             "call _.switch_view().")
+        self.set_view(new_view)
+
     @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    @property
+    def view_name(self):
+        return self.get_view().name
+
+    @view_name.setter
+    def view_name(self, new_name):
+        view = self.get_view()
+        view.name = new_name
 
     @property
     def view_names(self):
@@ -493,7 +511,7 @@ class Parse(LoggedClass):
                                            )
 
     def __getattr__(self, view_name) -> View:
-        if view_name in self.view_names:
+        if view_name in self._views[None]:
             self.switch_view(view_name, show_info=False)
             return self
         else:
@@ -1811,7 +1829,7 @@ Available keys: {available_keys}""")
                 has_metadata = 'no' if corpus.metadata_tsv is None else 'yes'
                 corpus_view = corpus.get_view().name
                 additional_columns.append([has_metadata, corpus_view])
-            additional_columns = pd.DataFrame(additional_columns, columns=[('', 'metadata'), ('', 'view')], index=counts_df.index)
+            additional_columns = pd.DataFrame(additional_columns, columns=[('has', 'metadata'), ('active', 'view')], index=counts_df.index)
             info_df = pd.concat([additional_columns, counts_df], axis=1)
             info_df.columns = pd.MultiIndex.from_tuples(info_df.columns)
             msg += info_df.to_string() + '\n\n'
