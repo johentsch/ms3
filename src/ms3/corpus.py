@@ -345,9 +345,9 @@ class Corpus(LoggedClass):
         metadata = prepare_metadata_for_writing(metadata)
         metadata.to_csv(path, sep='\t', index=False)
         if already_there:
-            self.info(f"{path} overwritten.")
+            self.logger.info(f"{path} overwritten.")
         else:
-            self.info(f"{path} created.")
+            self.logger.info(f"{path} created.")
         file = self.add_file_paths([path])[0]
         metadata_df = load_tsv(path)
         self.ix2parsed[file.ix] = metadata_df
@@ -650,9 +650,7 @@ class Corpus(LoggedClass):
             view.update_config(**config)
         return view
 
-    def info(self,  return_str: bool = False,
-             view_name: Optional[str] = None,
-             show_discarded: bool = False):
+    def info(self, view_name: Optional[str] = None, return_str: bool = False, show_discarded: bool = False):
         """"""
         header = f"Corpus '{self.name}'"
         header += "\n" + "-" * len(header) + "\n"
@@ -663,7 +661,12 @@ class Corpus(LoggedClass):
         view.reset_filtering_data()
         msg = available_views2str(self._views, view_name)
         msg += header
-        msg += f"View: {view}\n\n"
+        view_info = f"View: {view}"
+        if view_name is None:
+            piece_views = [piece.get_view().name for _, piece in self.iter_pieces(view_name=view_name)]
+            if len(set(piece_views)) > 1:
+                view_info = f"This is a mixed view. Call _.info(view_name) to see a homogeneous one."
+        msg += view_info + "\n\n"
 
         # a table counting the number of parseable files under the active view
         counts_df = self.count_files(drop_zero=True, view_name=view_name)
@@ -1782,59 +1785,6 @@ Available keys: {available_keys}""")
 
 
 
-
-    def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
-                 events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False, flat=False):
-        """Retrieve a dictionary with the selected feature matrices from the parsed TSV files.
-        If you want to retrieve matrices from parsed scores, use :py:meth:`extract_dataframes`.
-
-        Parameters
-        ----------
-        keys
-        ids
-        metadata
-        notes
-        rests
-        notes_and_rests
-        measures
-        events
-        labels
-        chords
-        expanded
-        cadences
-        form_labels
-        flat : :obj:`bool`, optional
-            By default, you get a nested dictionary {list_type -> {index -> list}}.
-            By passing True you get a dictionary {(id, list_type) -> list}
-
-        Returns
-        -------
-        {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
-        """
-
-
-        if ids is None:
-            ids = list(self._iterids(keys, only_parsed_tsv=True))
-        if len(self._parsed_tsv) == 0:
-            self.info(f"No TSV files have been parsed, use method parse_tsv().")
-            return {}
-        bool_params = ('metadata',) + Score.dataframe_types
-        l = locals()
-        types = [p for p in bool_params if l[p]]
-        res = {}
-        if not flat:
-            res.update({t: {} for t in types})
-        for id in ids:
-            tsv_type = self._tsv_types[id]
-            if tsv_type in types:
-                if flat:
-                    res[(id + (tsv_type,))] = self._parsed_tsv[id]
-                else:
-                    res[tsv_type][id] = self._parsed_tsv[id]
-        return res
-
-
-
     def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
             ids = list(self._iterids(keys))
@@ -2744,5 +2694,6 @@ def parse_tsv_file(file, logger) -> pd.DataFrame:
         df = load_tsv(path)
         return df
     except Exception as e:
-        logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
-                    f"\n{path}\nError: {e}")
+        logger.info(
+            return_str=f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
+                       f"\n{path}\nError: {e}")

@@ -1799,9 +1799,7 @@ Available keys: {available_keys}""")
         return sum(map(len, self._get_parsed_tsv_files(view_name=view_name).values()))
 
 
-    def info(self, return_str: bool = False,
-             view_name: Optional[str] = None,
-             show_discarded: bool = False):
+    def info(self, view_name: Optional[str] = None, return_str: bool = False, show_discarded: bool = False):
         """"""
         header = f"All corpora"
         header += "\n" + "-" * len(header) + "\n"
@@ -1811,7 +1809,12 @@ Available keys: {available_keys}""")
         view.reset_filtering_data()
         msg = available_views2str(self._views, view_name)
         msg += header
-        msg += f"View: {view}\n\n"
+        view_info = f"View: {view}"
+        if view_name is None:
+            corpus_views = [corpus.get_view().name for _, corpus in self.iter_corpora(view_name=view_name)]
+            if len(set(corpus_views)) > 1:
+                view_info = f"This is a mixed view. Call _.info(view_name) to see a homogeneous one."
+        msg += view_info + "\n\n"
 
         # Show info on all pieces and files included in the active view
         counts_df = self.count_files(view_name=view_name)
