@@ -3943,7 +3943,11 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
     Returns:
         The selected file.
     """
-    if len(files) == 1:
+    n_files = len(files)
+    if n_files == 0:
+        return
+    files = tuple(files)
+    if n_files == 1:
         return files[0]
     if choose not in ('auto', 'ask'):
         self.logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
@@ -3963,19 +3967,23 @@ def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tupl
 
 
 @function_logger
-def files2disambiguation_dict(files: Collection[File]) -> FileDict:
+def files2disambiguation_dict(files: Collection[File], include_disambiguator: bool = False) -> FileDict:
     """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
     of distinct strings to distinguish files pertaining to the same type."""
-    N_target = len(files)
-    if N_target == 0:
+    n_files = len(files)
+    if n_files == 0:
         return {}
-    if N_target== 1:
+    files = tuple(files)
+    if n_files== 1:
         f = files[0]
         return {f.type: f}
     disambiguation = [f.type for f in files]
-    if len(set(disambiguation)) == N_target:
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
+    if include_disambiguator and len(set(disambiguation)) > 1:
+        self.logger.warning(f"Including the disambiguator removes the facet name, but the files pertain to "
+                     f"several facets: {set(disambiguation)}")
     # first, try to disambiguate based on the files' sub-directories
     subdirs = []
     for f in files:
@@ -3988,22 +3996,31 @@ def files2disambiguation_dict(files: Collection[File]) -> FileDict:
         subdirs.append(subdir)
     if len(set(subdirs)) > 1:
         # files can (partially) be disambiguated because they are in different sub-directories
-        disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
-    if len(set(disambiguation)) == N_target:
+        if include_disambiguator:
+            disambiguation = [f"subdir: {'.' if subdir == '' else subdir}" for disamb, subdir in zip(disambiguation, subdirs)]
+        else:
+            disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     # next, try adding detected suffixes
     for ix, f in enumerate(files):
         if f.suffix != '':
-            disambiguation[ix] += f"[{f.suffix}]"
-    if len(set(disambiguation)) == N_target:
+            if include_disambiguator:
+                disambiguation[ix] += f", suffix: {f.suffix}"
+            else:
+                disambiguation[ix] += f"[{f.suffix}]"
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     # now, add file extensions to disambiguate further
     if len(set(f.fext for f in files)) > 1:
         for ix, f in enumerate(files):
-            disambiguation[ix] += f.fext
-    if len(set(disambiguation)) == N_target:
+            if include_disambiguator:
+                disambiguation[ix] += f", fext: {f.fext}"
+            else:
+                disambiguation[ix] += f.fext
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     str_counts = Counter(disambiguation)

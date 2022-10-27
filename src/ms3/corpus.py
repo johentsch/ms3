@@ -16,11 +16,14 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments
-from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments, \
+    Facet
+from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
+    load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing
+    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
+    files2disambiguation_dict
 from .view import DefaultView, View
 
 
@@ -425,6 +428,23 @@ class Corpus(LoggedClass):
                 self.files.append(F)
 
 
+    def disambiguate_facet(self, facet: Facet):
+        disambiguated = {}
+        for fname, files in self.get_files(facet, flat=True, include_empty=False).items():
+            disambiguated[fname] = files2disambiguation_dict(files, include_disambiguator=True)
+        df = pd.DataFrame.from_dict(disambiguated, orient='index').fillna('')
+        df = df.sort_index(axis=1, key=lambda S: S.str.len())
+        if facet in df.columns:
+            df = df.rename(columns={facet: facet + ' (unambiguous)'})
+            n_choices = len(df.columns) - 1
+            selectors = list(range(n_choices))
+            column_tuples = zip(['column-selector:']  + selectors, df.columns)
+        else:
+            n_choices = len(df.columns)
+            selectors = list(range(n_choices))
+            column_tuples = zip(selectors, df.columns)
+        df.columns = pd.MultiIndex.from_tuples(column_tuples)
+        return df
 
     def extract_facets(self,
                        facets: ScoreFacets = None,
@@ -635,6 +655,19 @@ class Corpus(LoggedClass):
             result.extend(self.fnames_not_in_metadata())
         return sorted(result)
 
+    def get_present_facets(self, view_name: Optional[str] = None):
+        view = self.get_view(view_name)
+        selected_fnames = []
+        if view.fnames_in_metadata:
+            selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
+        if view.fnames_not_in_metadata:
+            selected_fnames.extend(self.fnames_not_in_metadata())
+        result = set()
+        for fname, piece in self:
+            detected_facets = piece.count_detected(include_empty=False, prefix=False)
+            result.update(detected_facets.keys())
+        return list(result)
+
     def get_view(self,
                  view_name: Optional[str] = None,
                  **config
@@ -699,18 +732,6 @@ class Corpus(LoggedClass):
             return msg
         print(msg)
 
-    def get_present_facets(self, view_name: Optional[str] = None):
-        view = self.get_view(view_name)
-        selected_fnames = []
-        if view.fnames_in_metadata:
-            selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
-        if view.fnames_not_in_metadata:
-            selected_fnames.extend(self.fnames_not_in_metadata())
-        result = set()
-        for fname, piece in self:
-            detected_facets = piece.count_detected(include_empty=False, prefix=False)
-            result.update(detected_facets.keys())
-        return list(result)
 
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
