@@ -227,17 +227,18 @@ class Corpus(LoggedClass):
                     detected: bool = True,
                     parsed: bool = True,
                     as_dict: bool = False,
-                    drop_zero: bool = False,
+                    drop_zero: bool = True,
                     view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
         assert detected + parsed > 0, "At least one parameter needs to be True"
         fname2counts = {}
+        prefix = detected + parsed == 2
         for fname, piece in self.iter_pieces(view_name=view_name):
             if detected:
-                type_count = piece.count_detected(view_name=view_name, include_empty=True)
+                type_count = piece.count_detected(view_name=view_name, include_empty=True, prefix=prefix)
                 if not parsed:
                     fname2counts[fname] = type_count
             if parsed:
-                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True)
+                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True, prefix=prefix)
                 if not detected:
                     fname2counts[fname] = parsed_count
             if detected & parsed:
@@ -251,10 +252,11 @@ class Corpus(LoggedClass):
         if as_dict:
             return fname2counts
         df = pd.DataFrame.from_dict(fname2counts, orient='index')
-        try:
-            df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
-        except TypeError:
-            pass
+        if prefix:
+            try:
+                df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
+            except TypeError:
+                pass
         if drop_zero:
             empty_cols = df.columns[df.sum() == 0]
             return df.drop(columns=empty_cols)
@@ -471,7 +473,7 @@ class Corpus(LoggedClass):
     def fnames_in_metadata(self, metadata_ix) -> List[str]:
         """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply
-        self.metadata_ix and serves caching.
+        self.metadata_ix and serves caching of the results for multiple metadata.tsv files.
         """
         if self.metadata_tsv is None:
             return  []
@@ -697,9 +699,23 @@ class Corpus(LoggedClass):
             return msg
         print(msg)
 
+    def get_present_facets(self, view_name: Optional[str] = None):
+        view = self.get_view(view_name)
+        selected_fnames = []
+        if view.fnames_in_metadata:
+            selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
+        if view.fnames_not_in_metadata:
+            selected_fnames.extend(self.fnames_not_in_metadata())
+        result = set()
+        for fname, piece in self:
+            detected_facets = piece.count_detected(include_empty=False, prefix=False)
+            result.update(detected_facets.keys())
+        return list(result)
+
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
+        view.reset_filtering_data()
         param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
         if param_sum == 0:
             # all excluded, need to update filter counts accordingly
@@ -709,21 +725,22 @@ class Corpus(LoggedClass):
             filtering_counts = view._last_filtering_counts[key]
             filtering_counts[[0,1]] = filtering_counts[[1, 0]]
             yield from []
-        elif param_sum == 2:
-            for fname, piece in view.filter_by_token('fnames', self):
-                if view_name not in piece._views:
-                    if view_name is None:
-                        piece.set_view(view)
-                    else:
-                        piece.set_view(**{view_name: view})
-                yield fname, piece
         else:
-            # need to differentiate between files that are and are not included in the metadata.tsv file
-            fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
             n_kept, n_discarded = 0, 0
             discarded_items = []
+            differentiate_by_presence_in_metadata = param_sum == 1
+            if differentiate_by_presence_in_metadata:
+                selected_fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
+            filter_incomplete_facets = not view.fnames_with_incomplete_facets
+            if filter_incomplete_facets:
+                selected_facets = set(self.get_present_facets(view_name))
+                selected_facets = selected_facets.intersection(set(view.selected_facets))
+                selected_facets = tuple(selected_facets)
             for fname, piece in view.filter_by_token('fnames', self):
-                if fname in fnames:
+                metadata_check = not differentiate_by_presence_in_metadata or fname in selected_fnames
+                facet_check = not filter_incomplete_facets or piece.all_facets_present(view_name=view_name,
+                                                                                       selected_facets=selected_facets)
+                if metadata_check and facet_check:
                     if view_name not in piece._views:
                         if view_name is None:
                             piece.set_view(view)

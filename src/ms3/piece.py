@@ -7,7 +7,7 @@ from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
     FileDataframeTuple
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
-    files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, treat_facets_argument, \
+    files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     disambiguate_parsed_files, available_views2str, argument_and_literal_type2list
 from .score import Score
 from .logger import LoggedClass
@@ -68,6 +68,38 @@ class Piece(LoggedClass):
         # self.events: pd.DataFrame = None
         # self.chords: pd.DataFrame = None
         # self.form_labels: pd.DataFrame = None
+
+    def all_facets_present(self, view_name: Optional[str] = None,
+                           selected_facets: Optional[Facets] = None) -> bool:
+        """ Checks if parsed files have been detected for all selected facets under the active or indicated view.
+
+        Args:
+            view_name: Name of the view to check.
+            selected_facets: If passed, needs to be a subset of the facets selected by the view, otherwise the
+                result will be False. If no ``selected_facets`` are passed, check for those selected by the
+                active or indicated view.
+
+        Returns:
+            True if for each selected facet at least one file has been registered.
+        """
+        view = self.get_view(view_name)
+        view_facets = view.selected_facets
+        if selected_facets is None:
+            facets = view_facets
+        else:
+            facets = resolve_facets_param(selected_facets, none_means_all=False)
+            missing = [f for f in facets if f not in view_facets]
+            if len(missing) > 0:
+                plural = 's are' if len(missing) > 1 else ' is'
+                self.logger.warning(f"The following facet{plural} excluded from the view '{view.name}': {missing}")
+                return False
+        present_facets = [typ for typ, _ in self.iter_facet2files(view_name=view_name, include_empty=False)]
+        result = all(f in present_facets for f in facets)
+        if not result:
+            missing = [f for f in facets if f not in present_facets]
+            plural = 's are' if len(missing) > 1 else ' is'
+            self.logger.debug(f"The following facet{plural} are not present under the view '{view.name}': {missing}")
+        return result
 
     @property
     def ms(self):
@@ -254,11 +286,19 @@ class Piece(LoggedClass):
     #     except Exception as e:
     #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
-    def count_parsed(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
-       return {"parsed_" + typ: len(parsed) for typ, parsed in self.iter_type2parsed_files(view_name=view_name, include_empty=include_empty)}
+    def count_parsed(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
+        result = {}
+        for typ, parsed in self.iter_type2parsed_files(view_name=view_name, include_empty=include_empty):
+            key = 'parsed_' + typ if prefix else typ
+            result[key] = len(parsed)
+        return result
 
-    def count_detected(self, include_empty=False, view_name: Optional[str] = None) -> Dict[str, int]:
-        return {"found_" + typ: len(files) for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty)}
+    def count_detected(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
+        result = {}
+        for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
+            key = 'detected_' + typ if prefix else typ
+            result[key] = len(files)
+        return result
 
     def extract_facet(self,
                       facet: ScoreFacet,
@@ -298,7 +338,7 @@ class Piece(LoggedClass):
         """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
         If you want to retrieve parsed TSV files, use :py:meth:`get_all_parsed`.
         """
-        selected_facets = treat_facets_argument(facets, ScoreFacet, logger=self.logger)
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         result = defaultdict(list)
         score_files = self.get_parsed_scores(view_name=view_name,
@@ -335,7 +375,7 @@ class Piece(LoggedClass):
                    unfold: bool = False,
                    interval_index: bool = False,
                    flat=False) -> Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]:
-        selected_facets = treat_facets_argument(facets, ScoreFacet, logger=self.logger)
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
 
         def merge_dicts(extracted_facets, parsed_facets):
@@ -497,7 +537,7 @@ class Piece(LoggedClass):
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
-        selected_facets = treat_facets_argument(facets, logger=self.logger)
+        selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return
         if unparsed:
@@ -587,7 +627,7 @@ class Piece(LoggedClass):
                        include_empty: bool = False
                        ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
         """Return multiple parsed files."""
-        selected_facets = treat_facets_argument(facets, logger=self.logger)
+        selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return [] if flat else {}
         facet2files = self.get_files(selected_facets, view_name=view_name, choose=choose, include_empty=include_empty)

@@ -45,22 +45,27 @@ class View(LoggedClass):
                  **logger_cfg
                  ):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
+        # fields
         self._name: str = ''
         self.name = view_name
+        # the two main dicts
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
         self.selected_facets = self.available_facets
-        self.fnames_in_metadata: bool = True
-        self.fnames_not_in_metadata: bool = not only_metadata_fnames
-        self.include_convertible = include_convertible
-        self.include_tsv = include_tsv
-        self.exclude_review = exclude_review
         self._last_filtering_counts: Dict[str, npt.NDArray[int, int, int]] = defaultdict(empty_counts)
         """For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].
         Keys are f"filtered_{category}" for :meth:`filter_by_token` and 'files' or 'parsed' for :meth:`filtered_file_list`.
         To inspect, you can use the method :meth:`filtering_report`
         """
         self._discarded_items: Dict[str, List[str]] = defaultdict(list)
+        # booleans
+        self.fnames_in_metadata: bool = True
+        self.fnames_not_in_metadata: bool = not only_metadata_fnames
+        self.fnames_with_incomplete_facets = True
+        # properties
+        self.include_convertible = include_convertible
+        self.include_tsv = include_tsv
+        self.exclude_review = exclude_review
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -89,6 +94,8 @@ class View(LoggedClass):
         new_view.excluding = deepcopy(self.excluding)
         new_view.update_facet_selection()
         new_view.fnames_in_metadata = self.fnames_in_metadata
+        new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
+        new_view.fnames_with_incomplete_facets = self.fnames_with_incomplete_facets
         return new_view
 
     def update_config(self,
@@ -254,8 +261,12 @@ class View(LoggedClass):
                 return msg
             print(msg)
             return
+        if not self.fnames_in_metadata:
+            msg_components.append("excludes fnames that are contained in the metadata")
         if not self.fnames_not_in_metadata:
             msg_components.append("excludes fnames that are not contained in the metadata")
+        if not self.fnames_with_incomplete_facets:
+            msg_components.append("excludes pieces that do not have at least one file per selected facet")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
         if not self.include_tsv:
@@ -266,12 +277,30 @@ class View(LoggedClass):
                        for what_to_include, regexes in self.including.items()}
         excluded_re = {what_to_exclude: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_exclude, regexes in self.excluding.items()}
-        msg_components.extend([f"includes only {what_to_include} containing {re_strings[0] if len(re_strings) == 1 else 'one of ' + str(re_strings)}"
-                            for what_to_include, re_strings in included_re.items()
-                            if len(re_strings) > 0])
-        msg_components.extend([f"excludes any {what_to_exclude} containing {re_strings[0] if len(re_strings) == 1 else 'one of ' + str(re_strings)}"
-                            for what_to_exclude, re_strings in excluded_re.items()
-                            if len(re_strings) > 0])
+        for what_to_exclude, re_strings in included_re.items():
+            n_included = len(re_strings)
+            if n_included == 0:
+                continue
+            if n_included == 1:
+                included = f"'{re_strings[0]}'"
+            elif n_included < 11:
+                included = 'one of ' + str(re_strings)
+            else:
+                included = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
+                included += f" ({n_included - 10} more, see filtering report))"
+            msg_components.append(f"includes only {what_to_exclude} containing {included}")
+        for what_to_exclude, re_strings in excluded_re.items():
+            n_excluded = len(re_strings)
+            if n_excluded == 0:
+                continue
+            if n_excluded == 1:
+                excluded = f"'{re_strings[0]}'"
+            elif n_excluded < 11:
+                excluded = 'one of ' + str(re_strings)
+            else:
+                excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
+                excluded += f" ({n_excluded - 10} more, see filtering report))"
+            msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
         msg = f"This view is called '{self.name}'. It "
         n_components = len(msg_components)
         if n_components == 0:
@@ -279,8 +308,9 @@ class View(LoggedClass):
         elif n_components == 1:
             msg += msg_components[0] + "."
         else:
-            msg += ', '.join(msg_components[:-1])
-            msg += f", and {msg_components[-1]}."
+            separator = '\n\t- '
+            msg += separator + (',' + separator).join(msg_components[:-1])
+            msg += f", and{separator}{msg_components[-1]}."
         if return_str:
             return msg
         print(msg)

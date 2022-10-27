@@ -4089,7 +4089,7 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     return
 
 @function_logger
-def treat_facets_argument(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
+def resolve_facets_param(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
     if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
         selected_facets = list(literal_type2tuple(facet_type_var))
         if 'scores' in selected_facets:
