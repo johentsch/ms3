@@ -1693,7 +1693,7 @@ def load_tsv(path,
     try:
         df = pd.read_csv(path, sep=sep, index_col=index_col,
                            dtype=types,
-                           converters=conv, comment='#', **kwargs)
+                           converters=conv, **kwargs)
     except EmptyDataError:
         return
     if 'mn' in df:
