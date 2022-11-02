@@ -10,7 +10,7 @@ import numpy.typing as npt
 
 from .score import Score
 from ._typing import FileList, Category, Categories
-from .utils import File, unpack_json_paths
+from .utils import File, unpack_json_paths, resolve_paths_argument
 from .logger import LoggedClass
 
 
@@ -445,11 +445,11 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
     if exclude_re is not None:
         view.exclude(('files', 'folders'), exclude_re)
     if paths is not None:
-        if isinstance(paths, str):
-            paths = [paths]
-        unpack_json_paths(paths)
-        regexes = [re.escape(os.path.basename(p)) for p in paths]
-        view.include('files', *regexes)
+        resolved_paths = resolve_paths_argument(paths)
+        if len(resolved_paths) > 0:
+            unpack_json_paths(resolved_paths)
+            regexes = [re.escape(os.path.basename(p)) for p in paths]
+            view.include('files', *regexes)
     return view
 
 

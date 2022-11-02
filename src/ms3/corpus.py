@@ -23,7 +23,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict, ask_user_to_choose
+    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument
 from .view import DefaultView, View
 
 
@@ -215,10 +215,8 @@ class Corpus(LoggedClass):
 
 
     def __getattr__(self, view_name):
-        if view_name in self._views:
+        if view_name in self.views:
             self.switch_view(view_name, show_info=False)
-            return self
-        elif view_name is not None and self._views[None].name == view_name:
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
@@ -278,19 +276,13 @@ class Corpus(LoggedClass):
         return file_count.sum()
 
     def add_file_paths(self, paths: Collection[str]) -> FileList:
-        resolved_paths = [resolve_dir(p) for p in paths]
-        not_a_file = [p for p in paths if not os.path.isfile(p)]
-        if len(not_a_file) > 0:
-            if len(not_a_file) == 1:
-                msg = f"No existing file at {not_a_file[0]}."
-            else:
-                msg = f"These are not paths of existing files: {not_a_file}"
-            self.logger.warning(msg)
-            resolved_paths = [p for p in paths if os.path.isfile(p)]
+        resolved_paths = resolve_paths_argument(paths, logger=self.logger)
+        if len(resolved_paths) == 0:
+            return
         score_extensions = ['.' + ext for ext in Score.parseable_formats]
         detected_extensions = score_extensions + ['.tsv']
         newly_added = []
-        existing_paths = pd.DataFrame(self.files).full_path.to_list()
+        existing_paths = self.files_df.full_path.to_list()
         for full_path in resolved_paths:
             if full_path in existing_paths:
                 self.logger.debug(f"Skipping {full_path} because it was already there.")
@@ -326,7 +318,7 @@ class Corpus(LoggedClass):
 
     def collect_fnames_from_scores(self) -> None:
         """Construct sorted list of fnames from all detected scores."""
-        files_df = pd.DataFrame(self.files)
+        files_df = self.files_df
         detected_scores = files_df.loc[files_df.type == 'scores']
         self.score_fnames = sorted(detected_scores.fname.unique())
 
@@ -517,6 +509,12 @@ class Corpus(LoggedClass):
                                              flat=flat)
             result[piece.name] = type2file
         return result
+
+    @property
+    def files_df(self):
+        if len(self.files) == 0:
+            return pd.DataFrame()
+        return pd.DataFrame(self.files).set_index('ix')
 
 
     def find_and_load_metadata(self) -> None:

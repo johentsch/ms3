@@ -4137,3 +4137,19 @@ def unpack_json_paths(paths: Collection[str]) -> None:
                 del (paths[i])
             except Exception:
                 logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")
+
+
+@function_logger
+def resolve_paths_argument(paths: Collection[str]) -> Collection[str]:
+    if isinstance(paths, str):
+        paths = [paths]
+    resolved_paths = [resolve_dir(p) for p in paths]
+    not_a_file = [p for p in paths if not os.path.isfile(p)]
+    if len(not_a_file) > 0:
+        if len(not_a_file) == 1:
+            msg = f"No existing file at {not_a_file[0]}."
+        else:
+            msg = f"These are not paths of existing files: {not_a_file}"
+        logger.warning(msg)
+        resolved_paths = [p for p in paths if os.path.isfile(p)]
+    return resolved_paths
