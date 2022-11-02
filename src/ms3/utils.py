@@ -8,7 +8,7 @@ from functools import reduce, lru_cache
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar
+from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -3891,6 +3891,22 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
                         f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
     return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, fname, file_type)
 
+def ask_user_to_choose(query: str, choices: Collection[Any]) -> Any:
+    """Ask user to input an integer and return the nth choice selected by the user."""
+    n_choices = len(choices)
+    range_str = f"1-{n_choices}"
+    while True:
+        s = input(query)
+        try:
+            int_i = int(s)
+        except Exception:
+            print(f"Value '{s}' could not be converted to an integer.")
+            continue
+        if not (0 < int_i <= n_choices):
+            print(f"Value '{s}' is not within {range_str}.")
+            continue
+        return choices[int_i - 1]
+
 
 def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File], fname: str, file_type: str = ''):
     sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
@@ -3905,28 +3921,7 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
     query = f"Selection [{range_str}]: "
     print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
     print(f"Please select one of the files by passing an integer between {range_str}:")
-    permitted = list(range(len(disambiguated_choices)))
-
-    def test_integer(s):
-        nonlocal permitted, range_str
-        try:
-            int_i = int(s)
-        except:
-            print(f"Value '{s}' could not be converted to an integer.")
-            return None
-        if int_i not in permitted:
-            print(f"Value '{s}' is not between {range_str}.")
-            return None
-        return int_i
-
-    ask_user = True
-    while ask_user:
-        selection = input(query)
-        int_i = test_integer(selection)
-        if int_i is not None:
-            choice = file_list[int_i]
-            ask_user = False
-    return choice
+    return ask_user_to_choose(query, file_list)
 
 
 @function_logger

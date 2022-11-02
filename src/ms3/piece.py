@@ -540,6 +540,8 @@ class Piece(LoggedClass):
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return
+        view = self.get_view(view_name=view_name)
+        selected_facets = [facet for facet in selected_facets if facet in view.selected_facets]
         if unparsed:
             facet2files = {f: self.facet2files[f] for f in selected_facets}
         else:
@@ -549,7 +551,6 @@ class Piece(LoggedClass):
         if not parsed:
             # i.e., unparsed must be True
             facet2files = {typ: [f for f in files if f.ix not in self.ix2parsed] for typ, files in facet2files.items()}
-        view = self.get_view(view_name=view_name)
         facet2files = {typ: view.filtered_file_list(files, 'files') for typ, files in facet2files.items()}
         result = {}
         needs_choice = []

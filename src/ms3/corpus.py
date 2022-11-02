@@ -23,7 +23,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict
+    files2disambiguation_dict, ask_user_to_choose
 from .view import DefaultView, View
 
 
@@ -428,23 +428,67 @@ class Corpus(LoggedClass):
                 self.files.append(F)
 
 
-    def disambiguate_facet(self, facet: Facet):
+    def disambiguate_facet(self, facet: Facet, ask_for_input=True):
+        """
+
+        Args:
+            facet:
+            ask_for_input:
+
+        Returns:
+
+        """
+        assert isinstance(facet, str), f"Let's disambiguate one facet at a time. Received invalid argument {facet}"
+        assert facet in Facet.__args__, f"'{facet}' is not a valid facet. Choose one of {Facet.__args__}."
         disambiguated = {}
-        for fname, files in self.get_files(facet, flat=True, include_empty=False).items():
-            disambiguated[fname] = files2disambiguation_dict(files, include_disambiguator=True)
-        df = pd.DataFrame.from_dict(disambiguated, orient='index').fillna('')
-        df = df.sort_index(axis=1, key=lambda S: S.str.len())
-        if facet in df.columns:
-            df = df.rename(columns={facet: facet + ' (unambiguous)'})
-            n_choices = len(df.columns) - 1
-            selectors = list(range(n_choices))
-            column_tuples = zip(['column-selector:']  + selectors, df.columns)
-        else:
-            n_choices = len(df.columns)
-            selectors = list(range(n_choices))
-            column_tuples = zip(selectors, df.columns)
-        df.columns = pd.MultiIndex.from_tuples(column_tuples)
-        return df
+        no_need = {}
+        missing = []
+        all_available_files = []
+        selected_ixs = []
+        fname2files = self.get_files(facet, choose='all', flat=True, include_empty=False)
+        for fname, files in fname2files.items():
+            if len(files) == 0:
+                missing.append(fname)
+            elif len(files) == 1:
+                no_need[fname] = files[0]
+            else:
+                all_available_files.extend(files)
+                disamb2file = files2disambiguation_dict(files, include_disambiguator=True)
+                disambiguated[fname] = {disamb: file.ix for disamb, file in disamb2file.items()}
+        if len(missing) > 0:
+            self.logger.info(f"{len(missing)} files don't come with '{facet}'.")
+        if len(no_need) > 0:
+            self.logger.info(f"{len(no_need)} files do not require disambiguation for facet '{facet}'.")
+        if len(disambiguated) == 0:
+            self.logger.info(f"No files require disambiguation for facet '{facet}'.")
+            return
+        N_target = len(disambiguated)
+        N_remaining = N_target
+        print(f"{N_target} pieces require disambiguation for facet '{facet}'.")
+        df = pd.DataFrame.from_dict(disambiguated, orient='index', dtype='Int64')
+        n_files_per_disambiguator = df.notna().sum().sort_values(ascending=False)
+        df = df.loc[:, n_files_per_disambiguator.index]
+        n_choices_groups = df.notna().sum(axis=1).sort_values()
+        for n_choices, chunk in df.groupby(n_choices_groups):
+            range_str = f"1-{n_choices}"
+            chunk = chunk.dropna(axis=1, how='all')
+            choices_groups = chunk.apply(lambda S: tuple(S.index[S.notna()]), axis=1)
+            for choices, piece_group in chunk.groupby(choices_groups):
+                N_current = len(piece_group)
+                piece_group = piece_group.dropna(axis=1, how='all').sort_index(axis=1, key=lambda S: S.str.len())
+                print(f"{N_current} of the {N_remaining} remaining can be disambiguated by choosing one of the {n_choices} columns:\n\n"
+                      f"{piece_group.to_string()}\n")
+                if ask_for_input:
+                    choices = dict(enumerate(piece_group.columns, 1))
+                    print(f"Choose one of the columns:\n{pretty_dict(choices)}")
+                    query = f"Selection [{range_str}]: "
+                    column = ask_user_to_choose(query, list(choices.values()))
+                    selected_ixs.extend(piece_group[column].values)
+                N_remaining -= N_current
+        if ask_for_input:
+            excluded_file_paths = [file.full_path for file in all_available_files if file.ix not in selected_ixs]
+            self.view.excluded_file_paths.extend(excluded_file_paths)
+        return
 
     def extract_facets(self,
                        facets: ScoreFacets = None,
@@ -590,6 +634,8 @@ class Corpus(LoggedClass):
                                         choose=choose,
                                         flat=flat,
                                         include_empty=include_empty)
+            if type2file is None:
+                return None
             if len(type2file) == 0 and not include_empty:
                 continue
             result[piece.name] = type2file
@@ -622,7 +668,7 @@ class Corpus(LoggedClass):
             n_unparsed = len(sum(unparsed_files.values(), []))
             if n_unparsed > 10:
                 self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
-                                    f"Next time, call _.parse() on me, so we can speed this up!")
+                                    f"Next time, call _.parse() on me first, so we can speed this up!")
         for fname, piece in self.iter_pieces(view_name=view_name):
             type2file = piece.get_all_parsed(facets=facets,
                                              view_name=view_name,

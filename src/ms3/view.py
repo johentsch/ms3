@@ -47,10 +47,10 @@ class View(LoggedClass):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
         # fields
         self._name: str = ''
-        self.name = view_name
         # the two main dicts
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
+        self.excluded_file_paths = []
         self.selected_facets = self.available_facets
         self._last_filtering_counts: Dict[str, npt.NDArray[int, int, int]] = defaultdict(empty_counts)
         """For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].
@@ -63,6 +63,7 @@ class View(LoggedClass):
         self.fnames_not_in_metadata: bool = not only_metadata_fnames
         self.fnames_with_incomplete_facets = True
         # properties
+        self.name = view_name
         self.include_convertible = include_convertible
         self.include_tsv = include_tsv
         self.exclude_review = exclude_review
@@ -93,6 +94,7 @@ class View(LoggedClass):
         new_view.including = deepcopy(self.including)
         new_view.excluding = deepcopy(self.excluding)
         new_view.update_facet_selection()
+        new_view.excluded_file_paths = list(self.excluded_file_paths)
         new_view.fnames_in_metadata = self.fnames_in_metadata
         new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
         new_view.fnames_with_incomplete_facets = self.fnames_with_incomplete_facets
@@ -165,6 +167,8 @@ class View(LoggedClass):
 
     def check_file(self, file: File) -> bool:
         """Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix."""
+        if file.full_path in self.excluded_file_paths:
+            return False
         category2file_component = dict(zip(('folders', 'files', 'suffixes'),
                                            (file.subdir, file.file, file.suffix)
                                            ))
@@ -182,6 +186,9 @@ class View(LoggedClass):
         self._last_filtering_counts = defaultdict(empty_counts)
         self._discarded_items = defaultdict(list)
         self.update_facet_selection()
+
+    def reset_view(self):
+        self.__init__()
 
 
     def filter_by_token(self, category: Category, tuples: Iterable[tuple]) -> Iterator[tuple]:
