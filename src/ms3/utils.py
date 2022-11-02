@@ -1,3 +1,4 @@
+import json
 import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
@@ -7,7 +8,7 @@ from functools import reduce, lru_cache
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar
+from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any
 from zipfile import ZipFile as Zip
 
 import pandas as pd
@@ -795,9 +796,10 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
             trailing_numbers = " " + trailing_numbers_match.group()
             substring = original_substring[:trailing_numbers_position]
         lowercase = substring.lower()
+        check_lower = fallback_to_lowercase and (lowercase != substring)
         if substring in abbreviations:
             resolved = abbreviations[substring] + trailing_numbers
-        elif fallback_to_lowercase and lowercase in abbreviations:
+        elif check_lower and lowercase in abbreviations:
             resolved = abbreviations[lowercase] + trailing_numbers
         else:
             resolved = original_substring
@@ -831,11 +833,17 @@ def distribute_tokens_over_levels(levels: Collection[str],
     mc_string = '' if mc is None else f"MC {mc}: "
     for level_str, token_str in zip(levels, tokens):
         split_level_info = pd.Series(level_str.split('&'))
+        # turn layer indications into a DataFrame with the columns ['level', 'form_tree', and 'reading']
         analytical_layers = split_level_info.str.extract(FORM_LEVEL_REGEX)
         levels_include_reading = analytical_layers.reading.notna().any()
+        # reading indications become part of the token and each will be followed by a colon
         analytical_layers.reading = (analytical_layers.reading + ': ').fillna('')
+        # propagate information that has been omitted in the second and following indications,
+        # e.g. 2a&b -> [2a:, 2b:]; 1aii&iii -> [1aii:, 1aiii:]; 1ai&b -> [1ai:, 1b] (i.e., readings are not propagated)
         analytical_layers = analytical_layers.fillna(method='ffill')
         analytical_layers.form_tree = analytical_layers.form_tree.fillna('')
+        # split token into alternative components, replace special with normal white-space characters, and strip each
+        # component from white space and separating commas
         token_alternatives = [re.sub(r'\s+',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
         token_alternatives = [t for t in token_alternatives if t != '']
         if len(abbreviations) > 0:
@@ -968,7 +976,7 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
             potentially_preexistent = distributed_to_all.loc[:, level_exists]
             check_double_attribution = res[existing_level_names].notna() & potentially_preexistent.notna()
             if check_double_attribution.any().any():
-                logger.debug(
+                logger.warning(
                     "Did not distribute levels to all form types because some had already been individually specified.")
             res.loc[:, existing_level_names] = res[existing_level_names].fillna(potentially_preexistent)
         fl_multiindex = pd.concat([fl], keys=[''], axis=1)
@@ -3724,9 +3732,9 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
         'events': ['event'],
         'chords': ['chord_id'],
         'rests': ['nominal_duration'],
-        'measures': ['act_dur'],
         'expanded': ['numeral'],
-        'labels': ['harmony_layer', 'label_type'],
+        'labels': ['harmony_layer', 'label', 'label_type'],
+        'measures': ['act_dur'],
         'cadences': ['cadence'],
         'metadata': ['fname'],
         'form_labels': ['form_label', 'a'],
@@ -3883,6 +3891,22 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
                         f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
     return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, fname, file_type)
 
+def ask_user_to_choose(query: str, choices: Collection[Any]) -> Any:
+    """Ask user to input an integer and return the nth choice selected by the user."""
+    n_choices = len(choices)
+    range_str = f"1-{n_choices}"
+    while True:
+        s = input(query)
+        try:
+            int_i = int(s)
+        except Exception:
+            print(f"Value '{s}' could not be converted to an integer.")
+            continue
+        if not (0 < int_i <= n_choices):
+            print(f"Value '{s}' is not within {range_str}.")
+            continue
+        return choices[int_i - 1]
+
 
 def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File], fname: str, file_type: str = ''):
     sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
@@ -3897,28 +3921,7 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
     query = f"Selection [{range_str}]: "
     print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
     print(f"Please select one of the files by passing an integer between {range_str}:")
-    permitted = list(range(len(disambiguated_choices)))
-
-    def test_integer(s):
-        nonlocal permitted, range_str
-        try:
-            int_i = int(s)
-        except:
-            print(f"Value '{s}' could not be converted to an integer.")
-            return None
-        if int_i not in permitted:
-            print(f"Value '{s}' is not between {range_str}.")
-            return None
-        return int_i
-
-    ask_user = True
-    while ask_user:
-        selection = input(query)
-        int_i = test_integer(selection)
-        if int_i is not None:
-            choice = file_list[int_i]
-            ask_user = False
-    return choice
+    return ask_user_to_choose(query, file_list)
 
 
 @function_logger
@@ -3935,7 +3938,11 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
     Returns:
         The selected file.
     """
-    if len(files) == 1:
+    n_files = len(files)
+    if n_files == 0:
+        return
+    files = tuple(files)
+    if n_files == 1:
         return files[0]
     if choose not in ('auto', 'ask'):
         self.logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
@@ -3955,19 +3962,23 @@ def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tupl
 
 
 @function_logger
-def files2disambiguation_dict(files: Collection[File]) -> FileDict:
+def files2disambiguation_dict(files: Collection[File], include_disambiguator: bool = False) -> FileDict:
     """Takes a list of :class:`File` returns a dictionary with disambiguating strings based on path components.
     of distinct strings to distinguish files pertaining to the same type."""
-    N_target = len(files)
-    if N_target == 0:
+    n_files = len(files)
+    if n_files == 0:
         return {}
-    if N_target== 1:
+    files = tuple(files)
+    if n_files== 1:
         f = files[0]
         return {f.type: f}
     disambiguation = [f.type for f in files]
-    if len(set(disambiguation)) == N_target:
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
+    if include_disambiguator and len(set(disambiguation)) > 1:
+        self.logger.warning(f"Including the disambiguator removes the facet name, but the files pertain to "
+                     f"several facets: {set(disambiguation)}")
     # first, try to disambiguate based on the files' sub-directories
     subdirs = []
     for f in files:
@@ -3980,22 +3991,31 @@ def files2disambiguation_dict(files: Collection[File]) -> FileDict:
         subdirs.append(subdir)
     if len(set(subdirs)) > 1:
         # files can (partially) be disambiguated because they are in different sub-directories
-        disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
-    if len(set(disambiguation)) == N_target:
+        if include_disambiguator:
+            disambiguation = [f"subdir: {'.' if subdir == '' else subdir}" for disamb, subdir in zip(disambiguation, subdirs)]
+        else:
+            disambiguation = [os.path.join(disamb, subdir) for disamb, subdir in zip(disambiguation, subdirs)]
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     # next, try adding detected suffixes
     for ix, f in enumerate(files):
         if f.suffix != '':
-            disambiguation[ix] += f"[{f.suffix}]"
-    if len(set(disambiguation)) == N_target:
+            if include_disambiguator:
+                disambiguation[ix] += f", suffix: {f.suffix}"
+            else:
+                disambiguation[ix] += f"[{f.suffix}]"
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     # now, add file extensions to disambiguate further
     if len(set(f.fext for f in files)) > 1:
         for ix, f in enumerate(files):
-            disambiguation[ix] += f.fext
-    if len(set(disambiguation)) == N_target:
+            if include_disambiguator:
+                disambiguation[ix] += f", fext: {f.fext}"
+            else:
+                disambiguation[ix] += f.fext
+    if len(set(disambiguation)) == n_files:
         # done disambiguating
         return dict(zip(disambiguation, files))
     str_counts = Counter(disambiguation)
@@ -4057,9 +4077,16 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
         argument = [argument]
     if allowed is None:
         return argument
+    else:
+        singular_dict = {allwd[:-1]: allwd for allwd in allowed}
     accepted, rejected = [], []
     for arg in argument:
-        (rejected, accepted)[arg in allowed].append(arg)
+        if arg in allowed:
+            accepted.append(arg)
+        elif arg in singular_dict:
+            accepted.append(singular_dict[arg])
+        else:
+            rejected.append(arg)
     n_rejected = len(rejected)
     if n_rejected > 0:
         if n_rejected == 1:
@@ -4074,7 +4101,7 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     return
 
 @function_logger
-def treat_facets_argument(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
+def resolve_facets_param(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
     if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
         selected_facets = list(literal_type2tuple(facet_type_var))
         if 'scores' in selected_facets:
@@ -4094,3 +4121,19 @@ def available_views2str(views_dict: ViewDict, active_view_name: str = None) -> s
     current_view = view_names[active_view_name]
     view_list = [bold_font(current_view)] + [name for name in view_names.values() if name != current_view]
     return f"[{'|'.join(view_list)}]\n"
+
+
+@function_logger
+def unpack_json_paths(paths: Collection[str]) -> None:
+    """Mutates the list with paths by replacing .json files with the list (of paths) contained in them."""
+    json_ixs = [i for i, p in enumerate(paths) if p.endswith('.json')]
+    if len(json_ixs) > 0:
+        for i in reversed(json_ixs):
+            try:
+                with open(paths[i]) as f:
+                    loaded_paths = json.load(f)
+                paths.extend(loaded_paths)
+                logger.info(f"Unpacked the {len(loaded_paths)} paths found in {paths[i]}.")
+                del (paths[i])
+            except Exception:
+                logger.info(f"Could not load paths from {paths[i]} because of the following error(s):\n{sys.exc_info()[1]}")

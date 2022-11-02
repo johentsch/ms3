@@ -1,14 +1,16 @@
+import os
+import random
 import re
 from collections import defaultdict
 from copy import deepcopy
-from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional
+from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple
 
 import numpy as np
 import numpy.typing as npt
 
 from .score import Score
 from ._typing import FileList, Category, Categories
-from .utils import File
+from .utils import File, unpack_json_paths
 from .logger import LoggedClass
 
 
@@ -28,7 +30,7 @@ class View(LoggedClass):
         'facets',
     )
     available_facets = ('scores',) + Score.dataframe_types + ('unknown',)
-    singular2category = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
+    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
                                    categories))
     tsv_regex = re.compile(r"\.tsv$", re.IGNORECASE)
     convertible_regex = Score.make_extension_regex(native=False, convertible=True, tsv=False)
@@ -36,40 +38,66 @@ class View(LoggedClass):
 
     def __init__(self,
                  view_name: Optional[str] = 'all',
-                 only_metadata: bool = False,
+                 only_metadata_fnames: bool = False,
                  include_convertible: bool = True,
                  include_tsv: bool = True,
                  exclude_review: bool = False,
                  **logger_cfg
                  ):
         super().__init__(subclass='View', logger_cfg=logger_cfg)
-        assert isinstance(view_name, str), f"Name of the view should be a string, not '{type(view_name)}'"
-        if view_name is not None and not view_name.isidentifier():
-            self.logger.info(f"The string '{view_name}' cannot be used as attribute name.")
-        self.name: str = view_name
+        # fields
+        self._name: str = ''
+        # the two main dicts
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
+        self.excluded_file_paths = []
         self.selected_facets = self.available_facets
-        self.fnames_in_metadata: bool = True
-        self.fnames_not_in_metadata: bool = not only_metadata
-        self.include_convertible = include_convertible
-        self.include_tsv = include_tsv
-        self.exclude_review = exclude_review
         self._last_filtering_counts: Dict[str, npt.NDArray[int, int, int]] = defaultdict(empty_counts)
         """For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].
         Keys are f"filtered_{category}" for :meth:`filter_by_token` and 'files' or 'parsed' for :meth:`filtered_file_list`.
         To inspect, you can use the method :meth:`filtering_report`
         """
         self._discarded_items: Dict[str, List[str]] = defaultdict(list)
+        # booleans
+        self.fnames_in_metadata: bool = True
+        self.fnames_not_in_metadata: bool = not only_metadata_fnames
+        self.fnames_with_incomplete_facets = True
+        # properties
+        self.name = view_name
+        self.include_convertible = include_convertible
+        self.include_tsv = include_tsv
+        self.exclude_review = exclude_review
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
         # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+    @staticmethod
+    def check_name(view_name) -> Tuple[bool, str]:
+        if not isinstance(view_name, str):
+            return False, f"Name of the view should be a string, not '{type(view_name)}'"
+        if not view_name.isidentifier():
+            return False, f"The string '{view_name}' cannot be used as attribute name."
+        return True, ''
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, new_name):
+        name_valid, msg = self.check_name(new_name)
+        if not name_valid:
+            raise ValueError(msg)
+        self._name = new_name
 
     def copy(self, new_name: str):
         new_view = self.__class__(view_name=new_name)
         new_view.including = deepcopy(self.including)
         new_view.excluding = deepcopy(self.excluding)
         new_view.update_facet_selection()
+        new_view.excluded_file_paths = list(self.excluded_file_paths)
         new_view.fnames_in_metadata = self.fnames_in_metadata
+        new_view.fnames_not_in_metadata = self.fnames_not_in_metadata
+        new_view.fnames_with_incomplete_facets = self.fnames_with_incomplete_facets
         return new_view
 
     def update_config(self,
@@ -129,7 +157,7 @@ class View(LoggedClass):
 
     def check_token(self, category: Category, token: str) -> bool:
         """Checks if a string pertaining to a certain category should be included in the view or not."""
-        category = self.resolve_categories(category)
+        category = self.resolve_category(category)
         if any(re.search(rgx, token) is not None for rgx in self.excluding[category]):
             return False
         if len(self.including[category]) == 0:
@@ -139,6 +167,8 @@ class View(LoggedClass):
 
     def check_file(self, file: File) -> bool:
         """Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix."""
+        if file.full_path in self.excluded_file_paths:
+            return False
         category2file_component = dict(zip(('folders', 'files', 'suffixes'),
                                            (file.subdir, file.file, file.suffix)
                                            ))
@@ -157,16 +187,19 @@ class View(LoggedClass):
         self._discarded_items = defaultdict(list)
         self.update_facet_selection()
 
+    def reset_view(self):
+        self.__init__()
+
 
     def filter_by_token(self, category: Category, tuples: Iterable[tuple]) -> Iterator[tuple]:
         """Filters out those tuples where the token (first element) does not pass _.check_token(category, token)."""
-        category = self.resolve_categories(category)
+        category = self.resolve_category(category)
         n_kept, n_discarded, N = 0, 0, 0
         discarded_items = []
         for tup in tuples:
             N += 1
             token, *_ = tup
-            if self.check_token(category=category, token=token):
+            if self.check_token(category, token=token):
                 n_kept += 1
                 yield tup
             else:
@@ -188,7 +221,7 @@ class View(LoggedClass):
 
         """
         if len(files) == 0:
-            return files
+            return []
         result, discarded_items = [], []
         for file in files:
             if self.check_file(file):
@@ -203,7 +236,7 @@ class View(LoggedClass):
         self._discarded_items[key].extend(discarded_items)
         return result
 
-    def filtering_report(self, drop_zero=True, show_discarded=False):
+    def filtering_report(self, drop_zero=True, show_discarded=True):
         aggregated_counts = defaultdict(empty_counts)
         for key, counts in self._last_filtering_counts.items():
             key = key.replace('filtered_', '')
@@ -216,7 +249,7 @@ class View(LoggedClass):
         msg = ''
         for key, (_, n_discarded, N) in aggregated_counts.items():
             if not drop_zero or n_discarded > 0:
-                msg += f"{n_discarded}/{N} {key} have been discarded"
+                msg += f"{n_discarded}/{N} {key} are excluded from this view"
                 if show_discarded:
                     if len(discarded[key]) > 0:
                         msg += f":\n{discarded[key]}\n\n"
@@ -235,24 +268,46 @@ class View(LoggedClass):
                 return msg
             print(msg)
             return
+        if not self.fnames_in_metadata:
+            msg_components.append("excludes fnames that are contained in the metadata")
         if not self.fnames_not_in_metadata:
             msg_components.append("excludes fnames that are not contained in the metadata")
+        if not self.fnames_with_incomplete_facets:
+            msg_components.append("excludes pieces that do not have at least one file per selected facet")
         if not self.include_convertible:
             msg_components.append("filters out file extensions requiring conversion (such as .xml)")
         if not self.include_tsv:
             msg_components.append("disregards all TSV files")
         if self.exclude_review:
             msg_components.append("excludes review files and folders")
-        included_re = {what_to_include: [f'"{rgx}"' for rgx in regexes if rgx not in self.registered_regexes]
+        included_re = {what_to_include: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_include, regexes in self.including.items()}
-        excluded_re = {what_to_exclude: [f'"{rgx}"' for rgx in regexes if rgx not in self.registered_regexes]
+        excluded_re = {what_to_exclude: [rgx for rgx in regexes if rgx not in self.registered_regexes]
                        for what_to_exclude, regexes in self.excluding.items()}
-        msg_components.extend([f"includes only {what_to_include} containing {re_strings[0] if len(re_strings) == 1 else 'one of ' + str(re_strings)}"
-                            for what_to_include, re_strings in included_re.items()
-                            if len(re_strings) > 0])
-        msg_components.extend([f"excludes any {what_to_exclude} containing {re_strings[0] if len(re_strings) == 1 else 'one of ' + str(re_strings)}"
-                            for what_to_exclude, re_strings in excluded_re.items()
-                            if len(re_strings) > 0])
+        for what_to_exclude, re_strings in included_re.items():
+            n_included = len(re_strings)
+            if n_included == 0:
+                continue
+            if n_included == 1:
+                included = f"'{re_strings[0]}'"
+            elif n_included < 11:
+                included = 'one of ' + str(re_strings)
+            else:
+                included = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
+                included += f" ({n_included - 10} more, see filtering report))"
+            msg_components.append(f"includes only {what_to_exclude} containing {included}")
+        for what_to_exclude, re_strings in excluded_re.items():
+            n_excluded = len(re_strings)
+            if n_excluded == 0:
+                continue
+            if n_excluded == 1:
+                excluded = f"'{re_strings[0]}'"
+            elif n_excluded < 11:
+                excluded = 'one of ' + str(re_strings)
+            else:
+                excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
+                excluded += f" ({n_excluded - 10} more, see filtering report))"
+            msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
         msg = f"This view is called '{self.name}'. It "
         n_components = len(msg_components)
         if n_components == 0:
@@ -260,24 +315,28 @@ class View(LoggedClass):
         elif n_components == 1:
             msg += msg_components[0] + "."
         else:
-            msg += ', '.join(msg_components[:-1])
-            msg += f", and {msg_components[-1]}."
+            separator = '\n\t- '
+            msg += separator + (',' + separator).join(msg_components[:-1])
+            msg += f", and{separator}{msg_components[-1]}."
         if return_str:
             return msg
         print(msg)
 
-
-    def resolve_categories(self, category):
+    def resolve_category(self, category: Category) -> Category:
         if isinstance(category, str):
             if category not in self.categories:
                 if category in self.singular2category:
                     return self.singular2category[category]
                 else:
-                    self.logger.error(f"'{category}' is not one of the known categories {self.categories}")
+                    raise ValueError(f"'{category}' is not one of the known categories {self.categories}")
             return category
         else:
-            # assumes this to be iterable
-            return [self.resolve_categories(categ) for categ in category]
+            raise ValueError(f"Pass a single category string ∈ {self.categories}, not a '{type(category)}'")
+
+    def resolve_categories(self, categories: Categories) -> List[str]:
+        if isinstance(categories, str):
+            categories = [categories]
+        return [self.resolve_category(categ) for categ in categories]
 
     def update_facet_selection(self):
         selected, discarded = [], []
@@ -301,8 +360,6 @@ class View(LoggedClass):
 
     def include(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_include in categories:
             for rgx in regex:
                 if rgx not in self.including[what_to_include]:
@@ -313,8 +370,6 @@ class View(LoggedClass):
 
     def exclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_exclude in categories:
             for rgx in regex:
                 if rgx not in self.excluding[what_to_exclude]:
@@ -324,8 +379,6 @@ class View(LoggedClass):
 
     def uninclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_uninclude in categories:
             for rgx in regex:
                 try:
@@ -336,8 +389,6 @@ class View(LoggedClass):
 
     def unexclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
-        if isinstance(categories, str):
-            categories = [categories]
         for what_to_unexclude in categories:
             for rgx in regex:
                 try:
@@ -352,16 +403,56 @@ class DefaultView(View):
 
     def __init__(self,
                  view_name: Optional[str] = 'default',
-                 only_metadata: bool = True,
+                 only_metadata_fnames: bool = True,
                  include_convertible: bool = False,
                  include_tsv: bool = True,
                  exclude_review: bool = True,
                  **logger_cfg
                  ):
         super().__init__(view_name=view_name,
-                         only_metadata=only_metadata,
+                         only_metadata_fnames=only_metadata_fnames,
                          include_convertible=include_convertible,
                          include_tsv=include_tsv,
                          exclude_review=exclude_review,
                          **logger_cfg
                          )
+
+
+def create_view_from_parameters(only_metadata_fnames: bool = True,
+                                include_convertible: bool = False,
+                                include_tsv: bool = True,
+                                exclude_review: bool = True,
+                                paths=None, 
+                                file_re=None, 
+                                folder_re=None, 
+                                exclude_re=None,
+                                ) -> View:
+    no_legacy_params = all(param is None for param in (paths, file_re, folder_re, exclude_re)) 
+    all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
+    if no_legacy_params and all_default:
+        return DefaultView()
+    ferocious_name = get_ferocious_name()
+    view = View(ferocious_name,
+                only_metadata_fnames=only_metadata_fnames,
+                include_convertible=include_convertible,
+                include_tsv=include_tsv,
+                exclude_review=exclude_review,
+                )
+    if file_re is not None:
+        view.include('files', file_re)
+    if folder_re is not None and folder_re != '.*':
+        view.include('folders', folder_re)
+    if exclude_re is not None:
+        view.exclude(('files', 'folders'), exclude_re)
+    if paths is not None:
+        if isinstance(paths, str):
+            paths = [paths]
+        unpack_json_paths(paths)
+        regexes = [re.escape(os.path.basename(p)) for p in paths]
+        view.include('files', *regexes)
+    return view
+
+
+def get_ferocious_name():
+    path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'ferocious_names.txt')
+    return random.choice(open(path, 'r', encoding='utf-8').readlines()).strip('\n')

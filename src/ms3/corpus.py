@@ -3,7 +3,7 @@ from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Opti
 
 import io
 import sys, os, re
-import json
+from itertools import zip_longest
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
 
@@ -16,11 +16,14 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments
-from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, load_tsv, make_continuous_offset_series, \
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments, \
+    Facet
+from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
+    load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
-    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing
+    update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
+    files2disambiguation_dict, ask_user_to_choose
 from .view import DefaultView, View
 
 
@@ -34,7 +37,7 @@ class Corpus(LoggedClass):
         ('found', 'parsed')
     ])
 
-    def __init__(self, directory, view: View=None, simulate=False, labels_cfg={}, ms=None, level=None, **logger_cfg):
+    def __init__(self, directory, view: View = None, simulate=False, labels_cfg={}, ms=None, **logger_cfg):
         """
 
         Parameters
@@ -59,8 +62,6 @@ class Corpus(LoggedClass):
             and other formats by temporarily converting them. If you're using the standard path, you may try 'auto', or 'win' for
             Windows, 'mac' for MacOS, or 'mscore' for Linux. In case you do not pass the 'file_re' and the MuseScore executable is
             detected, all convertible files are automatically selected, otherwise only those that can be parsed without conversion.
-        level: :obj:`str`
-            Shorthand for setting logger_cfg['level'] to one of {'W', 'D', 'I', 'E', 'C', 'WARNING', 'DEBUG', 'INFO', 'ERROR', 'CRITICAL'}.
         """
         directory = resolve_dir(directory)
         assert os.path.isdir(directory), f"{directory} is not an existing directory."
@@ -69,9 +70,7 @@ class Corpus(LoggedClass):
         self.name =  os.path.basename(directory).strip(r'\/')
         """Folder name of the corpus."""
         if 'name' not in logger_cfg or logger_cfg['name'] is None or logger_cfg['name'] == '':
-            logger_cfg['name'] = 'ms3.' + self.name.replace('.', '')
-        if level is not None:
-            logger_cfg['level'] = level
+            logger_cfg['name'] = 'ms3.Corpus.' + self.name.replace('.', '')
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Corpus', logger_cfg=logger_cfg)
@@ -84,7 +83,12 @@ class Corpus(LoggedClass):
         """
 
         self._views: dict = {}
-        self._views[None] = DefaultView() if view is None else view
+        if view is None:
+            self._views[None] = DefaultView()
+        else:
+            self._views[None] = view
+            if view.name != 'default':
+                self._views['default'] = DefaultView()
         self._views['all'] = View('all')
 
         self._ms = get_musescore(ms, logger=self.logger)
@@ -181,6 +185,10 @@ class Corpus(LoggedClass):
         return result
 
     @property
+    def n_detected(self):
+        return len(self.files)
+
+    @property
     def n_parsed(self):
         return len(self.ix2parsed)
 
@@ -222,32 +230,36 @@ class Corpus(LoggedClass):
                     detected: bool = True,
                     parsed: bool = True,
                     as_dict: bool = False,
-                    drop_zero: bool = False,
+                    drop_zero: bool = True,
                     view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
         assert detected + parsed > 0, "At least one parameter needs to be True"
         fname2counts = {}
+        prefix = detected + parsed == 2
         for fname, piece in self.iter_pieces(view_name=view_name):
             if detected:
-                type_count = piece.count_detected(view_name=view_name, include_empty=True)
+                type_count = piece.count_detected(view_name=view_name, include_empty=True, prefix=prefix)
                 if not parsed:
                     fname2counts[fname] = type_count
             if parsed:
-                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True)
+                parsed_count = piece.count_parsed(view_name=view_name, include_empty=True, prefix=prefix)
                 if not detected:
                     fname2counts[fname] = parsed_count
             if detected & parsed:
                 alternating_counts = {}
-                for (k1, v1), (k2, v2) in zip(type_count.items(), parsed_count.items()):
-                    alternating_counts[k1] = v1
-                    alternating_counts[k2] = v2
+                for (k1, v1), (k2, v2) in zip_longest(type_count.items(), parsed_count.items(), fillvalue=(None, None)):
+                    if k1 is not None:
+                        alternating_counts[k1] = v1
+                    if k2 is not None:
+                        alternating_counts[k2] = v2
                 fname2counts[fname] = alternating_counts
         if as_dict:
             return fname2counts
         df = pd.DataFrame.from_dict(fname2counts, orient='index')
-        try:
-            df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
-        except TypeError:
-            pass
+        if prefix:
+            try:
+                df.columns = df.columns.str.split('_', n=1, expand=True).swaplevel()
+            except TypeError:
+                pass
         if drop_zero:
             empty_cols = df.columns[df.sum() == 0]
             return df.drop(columns=empty_cols)
@@ -278,7 +290,11 @@ class Corpus(LoggedClass):
         score_extensions = ['.' + ext for ext in Score.parseable_formats]
         detected_extensions = score_extensions + ['.tsv']
         newly_added = []
+        existing_paths = pd.DataFrame(self.files).full_path.to_list()
         for full_path in resolved_paths:
+            if full_path in existing_paths:
+                self.logger.debug(f"Skipping {full_path} because it was already there.")
+                continue
             current_path, file = os.path.split(full_path)
             file_name, file_ext = os.path.splitext(file)
             if file_ext not in detected_extensions:
@@ -304,6 +320,8 @@ class Corpus(LoggedClass):
             )
             self.files.append(F)
             newly_added.append(F)
+        if len(self._pieces) > 0:
+            self.register_files_with_pieces(newly_added)
         return newly_added
 
     def collect_fnames_from_scores(self) -> None:
@@ -332,9 +350,9 @@ class Corpus(LoggedClass):
         metadata = prepare_metadata_for_writing(metadata)
         metadata.to_csv(path, sep='\t', index=False)
         if already_there:
-            self.info(f"{path} overwritten.")
+            self.logger.info(f"{path} overwritten.")
         else:
-            self.info(f"{path} created.")
+            self.logger.info(f"{path} created.")
         file = self.add_file_paths([path])[0]
         metadata_df = load_tsv(path)
         self.ix2parsed[file.ix] = metadata_df
@@ -410,6 +428,67 @@ class Corpus(LoggedClass):
                 self.files.append(F)
 
 
+    def disambiguate_facet(self, facet: Facet, ask_for_input=True):
+        """
+
+        Args:
+            facet:
+            ask_for_input:
+
+        Returns:
+
+        """
+        assert isinstance(facet, str), f"Let's disambiguate one facet at a time. Received invalid argument {facet}"
+        assert facet in Facet.__args__, f"'{facet}' is not a valid facet. Choose one of {Facet.__args__}."
+        disambiguated = {}
+        no_need = {}
+        missing = []
+        all_available_files = []
+        selected_ixs = []
+        fname2files = self.get_files(facet, choose='all', flat=True, include_empty=False)
+        for fname, files in fname2files.items():
+            if len(files) == 0:
+                missing.append(fname)
+            elif len(files) == 1:
+                no_need[fname] = files[0]
+            else:
+                all_available_files.extend(files)
+                disamb2file = files2disambiguation_dict(files, include_disambiguator=True)
+                disambiguated[fname] = {disamb: file.ix for disamb, file in disamb2file.items()}
+        if len(missing) > 0:
+            self.logger.info(f"{len(missing)} files don't come with '{facet}'.")
+        if len(no_need) > 0:
+            self.logger.info(f"{len(no_need)} files do not require disambiguation for facet '{facet}'.")
+        if len(disambiguated) == 0:
+            self.logger.info(f"No files require disambiguation for facet '{facet}'.")
+            return
+        N_target = len(disambiguated)
+        N_remaining = N_target
+        print(f"{N_target} pieces require disambiguation for facet '{facet}'.")
+        df = pd.DataFrame.from_dict(disambiguated, orient='index', dtype='Int64')
+        n_files_per_disambiguator = df.notna().sum().sort_values(ascending=False)
+        df = df.loc[:, n_files_per_disambiguator.index]
+        n_choices_groups = df.notna().sum(axis=1).sort_values()
+        for n_choices, chunk in df.groupby(n_choices_groups):
+            range_str = f"1-{n_choices}"
+            chunk = chunk.dropna(axis=1, how='all')
+            choices_groups = chunk.apply(lambda S: tuple(S.index[S.notna()]), axis=1)
+            for choices, piece_group in chunk.groupby(choices_groups):
+                N_current = len(piece_group)
+                piece_group = piece_group.dropna(axis=1, how='all').sort_index(axis=1, key=lambda S: S.str.len())
+                print(f"{N_current} of the {N_remaining} remaining can be disambiguated by choosing one of the {n_choices} columns:\n\n"
+                      f"{piece_group.to_string()}\n")
+                if ask_for_input:
+                    choices = dict(enumerate(piece_group.columns, 1))
+                    print(f"Choose one of the columns:\n{pretty_dict(choices)}")
+                    query = f"Selection [{range_str}]: "
+                    column = ask_user_to_choose(query, list(choices.values()))
+                    selected_ixs.extend(piece_group[column].values)
+                N_remaining -= N_current
+        if ask_for_input:
+            excluded_file_paths = [file.full_path for file in all_available_files if file.ix not in selected_ixs]
+            self.view.excluded_file_paths.extend(excluded_file_paths)
+        return
 
     def extract_facets(self,
                        facets: ScoreFacets = None,
@@ -458,7 +537,7 @@ class Corpus(LoggedClass):
     def fnames_in_metadata(self, metadata_ix) -> List[str]:
         """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply
-        self.metadata_ix and serves caching.
+        self.metadata_ix and serves caching of the results for multiple metadata.tsv files.
         """
         if self.metadata_tsv is None:
             return  []
@@ -555,6 +634,8 @@ class Corpus(LoggedClass):
                                         choose=choose,
                                         flat=flat,
                                         include_empty=include_empty)
+            if type2file is None:
+                return None
             if len(type2file) == 0 and not include_empty:
                 continue
             result[piece.name] = type2file
@@ -587,7 +668,7 @@ class Corpus(LoggedClass):
             n_unparsed = len(sum(unparsed_files.values(), []))
             if n_unparsed > 10:
                 self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
-                                    f"Next time, call _.parse() on me, so we can speed this up!")
+                                    f"Next time, call _.parse() on me first, so we can speed this up!")
         for fname, piece in self.iter_pieces(view_name=view_name):
             type2file = piece.get_all_parsed(facets=facets,
                                              view_name=view_name,
@@ -620,6 +701,19 @@ class Corpus(LoggedClass):
             result.extend(self.fnames_not_in_metadata())
         return sorted(result)
 
+    def get_present_facets(self, view_name: Optional[str] = None):
+        view = self.get_view(view_name)
+        selected_fnames = []
+        if view.fnames_in_metadata:
+            selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
+        if view.fnames_not_in_metadata:
+            selected_fnames.extend(self.fnames_not_in_metadata())
+        result = set()
+        for fname, piece in self:
+            detected_facets = piece.count_detected(include_empty=False, prefix=False)
+            result.update(detected_facets.keys())
+        return list(result)
+
     def get_view(self,
                  view_name: Optional[str] = None,
                  **config
@@ -637,9 +731,7 @@ class Corpus(LoggedClass):
             view.update_config(**config)
         return view
 
-    def info(self,  return_str: bool = False,
-             view_name: Optional[str] = None,
-             show_discarded: bool = False):
+    def info(self, view_name: Optional[str] = None, return_str: bool = False, show_discarded: bool = False):
         """"""
         header = f"Corpus '{self.name}'"
         header += "\n" + "-" * len(header) + "\n"
@@ -650,37 +742,47 @@ class Corpus(LoggedClass):
         view.reset_filtering_data()
         msg = available_views2str(self._views, view_name)
         msg += header
-        msg += f"View: {view}\n\n"
+        view_info = f"View: {view}"
+        if view_name is None:
+            piece_views = [piece.get_view().name for _, piece in self.iter_pieces(view_name=view_name)]
+            if len(set(piece_views)) > 1:
+                view_info = f"This is a mixed view. Call _.info(view_name) to see a homogeneous one."
+        msg += view_info + "\n\n"
 
         # a table counting the number of parseable files under the active view
-        all_pieces_df = self.count_files(drop_zero=True, view_name=view_name)
+        counts_df = self.count_files(drop_zero=True, view_name=view_name)
+        if counts_df.isna().any().any():
+            counts_df = counts_df.fillna(0).astype('int')
         if self.metadata_tsv is None:
             msg += "No 'metadata.tsv' file is present.\n\n"
-            msg += all_pieces_df.to_string()
+            msg += counts_df.to_string()
         else:
             metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
-            included_selector = all_pieces_df.index.isin(metadata_fnames)
+            included_selector = counts_df.index.isin(metadata_fnames)
+            n_pieces = len(counts_df)
             if included_selector.all():
-                msg += "All pieces are listed in 'metadata.tsv':\n\n"
-                msg += all_pieces_df.to_string()
+                msg += f"All {n_pieces} pieces are listed in 'metadata.tsv':\n\n"
+                msg += counts_df.to_string()
             elif not included_selector.any():
-                msg = "None of the pieces is actually listed in 'metadata.tsv'.\n\n"
-                msg += all_pieces_df.to_string()
+                msg = f"None of the {n_pieces} pieces is actually listed in 'metadata.tsv'.\n\n"
+                msg += counts_df.to_string()
             else:
-                msg = "Only the following pieces are listed in 'metadata.tsv':\n\n"
-                msg += all_pieces_df[included_selector].to_string()
+                msg = f"Only the following {included_selector.sum()} pieces are listed in 'metadata.tsv':\n\n"
+                msg += counts_df[included_selector].to_string()
                 not_included = ~included_selector
-                plural = "These ones here are" if not_included.sum() > 1 else "This one is"
+                plural = f"These {not_included.sum()} here are" if not_included.sum() > 1 else "This one is"
                 msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
-                msg += all_pieces_df[not_included].to_string()
+                msg += counts_df[not_included].to_string()
         msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
         if return_str:
             return msg
         print(msg)
 
+
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
+        view.reset_filtering_data()
         param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
         if param_sum == 0:
             # all excluded, need to update filter counts accordingly
@@ -690,21 +792,22 @@ class Corpus(LoggedClass):
             filtering_counts = view._last_filtering_counts[key]
             filtering_counts[[0,1]] = filtering_counts[[1, 0]]
             yield from []
-        elif param_sum == 2:
-            for fname, piece in view.filter_by_token('fnames', self):
-                if view_name not in piece._views:
-                    if view_name is None:
-                        piece.set_view(view)
-                    else:
-                        piece.set_view(**{view_name: view})
-                yield fname, piece
         else:
-            # need to differentiate between files that are and are not included in the metadata.tsv file
-            fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
             n_kept, n_discarded = 0, 0
             discarded_items = []
+            differentiate_by_presence_in_metadata = param_sum == 1
+            if differentiate_by_presence_in_metadata:
+                selected_fnames = self.fnames_in_metadata(self.metadata_ix) if view.fnames_in_metadata else self.fnames_not_in_metadata()
+            filter_incomplete_facets = not view.fnames_with_incomplete_facets
+            if filter_incomplete_facets:
+                selected_facets = set(self.get_present_facets(view_name))
+                selected_facets = selected_facets.intersection(set(view.selected_facets))
+                selected_facets = tuple(selected_facets)
             for fname, piece in view.filter_by_token('fnames', self):
-                if fname in fnames:
+                metadata_check = not differentiate_by_presence_in_metadata or fname in selected_fnames
+                facet_check = not filter_incomplete_facets or piece.all_facets_present(view_name=view_name,
+                                                                                       selected_facets=selected_facets)
+                if metadata_check and facet_check:
                     if view_name not in piece._views:
                         if view_name is None:
                             piece.set_view(view)
@@ -913,7 +1016,7 @@ class Corpus(LoggedClass):
             self.logger.info(f"None of the {target} files have been parsed successfully.")
 
 
-    def register_files_with_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
+    def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
         if fnames is None:
             fnames = self.get_fnames()
         elif isinstance(fnames, str):
@@ -923,7 +1026,9 @@ class Corpus(LoggedClass):
         if len(fnames) == 0:
             self.logger.warning(f"Corpus contains neither scores nor metadata.")
             return
-        for file in self.files:
+        if files is None:
+            files = self.files
+        for file in files:
             # try to associate all detected files with one of the created pieces and
             # store the mapping in :attr:`ix2fname`
             piece_name = None
@@ -946,7 +1051,10 @@ class Corpus(LoggedClass):
                 self.ix2fname[file.ix] = None
             else:
                 piece = self.get_piece(piece_name)
-                if piece.register_file(file):
+                registration_result = piece.register_file(file)
+                if registration_result is None:
+                    self.logger.debug(f"Skipping '{file.rel_path}' because it had already been registered with Piece('{piece_name}').")
+                elif registration_result:
                     self.ix2fname[file.ix] = piece_name
                     self.logger_names[file.ix] = piece.logger.name
                 else:
@@ -979,7 +1087,7 @@ class Corpus(LoggedClass):
         """Register one or several view_name=View pairs."""
         if active is not None:
             active_name = active.name
-            if active_name in self.view_names:
+            if active_name in self._views:
                 self.switch_view(active_name, show_info=False, propagate=False)
             self._views[None] = active
         for view_name, view in views.items():
@@ -992,7 +1100,7 @@ class Corpus(LoggedClass):
             for view_name, view in views.items():
                 piece.set_view(**{view_name:view})
 
-    def switch_view(self, view_name: Optional[str],
+    def switch_view(self, view_name: str,
                     show_info: bool = True,
                     propagate: bool = True,
                     ) -> None:
@@ -1014,10 +1122,29 @@ class Corpus(LoggedClass):
         if show_info:
             self.info()
 
+    @property
+    def view(self):
+        return self.get_view()
+
+    @view.setter
+    def view(self, new_view: View):
+        if not isinstance(new_view, View):
+            return TypeError("If you want to switch to an existing view by its name, use its name like an attribute or "
+                             "call _.switch_view().")
+        self.set_view(new_view)
 
     @property
     def views(self):
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
+
+    @property
+    def view_name(self):
+        return self.get_view().name
+
+    @view_name.setter
+    def view_name(self, new_name):
+        view = self.get_view()
+        view.name = new_name
 
     @property
     def view_names(self):
@@ -1742,59 +1869,6 @@ Available keys: {available_keys}""")
 
 
 
-
-    def get_tsvs(self, keys=None, ids=None, metadata=True, notes=False, rests=False, notes_and_rests=False, measures=False,\
-                 events=False, labels=False, chords=False, expanded=False, cadences=False, form_labels=False, flat=False):
-        """Retrieve a dictionary with the selected feature matrices from the parsed TSV files.
-        If you want to retrieve matrices from parsed scores, use :py:meth:`extract_dataframes`.
-
-        Parameters
-        ----------
-        keys
-        ids
-        metadata
-        notes
-        rests
-        notes_and_rests
-        measures
-        events
-        labels
-        chords
-        expanded
-        cadences
-        form_labels
-        flat : :obj:`bool`, optional
-            By default, you get a nested dictionary {list_type -> {index -> list}}.
-            By passing True you get a dictionary {(id, list_type) -> list}
-
-        Returns
-        -------
-        {feature -> {(key, i) -> pd.DataFrame}} if not flat (default) else {(key, i, feature) -> pd.DataFrame}
-        """
-
-
-        if ids is None:
-            ids = list(self._iterids(keys, only_parsed_tsv=True))
-        if len(self._parsed_tsv) == 0:
-            self.info(f"No TSV files have been parsed, use method parse_tsv().")
-            return {}
-        bool_params = ('metadata',) + Score.dataframe_types
-        l = locals()
-        types = [p for p in bool_params if l[p]]
-        res = {}
-        if not flat:
-            res.update({t: {} for t in types})
-        for id in ids:
-            tsv_type = self._tsv_types[id]
-            if tsv_type in types:
-                if flat:
-                    res[(id + (tsv_type,))] = self._parsed_tsv[id]
-                else:
-                    res[tsv_type][id] = self._parsed_tsv[id]
-        return res
-
-
-
     def get_playthrough2mc(self, keys=None, ids=None):
         if ids is None:
             ids = list(self._iterids(keys))
@@ -2041,7 +2115,7 @@ Available keys: {available_keys}""")
             cols = dict(label='label')
             infer_types = None
         self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
+                                            **logger_cfg)
         self.logger.debug(
             f"{rel_path} successfully parsed from commit {short_sha}.")
         return new_id
@@ -2704,5 +2778,6 @@ def parse_tsv_file(file, logger) -> pd.DataFrame:
         df = load_tsv(path)
         return df
     except Exception as e:
-        logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
-                    f"\n{path}\nError: {e}")
+        logger.info(
+            return_str=f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
+                       f"\n{path}\nError: {e}")

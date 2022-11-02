@@ -1309,7 +1309,11 @@ where there is no Chord or Rest, just: {elements}.""")
                     else:
                         ix = l
                     after = elements[ix-1]['tag']
-                remember = self.insert_label(label=label, after=after, **kwargs)
+                try:
+                    remember = self.insert_label(label=label, after=after, **kwargs)
+                except Exception as e:
+                    self.logger.warning(f"Inserting label '{label}' at mc {mc}, onset {mc_onset} failed with '{e}'")
+                    return False
             measure[mc_onset].insert(ix, remember[0])
             old_names = list(names)
             names.insert(ix, 'Harmony')

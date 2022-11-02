@@ -17,7 +17,7 @@ class Annotations(LoggedClass):
     additional_cols = ['harmony_layer', 'regex_match', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
                        'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'placement', 'minDistance', 'style', 'z']
 
-    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types=None, read_only=False, logger_cfg={}, **kwargs):
+    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types=None, read_only=False, **logger_cfg):
         """
 
         Parameters
@@ -69,7 +69,7 @@ class Annotations(LoggedClass):
             self.df = df.copy()
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
-            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
+            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep)
         sorting_cols = ['mc', 'mn', 'mc_onset', 'staff']
         sorting_cols = [self.cols[c] if c in self.cols else c for c in sorting_cols]
         sorting_cols = [c for c in sorting_cols if c in self.df.columns]
@@ -142,8 +142,11 @@ class Annotations(LoggedClass):
                     df.loc[:, 'mc_onset'] = inferred_positions['mc_onset']
                     cols.extend(['mc', 'mc_onset'])
 
-        if self.cols['mc_onset' ] not in cols:
+        mc_onset_col = self.cols['mc_onset']
+        if mc_onset_col not in cols:
             self.logger.info("No 'mc_onset' column found. All labels will be inserted at mc_onset 0.")
+            new_col = pd.Series([0]*len(df), index=df.index, name='mc_onset')
+            df = pd.concat([new_col, df], axis=1)
 
         position_cols = ['mc', 'mc_onset', 'staff', 'voice']
         new_pos_cols = [self.cols[c] for c in position_cols]
@@ -198,7 +201,8 @@ class Annotations(LoggedClass):
         else:
             df['color_name'] = 'default'
             layers.append('color_name')
-        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
+        if 'regex_match' in df.columns:
+            df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
         return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
@@ -401,13 +405,20 @@ class Annotations(LoggedClass):
         if len(regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True, logger=self.logger)
             sel = decoded.notna()
+            if not sel.any():
+                self.logger.info(f"No labels present: {self.df}")
+                return
             if 'regex_match' not in self.df.columns and sel.any():
                 regex_col = pd.Series(index=self.df.index, dtype='object')
                 column_position = self.df.columns.get_loc('harmony_layer') + 1
                 self.df.insert(column_position, 'regex_match', regex_col)
             for name, regex in regex_dict.items():
                 # TODO: Check if in the loop, previously matched regex names are being overwritten by those matched after
-                mtch = decoded[sel].str.match(regex)
+                try:
+                    mtch = decoded[sel].str.match(regex)
+                except AttributeError:
+                    self.logger.warning(f"Couldn't match regex against these labels: {decoded[sel]}")
+                    raise
                 self.df.loc[sel & mtch, 'regex_match'] = name
 
 
