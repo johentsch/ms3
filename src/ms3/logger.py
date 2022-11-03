@@ -378,8 +378,8 @@ def inspect_loggers(exclude_placeholders=False) -> dict:
     return dict(iter_ms3_loggers(exclude_placeholders=exclude_placeholders))
 
 @contextmanager
-def temporarily_suppress_warnings(parse_obj):
-    prev_level = parse_obj.logger.level
-    parse_obj.change_logger_cfg(level='c')
-    yield parse_obj
-    parse_obj.change_logger_cfg(level=prev_level)
+def temporarily_suppress_warnings(logged_object: LoggedClass):
+    prev_level = logged_object.logger.level
+    logged_object.change_logger_cfg(level='c')
+    yield logged_object
+    logged_object.change_logger_cfg(level=prev_level)

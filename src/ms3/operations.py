@@ -22,24 +22,10 @@ def extract(parse_obj,
             silence_label_warnings=False,
             **suffixes):
     parse_obj.parse_scores(parallel=parallel)
-    parse_obj.output_dataframes(root_dir=root_dir,
-                        notes_folder=notes_folder,
-                        notes_and_rests_folder=notes_and_rests_folder,
-                        labels_folder=labels_folder,
-                        measures_folder=measures_folder,
-                        rests_folder=rests_folder,
-                        events_folder=events_folder,
-                        chords_folder=chords_folder,
-                        expanded_folder=expanded_folder,
-                        cadences_folder=cadences_folder,
-                        form_labels_folder=form_labels_folder,
-                        metadata_path=metadata_path,
-                        markdown=markdown,
-                        simulate=simulate,
-                        unfold=unfold,
-                        quarterbeats=quarterbeats,
-                        silence_label_warnings=silence_label_warnings,
-                        **suffixes)
+    parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
+                                     measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
+                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_path=metadata_path,
+                                     markdown=markdown, simulate=simulate, unfold=unfold, interval_index=quarterbeats, silence_label_warnings=silence_label_warnings, **suffixes)
 
 
 

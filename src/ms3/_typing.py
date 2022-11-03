@@ -5,7 +5,6 @@ import pandas as pd
 if TYPE_CHECKING:
     from .score import Score
     from .utils import File
-    from .view import View
 
 CorpusFnameTuple = Tuple[str, str]
 FileDict: TypeAlias = Dict[str, 'File']
@@ -19,6 +18,7 @@ Category: TypeAlias = Literal['corpora',
                                 ]
 Categories: TypeAlias = Union[Category, Collection[Category]]
 ParsedFile: TypeAlias = Union['Score', pd.DataFrame]
+DataframeDict: TypeAlias = Dict[str, pd.DataFrame]
 FileParsedTuple: TypeAlias = Tuple[Optional['File'], Optional[ParsedFile]]
 FileScoreTuple: TypeAlias = Tuple[Optional['File'], Optional['Score']]
 FileDataframeTuple: TypeAlias = Tuple[Optional['File'], Optional[pd.DataFrame]]

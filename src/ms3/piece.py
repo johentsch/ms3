@@ -1,14 +1,14 @@
 from collections import defaultdict, Counter
-from typing import Dict, Literal, Union, Iterator, Optional, overload, List
+from typing import Dict, Literal, Union, Iterator, Optional, overload, List, Tuple
 
 import pandas as pd
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
-    FileDataframeTuple
+    FileDataframeTuple, DataframeDict
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
-    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list
+    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -308,11 +308,8 @@ class Piece(LoggedClass):
                       unfold: bool = False,
                       interval_index: bool = False,
                  ) -> Optional[FileDataframeTuple]:
-        if isinstance(facet, list):
-            facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, ScoreFacet, logger=self.logger)
-        assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
-        assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
+        facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.extract_facets(facets=facet,
                                       view_name=view_name,
@@ -352,11 +349,9 @@ class Piece(LoggedClass):
                 self.logger.info(f"No parsed score found for '{self.name}'")
                 continue
             for facet in selected_facets:
-                df = getattr(score_obj.mscx, facet)(interval_index=interval_index)
-                if unfold:
-                    raise NotImplementedError(f"Unfolding is currently not available.")
+                df = getattr(score_obj.mscx, facet)(unfold=unfold, interval_index=interval_index)
                 if df is None:
-                    self.logger.debug(f"{file.rel_path} doesn't contain {facet}.")
+                    self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 else:
                     result[facet].append((file, df))
         if flat:
@@ -376,7 +371,7 @@ class Piece(LoggedClass):
                    interval_index: bool = False,
                    flat=False) -> Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]:
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
-        assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        assert selected_facets is not None, f"Pass at least one valid facet {ScoreFacet.__args__}"
 
         def merge_dicts(extracted_facets, parsed_facets):
             nonlocal selected_facets
@@ -411,6 +406,8 @@ class Piece(LoggedClass):
             parsed_facets = self.get_all_parsed(facets=selected_facets,
                                                 view_name=view_name,
                                                 force=force,
+                                                unfold=unfold,
+                                                interval_index=interval_index,
                                                 )
             # TODO: Unfold & interval_index for parsed facets
             return make_result(extracted_facets, parsed_facets)
@@ -428,11 +425,13 @@ class Piece(LoggedClass):
             return make_result(extracted_facets)
         # facets missing, looked for parsed TSV files
         parsed_facets = self.get_all_parsed(facets=missing_facets,
-                                        view_name=view_name,
-                                        force=False,
-                                        choose=choose,
-                                        include_empty=True
-                                        )
+                                            view_name=view_name,
+                                            force=False,
+                                            choose=choose,
+                                            include_empty=True,
+                                            unfold=unfold,
+                                            interval_index=interval_index,
+                                            )
         result = merge_dicts(extracted_facets, parsed_facets)
         missing_facets = [facet for facet in selected_facets if len(result[facet]) == 0]
         if len(missing_facets) == 0 or not force:
@@ -442,7 +441,9 @@ class Piece(LoggedClass):
                                             view_name=view_name,
                                             force=True,
                                             choose=choose,
-                                            include_empty=True
+                                            include_empty=True,
+                                            unfold=unfold,
+                                            interval_index=interval_index,
                                             )
         result = merge_dicts(result, parsed_facets)
         missing_facets = [facet for facet in selected_facets if len(result[facet]) == 0]
@@ -467,11 +468,8 @@ class Piece(LoggedClass):
                   unfold: bool = False,
                   interval_index: bool = False,
                   ) -> Optional[FileDataframeTuple]:
-        if isinstance(facet, list):
-            facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, ScoreFacet, logger=self.logger)
-        assert facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
-        assert len(facets) == 1, "Request one facet at a time or use _.extract_facets"
+        facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.get_facets(facets=facet,
                                   view_name=view_name,
@@ -501,11 +499,8 @@ class Piece(LoggedClass):
         Returns:
             A {file_type -> [:obj:`File`] dict containing the selected Files or, if flat=True, just a list.
         """
-        if isinstance(facet, list):
-            facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, Facet, logger=self.logger)
-        assert facets is not None, f"Pass a valid facet {Facet.__args__}"
-        assert len(facets) == 1, "Request one facet at a time or use _.get_files"
+        facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_files() (plural)."
         files = self.get_files(facets=facet,
                                view_name=view_name,
@@ -581,7 +576,7 @@ class Piece(LoggedClass):
                     if (file.subdir, file.fname) in duplicates:
                         duplicates[(file.subdir, file.fname)].append(file.rel_path)
                 display_duplicates = '\n'.join(str(sorted(files)) for files in duplicates.values())
-                self.logger.warning(f"The following scores lie in the same subfolder and have the same name:\n{display_duplicates}.\n"
+                self.logger.warning(f"The following scores are lying in the same subfolder and have the same name:\n{display_duplicates}.\n"
                                     f"TSV files extracted from them will be overwriting each other. Consider excluding certain "
                                     f"file extensions or letting me choose='auto'.")
         if flat:
@@ -602,11 +597,8 @@ class Piece(LoggedClass):
                    facet: Facet,
                    view_name: Optional[str] = None,
                    choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTuple:
-        if isinstance(facet, list):
-            facet = tuple(facet)
-        facets = argument_and_literal_type2list(facet, Facet, logger=self.logger)
-        assert facets is not None, f"Pass a valid facet {Facet.__args__}"
-        assert len(facets) == 1, "Request one facet at a time or use _.get_all_parsed"
+        facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
@@ -614,7 +606,8 @@ class Piece(LoggedClass):
                                     flat=True)
         if len(files) == 0:
             unparsed_file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
-            return unparsed_file, self._get_parsed_at_index(unparsed_file.ix)
+            if unparsed_file is not None:
+                return unparsed_file, self._get_parsed_at_index(unparsed_file.ix)
         if len(files) == 1:
             return files[0]
 
@@ -625,9 +618,13 @@ class Piece(LoggedClass):
                        force: bool = False,
                        choose: Literal['all', 'auto', 'ask'] = 'all',
                        flat: bool = False,
-                       include_empty: bool = False
+                       include_empty: bool = False,
+                       unfold: bool = False,
+                       interval_index: bool = False,
                        ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
         """Return multiple parsed files."""
+        if unfold + interval_index > 0:
+            raise NotImplementedError(f"Unfolding and interval index currently only available for extracted facets.")
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return [] if flat else {}
@@ -662,21 +659,6 @@ class Piece(LoggedClass):
             return sum(result.values(), start=[])
         return result
 
-    # def get_all_parsed_of_type(self,
-    #                             facet: Facet = None,
-    #                             view_name: Optional[str] = None,
-    #                             force: bool = False,
-    #                             choose: Literal['all', 'auto', 'ask'] = 'all',
-    #                             flat: bool = False
-    #                             ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
-    #     """Alias for :meth:`get_all_parsed_of_types`"""
-    #     return self.get_all_parsed(
-    #         facets=facet,
-    #         view_name=view_name,
-    #         force=force,
-    #         choose=choose,
-    #         flat=flat
-    #     )
 
 
 
@@ -749,6 +731,60 @@ class Piece(LoggedClass):
             return msg
         print(msg)
 
+    def iter_extracted_facet(self,
+                       facet: ScoreFacet,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       unfold: bool = False,
+                       interval_index: bool = False) -> Iterator[FileDataframeTuple]:
+        """ Iterate through the selected facet extracted from all parsed or yet-to-parse scores.
+        """
+        facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        for file in self.iter_files('scores',
+                                    view_name=view_name,
+                                    flat=True,
+                                    ):
+            if file.ix not in self.ix2parsed and not force:
+                continue
+            score_obj = self._get_parsed_at_index(file.ix)
+            if score_obj is None:
+                self.logger.info(f"No parsed score found for '{file.rel_path}'")
+                continue
+            df = getattr(score_obj.mscx, facet)(unfold=unfold, interval_index=interval_index)
+            if df is None:
+                self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
+                continue
+            yield file, df
+
+    def iter_extracted_facets(self,
+                              facets: ScoreFacets,
+                              view_name: Optional[str] = None,
+                              force: bool = False,
+                              unfold: bool = False,
+                              interval_index: bool = False) -> Iterator[Tuple[File, DataframeDict]]:
+        """ Iterate through the selected facets extracted from all parsed or yet-to-parse scores.
+        """
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
+        assert selected_facets is not None, f"Pass at least one valid facet {ScoreFacet.__args__}"
+        facet2dataframe = {}
+        for file in self.iter_files('scores',
+                                    view_name=view_name,
+                                    flat=True,
+                                    ):
+            if file.ix not in self.ix2parsed and not force:
+                continue
+            score_obj = self._get_parsed_at_index(file.ix)
+            if score_obj is None:
+                self.logger.info(f"No parsed score found for '{file.rel_path}'")
+                continue
+            for facet in selected_facets:
+                df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
+                if df is None:
+                    self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
+                facet2dataframe[facet] = df
+            yield file, facet2dataframe
+
 
     def iter_facet2files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Tuple[str, FileList]]:
         """Iterating through :attr:`facet2files` under the current or specified view."""
@@ -779,12 +815,55 @@ class Piece(LoggedClass):
                 yield facet, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
+    def iter_files(self,
+                  facets: FacetArguments = None,
+                  view_name: Optional[str] = None,
+                  parsed: bool = True,
+                  unparsed: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  flat: bool = False,
+                  include_empty: bool = False,
+                  ) -> Union[Iterator[FileDict], Iterator[FileList]]:
+        """Equivalent to iterating through the result of :meth:`get_files`."""
+        selected_files = self.get_files(facets=facets,
+                                        view_name=view_name,
+                                        parsed=parsed,
+                                        unparsed=unparsed,
+                                        choose=choose,
+                                        flat=flat,
+                                        include_empty=include_empty)
+        if flat:
+            yield from selected_files
+        else:
+            yield from selected_files.items()
+
+    def iter_parsed(self,
+                       facet: Facet = None,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                       include_empty: bool = False,
+                       unfold: bool = False,
+                       interval_index: bool = False,
+                       ) -> Iterator[FileParsedTuple]:
+        facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {Facet.__args__}"
+        files = self.get_all_parsed(facets=facet,
+                                         view_name=view_name,
+                                         force=force,
+                                         choose=choose,
+                                         flat=True,
+                                         include_empty=include_empty,
+                                         unfold=unfold,
+                                         interval_index=interval_index)
+        yield from files
+
     def _parse_file_at_index(self, ix: int) -> None:
         assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
         file = self.files[ix]
         if file.type == 'scores':
             logger_cfg = dict(self.logger_cfg)
-            score = Score(file.full_path, logger_cfg=logger_cfg, ms=self.ms)
+            score = Score(file.full_path, ms=self.ms, **logger_cfg)
             if score is None:
                 self.logger.warning(f"Parsing {file.rel_path} failed.")
             else:
@@ -821,6 +900,37 @@ class Piece(LoggedClass):
         self.facet2files[file.type].append(file)
         self.files[file.ix] = file
         return True
+
+    def store_extracted_facet(self,
+                              facet: ScoreFacet,
+                              root_dir: Optional[str] = None,
+                              folder: Optional[str] = None,
+                              suffix: str = '',
+                              view_name: Optional[str] = None,
+                              force: bool = False,
+                              choose: Literal['all', 'auto', 'ask'] = 'all',
+                       unfold: bool = False,
+                       interval_index: bool = False
+                              ):
+        if choose == 'all':
+            extracted_facet = self.iter_extracted_facet(facet=facet,
+                                                        view_name=view_name,
+                                                        force=force,
+                                                        unfold=unfold,
+                                                        interval_index=interval_index)
+        else:
+            extracted_facet = self.extract_facets(facets=facet,
+                                                   view_name=view_name,
+                                                   force=force,
+                                                   choose=choose,
+                                                   flat=True)
+        for file, df in extracted_facet:
+            file_path = make_file_path(file=file,
+                                  root_dir=root_dir,
+                                  folder=folder,
+                                  suffix=suffix)
+            write_tsv(df, file_path, logger=self.logger)
+
 
     def switch_view(self, view_name: str,
                     show_info: bool = True) -> None:

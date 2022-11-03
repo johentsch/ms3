@@ -17,14 +17,14 @@ from .logger import LoggedClass, get_logger, get_log_capture_handler, temporaril
 from .piece import Piece
 from .score import Score
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments, \
-    Facet
+    Facet, ScoreFacet
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
     load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument
-from .view import DefaultView, View
+    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type
+from .view import DefaultView, View, create_view_from_parameters
 
 
 class Corpus(LoggedClass):
@@ -37,7 +37,19 @@ class Corpus(LoggedClass):
         ('found', 'parsed')
     ])
 
-    def __init__(self, directory, view: View = None, simulate=False, labels_cfg={}, ms=None, **logger_cfg):
+    def __init__(self, directory: str,
+                 view: View = None,
+                 only_metadata_fnames: bool = True,
+                 include_convertible: bool = False,
+                 include_tsv: bool = True,
+                 exclude_review: bool = True,
+                 file_re: Optional[Union[str, re.Pattern]] = None,
+                 folder_re: Optional[Union[str, re.Pattern]] = None,
+                 exclude_re: Optional[Union[str, re.Pattern]] = None,
+                 paths: Optional[Collection[str]] = None,
+                 labels_cfg={},
+                 ms=None,
+                 **logger_cfg):
         """
 
         Parameters
@@ -47,8 +59,6 @@ class Corpus(LoggedClass):
             If ``dir`` is not passed, no files are added to the new object except if you pass ``paths``
         paths : :obj:`~collections.abc.Collection` or :obj:`str`, optional
             List of file paths you want to add. If ``directory`` is also passed, all files will be combined in the same object.
-        simulate : :obj:`bool`, optional
-            Pass True if no parsing is actually to be done.
         logger_cfg : :obj:`dict`, optional
             | The following options are available:
             | 'name': LOGGER_NAME -> by default the logger name is based on the parsed file(s)
@@ -74,7 +84,6 @@ class Corpus(LoggedClass):
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Corpus', logger_cfg=logger_cfg)
-        self.simulate=simulate
 
         self.files: list = []
         """
@@ -84,8 +93,20 @@ class Corpus(LoggedClass):
 
         self._views: dict = {}
         if view is None:
-            self._views[None] = DefaultView()
+            initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+                                                       include_convertible=include_convertible,
+                                                       include_tsv=include_tsv,
+                                                       exclude_review=exclude_review,
+                                                       paths=paths,
+                                                       file_re=file_re,
+                                                       folder_re=folder_re,
+                                                       exclude_re=exclude_re)
+            self._views[None] = initial_view
         else:
+            legacy_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re))
+            not_default = not only_metadata_fnames or not include_tsv or not exclude_review or include_convertible
+            if legacy_params or not_default:
+                self.logger.warning(f"If you pass an existing view, other view-related parameters are ignored.")
             self._views[None] = view
             if view.name != 'default':
                 self._views['default'] = DefaultView()
@@ -215,7 +236,7 @@ class Corpus(LoggedClass):
 
 
     def __getattr__(self, view_name):
-        if view_name in self.views:
+        if view_name in self.view_names and view_name != self.view_name:
             self.switch_view(view_name, show_info=False)
             return self
         else:
@@ -494,13 +515,16 @@ class Corpus(LoggedClass):
         If you want to retrieve parsed TSV files, use :py:meth:`get_all_parsed`.
 
         """
-
-        result = {}
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         if choose == 'ask':
-            # choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); you will be asked for every ambiguous file")
+            for facet in selected_facets:
+                self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
+        if force:
+            self.check_number_of_unparsed_scores(view_name, choose)
+        result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.extract_facets(facets=facets,
+            type2file = piece.extract_facets(facets=selected_facets,
                                              view_name=view_name,
                                              force=force,
                                              choose=choose,
@@ -575,19 +599,16 @@ class Corpus(LoggedClass):
             choose:
 
         """
-        result = {}
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         if choose == 'ask':
-            # choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_all_parsed(); you will be asked for every ambiguous file")
+            for facet in selected_facets:
+                self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
         if force:
-            tmp_choose = 'auto' if choose == 'ask' else choose
-            unparsed_files = self.get_files(facets, view_name=view_name, parsed=False, choose=tmp_choose, flat=True)
-            n_unparsed = len(sum(unparsed_files.values(), []))
-            if n_unparsed > 10:
-                self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
-                                    f"Next time, call _.parse() on me, so we can speed this up!")
+            self.check_number_of_unparsed_scores(view_name, choose)
+        result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_facets(facets=facets,
+            type2file = piece.get_facets(facets=selected_facets,
                                          view_name=view_name,
                                          force=force,
                                          choose=choose,
@@ -600,6 +621,13 @@ class Corpus(LoggedClass):
             result[piece.name] = type2file
         return result
 
+    def check_number_of_unparsed_scores(self, view_name, choose):
+        tmp_choose = 'auto' if choose == 'ask' else choose
+        unparsed_files = self.get_files('scores', view_name=view_name, parsed=False, choose=tmp_choose, flat=True)
+        n_unparsed = len(sum(unparsed_files.values(), []))
+        if n_unparsed > 10:
+            self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} scores iteratively. "
+                                f"Next time, call _.parse() on me, so we can speed this up!")
 
     def get_files(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
@@ -609,21 +637,14 @@ class Corpus(LoggedClass):
                   flat: bool = False,
                   include_empty = False,
                   ) -> Dict[str, Union[FileDict, FileList]]:
-        """
-
-        Args:
-            facets:
-            choose:
-
-        Returns:
-            {fname -> {type -> [:obj:`File`]}} dict if flat=False (default).
-            {fname -> [:obj:`File`]} dict if flat=True.
-        """
+        """"""
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
-        result = {}
+        selected_facets = resolve_facets_param(facets, logger=self.logger)
         if choose == 'ask':
-            #choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_files_of_types(); you will be asked for every ambiguous file")
+            for facet in selected_facets:
+                self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
+        result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
             type2file = piece.get_files(facets=facets,
                                         view_name=view_name,
@@ -646,37 +667,25 @@ class Corpus(LoggedClass):
                   flat: bool = False,
                   include_empty=False,
                   ) -> Dict[str, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]:
-        """
-
-        Args:
-            facets:
-            choose:
-
-        Returns:
-            {fname -> {type -> [:obj:`File`]}} dict if flat=False (default).
-            {fname -> [:obj:`File`]} dict if flat=True.
-        """
-        result = {}
+        """"""
+        selected_facets = resolve_facets_param(facets, logger=self.logger)
         if choose == 'ask':
-            # choose = 'all'
-            self.logger.warning(f"choose='ask' hasn't been implemented yet for Corpus.get_all_parsed(); you will be asked for every ambiguous file")
+            for facet in selected_facets:
+                self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
         if force:
-            tmp_choose = 'auto' if choose == 'ask' else choose
-            unparsed_files = self.get_files(facets, view_name=view_name, parsed=False, choose=tmp_choose, flat=True)
-            n_unparsed = len(sum(unparsed_files.values(), []))
-            if n_unparsed > 10:
-                self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} files iteratively. "
-                                    f"Next time, call _.parse() on me first, so we can speed this up!")
+            self.check_number_of_unparsed_scores(view_name, choose)
+        result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_all_parsed(facets=facets,
-                                             view_name=view_name,
-                                             force=force,
-                                             choose=choose,
-                                             flat=flat,
-                                             include_empty=include_empty)
-            if len(type2file) == 0 and not include_empty:
+            facet2file = piece.get_all_parsed(facets=selected_facets,
+                                              view_name=view_name,
+                                              force=force,
+                                              choose=choose,
+                                              flat=flat,
+                                              include_empty=include_empty)
+            if len(facet2file) == 0 and not include_empty:
                 continue
-            result[piece.name] = type2file
+            result[piece.name] = facet2file
         return result
 
     def get_fnames(self,
@@ -776,6 +785,34 @@ class Corpus(LoggedClass):
             return msg
         print(msg)
 
+    def iter_parsed(self,
+                    facet: Facet = None,
+                    view_name: Optional[str] = None,
+                    force: bool = False,
+                    choose: Literal['all', 'auto', 'ask'] = 'all',
+                    include_empty=False,
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    ) -> Iterator[FileParsedTuple]:
+        """"""
+        facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {Facet.__args__}"
+        if choose == 'ask':
+            self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
+        if force:
+            self.check_number_of_unparsed_scores(view_name, choose)
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            for file, parsed in piece.iter_parsed(facet=facet,
+                                                  view_name=view_name,
+                                                  force=force,
+                                                  choose=choose,
+                                                  include_empty=include_empty,
+                                                  unfold=unfold,
+                                                  interval_index=interval_index):
+                yield file, parsed
+
+
 
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
@@ -865,10 +902,7 @@ class Corpus(LoggedClass):
             self.change_logger_cfg(level=level)
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
-        if only_new:
-            fname2files = self._get_unparsed_score_files(view_name=view_name)
-        else:
-            fname2files = self.get_files('scores', view_name=view_name, flat=True)
+        fname2files = self.get_files('scores', view_name=view_name, parsed=not only_new, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -969,10 +1003,7 @@ class Corpus(LoggedClass):
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        if only_new:
-            fname2files = self._get_unparsed_tsv_files(view_name=view_name)
-        else:
-            fname2files = self.get_files('tsv', view_name=view_name, flat=True)
+        fname2files = self.get_files('tsv', view_name=view_name, parsed=not only_new, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -1455,7 +1486,7 @@ class Corpus(LoggedClass):
 
     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.output_mscx` will output
+        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_scores` will output
         MuseScore files where the annotations show in the score.
 
         Parameters
@@ -1720,17 +1751,45 @@ Available keys: {available_keys}""")
         return result
 
 
-    def _get_parsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
-        return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+    def _get_parsed_score_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
+        file_dict = self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
+        all_files = sum(file_dict.values(), [])
+        if flat:
+            return all_files
+        else:
+            return {'scores': all_files}
 
-    def _get_unparsed_score_files(self, view_name: Optional[str] = None) -> Dict[str, FileList]:
-        return self.get_files('scores', view_name=view_name, parsed=False, flat=True)
+    def _get_unparsed_score_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
+        file_dict = self.get_files('scores', view_name=view_name, parsed=False, flat=True)
+        all_files = sum(file_dict.values(), [])
+        if flat:
+            return all_files
+        else:
+            return {'scores': all_files}
 
-    def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat=True) -> Dict[str, Union[FileDict, FileList]]:
-        return self.get_files('tsv', view_name=view_name, unparsed=False, flat=flat)
+    def _get_parsed_tsv_files(self, view_name: Optional[str] = None, flat=True) -> Union[FileList, FileDict]:
+        if flat:
+            file_dict = self.get_files('tsv', view_name=view_name, unparsed=False, flat=True)
+            return sum(file_dict.values(), [])
+        else:
+            result = defaultdict(list)
+            for fname, piece in self.iter_pieces(view_name=view_name):
+                file_dict = piece._get_parsed_tsv_files(view_name=view_name, flat=False)
+                for facet, files in file_dict.items():
+                    result[facet].extend(files)
+            return dict(result)
 
-    def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Dict[str, Union[FileDict, FileList]]:
-        return self.get_files('tsv', view_name=view_name, parsed=False, flat=flat)
+    def _get_unparsed_tsv_files(self, view_name: Optional[str] = None, flat: bool = True) -> Union[FileList, FileDict]:
+        if flat:
+            file_dict = self.get_files('tsv', view_name=view_name, parsed=False, flat=True)
+            return sum(file_dict.values(), [])
+        else:
+            result = defaultdict(list)
+            for fname, piece in self.iter_pieces(view_name=view_name):
+                file_dict = piece._get_unparsed_tsv_files(view_name=view_name, flat=False)
+                for facet, files in file_dict.items():
+                    result[facet].extend(files)
+            return dict(result)
 
 
     def count_labels(self, keys=None, per_key=False):
@@ -2126,53 +2185,51 @@ Available keys: {available_keys}""")
         # return result
         raise NotImplementedError
 
-    def output_dataframes(self, keys=None, root_dir=None, notes_folder=None, notes_suffix='',
-                          rests_folder=None, rests_suffix='',
-                          notes_and_rests_folder=None, notes_and_rests_suffix='',
-                          measures_folder=None, measures_suffix='',
-                          events_folder=None, events_suffix='',
-                          labels_folder=None, labels_suffix='',
-                          chords_folder=None, chords_suffix='',
-                          expanded_folder=None, expanded_suffix='',
-                          cadences_folder=None, cadences_suffix='',
-                          form_labels_folder=None, form_labels_suffix='',
-                          metadata_path=None, markdown=True,
-                          simulate=None, unfold=False, quarterbeats=False,
-                          silence_label_warnings=False):
-        """ Store score information as TSV files.
 
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which score files are stored. By default, all keys are selected.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Corpus object.
-            Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing
-            absolute paths, ``root_dir`` is ignored.
-        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder, form_labels_folder : str, optional
-            Specify directory where to store the corresponding TSV files.
-        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix, form_labels_suffix : str, optional
-            Optionally specify suffixes appended to the TSVs' file names.
-        metadata_path : str, optional
-            Where to store an overview file with the MuseScore files' metadata.
-            If no file name is specified, the file will be named ``metadata.tsv``.
-        markdown : bool, optional
-            By default, when ``metadata_path`` is specified, a markdown file called ``README.rst.md`` containing
-            the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
-            this table will be appended or overwritten after the heading ``# Overview``.
-        simulate : bool, optional
-            Defaults to ``None``. Pass a value to set the object attribute :py:attr:`~ms3.parse.Corpus.simulate`.
-        unfold : bool, optional
-            By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
-            playthrough, including correct positioning of first and second endings.
-        quarterbeats : bool, optional
-            By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
-            Pass True to add the columns ``quarterbeats`` and ``duration_qb``. If a score has first and second endings,
-            the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
-            continuous count. If repetitions are being unfolded, all endings are taken into account.
+    def store_extracted_facets(self,
+                               view_name: Optional[str] = None,
+                               root_dir: Optional[str] = None,
+                               measures_folder: Optional[str] = None, measures_suffix: str = '',
+                               notes_folder: Optional[str] = None, notes_suffix: str = '',
+                               rests_folder: Optional[str] = None, rests_suffix: str = '',
+                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
+                               labels_folder: Optional[str] = None, labels_suffix: str = '',
+                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
+                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
+                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
+                               events_folder: Optional[str] = None, events_suffix: str = '',
+                               chords_folder: Optional[str] = None, chords_suffix: str = '',
+                               metadata_path: Optional[str] = None, markdown: bool = True,
+                               simulate: bool = False,
+                               unfold: bool = False,
+                               interval_index: bool = False,
+                               silence_label_warnings: bool = False) -> List[str]:
+        """  Store facets extracted from parsed scores as TSV files.
 
-        Returns
-        -------
+        Args:
+            view_name:
+            root_dir:
+                ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'form_labels', 'cadences', 'events', 'chords')
+
+            measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
+                Specify directory where to store the corresponding TSV files.
+            measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
+                Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
+            metadata_path:
+                Where to store an overview file with the MuseScore files' metadata.
+                If no file name is specified, the file will be named ``metadata.tsv``.
+            markdown:
+                By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+                the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
+                this table will be appended or overwritten after the heading ``# Overview``.
+            simulate:
+            unfold:
+                By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
+                playthrough, including correct positioning of first and second endings.
+            interval_index:
+            silence_label_warnings:
+
+        Returns:
 
         """
         l = locals()
@@ -2183,39 +2240,34 @@ Available keys: {available_keys}""")
         if len(folder_params) == 0 and metadata_path is None:
             self.logger.warning("Pass at least one parameter to store files.")
             return [] if simulate else None
-        suffix_params = {t: '_unfolded' if l[p] is None and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
+        facets = list(folder_params.keys())
+        suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
-        if silence_label_warnings:
-            with temporarily_suppress_warnings(self) as self:
-                dataframes = self.extract_facets(keys, flat=True, unfold=unfold, **df_params)
-        else:
-            dataframes = self.extract_facets(keys, flat=True, unfold=unfold, **df_params)
-        modus = 'would ' if simulate else ''
-        if len(dataframes) == 0 and metadata_path is None:
-            self.logger.info(f"No files {modus}have been written.")
-            return [] if simulate else None
-        paths = {}
-        warnings, infos = [], []
-        unf = 'Unfolded ' if unfold else ''
-        for (ix, what), dataframe in dataframes.items():
-            new_path = self._store_tsv(df=dataframe, ix=ix, folder=folder_params[what], suffix=suffix_params[what], root_dir=root_dir, what=what, simulate=simulate)
-            if new_path in paths:
-                warnings.append(f"The {paths[new_path]} at {new_path} {modus}have been overwritten with {what}.")
-            else:
-                infos.append(f"{unf}{what} {modus}have been stored as {new_path}.")
-            paths[new_path] = what
-        if len(warnings) > 0:
-            self.logger.warning('\n'.join(warnings))
-        l_infos = len(infos)
-        l_target = len(dataframes)
-        if l_target > 0:
-            if l_infos == 0:
-                self.logger.info(f"\n\nNone of the {l_target} {modus}have been written.")
-            elif l_infos < l_target:
-                msg = f"\n\nOnly {l_infos} out of {l_target} files {modus}have been stored."
-            else:
-                msg = f"\n\nAll {l_infos} {modus}have been written."
-            self.logger.info('\n'.join(infos) + msg)
+        n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
+        self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
+        target = len(facets) * n_scores
+        if target == 0:
+            return []
+        paths = []
+        for piece_name, piece in self.iter_pieces(view_name=view_name):
+            for file, facet2dataframe in piece.iter_extracted_facets(facets,
+                                                                 view_name=view_name,
+                                                                 unfold=unfold,
+                                                                 interval_index=interval_index):
+                for facet, df in facet2dataframe.items():
+                    if df is None:
+                        continue
+                    folder = folder_params[facet]
+                    suffix = suffix_params[facet]
+                    file_path = make_file_path(file,
+                                               root_dir=root_dir,
+                                               folder=folder,
+                                               suffix=suffix)
+                    if simulate:
+                        self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
+                    else:
+                        write_tsv(df, file_path, logger=self.logger)
+                    paths.append(file_path)
         if metadata_path is not None:
             full_path = self.update_metadata_from_parsed(metadata_path, markdown)
             if full_path is not None:
@@ -2252,7 +2304,7 @@ Available keys: {available_keys}""")
         write_metadata(md, full_path, markdown=markdown, logger=self.logger)
         return full_path
 
-    def output_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
+    def store_scores(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
         """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
 
         Parameters
@@ -2285,7 +2337,7 @@ Available keys: {available_keys}""")
             ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
         paths = []
         for key, i in ids:
-            new_path = self._output_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
+            new_path = self._store_scores(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
             if new_path is not None:
                 if new_path in paths:
                     modus = 'would have' if simulate else 'has'
@@ -2298,42 +2350,6 @@ Available keys: {available_keys}""")
 
 
 
-    def _calculate_path(self, ix, root_dir, folder, enforce_below_root=False):
-        """ Constructs a path and file name from a loaded file based on the arguments.
-
-        Parameters
-        ----------
-        ix : :obj:`int`
-            ID from which to construct the new path and filename.
-        folder : :obj:`str`
-            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Corpus object.
-            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        enforce_below_root : :obj:`bool`, optional
-            If True is passed, the computed paths are checked to be within ``root_dir`` or ``folder`` respectively.
-        """
-        if folder is not None and (os.path.isabs(folder) or '~' in folder):
-            folder = resolve_dir(folder)
-            path = folder
-        else:
-            file = self.files[ix]
-            root = self.corpus_path if root_dir is None else resolve_dir(root_dir)
-            if folder is None:
-                path = root
-            elif folder[0] == '.':
-                path = os.path.abspath(os.path.join(root, file.subdir, folder))
-            else:
-                path = os.path.abspath(os.path.join(root, folder, file.subdir))
-            base = os.path.basename(root)
-            if enforce_below_root and path[:len(base)] != base:
-                self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
-                return None
-        return path
 
 
 
@@ -2497,49 +2513,31 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _output_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
-        """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
-
-        Parameters
-        ----------
-        key, i : (:obj:`str`, :obj:`int`)
-            ID from which to construct the new path and filename.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Corpus object.
-            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        folder : :obj:`str`
-            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-        suffix : :obj:`str`, optional
-            Suffix to append to the original file name.
-        overwrite : :obj:`bool`, optional
-            Pass True to overwrite existing files.
-        simulate : :obj:`bool`, optional
-            Set to True if no files are to be written.
-
-        Returns
-        -------
-        :obj:`str`
-            Path of the stored file.
-
+    def _store_scores(self, ix, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
         """
+        Creates a MuseScore 3 file from the Score object at the given index.
 
-        id = (key, i)
-        logger = self.ix_logger(id)
-        fname = self.fnames[key][i]
+        Args:
+            ix:
+            folder:
+            suffix: Suffix to append to the original file name.
+            root_dir:
+            overwrite: Pass True to overwrite existing files.
+            simulate: Set to True if no files are to be written.
 
-        if id not in self._parsed_mscx:
+        Returns:
+            Path of the stored file.
+        """
+        if ix not in self.ix2parsed_score:
             logger.error(f"No Score object found. Call parse_scores() first.")
             return
-        path = self._calculate_path(ix=i, root_dir=root_dir, folder=folder)
-        if path is None:
-            return
-
-        fname = fname + suffix + '.mscx'
-        file_path = os.path.join(path, fname)
+        file = self.files[ix]
+        logger = self.ix_logger(ix)
+        file_path = make_file_path(file=file,
+                                   root_dir=root_dir,
+                                   folder=folder,
+                                   suffix=suffix,
+                                   fext='.mscx')
         if os.path.isfile(file_path):
             if simulate:
                 if overwrite:
@@ -2554,13 +2552,13 @@ Load one of the identically named files with a different key using add_dir(key='
             logger.debug(f"Would have written score to {file_path}.")
         else:
             os.makedirs(path, exist_ok=True)
-            self._parsed_mscx[id].output_mscx(file_path)
+            self._parsed_mscx[id].store_scores(file_path)
             logger.debug(f"Score written to {file_path}.")
 
         return file_path
 
 
-    def _store_tsv(self, df, ix, folder, suffix='', root_dir=None, what='unknown', simulate=False):
+    def _store_tsv(self, df, ix, folder, suffix='', root_dir=None, simulate=False):
         """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
 
         Parameters
@@ -2589,12 +2587,13 @@ Load one of the identically named files with a different key using add_dir(key='
         if df is None:
             tsv_logger.debug(f"No DataFrame for {what}.")
             return
-        path = self._calculate_path(ix=ix, root_dir=root_dir, folder=folder)
-        if path is None:
-            return
 
-        fname = self.files[ix].fname + suffix + ".tsv"
-        file_path = os.path.join(path, fname)
+        file = self.files[ix]
+        file_path = make_file_path(file=file,
+                                   root_dir=root_dir,
+                                   folder=folder,
+                                   suffix=suffix,
+                                   )
         if simulate:
             tsv_logger.debug(f"Would have written {what} to {file_path}.")
         else:
@@ -2755,7 +2754,7 @@ def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) ->
     file = file.file
     logger.debug(f"Attempting to parse {file}")
     try:
-        score = Score(path, read_only=read_only, logger_cfg=logger_cfg, ms=ms)
+        score = Score(path, read_only=read_only, ms=ms)
         if score is None:
             logger.debug(f"Encountered errors when parsing {file}")
         else:

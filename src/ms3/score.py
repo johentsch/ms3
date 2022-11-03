@@ -91,7 +91,7 @@ class MSCX(LoggedClass):
     An object is only created if a score was successfully parsed.
     """
 
-    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None, parent_score=None):
+    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, parent_score=None, **logger_cfg):
         """ Object for interacting with the XML structure of a MuseScore 3 file.
 
         Parameters
@@ -116,10 +116,6 @@ class MSCX(LoggedClass):
         parent_score : :obj:`Score`, optional
             Store the Score object to which this MSCX object is attached.
         """
-        if level is not None:
-            logger_cfg = dict(logger_cfg)
-            logger_cfg['level'] = level
-
         super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
         if os.path.isfile(mscx_src):
             self.mscx_src = mscx_src
@@ -743,8 +739,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         self._update_annotations()
 
-    def output_mscx(self, filepath):
-        """Shortcut for ``MSCX.parsed.output_mscx()``.
+    def store_scores(self, filepath):
+        """Shortcut for ``MSCX.parsed.store_scores()``.
         Store the current XML structure as uncompressed MuseScore file.
 
         Parameters
@@ -758,7 +754,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`bool`
             Whether the file was successfully created.
         """
-        return self.parsed.output_mscx(filepath=filepath)
+        return self.parsed.store_scores(filepath=filepath)
 
     def store_list(self, what='all', folder=None, suffix=None):
         """
@@ -900,8 +896,7 @@ class Score(LoggedClass):
 
     dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'form_labels', 'cadences', 'events', 'chords')
 
-    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
-                 parser='bs4', ms=None):
+    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, parser='bs4', ms=None, **logger_cfg):
         """
 
         Parameters
@@ -1365,7 +1360,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them, without taking
         labels_cfg into account (don't decode the labels).
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
-        By default, ``delete`` is set to True, meaning that if you call :py:meth:`output_mscx` afterwards,
+        By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_scores` afterwards,
         the created MuseScore file will not contain the detached labels.
 
         Parameters
@@ -1549,9 +1544,9 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
-    def output_mscx(self, filepath):
+    def store_scores(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
-        Just a shortcut for ``Score.mscx.output_mscx()``.
+        Just a shortcut for ``Score.mscx.store_scores()``.
 
         Parameters
         ----------
@@ -1559,7 +1554,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Path of the newly created MuseScore file, including the file name ending on '.mscx'.
             Uncompressed files ('.mscz') are not supported.
         """
-        return self.mscx.output_mscx(filepath)
+        return self.mscx.store_scores(filepath)
 
     def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
@@ -1658,12 +1653,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
-                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
-                                  logger_cfg=logger_cfg, parent_score=self)
+                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, parser=self.parser, labels_cfg=self.labels_cfg, parent_score=self, **logger_cfg)
                 self.mscx.mscx_src = (musescore_file)
         else:
-            self._mscx = MSCX(musescore_file, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
-                              logger_cfg=logger_cfg, parent_score=self)
+            self._mscx = MSCX(musescore_file, read_only=self.read_only, parser=self.parser, labels_cfg=self.labels_cfg, parent_score=self, **logger_cfg)
         if self.mscx.has_annotations:
             self.mscx._annotations.infer_types(self.get_infer_regex())
 

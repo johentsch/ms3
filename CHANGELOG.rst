@@ -10,6 +10,7 @@ Version 0.5.4
 * automatically corrects wrong capitalization in metadata fields harmony_version, annotators, and reviewers
 * the column ``label_type`` has been replaced and disambiguated into ``harmony_layer`` (0-3) and ``regex_match`` (which regEx matched first)
 * the properties for retrieving DataFrames from ``Score`` objects are now methods and accept the parameter ``interval_index``
+* renamed methods beginning with ``output_`` to ``store_`` .
 
 Version 0.5.3
 =============

@@ -4040,7 +4040,7 @@ def literal_type2tuple(typ: TypeVar) -> Tuple[str]:
 @lru_cache
 @function_logger
 def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None]],
-                                   typ: Optional[Union[TypeVar, Tuple[str]]],
+                                   typ: Optional[Union[TypeVar, Tuple[str]]] = None,
                                    none_means_all: bool = True,
                                    ) -> Optional[List[str]]:
     """ Makes sure that an input value is a list of strings and that all strings are valid w.r.t. to
@@ -4100,8 +4100,25 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     logger.warning(f"Pass at least one of {allowed}.")
     return
 
+@lru_cache
+@function_logger
+def check_argument_against_literal_type(argument: str,
+                                        typ: TypeVar) -> Optional[str]:
+    if not isinstance(argument, str):
+        logger.warning(f"Argument needs to be a string, not '{type(argument)}'")
+        return None
+    allowed = literal_type2tuple(typ)
+    singular_dict = {allwd[:-1]: allwd for allwd in allowed}
+    if argument not in allowed and argument not in singular_dict:
+        logger.warning(f"Invalid argument '{argument}'. Pass one of {allowed}")
+        return None
+    if argument in singular_dict:
+        return singular_dict[argument]
+    return argument
+
 @function_logger
 def resolve_facets_param(facets, facet_type_var: TypeVar = Facet, none_means_all=True):
+    """Like :func:`argument_and_literal_type2list`, but also resolves 'tsv' to all non-score facets."""
     if isinstance(facets, str) and facets in ('tsv', 'tsvs'):
         selected_facets = list(literal_type2tuple(facet_type_var))
         if 'scores' in selected_facets:
@@ -4153,3 +4170,73 @@ def resolve_paths_argument(paths: Collection[str]) -> Collection[str]:
         logger.warning(msg)
         resolved_paths = [p for p in paths if os.path.isfile(p)]
     return resolved_paths
+
+@function_logger
+def compute_path_from_file(file: File,
+                           root_dir: Optional[str] = None,
+                           folder: Optional[str] = None) -> str:
+    """
+    Constructs a path based on the arguments.
+
+    Args:
+        file: This function uses the fields corpus_path, subdir, and type.
+        root_dir:
+            Defaults to None, meaning that the path is constructed based on the corpus_path.
+            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
+        folder:
+            * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+              ``root_dir``.
+
+    Returns:
+        The constructed directory path.
+    """
+    if folder is not None and (os.path.isabs(folder) or '~' in folder):
+        folder = resolve_dir(folder)
+        path = folder
+    else:
+        root = file.corpus_path if root_dir is None else resolve_dir(root_dir)
+        if folder is None:
+            path = os.path.join(root, file.type)
+        elif folder[0] == '.':
+            path = os.path.abspath(os.path.join(root, file.subdir, folder))
+        else:
+            path = os.path.abspath(os.path.join(root, folder))
+    return path
+
+def make_file_path(file: File,
+                   root_dir=None,
+                   folder: str = None,
+                   suffix: str = '',
+                   fext: str = '.tsv'):
+    """ Constructs a file path based on the arguments.
+
+    Args:
+        file: This function uses the fields fname, corpus_path, subdir, and type.
+        root_dir:
+            Defaults to None, meaning that the path is constructed based on the corpus_path.
+            Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+            ``root_dir`` is ignored.
+        folder:
+            Different behaviours are available. Note that only the third option ensures that file paths are distinct for
+            files that have identical fnames but are located in different subdirectories of the same corpus.
+
+            * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+            * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+            * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+              For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+            * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+              ``root_dir``.
+        suffix: String to append to the file's fname.
+        fext: File extension to append to the (fname+suffix). Defaults to ``.tsv``.
+
+    Returns:
+        The constructed file path.
+    """
+    path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
+    fname = file.fname + suffix + fext
+    return os.path.join(path, fname)

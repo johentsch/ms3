@@ -66,7 +66,6 @@ class Parse(LoggedClass):
                 If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.
                 Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that
                 either contains a 'metadata.tsv' file or is a git. This parameter is deprecated and ``file_re`` should be used instead.
-            simulate: Pass True if you do not want to create file output.
             labels_cfg: Pass a configuration dict to detect only certain labels or change their output format.
             ms:
                 If you pass the path to your local MuseScore 3 installation, ms3 will attempt to parse musicXML, MuseScore 2,
@@ -78,7 +77,6 @@ class Parse(LoggedClass):
         if 'level' not in logger_cfg or (logger_cfg['level'] is None):
             logger_cfg['level'] = 'w'
         super().__init__(subclass='Parse', logger_cfg=logger_cfg)
-        self.simulate=simulate
 
         self.corpus_paths: Dict[str, str] = {}
         """{corpus_name -> path} dictionary with each corpus's base directory. Generally speaking, each corpus path is expected to contain a ``metadata.tsv`` and, maybe, to be a git.
@@ -1428,7 +1426,7 @@ class Parse(LoggedClass):
     #
     #     def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
     #         """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-    #         respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.output_mscx` will output
+    #         respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_scores` will output
     #         MuseScore files where the annotations show in the score.
     #
     #         Parameters
@@ -2050,19 +2048,10 @@ class Parse(LoggedClass):
 
 
 
-    def output_dataframes(self, root_dir=None, notes_folder=None, notes_suffix='',
-                          rests_folder=None, rests_suffix='',
-                          notes_and_rests_folder=None, notes_and_rests_suffix='',
-                          measures_folder=None, measures_suffix='',
-                          events_folder=None, events_suffix='',
-                          labels_folder=None, labels_suffix='',
-                          chords_folder=None, chords_suffix='',
-                          expanded_folder=None, expanded_suffix='',
-                          cadences_folder=None, cadences_suffix='',
-                          form_labels_folder=None, form_labels_suffix='',
-                          metadata_path=None, markdown=True,
-                          simulate=None, unfold=False, quarterbeats=False,
-                          silence_label_warnings=False):
+    def store_extracted_facets(self, root_dir=None, notes_folder=None, notes_suffix='', rests_folder=None, rests_suffix='', notes_and_rests_folder=None, notes_and_rests_suffix='',
+                               measures_folder=None, measures_suffix='', events_folder=None, events_suffix='', labels_folder=None, labels_suffix='', chords_folder=None,
+                               chords_suffix='', expanded_folder=None, expanded_suffix='', cadences_folder=None, cadences_suffix='', form_labels_folder=None, form_labels_suffix='',
+                               metadata_path=None, markdown=True, simulate=None, unfold=False, interval_index=False, silence_label_warnings=False):
         """ Store score information as TSV files.
 
         Parameters
@@ -2089,7 +2078,7 @@ class Parse(LoggedClass):
         unfold : bool, optional
             By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
             playthrough, including correct positioning of first and second endings.
-        quarterbeats : bool, optional
+        interval_index : bool, optional
             By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
             Pass True to add the columns ``quarterbeats`` and ``duration_qb``. If a score has first and second endings,
             the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
@@ -2104,24 +2093,13 @@ class Parse(LoggedClass):
         else:
             self.simulate = simulate
         for corpus_name, corpus in self:
-            corpus.output_dataframes(root_dir=root_dir,
-                        notes_folder=notes_folder, notes_suffix=notes_suffix,
-                        notes_and_rests_folder=notes_and_rests_folder, notes_and_rests_suffix=notes_and_rests_suffix,
-                        labels_folder=labels_folder, labels_suffix=labels_suffix,
-                        measures_folder=measures_folder, measures_suffix=measures_suffix,
-                        rests_folder=rests_folder, rests_suffix=rests_suffix,
-                        events_folder=events_folder, events_suffix=events_suffix,
-                        chords_folder=chords_folder, chords_suffix=chords_suffix,
-                        expanded_folder=expanded_folder, expanded_suffix=expanded_suffix,
-                        cadences_folder=cadences_folder, cadences_suffix=cadences_suffix,
-                        form_labels_folder=form_labels_folder, form_labels_suffix=form_labels_suffix,
-                        metadata_path=metadata_path,
-                        markdown=markdown,
-                        simulate=simulate,
-                        unfold=unfold,
-                        quarterbeats=quarterbeats,
-                        silence_label_warnings=silence_label_warnings,
-                        )
+            corpus.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, notes_suffix=notes_suffix, rests_folder=rests_folder, rests_suffix=rests_suffix,
+                                          notes_and_rests_folder=notes_and_rests_folder, notes_and_rests_suffix=notes_and_rests_suffix, measures_folder=measures_folder,
+                                          measures_suffix=measures_suffix, events_folder=events_folder, events_suffix=events_suffix, labels_folder=labels_folder,
+                                          labels_suffix=labels_suffix, chords_folder=chords_folder, chords_suffix=chords_suffix, expanded_folder=expanded_folder,
+                                          expanded_suffix=expanded_suffix, cadences_folder=cadences_folder, cadences_suffix=cadences_suffix, form_labels_folder=form_labels_folder,
+                                          form_labels_suffix=form_labels_suffix, metadata_path=metadata_path, markdown=markdown, simulate=simulate, unfold=unfold,
+                                          interval_index=interval_index, silence_label_warnings=silence_label_warnings)
 
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
@@ -2309,7 +2287,7 @@ class Parse(LoggedClass):
     #     return result
 
     #
-    # def output_mscx(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
+    # def store_scores(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
     #     """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
     #
     #     Parameters
@@ -2342,7 +2320,7 @@ class Parse(LoggedClass):
     #         ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
     #     paths = []
     #     for key, i in ids:
-    #         new_path = self._output_mscx(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
+    #         new_path = self._store_scores(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
     #         if new_path is not None:
     #             if new_path in paths:
     #                 modus = 'would have' if simulate else 'has'
@@ -2353,44 +2331,7 @@ class Parse(LoggedClass):
     #         return list(set(paths))
     #
     #
-    #
-    #
-    # def _calculate_path(self, key, i, root_dir, folder, enforce_below_root=False):
-    #     """ Constructs a path and file name from a loaded file based on the arguments.
-    #
-    #     Parameters
-    #     ----------
-    #     key, i : (:obj:`str`, :obj:`int`)
-    #         ID from which to construct the new path and filename.
-    #     folder : :obj:`str`
-    #         Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-    #         If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-    #         the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-    #         it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-    #     root_dir : :obj:`str`, optional
-    #         Defaults to None, meaning that the original root directory is used that was added to the Parse object.
-    #         Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-    #         ``root_dir`` is ignored.
-    #     enforce_below_root : :obj:`bool`, optional
-    #         If True is passed, the computed paths are checked to be within ``root_dir`` or ``folder`` respectively.
-    #     """
-    #     if folder is not None and (os.path.isabs(folder) or '~' in folder):
-    #         folder = resolve_dir(folder)
-    #         path = folder
-    #     else:
-    #         root = self.scan_paths[key][i] if root_dir is None else resolve_dir(root_dir)
-    #         if folder is None:
-    #             path = root
-    #         elif folder[0] == '.':
-    #             path = os.path.abspath(os.path.join(root, self.rel_paths[key][i], folder))
-    #         else:
-    #             path = os.path.abspath(os.path.join(root, folder, self.rel_paths[key][i]))
-    #         base = os.path.basename(root)
-    #         if enforce_below_root and path[:len(base)] != base:
-    #             self.logger.error(f"Not allowed to store files above the level of root {root}.\nErroneous path: {path}")
-    #             return None
-    #     return path
-    #
+
     #
     #
     # def _collect_annotations_objects_references(self, keys=None, ids=None):
@@ -2528,7 +2469,7 @@ class Parse(LoggedClass):
     #
     #
     #
-    # def _output_mscx(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
+    # def _store_scores(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
     #     """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
     #
     #     Parameters
@@ -2585,7 +2526,7 @@ class Parse(LoggedClass):
     #         logger.debug(f"Would have written score to {file_path}.")
     #     else:
     #         os.makedirs(path, exist_ok=True)
-    #         self._parsed_mscx[id].output_mscx(file_path)
+    #         self._parsed_mscx[id].store_scores(file_path)
     #         logger.debug(f"Score written to {file_path}.")
     #
     #     return file_path

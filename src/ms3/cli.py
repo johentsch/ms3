@@ -73,9 +73,9 @@ def add(args):
     p.add_labels(use=args.use)
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.output_mscx(ids=ids, overwrite=True)
+        p.store_scores(ids=ids, overwrite=True)
 
 
 def check_cmd(args, parse_obj=None):
@@ -110,7 +110,7 @@ def compare_cmd(args, parse_obj=None):
         folder_args = dict(root_dir=args.out)
     else:
         folder_args = dict(folder=args.out)
-    p.output_mscx(ids=modified_ids, suffix=args.suffix, overwrite=args.safe, **folder_args)
+    p.store_scores(ids=modified_ids, suffix=args.suffix, overwrite=args.safe, **folder_args)
 
 
 
@@ -144,9 +144,9 @@ def empty(args):
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
     ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
     if args.out is not None:
-        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.output_mscx(ids=ids, overwrite=True)
+        p.store_scores(ids=ids, overwrite=True)
 
 
 def extract_cmd(args, parse_obj=None):
@@ -201,13 +201,13 @@ def metadata(args):
         p.logger.debug("Nothing to update.")
         return
     if args.out is not None:
-        p.output_mscx(ids=ids, root_dir=args.out, overwrite=True)
+        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
     else:
-        p.output_mscx(ids=ids, overwrite=True)
+        p.store_scores(ids=ids, overwrite=True)
     if args.out is not None:
-        p.output_dataframes(metadata_path=args.out)
+        p.store_extracted_facets(metadata_path=args.out)
     elif args.dir is not None:
-        p.output_dataframes(metadata_path=args.dir)
+        p.store_extracted_facets(metadata_path=args.dir)
 
 
 def repair(args):
@@ -291,7 +291,7 @@ def update(args):
         else:
             new = os.path.join(args.out, fname)
         convert(old, new, MS, logger=name)
-        s = Score(new, logger_cfg=logger_cfg)
+        s = Score(new)
         if s.mscx.has_annotations:
             s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
             before = s.annotations.df
@@ -308,18 +308,18 @@ def update(args):
                     after = s.annotations.df
                     try:
                         assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
-                        s.output_mscx(new)
+                        s.store_scores(new)
                     except:
                         s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
                         continue
                 else:
-                    s.output_mscx(new)
+                    s.store_scores(new)
             else:
                 s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
-                s.output_mscx(new)
+                s.store_scores(new)
         else:
             s.logger.debug(f"File has no labels to update.")
-            s.output_mscx(new)
+            s.store_scores(new)
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
@@ -366,7 +366,7 @@ def review_cmd(args, parse_obj=None):
     print(filtered_report[filtered_report.dur_ratio > threshold])
     comparison = compare(p, use=args.use, revision_specifier=args.commit)
     modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    p.output_mscx(ids=modified_ids, folder="../reviewed", suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
+    p.store_scores(ids=modified_ids, folder="../reviewed", suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
     if test_passes:
         review_logger.info(f"Parsed scores passed all tests.")
     else:
