@@ -28,10 +28,10 @@ class Piece(LoggedClass):
         self.files: Dict[int, File] = defaultdict(list)
         """{ix -> :obj:`File`} dict storing the registered file information for access via index.
         """
-        self.type2parsed: Dict[str, Dict[int, ParsedFile]] = defaultdict(dict)
+        self.facet2parsed: Dict[str, Dict[int, ParsedFile]] = defaultdict(dict)
         """{typ -> {ix -> :obj:`pandas.DataFrame`|:obj:`Score`}} dict storing parsed files for associated types.
         """
-        self.type2parsed.update({typ: {} for typ in available_types})
+        self.facet2parsed.update({typ: {} for typ in available_types})
         self.ix2parsed: Dict[int, ParsedFile] = {}
         """{ix -> :obj:`pandas.DataFrame`|:obj:`Score`} dict storing the parsed files for access via index.
         """
@@ -222,7 +222,7 @@ class Piece(LoggedClass):
             return
         self.ix2parsed[ix] = score_obj
         self.ix2parsed_score[ix] = score_obj
-        self.type2parsed['scores'][ix] = score_obj
+        self.facet2parsed['scores'][ix] = score_obj
 
     def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
         assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
@@ -244,7 +244,7 @@ class Piece(LoggedClass):
             self.facet2files[file.type].remove(file)
             file.type = inferred_type
             self.facet2files[inferred_type].append(file)
-        self.type2parsed[inferred_type][ix] = parsed_tsv
+        self.facet2parsed[inferred_type][ix] = parsed_tsv
         if inferred_type in ('labels', 'expanded'):
             self.ix2annotations = Annotations(df = parsed_tsv)
 
@@ -288,15 +288,15 @@ class Piece(LoggedClass):
 
     def count_parsed(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
         result = {}
-        for typ, parsed in self.iter_type2parsed_files(view_name=view_name, include_empty=include_empty):
+        for typ, parsed in self.iter_facet2parsed(view_name=view_name, include_empty=include_empty):
             key = 'parsed_' + typ if prefix else typ
             result[key] = len(parsed)
         return result
 
     def count_detected(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
         result = {}
-        for typ, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
-            key = 'detected_' + typ if prefix else typ
+        for facet, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
+            key = 'detected_' + facet if prefix else facet
             result[key] = len(files)
         return result
 
@@ -750,29 +750,33 @@ class Piece(LoggedClass):
         print(msg)
 
 
-    def iter_facet2files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
-        """Iterating through _.facet2files.items() under the current or specified view."""
+    def iter_facet2files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Tuple[str, FileList]]:
+        """Iterating through :attr:`facet2files` under the current or specified view."""
         view = self.get_view(view_name=view_name)
-        for typ, files in self.facet2files.items():
+        for facet, files in self.facet2files.items():
+            if facet not in view.selected_facets:
+                continue
             filtered_files = view.filtered_file_list(files, 'files')
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_files) == 0 and not include_empty:
                 continue
-            if typ in view.selected_facets:
-                yield typ, filtered_files
+            if facet in view.selected_facets:
+                yield facet, filtered_files
 
 
-    def iter_type2parsed_files(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
-        """Iterating through _.facet2files.items() under the current or specified view and selecting only parsed files."""
+    def iter_facet2parsed(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
+        """Iterating through :attr:`facet2parsed` under the current or specified view and selecting only parsed files."""
         view = self.get_view(view_name=view_name)
-        for typ, ix2parsed in self.type2parsed.items():
+        for facet, ix2parsed in self.facet2parsed.items():
+            if facet not in view.selected_facets:
+                continue
             files = [self.files[ix] for ix in ix2parsed.keys()]
             filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_ixs) == 0 and not include_empty:
                 continue
-            if typ in view.selected_facets:
-                yield typ, {ix: ix2parsed[ix] for ix in filtered_ixs}
+            if facet in view.selected_facets:
+                yield facet, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
     def _parse_file_at_index(self, ix: int) -> None:
