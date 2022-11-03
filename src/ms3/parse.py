@@ -34,11 +34,11 @@ class Parse(LoggedClass):
                  only_metadata_fnames: bool = True, 
                  include_convertible: bool = False,
                  include_tsv: bool = True, 
-                 exclude_review: bool = True, 
-                 paths: Optional[Collection[str]] = None, 
+                 exclude_review: bool = True,
                  file_re: Optional[Union[str, re.Pattern]] = None,
                  folder_re: Optional[Union[str, re.Pattern]] = None, 
                  exclude_re: Optional[Union[str, re.Pattern]] = None,
+                 paths: Optional[Collection[str]] = None,
                  simulate: bool = False,
                  labels_cfg: dict = {},
                  ms=None,
@@ -59,13 +59,13 @@ class Parse(LoggedClass):
             exclude_review:
                 The default view excludes files and folders whose name contains 'review'.
                 Pass False to include these as well.
-            paths:
-                If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.
-                Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that
-                either contains a 'metadata.tsv' file or is a git.
             file_re: Pass a regular expression if you want to create a view filtering out all files that do not contain it.
             folder_re: Pass a regular expression if you want to create a view filtering out all folders that do not contain it.
             exclude_re: Pass a regular expression if you want to create a view filtering out all files or folders that contain it.
+            paths:
+                If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.
+                Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that
+                either contains a 'metadata.tsv' file or is a git. This parameter is deprecated and ``file_re`` should be used instead.
             simulate: Pass True if you do not want to create file output.
             labels_cfg: Pass a configuration dict to detect only certain labels or change their output format.
             ms:
@@ -187,7 +187,8 @@ class Parse(LoggedClass):
         raise NotImplementedError
 
     @property
-    def view(self):
+    def view(self) -> View:
+        """Retrieve the current View object. Shorthand for :meth:`get_view`."""
         return self.get_view()
 
     @view.setter
@@ -198,11 +199,13 @@ class Parse(LoggedClass):
         self.set_view(new_view)
 
     @property
-    def views(self):
+    def views(self) -> None:
+        """Display a short description of the available views."""
         print(pretty_dict({"[active]" if k is None else k: v for k, v in self._views.items()}, "view_name", "Description"))
 
     @property
-    def view_name(self):
+    def view_name(self) -> str:
+        """Get the name of the active view."""
         return self.get_view().name
 
     @view_name.setter
@@ -214,33 +217,23 @@ class Parse(LoggedClass):
     def view_names(self):
         return {view.name if name is None else name for name, view in self._views.items()}
 
-    def add_corpus(self, directory, corpus_name=None, **logger_cfg) -> None:
+    def add_corpus(self,
+                   directory: str,
+                   corpus_name: Optional[str] = None,
+                   **logger_cfg) -> None:
         """
-        This method scans the directory ``directory`` for files matching the criteria and groups their paths, file names, and extensions
-        under the same key, considering them as one corpus.
-        to the Parse object without looking at them. The
+        This method creates a :class:`~.corpus.Corpus` object which scans the directory ``directory`` for parseable files.
+        It inherits all :class:`Views <.view.View>` from the Parse object.
 
-        Parameters
-        ----------
-        directory : :obj:`str`
-            Directory to scan for files.
-        corpus_name : :obj:`str`, optional
-            By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to
-            use a different identifier.
-        file_re : :obj:`str`, optional
-            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
-            depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        folder_re : :obj:`str`, optional
-            Regular expression for filtering certain folder names.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        exclude_re : :obj:`str`, optional
-            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
-        recursive : :obj:`bool`, optional
-            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-        **logger_cfg:
-
+        Args:
+            directory: Directory to scan for files.
+            corpus_name:
+                By default, the folder name of ``directory`` is used as name for this corpus. Pass a string to
+                use a different identifier.
+            **logger_cfg:
+                Keyword arguments for configuring the logger of the new Corpus object. E.g. ``level='d'`` to see all debug messages.
+                Note that the logger is a child logger of this Parse object's logger and propagates, so it might filter debug messages.
+                You can use _.change_logger_cfg(level='d') to change the level post hoc.
         """
         directory = resolve_dir(directory)
         if not os.path.isdir(directory):
@@ -367,27 +360,23 @@ class Parse(LoggedClass):
         # self.look_for_ignored_warnings(directory, key)
 
 
-    def add_dir(self, directory, recursive=True, **logger_cfg) -> None:
+    def add_dir(self, directory: str,
+                recursive: bool = True,
+                **logger_cfg) -> None:
         """
         This method decides if the directory ``directory`` contains several corpora or if it is a corpus
-        itself, and calls _.add_corpus() for every corpus.
+        itself, and calls :meth:`add_corpus` for each corpus.
 
-        Parameters
-        ----------
-        directory : :obj:`str`
-            Directory to scan for files.
-        file_re : :obj:`str`, optional
-            Regular expression for filtering certain file names. By default, all parseable score files and TSV files are detected,
-            depending on whether the MuseScore 3 executable is specified as :py:attr:``Parse.ms``, or not.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        folder_re : :obj:`str`, optional
-            Regular expression for filtering certain folder names.
-            The regEx is checked with search(), not match(), allowing for fuzzy search.
-        exclude_re : :obj:`str`, optional
-            Any files or folders (and their subfolders) including this regex will be disregarded. By default, files
-            whose file names include ``_reviewed`` or start with ``.`` or ``_`` or ``concatenated`` are excluded.
-        recursive : :obj:`bool`, optional
-            By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        Args:
+            directory: Directory to scan for corpora.
+            recursive:
+                By default, if any of the first-level subdirectories contains a 'metadata.tsv' or is a git, all first-level
+                subdirectories of ``directory`` are treated as corpora, i.e. one :class:`~.corpus.Corpus` object per folder is created.
+                Pass False to prevent this, which is equivalent to calling :meth:`add_corpus(directory) <add_corpus>`
+            **logger_cfg:
+                Keyword arguments for configuring the logger of the new Corpus objects. E.g. ``level='d'`` to see all debug messages.
+                Note that the loggers are child loggers of this Parse object's logger and propagate, so it might filter debug messages.
+                You can use _.change_logger_cfg(level='d') to change the level post hoc.
         """
         directory = resolve_dir(directory)
         if not os.path.isdir(directory):
@@ -410,16 +399,27 @@ class Parse(LoggedClass):
                 self.add_corpus(corpus_path, **logger_cfg)
 
 
-    def add_files(self, paths: Collection[str], corpus_name: Optional[str] = None) -> None:
-        """ Adds
-        This method serves to emulate a deprecated usage of this library.
+    def add_files(self, paths: Union[str, Collection[str]], corpus_name: Optional[str] = None) -> None:
+        """
+        Deprecated: To deal with particular files only, use :meth:`add_corpus` passing the directory containing them and
+        configure the :class`~.view.View` accordingly. This method here easily leads to unexpected behaviour.
+
+        This method here does it for you but expects the file paths to point to files located in a shared corpus folder
+        on some higher level or in folders for which :class:`~.corpus.Corpus` objects have already been created.
 
         Args:
-            paths:
-            corpus_name
+            paths: Collection of file paths. Only existing files can be added.
+            corpus_name:
 
-        Returns:
-
+                * By default, I will try to attribute the files to existing :class:`~.corpus.Corpus` objects based on their paths. This makes sense only when new files have
+                  been created after the directories were scanned.
+                * For paths that do no not contain an existing corpus_path, I will try to detect the parent directory that is a corpus (based on it being a git or containing a ``metadata.tsv``).
+                  If this is without success for the first path, I will raise an error. Otherwise, all subsequent paths will be considered to be part of that same corpus (watch out
+                  meaningless relative paths!).
+                * You can pass a folder name contained in the first path to create a new corpus, assuming that all other paths are contained in it (watch out meaningless relative paths!).
+                * Pass an existing corpus_name to add the files to a particular corpus. Note that all parseable files under the corpus_path are detected anyway, and if you add files
+                  from other directories, it will lead to invalid relative paths that work only on your system. If you're adding files that have been created after the Corpus object
+                  has, you can leave this parameter empty; paths will be attributed to the existing corpora automatically.
         """
         resolved_paths = resolve_paths_argument(paths, logger=self.logger)
         if len(resolved_paths) == 0:

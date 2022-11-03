@@ -19,7 +19,9 @@ def empty_counts():
     return np.zeros(3, dtype=int)
 
 class View(LoggedClass):
-    """"""
+    """
+    Object storing regular expressions and filter lists, storing and keeping track of things filtered out.
+    """
     review_regex = "review"
     categories = (
         'corpora',
