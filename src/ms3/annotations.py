@@ -209,7 +209,7 @@ class Annotations(LoggedClass):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, warnings=True, column_name=None, color_format=None):
+    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, inverse=False, column_name=None, color_format=None, regex=None):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -231,8 +231,6 @@ class Annotations(LoggedClass):
             as encoded by MuseScore (e.g., with root and bass as TPC (tonal pitch class) where C = 14 for layer 0).
         drop : :obj:`bool`, optional
             Set to True to delete the returned labels from this object.
-        warnings : :obj:`bool`, optional
-            Set to False to suppress warnings about non-existent harmony_layers.
         column_name : :obj:`str`, optional
             Can be used to rename the columns holding the labels.
         color_format : {'html', 'rgb', 'rgba', 'name', None}
@@ -250,8 +248,12 @@ class Annotations(LoggedClass):
             sel = sel & (self.df[self.cols['voice']] == voice)
         if harmony_layer is not None and 'harmony_layer' in self.df.columns:
             # TODO: account for the split into harmony_layer and regex_match
-            harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
-            sel = sel & self.df.harmony_layer.isin(harmony_layer)
+            #harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
+            sel = sel & (self.df.harmony_layer == str(harmony_layer))
+        if regex is not None:
+            sel = sel & self.df[self.cols['label']].str.match(regex).fillna(False)
+        if inverse:
+            sel = ~sel
         res = self.df[sel].copy()
         if positioning:
             pos_cols = [c for c in ('offset',) if c in res.columns]
@@ -427,9 +429,8 @@ class Annotations(LoggedClass):
             self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
             return
         label_col = self.cols['label']
-        rem_dots = lambda s: s[1:] if s[0] == '.' else s
-        no_nan = self.df[label_col].notna()
-        self.df.loc[no_nan, label_col] = self.df.loc[no_nan, label_col].map(rem_dots)
+        starts_with_dot = self.df[label_col].str[0] == '.'
+        self.df.loc[starts_with_dot, label_col] = self.df.loc[starts_with_dot, label_col].str[1:]
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):
