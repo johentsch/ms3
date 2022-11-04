@@ -336,11 +336,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def store_scores(self, filepath):
+    def store_score(self, filepath: str) -> bool:
         try:
             mscx_string = bs4_to_mscx(self.soup)
-        except:
-            self.logger.error(f"Couldn't output MSCX because of the following error:\n{sys.exc_info()[1]}")
+        except Exception as e:
+            self.logger.error(f"Couldn't output MSCX because of the following error:\n{e}")
             return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
             file.write(mscx_string)

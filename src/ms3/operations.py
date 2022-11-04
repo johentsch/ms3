@@ -1,5 +1,11 @@
-from ms3.utils import capture_parse_logs
-from ms3.logger import get_logger, temporarily_suppress_warnings
+import os.path
+from typing import Literal, Optional
+
+from ms3 import Parse
+from ms3.score import Score, compare_two_score_objects
+from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert
+from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
+from ms3.view import create_view_from_parameters
 
 
 def extract(parse_obj,
@@ -74,3 +80,32 @@ def compare(parse_obj, use=None, revision_specifier=None, flip=False, root_dir=N
         return
     parse_obj.add_detached_annotations(use=use, new_key='old', revision_specifier=revision_specifier)
     return parse_obj.compare_labels('old', detached_is_newer=flip)
+
+
+def update(parse_obj: Parse,
+           root_dir: Optional[str] = None,
+           folder: str = '.',
+           suffix: str = '',
+           overwrite: bool = False,
+           staff: int = -1,
+           voice: Literal[1, 2, 3, 4] = 1,
+           harmony_layer: Literal[0, 1, 2, 3] = 1,
+           above: bool = False,
+           safe: bool = True):
+    for corpus_name, corpus in parse_obj.iter_corpora():
+        up2date_paths = corpus.update_scores(root_dir=root_dir,
+                                             folder=folder,
+                                             suffix=suffix,
+                                             overwrite=overwrite)
+        filtered_view = create_view_from_parameters(paths=up2date_paths)
+        corpus.set_view(filtered_view)
+        corpus.info()
+        corpus.parse_scores()
+        scores_with_updated_labels = corpus.update_labels(staff=staff,
+                                                          voice=voice,
+                                                          harmony_layer=harmony_layer,
+                                                          above=above,
+                                                          safe=safe)
+        corpus.logger.info(f"Labels updated in {len(scores_with_updated_labels)}")
+        file_paths = corpus.store_parsed_scores(suffix='_labels', overwrite=overwrite, only_changed=True)
+        return file_paths

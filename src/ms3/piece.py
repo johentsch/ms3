@@ -1,3 +1,4 @@
+import os
 from collections import defaultdict, Counter
 from typing import Dict, Literal, Union, Iterator, Optional, overload, List, Tuple
 
@@ -8,7 +9,7 @@ from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, Sco
     FileDataframeTuple, DataframeDict
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
-    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path
+    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -25,7 +26,7 @@ class Piece(LoggedClass):
         """{typ -> [:obj:`File`]} dict storing file information for associated types.
         """
         self.facet2files.update({typ: [] for typ in available_types})
-        self.files: Dict[int, File] = defaultdict(list)
+        self.ix2file: Dict[int, File] = defaultdict(list)
         """{ix -> :obj:`File`} dict storing the registered file information for access via index.
         """
         self.facet2parsed: Dict[str, Dict[int, ParsedFile]] = defaultdict(dict)
@@ -102,6 +103,18 @@ class Piece(LoggedClass):
         return result
 
     @property
+    def files(self):
+        return list(self.ix2file.values())
+
+    @property
+    def has_changed_scores(self) -> bool:
+        """Whether any of the parsed scores has been altered."""
+        for ix, score in self.ix2parsed_score.items():
+            if score.mscx.changed:
+                return True
+        return False
+
+    @property
     def ms(self):
         return self._ms
 
@@ -125,9 +138,10 @@ class Piece(LoggedClass):
         Returns:
 
         """
-        file, score = self.get_parsed_score()
-        if score is None:
+        parsed_score = self.get_parsed_score()
+        if parsed_score is None:
             return None
+        file, score = parsed_score
         meta_dict = score.mscx.metadata
         meta_dict['subdirectory'] = file.subdir
         meta_dict['fname'] = self.name
@@ -215,9 +229,9 @@ class Piece(LoggedClass):
     def __repr__(self):
         return self.info(return_str=True)
     def add_parsed_score(self, ix: int, score_obj: Score) -> None:
-        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
+        assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
         if score_obj is None:
-            file = self.files[ix]
+            file = self.ix2file[ix]
             self.logger.debug(f"I was promised the parsed score for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = score_obj
@@ -225,15 +239,15 @@ class Piece(LoggedClass):
         self.facet2parsed['scores'][ix] = score_obj
 
     def add_parsed_tsv(self, ix: int, parsed_tsv: pd.DataFrame) -> None:
-        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
+        assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
         if parsed_tsv is None:
-            file = self.files[ix]
+            file = self.ix2file[ix]
             self.logger.debug(f"I was promised the parsed DataFrame for '{file.rel_path}' but received None.")
             return
         self.ix2parsed[ix] = parsed_tsv
         self.ix2parsed_tsv[ix] = parsed_tsv
         inferred_type = infer_tsv_type(parsed_tsv)
-        file = self.files[ix]
+        file = self.ix2file[ix]
         if file.type != inferred_type:
             if inferred_type == 'unknown':
                 self.logger.info(f"After parsing '{file.rel_path}', the original guess that it contains '{file.type}' "
@@ -285,6 +299,10 @@ class Piece(LoggedClass):
     #
     #     except Exception as e:
     #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
+
+    def count_changed_scores(self, view_name: Optional[str]) -> int:
+        parsed_scores = self.get_parsed_scores(view_name=view_name)
+        return sum(score.mscx.changed for _, score in parsed_scores)
 
     def count_parsed(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
         result = {}
@@ -360,7 +378,9 @@ class Piece(LoggedClass):
             result = {facet: result[facet] if facet in result else [] for facet in selected_facets}
         return result
 
-
+    def get_changed_scores(self, view_name: Optional[str]) -> List[FileScoreTuple]:
+        parsed_scores = self.get_parsed_scores(view_name=view_name)
+        return [(file, score) for file, score in parsed_scores if score.mscx.changed]
 
     def get_facets(self,
                    facets: ScoreFacets = None,
@@ -514,6 +534,12 @@ class Piece(LoggedClass):
             return files[0]
 
 
+    def get_file_from_path(self, full_path: Optional[str] = None) -> Optional[File]:
+        for file in self.files:
+            if file.full_path == full_path:
+                return file
+
+
     def get_files(self,
                   facets: FacetArguments = None,
                   view_name: Optional[str] = None,
@@ -585,11 +611,11 @@ class Piece(LoggedClass):
 
     def _get_parsed_at_index(self,
                              ix: int) -> ParsedFile:
-        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
+        assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
         if ix not in self.ix2parsed:
             self._parse_file_at_index(ix)
         if ix not in self.ix2parsed:
-            file = self.files[ix]
+            file = self.ix2file[ix]
             raise RuntimeError(f"Unable to parse '{file.rel_path}'.")
         return self.ix2parsed[ix]
 
@@ -722,11 +748,20 @@ class Piece(LoggedClass):
             if len(files_df) == 0:
                 msg += "No files selected."
             else:
-                ixs = files_df.index.get_level_values(1)
-                is_parsed = [str(ix in self.ix2parsed) for ix in ixs]
+                is_parsed, has_changed = [], []
+                for facet, ix in files_df.index:
+                    parsed = ix in self.ix2parsed
+                    is_parsed.append(parsed)
+                    changed_score = parsed and facet == 'scores' and self[ix].mscx.changed
+                    has_changed.append(changed_score)
                 files_df['is_parsed'] = is_parsed
-                msg += files_df[['rel_path', 'is_parsed']].to_string()
-        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
+                if any(has_changed):
+                    files_df['has_changed'] = has_changed
+                    info_columns = ['rel_path', 'is_parsed', 'has_changed']
+                else:
+                    info_columns = ['rel_path', 'is_parsed']
+                msg += files_df[info_columns].to_string()
+        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
         if return_str:
             return msg
         print(msg)
@@ -806,7 +841,7 @@ class Piece(LoggedClass):
         for facet, ix2parsed in self.facet2parsed.items():
             if facet not in view.selected_facets:
                 continue
-            files = [self.files[ix] for ix in ix2parsed.keys()]
+            files = [self.ix2file[ix] for ix in ix2parsed.keys()]
             filtered_ixs = [file.ix for file in view.filtered_file_list(files, 'parsed')]
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_ixs) == 0 and not include_empty:
@@ -859,8 +894,8 @@ class Piece(LoggedClass):
         yield from files
 
     def _parse_file_at_index(self, ix: int) -> None:
-        assert ix in self.files, f"Piece '{self.name}' does not include a file with index {ix}."
-        file = self.files[ix]
+        assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
+        file = self.ix2file[ix]
         if file.type == 'scores':
             logger_cfg = dict(self.logger_cfg)
             score = Score(file.full_path, ms=self.ms, **logger_cfg)
@@ -879,8 +914,8 @@ class Piece(LoggedClass):
 
     def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
         ix = file.ix
-        if ix in self.files:
-            existing_file = self.files[ix]
+        if ix in self.ix2file:
+            existing_file = self.ix2file[ix]
             if file.full_path == existing_file.full_path:
                 self.logger.debug(f"File '{file.rel_path}' was already registered for {self.name}.")
                 return None
@@ -898,8 +933,27 @@ class Piece(LoggedClass):
                     self.logger.warning(f"{file.file} does not contain '{self.name}' and is ignored.")
                     return False
         self.facet2files[file.type].append(file)
-        self.files[file.ix] = file
+        self.ix2file[file.ix] = file
         return True
+    #
+    # def store_changed_scores(self,
+    #                         view_name: Optional[str] = None,
+    #                         root_dir: Optional[str] = None,
+    #                         folder: str = '.',
+    #                         suffix: str = '',
+    #                         overwrite: bool = False,
+    #                         simulate=False) -> List[str]:
+    #     stored_file_paths = []
+    #     for file, _ in self.get_changed_scores(view_name):
+    #         file_path = self.store_parsed_score_at_ix(ix=file.ix,
+    #                                                   root_dir=root_dir,
+    #                                                   folder=folder,
+    #                                                   suffix=suffix,
+    #                                                   overwrite=overwrite,
+    #                                                   simulate=simulate)
+    #         stored_file_paths.append(file_path)
+    #     return stored_file_paths
+
 
     def store_extracted_facet(self,
                               facet: ScoreFacet,
@@ -931,6 +985,71 @@ class Piece(LoggedClass):
                                   suffix=suffix)
             write_tsv(df, file_path, logger=self.logger)
 
+    # def store_parsed_scores(self,
+    #                         view_name: Optional[str] = None,
+    #                         root_dir: Optional[str] = None,
+    #                         folder: str = '.',
+    #                         suffix: str = '',
+    #                         overwrite: bool = False,
+    #                         simulate=False) -> List[str]:
+    #     stored_file_paths = []
+    #     for file in self._get_parsed_score_files(view_name):
+    #         file_path = self.store_parsed_score_at_ix(ix=file.ix,
+    #                                       root_dir=root_dir,
+    #                                       folder=folder,
+    #                                       suffix=suffix,
+    #                                       overwrite=overwrite,
+    #                                       simulate=simulate)
+    #         stored_file_paths.append(file_path)
+    #     return stored_file_paths
+
+    def store_parsed_score_at_ix(self,
+                                 ix,
+                                 root_dir: Optional[str] = None,
+                                 folder: str = '.',
+                                 suffix: str = '',
+                                 overwrite: bool = False,
+                                 simulate=False) -> Optional[str]:
+        """
+        Creates a MuseScore 3 file from the Score object at the given index.
+
+        Args:
+            ix:
+            folder:
+            suffix: Suffix to append to the original file name.
+            root_dir:
+            overwrite: Pass True to overwrite existing files.
+            simulate: Set to True if no files are to be written.
+
+        Returns:
+            Path of the stored file.
+        """
+        if ix not in self.ix2parsed_score:
+            logger.error(f"No Score object found. Call parse_scores() first.")
+            return
+        file = self.ix2file[ix]
+        file_path = make_file_path(file=file,
+                                   root_dir=root_dir,
+                                   folder=folder,
+                                   suffix=suffix,
+                                   fext='.mscx')
+        if os.path.isfile(file_path):
+            if simulate:
+                if overwrite:
+                    self.logger.warning(f"Would have overwritten {file_path}.")
+                    return
+                self.logger.warning(f"Would have skipped {file_path}.")
+                return
+            elif not overwrite:
+                self.logger.warning(f"Skipping {file.rel_path} because the target file exists already and overwrite=False: {file_path}.")
+                return
+        if simulate:
+            self.logger.debug(f"Would have written score to {file_path}.")
+        else:
+            os.makedirs(os.path.dirname(file_path), exist_ok=True)
+            self[ix].store_score(file_path)
+            self.logger.debug(f"Score written to {file_path}.")
+        return file_path
 
     def switch_view(self, view_name: str,
                     show_info: bool = True) -> None:

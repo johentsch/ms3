@@ -77,11 +77,11 @@ from typing import Literal, Optional
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
+from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
     get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
-from .logger import LoggedClass, get_log_capture_handler
+from .logger import LoggedClass, get_log_capture_handler, function_logger
 from .transformations import add_quarterbeats_col
 
 
@@ -739,7 +739,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         self._update_annotations()
 
-    def store_scores(self, filepath):
+    def store_score(self, filepath: str) -> bool:
         """Shortcut for ``MSCX.parsed.store_scores()``.
         Store the current XML structure as uncompressed MuseScore file.
 
@@ -754,7 +754,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`bool`
             Whether the file was successfully created.
         """
-        return self.parsed.store_scores(filepath=filepath)
+        if self.read_only:
+            self.parsed.make_writeable()
+        return self.parsed.store_score(filepath=filepath)
 
     def store_list(self, what='all', folder=None, suffix=None):
         """
@@ -1356,7 +1358,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
+    def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True, inverse=False, regex=None):
         """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them, without taking
         labels_cfg into account (don't decode the labels).
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
@@ -1389,16 +1391,15 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not key.isidentifier():
             self.logger.warning(
                 f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
-        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=True, decode=False, drop=delete)
+        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=True, decode=False, drop=delete, inverse=inverse, regex=regex)
         if len(df) == 0:
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = f"{self.logger.name}.{key}"
-        self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
-                                                      **logger_cfg)
+        self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self.mscx, **logger_cfg)
         if delete:
-            self._mscx.delete_labels(df)
+            self.mscx.delete_labels(df)
         return
 
 
@@ -1447,6 +1448,49 @@ Use one of the existing keys or load a new set with the method load_annotations(
             else:
                 labels = add_quarterbeats_col(labels, self.mscx.offset_dict(), interval_index=interval_index, logger=self.logger)
         return labels
+
+    def move_labels_to_layer(self,
+                             staff: Optional[int] = None,
+                             voice: Optional[Literal[1, 2, 3, 4]] = None,
+                             harmony_layer: Optional[Literal[0, 1, 2, 3]] = None,
+                             above: bool = False,
+                             safe: bool = True) -> bool:
+        if not self.mscx.has_annotations:
+            self.logger.debug(f"File has no labels to update.")
+            return False
+        before = self.annotations
+        labels_before = self.annotations.df
+        if len(labels_before) == 0:
+            self.logger.info(f"Annotation object does not contain any labels.")
+            return False
+        if staff < 1:
+            staff = self.mscx.staff_ids[staff]
+        need_moving = before.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, regex=r"^[^\.]", inverse=True)
+        labels_need_moving = len(need_moving) > 0
+        if self.mscx.style['romanNumeralPlacement'] is None:
+            if above:
+                self.mscx.style['romanNumeralPlacement'] = 0
+                self.mscx.changed = True
+        else:
+            above_target = 0 if above else 1
+            if int(self.mscx.style['romanNumeralPlacement']) != above_target:
+                self.mscx.style['romanNumeralPlacement'] = above_target
+                self.mscx.changed = True
+        if labels_need_moving:
+            self.logger.info(f"Moving {len(need_moving)} labels to staff={staff}, voice={voice}, harmony_layer={harmony_layer}, above={above}.")
+            self.detach_labels('old', staff=staff, voice=voice, harmony_layer=harmony_layer, regex=r"^[^\.]", inverse=True)
+            self.old.remove_initial_dots()
+            self.attach_labels('old', staff=int(staff), voice=voice, harmony_layer=int(harmony_layer))
+            if safe:
+                labels_after = self.annotations.df
+                try:
+                    assert_dfs_equal(labels_before, labels_after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
+                except AssertionError as e:
+                    self.logger.error(f"Labels were not moved because of the following error:\n{e}")
+                    return False
+        else:
+            self.logger.info(f"No labels needed moving.")
+        return self.mscx.changed
 
     def new_type(self, name, regex, description='', infer=True):
         """ Declare a custom label type. A type consists of a name, a regular expression and,
@@ -1544,7 +1588,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
 
-    def store_scores(self, filepath):
+    def store_score(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
         Just a shortcut for ``Score.mscx.store_scores()``.
 
@@ -1554,7 +1598,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Path of the newly created MuseScore file, including the file name ending on '.mscx'.
             Uncompressed files ('.mscz') are not supported.
         """
-        return self.mscx.store_scores(filepath)
+        return self.mscx.store_score(filepath)
 
     def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
@@ -1760,7 +1804,23 @@ Use one of the existing keys or load a new set with the method load_annotations(
 ########################################################################################################################
 
 
-
-
-
-
+@function_logger
+def compare_two_score_objects(old_score: Score, new_score: Score) -> None:
+    old_path = old_score.mscx.mscx_src
+    new_path = new_score.mscx.mscx_src
+    dataframe_pairs = {
+        'events': (old_score.mscx.events(), new_score.mscx.events()),
+        'measures': (old_score.mscx.measures(), new_score.mscx.measures()),
+        'labels': (old_score.mscx.labels(), new_score.mscx.labels())
+    }
+    for facet, (old_df, new_df) in dataframe_pairs.items():
+        n_none = (old_df is None) + (new_df is None)
+        if n_none == 2:
+            continue
+        if n_none == 1:
+            logger.warning(f"{facet} BEFORE:\n{old_df}\n{facet} AFTER:\n{new_df}")
+            continue
+        try:
+            assert_dfs_equal(old_df, new_df)
+        except AssertionError as e:
+            logger.warning(f"The {facet} extracted from '{old_path}' and from the updated '{new_path}' do not match:\n{e}")

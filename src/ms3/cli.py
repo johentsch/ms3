@@ -308,18 +308,18 @@ def update(args):
                     after = s.annotations.df
                     try:
                         assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
-                        s.store_scores(new)
+                        s.store_score(new)
                     except:
                         s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
                         continue
                 else:
-                    s.store_scores(new)
+                    s.store_score(new)
             else:
                 s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
-                s.store_scores(new)
+                s.store_score(new)
         else:
             s.logger.debug(f"File has no labels to update.")
-            s.store_scores(new)
+            s.store_score(new)
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.

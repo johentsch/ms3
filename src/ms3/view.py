@@ -103,11 +103,15 @@ class View(LoggedClass):
         return new_view
 
     def update_config(self,
-                     view_name: Optional[str] = None,
-                     only_metadata: bool = None,
-                     include_convertible: bool = None,
-                     include_tsv: bool = None,
-                     exclude_review: bool = None,
+                      view_name: Optional[str] = None,
+                      only_metadata: bool = None,
+                      include_convertible: bool = None,
+                      include_tsv: bool = None,
+                      exclude_review: bool = None,
+                      paths=None,
+                      file_re=None,
+                      folder_re=None,
+                      exclude_re=None,
                      **logger_cfg):
         for param, value in zip(('view_name', 'only_metadata', 'include_convertible', 'include_tsv', 'exclude_review'),
                                 (view_name, only_metadata, include_convertible, include_tsv, exclude_review)
@@ -118,8 +122,20 @@ class View(LoggedClass):
             if value != old_value:
                 setattr(self, param, value)
                 self.logger.debug(f"Set '{param}' (previously {old_value}) to {value}.")
-        if 'level' in logger_cfg:
-            self.change_logger_cfg(level=logger_cfg['level'])
+        if file_re is not None and file_re != '.*':
+            self.include('files', file_re)
+        if folder_re is not None and folder_re != '.*':
+            self.include('folders', folder_re)
+        if exclude_re is not None:
+            self.exclude(('files', 'folders'), exclude_re)
+        if paths is not None:
+            resolved_paths = resolve_paths_argument(paths)
+            if len(resolved_paths) > 0:
+                unpack_json_paths(resolved_paths)
+                regexes = [re.escape(os.path.basename(p)) for p in paths]
+                self.include('files', *regexes)
+        if len(logger_cfg) > 0:
+            self.change_logger_cfg(**logger_cfg)
 
     @property
     def include_convertible(self):
@@ -238,7 +254,7 @@ class View(LoggedClass):
         self._discarded_items[key].extend(discarded_items)
         return result
 
-    def filtering_report(self, drop_zero=True, show_discarded=True):
+    def filtering_report(self, drop_zero=True, show_discarded=True, return_str=False) -> Optional[str]:
         aggregated_counts = defaultdict(empty_counts)
         for key, counts in self._last_filtering_counts.items():
             key = key.replace('filtered_', '')
@@ -254,12 +270,14 @@ class View(LoggedClass):
                 msg += f"{n_discarded}/{N} {key} are excluded from this view"
                 if show_discarded:
                     if len(discarded[key]) > 0:
-                        msg += f":\n{discarded[key]}\n\n"
+                        msg += f":\n{sorted(discarded[key])}\n\n"
                     else:
                         msg += ", but unfortunately I don't know which ones.\n"
                 else:
                     msg += '.\n'
-        return msg
+        if return_str:
+            return msg
+        print(msg)
 
     def info(self, return_str=False):
         msg_components = []
@@ -440,18 +458,10 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                 include_tsv=include_tsv,
                 exclude_review=exclude_review,
                 )
-    if file_re is not None:
-        view.include('files', file_re)
-    if folder_re is not None and folder_re != '.*':
-        view.include('folders', folder_re)
-    if exclude_re is not None:
-        view.exclude(('files', 'folders'), exclude_re)
-    if paths is not None:
-        resolved_paths = resolve_paths_argument(paths)
-        if len(resolved_paths) > 0:
-            unpack_json_paths(resolved_paths)
-            regexes = [re.escape(os.path.basename(p)) for p in paths]
-            view.include('files', *regexes)
+    view.update_config(paths=paths,
+                       file_re=file_re,
+                       folder_re=folder_re,
+                       exclude_re=exclude_re)
     return view
 
 

@@ -15,15 +15,16 @@ from gitdb.exc import BadName
 from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
-from .score import Score
+from .score import Score, compare_two_score_objects
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments, \
-    Facet, ScoreFacet
+    Facet, ScoreFacet, FileScoreTuple
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
     load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
-    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type
+    files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
+    convert
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -108,9 +109,10 @@ class Corpus(LoggedClass):
             if legacy_params or not_default:
                 self.logger.warning(f"If you pass an existing view, other view-related parameters are ignored.")
             self._views[None] = view
-            if view.name != 'default':
-                self._views['default'] = DefaultView()
-        self._views['all'] = View('all')
+        if 'default' not in self.view_names:
+            self._views['default'] = DefaultView()
+        if 'all' not in self.view_names:
+            self._views['all'] = View()
 
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
@@ -244,6 +246,9 @@ class Corpus(LoggedClass):
     def ix_logger(self, ix):
         return get_logger(self.logger_names[ix])
 
+    def count_changed_scores(self, view_name: Optional[str] = None):
+        return sum(piece.count_changed_scores(view_name) for _, piece in self.iter_pieces(view_name))
+
 
     def count_files(self,
                     detected: bool = True,
@@ -353,7 +358,7 @@ class Corpus(LoggedClass):
         already_there = os.path.isfile(path)
         if already_there:
             if overwrite and suffix == '':
-                self.logger.warning("For security reasons I won't overwrite the 'metadata.tsv' file of this repo. "
+                self.logger.warning("For security reasons I won't overwrite the 'metadata.tsv' file of this corpus. "
                                     "Consider updating it or delete it yourself.")
                 return
             elif not overwrite:
@@ -582,6 +587,9 @@ class Corpus(LoggedClass):
                 if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
                 ]
 
+    def get_changed_scores(self, view_name: Optional[str] = None) -> Dict[str, List[FileScoreTuple]]:
+        return {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
+
     def get_facets(self,
                    facets: ScoreFacets = None,
                    view_name: Optional[str] = None,
@@ -628,6 +636,11 @@ class Corpus(LoggedClass):
         if n_unparsed > 10:
             self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} scores iteratively. "
                                 f"Next time, call _.parse() on me, so we can speed this up!")
+
+    def get_file_from_path(self, full_path: Optional[str] = None) -> Optional[File]:
+        for file in self.files:
+            if file.full_path == full_path:
+                return file
 
     def get_files(self, facets: FacetArguments = None,
                   view_name: Optional[str] = None,
@@ -780,7 +793,10 @@ class Corpus(LoggedClass):
                 plural = f"These {not_included.sum()} here are" if not_included.sum() > 1 else "This one is"
                 msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
                 msg += counts_df[not_included].to_string()
-        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded)
+        n_changed_scores = self.count_changed_scores(view_name)
+        if n_changed_scores > 0:
+            msg += f"\n\n{n_changed_scores} scores have changed since parsing."
+        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
         if return_str:
             return msg
         print(msg)
@@ -870,13 +886,13 @@ class Corpus(LoggedClass):
         self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
-
     def parse_scores(self,
-                   level: str = None,
-                   parallel: bool = True,
-                   only_new: bool = True,
-                   labels_cfg: dict = {},
-                   view_name:str = None):
+                     level: str = None,
+                     parallel: bool = True,
+                     only_new: bool = True,
+                     labels_cfg: dict = {},
+                     view_name: str = None,
+                     choose: Literal['all', 'auto', 'ask'] = 'all'):
         """ Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -902,7 +918,7 @@ class Corpus(LoggedClass):
             self.change_logger_cfg(level=level)
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
         self.logger.debug(f"Parsing scores with parameters parallel={parallel}, only_new={only_new}")
-        fname2files = self.get_files('scores', view_name=view_name, parsed=not only_new, flat=True)
+        fname2files = self.get_files('scores', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -974,7 +990,14 @@ class Corpus(LoggedClass):
             #self._collect_annotations_objects_references(ids=ids)
             pass
 
-    def parse_tsv(self, view_name: Optional[str] = None, cols={}, infer_types=None, level=None, only_new: bool = True, **kwargs):
+    def parse_tsv(self,
+                  view_name: Optional[str] = None,
+                  cols={},
+                  infer_types=None,
+                  level=None,
+                  only_new: bool = True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  **kwargs):
         """ Parse TSV files to be able to do something with them.
 
         Parameters
@@ -1003,7 +1026,7 @@ class Corpus(LoggedClass):
         """
         if level is not None:
             self.change_logger_cfg(level=level)
-        fname2files = self.get_files('tsv', view_name=view_name, parsed=not only_new, flat=True)
+        fname2files = self.get_files('tsv', view_name=view_name, parsed=not only_new, choose=choose, flat=True)
         selected_files = sum(fname2files.values(), start=[])
         target = len(selected_files)
         if target == 0:
@@ -1099,9 +1122,11 @@ class Corpus(LoggedClass):
         else:
             iter_pieces = self.iter_pieces(view_name=view_name)
         for fname, piece in iter_pieces:
-            fnames.append(fname)
             try:
-                rows.append(piece.score_metadata())
+                row = piece.score_metadata()
+                if row is not None:
+                    rows.append(row)
+                    fnames.append(fname)
             except ValueError:
                 print(fname)
                 print(piece.score_metadata())
@@ -1178,6 +1203,61 @@ class Corpus(LoggedClass):
     @property
     def view_names(self):
         return {view.name if name is None else name for name, view in self._views.items()}
+
+    def update_labels(self,
+                      staff: Optional[int] = None,
+                      voice: Optional[Literal[1, 2, 3, 4]] = None,
+                      harmony_layer: Optional[Literal[0, 1, 2, 3]] = None,
+                      above: bool = False,
+                      safe: bool = True) -> FileList:
+        altered_files = []
+        for fname, piece in self.iter_pieces():
+            for file, score in piece.iter_parsed('scores'):
+                successfully_moved = score.move_labels_to_layer(staff=staff,
+                                                                voice=voice,
+                                                                harmony_layer=harmony_layer,
+                                                                above=above,
+                                                                safe=safe)
+                if successfully_moved:
+                    altered_files.append(file)
+        return altered_files
+
+    def update_scores(self,
+                      root_dir: Optional[str] = None,
+                      folder: str = '.',
+                      suffix: str = '',
+                      overwrite: bool = False) -> Collection[str]:
+        assert self.ms is not None, "Set the attribute 'ms' to your MuseScore 3 executable to update scores."
+        up2date_paths = []
+        latest_version = LATEST_MUSESCORE_VERSION.split('.')
+        for fname, piece in self.iter_pieces():
+            for file, score in piece.iter_parsed('scores'):
+                logger = self.ix_logger(file.ix)
+                new_path = make_file_path(file, root_dir=root_dir, folder=folder, suffix=suffix, fext='.mscx')
+                up2date_paths.append(new_path)
+                updated_existed = os.path.isfile(new_path)
+                if updated_existed:
+                    if not overwrite:
+                        logger.info(f"Skipped updating {file.rel_path} because the target file exists already and overwrite=False: {new_path}")
+                        continue
+                    else:
+                        if new_path == file.full_path:
+                            updated_file = file
+                        else:
+                            updated_file = self.get_file_from_path(new_path)
+                score_version = score.mscx.metadata['musescore'].split('.')
+                if score_version < latest_version:
+                    convert(file.full_path, new_path, self.ms, logger=logger)
+                    if not updated_existed:
+                        new_files = self.add_file_paths([new_path])
+                        updated_file = new_files[0]
+                    new_score = Score(new_path)
+                    piece.add_parsed_score(updated_file.ix, new_score)
+                    compare_two_score_objects(score, new_score, logger=logger)
+                else:
+                    updated_file = file
+                    logger.debug(f"{file.rel_path} has version {LATEST_MUSESCORE_VERSION} already.")
+        return up2date_paths
 
     #####################
     # OLD, needs adapting
@@ -1915,7 +1995,7 @@ Available keys: {available_keys}""")
         if len(ids) == 0:
             self.logger.info(f"No labels match the criteria.")
             return pd.DataFrame()
-        annotation_tables = [self._annotations[id].get_labels(**params, warnings=False) for id in ids]
+        annotation_tables = [self._annotations[id].get_labels(**params, inverse=False) for id in ids]
         idx, names = self.ids2idx(ids)
         if names is None:
             names = (None,) * len(idx[0])
@@ -2304,51 +2384,6 @@ Available keys: {available_keys}""")
         write_metadata(md, full_path, markdown=markdown, logger=self.logger)
         return full_path
 
-    def store_scores(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
-        """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
-
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) for which to count file extensions.  By default, all keys are selected.
-        ids : :obj:`~collections.abc.Collection`
-            If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Corpus object.
-            Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-            ``root_dir`` is ignored.
-        folder : :obj:`str`
-            Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-            If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-            the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-            it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-        suffix : :obj:`str`, optional
-            Suffix to append to the original file name.
-        overwrite : :obj:`bool`, optional
-            Pass True to overwrite existing files.
-        simulate : :obj:`bool`, optional
-            Set to True if no files are to be written.
-
-        Returns
-        -------
-
-        """
-        if ids is None:
-            ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
-        paths = []
-        for key, i in ids:
-            new_path = self._store_scores(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
-            if new_path is not None:
-                if new_path in paths:
-                    modus = 'would have' if simulate else 'has'
-                    self.logger.info(f"The score at {new_path} {modus} been overwritten.")
-                else:
-                    paths.append(new_path)
-        if simulate:
-            return list(set(paths))
-
-
-
 
 
 
@@ -2513,12 +2548,18 @@ Load one of the identically named files with a different key using add_dir(key='
 
 
 
-    def _store_scores(self, ix, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
+    def store_parsed_scores(self,
+                            view_name: Optional[str] = None,
+                            only_changed: bool = False,
+                            root_dir: Optional[str] = None,
+                            folder: str = '.',
+                            suffix: str = '',
+                            overwrite: bool = False,
+                            simulate=False) -> List[str]:
         """
-        Creates a MuseScore 3 file from the Score object at the given index.
+        Stores all parsed scores under this view as MuseScore 3 files.
 
         Args:
-            ix:
             folder:
             suffix: Suffix to append to the original file name.
             root_dir:
@@ -2528,34 +2569,33 @@ Load one of the identically named files with a different key using add_dir(key='
         Returns:
             Path of the stored file.
         """
-        if ix not in self.ix2parsed_score:
-            logger.error(f"No Score object found. Call parse_scores() first.")
-            return
-        file = self.files[ix]
-        logger = self.ix_logger(ix)
-        file_path = make_file_path(file=file,
-                                   root_dir=root_dir,
-                                   folder=folder,
-                                   suffix=suffix,
-                                   fext='.mscx')
-        if os.path.isfile(file_path):
-            if simulate:
-                if overwrite:
-                    logger.warning(f"Would have overwritten {file_path}.")
-                    return
-                logger.warning(f"Would have skipped {file_path}.")
-                return
-            elif not overwrite:
-                logger.warning(f"Skipped {file_path}.")
-                return
-        if simulate:
-            logger.debug(f"Would have written score to {file_path}.")
-        else:
-            os.makedirs(path, exist_ok=True)
-            self._parsed_mscx[id].store_scores(file_path)
-            logger.debug(f"Score written to {file_path}.")
-
-        return file_path
+        file_paths = []
+        for fname, piece in self.iter_pieces(view_name):
+            if only_changed:
+                score_iterator = piece.get_changed_scores(view_name)
+            else:
+                score_iterator = piece.get_parsed_scores(view_name)
+            for file, score in score_iterator:
+                path = piece.store_parsed_score_at_ix(ix=file.ix,
+                                                      root_dir=root_dir,
+                                                      folder=folder,
+                                                      suffix=suffix,
+                                                      overwrite=overwrite,
+                                                      simulate=simulate)
+                if path is None:
+                    continue
+                file_paths.append(path)
+                if path == file.full_path:
+                    continue
+                if self.corpus_path not in path:
+                    continue
+                new_files = self.add_file_paths([path])
+                if len(new_files) == 0:
+                    file_to_register = self.get_file_from_path(path)
+                else:
+                    file_to_register = new_files[0]
+                piece.add_parsed_score(file_to_register.ix, score)
+        return file_paths
 
 
     def _store_tsv(self, df, ix, folder, suffix='', root_dir=None, simulate=False):
@@ -2754,7 +2794,7 @@ def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) ->
     file = file.file
     logger.debug(f"Attempting to parse {file}")
     try:
-        score = Score(path, read_only=read_only, ms=ms)
+        score = Score(path, read_only=read_only, ms=ms, **logger_cfg)
         if score is None:
             logger.debug(f"Encountered errors when parsing {file}")
         else:

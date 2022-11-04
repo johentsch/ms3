@@ -6,6 +6,7 @@ Version 0.5.4
 =============
 
 * Gets rid of simulate except for writing files.
+* logger_cfg now as **kwargs
 * Type annotations
 * automatically corrects wrong capitalization in metadata fields harmony_version, annotators, and reviewers
 * the column ``label_type`` has been replaced and disambiguated into ``harmony_layer`` (0-3) and ``regex_match`` (which regEx matched first)

@@ -491,6 +491,8 @@ class Parse(LoggedClass):
         if len(ids) > 0:
             self._extract_and_cache_dataframes(ids=ids, labels=True)
 
+    def count_changed_scores(self, view_name: Optional[str] = None):
+        return sum(corpus.count_changed_scores() for _, corpus in self.iter_corpora(view_name))
 
     def count_extensions(self,
                          view_name: Optional[str] = None,
@@ -706,8 +708,11 @@ class Parse(LoggedClass):
             additional_columns = pd.DataFrame(additional_columns, columns=[('has', 'metadata'), ('active', 'view')], index=counts_df.index)
             info_df = pd.concat([additional_columns, counts_df], axis=1)
             info_df.columns = pd.MultiIndex.from_tuples(info_df.columns)
-            msg += info_df.to_string() + '\n\n'
-            msg += view.filtering_report(show_discarded=show_discarded)
+            msg += info_df.to_string()
+            n_changed_scores = self.count_changed_scores(view_name)
+            if n_changed_scores > 0:
+                msg += f"\n\n{n_changed_scores} scores have changed since parsing."
+            msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
         if return_str:
             return msg
         print(msg)
@@ -828,6 +833,17 @@ class Parse(LoggedClass):
                     corpus.set_view(new_view)
         if show_info:
             self.info()
+
+    def update_scores(self,
+                      root_dir: Optional[str] = None,
+                      folder: str = '.',
+                      suffix: str = '',
+                      overwrite: bool = False):
+        for corpus_name, corpus in self.iter_corpora():
+            corpus.update_scores(root_dir=root_dir,
+                                 folder=folder,
+                                 suffix=suffix,
+                                 overwrite=overwrite)
 
     def _aggregate_corpus_data(self,
                                method,
@@ -2113,11 +2129,12 @@ class Parse(LoggedClass):
 
 
     def parse_scores(self,
-                   level: str = None,
-                   parallel: bool = True,
-                   only_new: bool = True,
-                   labels_cfg: dict = {},
-                   view_name:str = None):
+                     level: str = None,
+                     parallel: bool = True,
+                     only_new: bool = True,
+                     labels_cfg: dict = {},
+                     view_name: str = None,
+                     choose: Literal['all', 'auto', 'ask'] = 'all'):
         """ Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need
         to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents
         having to re-parse at a later point.
@@ -2146,11 +2163,23 @@ class Parse(LoggedClass):
         if level is not None:
             self.change_logger_cfg(level=level)
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            corpus.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg)
+            corpus.parse_scores(level=level,
+                                parallel=parallel,
+                                only_new=only_new,
+                                labels_cfg=labels_cfg,
+                                view_name=view_name,
+                                choose=choose)
 
 
 
-    def parse_tsv(self, view_name=None, level=None, cols={}, infer_types=None, only_new=True, **kwargs):
+    def parse_tsv(self,
+                  view_name=None,
+                  level=None,
+                  cols={},
+                  infer_types=None,
+                  only_new=True,
+                  choose: Literal['all', 'auto', 'ask'] = 'all',
+                  **kwargs):
         """ Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.
 
         Parameters
@@ -2184,7 +2213,12 @@ class Parse(LoggedClass):
         if level is not None:
             self.change_logger_cfg(level=level)
         for corpus_name, corpus in self.iter_corpora(view_name=view_name):
-            corpus.parse_tsv(view_name=view_name, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
+            corpus.parse_tsv(view_name=view_name,
+                             cols=cols,
+                             infer_types=infer_types,
+                             only_new=only_new,
+                             choose=choose,
+                             **kwargs)
 
 
     # def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):

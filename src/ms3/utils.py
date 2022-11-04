@@ -22,6 +22,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict
 
+LATEST_MUSESCORE_VERSION = '3.6.2'
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
                          'last_mc', 'last_mn', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets',
