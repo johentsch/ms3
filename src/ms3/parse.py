@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTuple, FacetArguments, FileParsedTuple
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple
 from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
     update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument
@@ -572,7 +572,7 @@ class Parse(LoggedClass):
                        unfold: bool = False,
                        interval_index: bool = False,
                        flat=False,
-                       concatenate=True) -> Dict[CorpusFnameTuple, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+                       concatenate=True) -> Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]:
         return self._aggregate_corpus_data('extract_facets',
                                            facets=facets,
                                            view_name=view_name,
@@ -615,7 +615,7 @@ class Parse(LoggedClass):
                    flat=False,
                    include_empty=False,
                    concatenate=True,
-                   ) -> Dict[CorpusFnameTuple, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+                   ) -> Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]:
         return self._aggregate_corpus_data('get_facets',
                                            facets=facets,
                                            view_name=view_name,
@@ -947,8 +947,9 @@ class Parse(LoggedClass):
 
 
     def __getattr__(self, view_name) -> View:
-        if view_name in self._views:
-            self.switch_view(view_name, show_info=False)
+        if view_name in self.view_names:
+            if view_name != self.view_name:
+                self.switch_view(view_name, show_info=False)
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")

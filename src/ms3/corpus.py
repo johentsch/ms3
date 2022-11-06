@@ -16,8 +16,8 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
 from .piece import Piece
 from .score import Score, compare_two_score_objects
-from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTuple, FacetArguments, \
-    Facet, ScoreFacet, FileScoreTuple
+from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, \
+    Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
     load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
@@ -238,8 +238,9 @@ class Corpus(LoggedClass):
 
 
     def __getattr__(self, view_name):
-        if view_name in self.view_names and view_name != self.view_name:
-            self.switch_view(view_name, show_info=False)
+        if view_name in self.view_names:
+            if view_name != self.view_name:
+                self.switch_view(view_name, show_info=False)
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
@@ -515,7 +516,7 @@ class Corpus(LoggedClass):
                        choose: Literal['auto', 'ask'] = 'auto',
                        unfold: bool = False,
                        interval_index: bool = False,
-                       flat=False) -> Dict[str, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+                       flat=False) -> Dict[str, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]:
         """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
         If you want to retrieve parsed TSV files, use :py:meth:`get_all_parsed`.
 
@@ -590,6 +591,37 @@ class Corpus(LoggedClass):
     def get_changed_scores(self, view_name: Optional[str] = None) -> Dict[str, List[FileScoreTuple]]:
         return {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
 
+    def get_facet(self,
+                   facet: ScoreFacet,
+                   view_name: Optional[str] = None,
+                   choose: Literal['auto', 'ask'] = 'auto',
+                   unfold: bool = False,
+                   interval_index: bool = False,
+                   concatenate: bool = True,
+                   ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        view_name_display = self.view_name if view_name is None else view_name
+        result = {}
+        for fname, piece in self.iter_pieces(view_name):
+            file, df = piece.get_facet(facet=facet,
+                                       view_name=view_name,
+                                       choose=choose,
+                                       unfold=unfold,
+                                       interval_index=interval_index)
+            if df is None:
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{fname}' from which to "
+                                 f"retrieve {facet}.")
+            else:
+                result[fname] = df if concatenate else (file, df)
+        if concatenate:
+            if len(result) > 0:
+                df = pd.concat(result.values(), keys=result.keys())
+                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+                return df
+            else:
+                return pd.DataFrame()
+        return result
+
+
     def get_facets(self,
                    facets: ScoreFacets = None,
                    view_name: Optional[str] = None,
@@ -604,7 +636,18 @@ class Corpus(LoggedClass):
 
         Args:
             facets:
+            view_name:
+            force:
+                Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
+                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
+                under the given view.
             choose:
+            unfold:
+            interval_index:
+            flat:
+            include_empty:
+
+        Returns:
 
         """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
@@ -616,7 +659,7 @@ class Corpus(LoggedClass):
             self.check_number_of_unparsed_scores(view_name, choose)
         result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_facets(facets=selected_facets,
+            facet2parsed = piece.get_facets(facets=selected_facets,
                                          view_name=view_name,
                                          force=force,
                                          choose=choose,
@@ -624,9 +667,12 @@ class Corpus(LoggedClass):
                                          interval_index=interval_index,
                                          flat=flat,
                                          )
-            if len(type2file) == 0 and not include_empty:
-                continue
-            result[piece.name] = type2file
+            if not include_empty:
+                if not flat:
+                    facet2parsed = {facet: parsed for facet, parsed in facet2parsed.items() if len(parsed) > 0}
+                if len(facet2parsed) == 0:
+                    continue
+            result[piece.name] = facet2parsed
         return result
 
     def check_number_of_unparsed_scores(self, view_name, choose):
@@ -649,7 +695,7 @@ class Corpus(LoggedClass):
                   choose: Literal['all', 'auto', 'ask'] = 'all',
                   flat: bool = False,
                   include_empty = False,
-                  ) -> Dict[str, Union[FileDict, FileList]]:
+                  ) -> Dict[str, Union[Dict[str, FileList], FileList]]:
         """"""
         assert parsed + unparsed > 0, "At least one of 'parsed' and 'unparsed' needs to be True."
         selected_facets = resolve_facets_param(facets, logger=self.logger)
@@ -659,18 +705,20 @@ class Corpus(LoggedClass):
             choose = 'auto'
         result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            type2file = piece.get_files(facets=facets,
+            facet2files = piece.get_files(facets=facets,
                                         view_name=view_name,
                                         parsed=parsed,
                                         unparsed=unparsed,
                                         choose=choose,
                                         flat=flat,
                                         include_empty=include_empty)
-            if type2file is None:
-                return None
-            if len(type2file) == 0 and not include_empty:
-                continue
-            result[piece.name] = type2file
+            if not include_empty:
+                if not flat:
+                    facet2files = {facet: files for facet, files in facet2files.items() if len(files) > 0}
+                if len(facet2files) == 0:
+                    continue
+            result[piece.name] = facet2files
+            result[piece.name] = facet2files
         return result
 
     def get_all_parsed(self, facets: FacetArguments = None,
@@ -679,7 +727,7 @@ class Corpus(LoggedClass):
                   choose: Literal['all', 'auto', 'ask'] = 'all',
                   flat: bool = False,
                   include_empty=False,
-                  ) -> Dict[str, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]:
+                  ) -> Dict[str, Union[Dict[str, List[FileParsedTuple]], List[FileParsedTuple]]]:
         """"""
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if choose == 'ask':
@@ -690,15 +738,18 @@ class Corpus(LoggedClass):
             self.check_number_of_unparsed_scores(view_name, choose)
         result = {}
         for fname, piece in self.iter_pieces(view_name=view_name):
-            facet2file = piece.get_all_parsed(facets=selected_facets,
+            facet2parsed = piece.get_all_parsed(facets=selected_facets,
                                               view_name=view_name,
                                               force=force,
                                               choose=choose,
                                               flat=flat,
                                               include_empty=include_empty)
-            if len(facet2file) == 0 and not include_empty:
-                continue
-            result[piece.name] = facet2file
+            if not include_empty:
+                if not flat:
+                    facet2parsed = {facet: parsed for facet, parsed in facet2parsed.items() if len(parsed) > 0}
+                if len(facet2parsed) == 0:
+                    continue
+            result[piece.name] = facet2parsed
         return result
 
     def get_fnames(self,
@@ -800,6 +851,25 @@ class Corpus(LoggedClass):
         if return_str:
             return msg
         print(msg)
+
+    def iter_facet(self,
+                   facet: ScoreFacet,
+                   view_name: Optional[str] = None,
+                   choose: Literal['auto', 'ask'] = 'auto',
+                   unfold: bool = False,
+                   interval_index: bool = False) -> Iterator[FileDataframeTuple]:
+        view_name_display = self.view_name if view_name is None else view_name
+        for fname, piece in self.iter_pieces(view_name):
+            file, df = piece.get_facet(facet=facet,
+                                       view_name=view_name,
+                                       choose=choose,
+                                       unfold=unfold,
+                                       interval_index=interval_index)
+            if df is None:
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score or TSV file for '{fname}' from which to "
+                                 f"retrieve {facet}.")
+            else:
+                yield file, df
 
     def iter_parsed(self,
                     facet: Facet = None,

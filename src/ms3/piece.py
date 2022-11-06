@@ -6,7 +6,7 @@ import pandas as pd
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
-    FileDataframeTuple, DataframeDict
+    FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv
@@ -214,10 +214,9 @@ class Piece(LoggedClass):
         return {view.name if name is None else name for name, view in self._views.items()}
 
     def __getattr__(self, view_name):
-        if view_name in self._views:
-            self.switch_view(view_name, show_info=False)
-            return self
-        elif view_name is not None and self._views[None].name == view_name:
+        if view_name in self.view_names:
+            if view_name != self.view_name:
+                self.switch_view(view_name, show_info=False)
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
@@ -325,7 +324,7 @@ class Piece(LoggedClass):
                       choose: Literal['auto', 'ask'] = 'auto',
                       unfold: bool = False,
                       interval_index: bool = False,
-                 ) -> Optional[FileDataframeTuple]:
+                 ) -> Optional[FileDataframeTupleMaybe]:
         facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
@@ -349,7 +348,7 @@ class Piece(LoggedClass):
                        choose: Literal['all', 'auto', 'ask'] = 'all',
                        unfold: bool = False,
                        interval_index: bool = False,
-                       flat=False) -> Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]:
+                       flat=False) -> Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]:
         """ Retrieve a dictionary with the selected feature matrices extracted from the parsed scores.
         If you want to retrieve parsed TSV files, use :py:meth:`get_all_parsed`.
         """
@@ -367,7 +366,7 @@ class Piece(LoggedClass):
                 self.logger.info(f"No parsed score found for '{self.name}'")
                 continue
             for facet in selected_facets:
-                df = getattr(score_obj.mscx, facet)(unfold=unfold, interval_index=interval_index)
+                df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
                 if df is None:
                     self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 else:
@@ -390,6 +389,30 @@ class Piece(LoggedClass):
                    unfold: bool = False,
                    interval_index: bool = False,
                    flat=False) -> Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]:
+        """
+        Retrieve score facets both freshly extracted from parsed scores and from parsed TSV files, depending on
+        the parameters and the view in question.
+
+        If choose != 'all', the goal will be to return one DataFrame per facet. Preference is given to a DataFrame
+        freshly extracted from an already parsed score; otherwise, from an already parsed TSV file. If both
+        are not available, preference will be given to a force-parsed TSV, then to a force-parsed score.
+
+
+        Args:
+            facets:
+            view_name:
+            force:
+                Only relevant when ``choose='all'``. By default, only scores and TSV files that have already been
+                parsed are taken into account. Set ``force=True`` to force-parse all scores and TSV files selected
+                under the given view.
+            choose:
+            unfold:
+            interval_index:
+            flat:
+
+        Returns:
+
+        """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         assert selected_facets is not None, f"Pass at least one valid facet {ScoreFacet.__args__}"
 
@@ -443,7 +466,7 @@ class Piece(LoggedClass):
         missing_facets = [facet for facet in selected_facets if len(extracted_facets[facet]) == 0]
         if len(missing_facets) == 0:
             return make_result(extracted_facets)
-        # facets missing, looked for parsed TSV files
+        # facets missing, look for parsed TSV files
         parsed_facets = self.get_all_parsed(facets=missing_facets,
                                             view_name=view_name,
                                             force=False,
@@ -483,24 +506,24 @@ class Piece(LoggedClass):
     def get_facet(self,
                   facet: ScoreFacet,
                   view_name: Optional[str] = None,
-                  force: bool = False,
                   choose: Literal['auto', 'ask'] = 'auto',
                   unfold: bool = False,
-                  interval_index: bool = False,
-                  ) -> Optional[FileDataframeTuple]:
+                  interval_index: bool = False) -> FileDataframeTupleMaybe:
+        """Retrieve a DataFrame from a parsed score or, if unavailable, from a parsed TSV. If none have been
+        parsed, first force-parse a TSV and, if not included in the given view, force-parse a score.
+        """
         facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.get_facets(facets=facet,
                                   view_name=view_name,
-                                  force=force,
                                   choose=choose,
                                   unfold=unfold,
                                   interval_index=interval_index,
                                   flat=True
                                   )
         if len(df_list) == 0:
-            return None
+            return None, None
         if len(df_list) == 1:
             return df_list[0]
 
@@ -548,7 +571,7 @@ class Piece(LoggedClass):
                   choose: Literal['all', 'auto', 'ask'] = 'all',
                   flat: bool = False,
                   include_empty: bool = False,
-                  ) -> Union[FileDict, FileList]:
+                  ) -> Union[Dict[str, FileList], FileList]:
         """
 
         Args:
@@ -634,6 +657,8 @@ class Piece(LoggedClass):
             unparsed_file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
             if unparsed_file is not None:
                 return unparsed_file, self._get_parsed_at_index(unparsed_file.ix)
+            else:
+                return None, None
         if len(files) == 1:
             return files[0]
 
@@ -647,7 +672,7 @@ class Piece(LoggedClass):
                        include_empty: bool = False,
                        unfold: bool = False,
                        interval_index: bool = False,
-                       ) -> Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]:
+                       ) -> Union[Dict[str, List[FileParsedTuple]], List[FileParsedTuple]]:
         """Return multiple parsed files."""
         if unfold + interval_index > 0:
             raise NotImplementedError(f"Unfolding and interval index currently only available for extracted facets.")
@@ -690,7 +715,7 @@ class Piece(LoggedClass):
 
     def get_parsed_score(self,
                          view_name: Optional[str] = None,
-                         choose: Literal['auto', 'ask'] = 'auto') -> FileScoreTuple:
+                         choose: Literal['auto', 'ask'] = 'auto') -> FileScoreTupleMaybe:
         return self.get_parsed('scores', view_name=view_name, choose=choose)
 
     def get_parsed_scores(self,
@@ -700,19 +725,23 @@ class Piece(LoggedClass):
         return self.get_all_parsed('scores', view_name=view_name, force=force, choose=choose, flat=True)
 
     def get_parsed_tsv(self,
-                       file_type: TSVtype,
+                       facet: TSVtype,
                        view_name: Optional[str] = None,
                        choose: Literal['auto', 'ask'] = 'auto',
-         ) -> FileDataframeTuple:
-        return self.get_parsed(file_type, view_name=view_name, choose=choose)
+                       ) -> FileDataframeTupleMaybe:
+        facets = argument_and_literal_type2list(facet, TSVtype, logger=self.logger)
+        assert len(facet) == 1, f"Pass exactly one valid TSV type {TSVtype.__args__} or use _.get_parsed_tsvs()"
+        facet = facets[0]
+        return self.get_parsed(facet, view_name=view_name, choose=choose)
 
     def get_parsed_tsvs(self,
-                       file_type: TSVtype,
-                       view_name: Optional[str] = None,
-                       force: bool = False,
-                       choose: Literal['all', 'auto', 'ask'] = 'all',
-         ) -> List[FileDataframeTuple]:
-        return self.get_all_parsed(file_type, view_name=view_name, force=force, choose=choose, flat=True)
+                        facets: TSVtypes,
+                        view_name: Optional[str] = None,
+                        force: bool = False,
+                        choose: Literal['all', 'auto', 'ask'] = 'all',
+                        ) -> List[FileDataframeTupleMaybe]:
+        facets = argument_and_literal_type2list(facets, TSVtype, logger=self.logger)
+        return self.get_all_parsed(facets, view_name=view_name, force=force, choose=choose, flat=True)
 
     def _get_parsed_score_files(self, view_name: Optional[str] = None) -> FileList:
         return self.get_files('scores', view_name=view_name, unparsed=False, flat=True)
@@ -771,7 +800,7 @@ class Piece(LoggedClass):
                        view_name: Optional[str] = None,
                        force: bool = False,
                        unfold: bool = False,
-                       interval_index: bool = False) -> Iterator[FileDataframeTuple]:
+                       interval_index: bool = False) -> Iterator[FileDataframeTupleMaybe]:
         """ Iterate through the selected facet extracted from all parsed or yet-to-parse scores.
         """
         facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
@@ -786,7 +815,7 @@ class Piece(LoggedClass):
             if score_obj is None:
                 self.logger.info(f"No parsed score found for '{file.rel_path}'")
                 continue
-            df = getattr(score_obj.mscx, facet)(unfold=unfold, interval_index=interval_index)
+            df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
             if df is None:
                 self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 continue

@@ -19,9 +19,12 @@ Category: TypeAlias = Literal['corpora',
 Categories: TypeAlias = Union[Category, Collection[Category]]
 ParsedFile: TypeAlias = Union['Score', pd.DataFrame]
 DataframeDict: TypeAlias = Dict[str, pd.DataFrame]
-FileParsedTuple: TypeAlias = Tuple[Optional['File'], Optional[ParsedFile]]
-FileScoreTuple: TypeAlias = Tuple[Optional['File'], Optional['Score']]
-FileDataframeTuple: TypeAlias = Tuple[Optional['File'], Optional[pd.DataFrame]]
+FileParsedTuple: TypeAlias = Tuple['File', ParsedFile]
+FileParsedTupleMaybe: TypeAlias = Tuple[Optional['File'], Optional[ParsedFile]]
+FileScoreTuple: TypeAlias = Tuple['File', 'Score']
+FileScoreTupleMaybe: TypeAlias = Tuple[Optional['File'], Optional['Score']]
+FileDataframeTuple: TypeAlias = Tuple['File', pd.DataFrame]
+FileDataframeTupleMaybe: TypeAlias = Tuple[Optional['File'], Optional[pd.DataFrame]]
 Facet: TypeAlias = Literal[
     'scores',
     'measures',

@@ -92,11 +92,15 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
             if not qb_are_sorted:
                 unordered_index_pairs = [[ix_a, ix_b] for (ix_a, a), (ix_b, b) in zip(selected_qb.items(), selected_qb[1:].items()) if b < a]
                 n_problems = len(unordered_index_pairs)
-                fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
-                logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df}\n"
-                               f"Each second row will not have a 'duration_qb' value.")
-                present_and_in_the_right_order = present_qb & ~(selected_qb > selected_qb.shift(-1))
-                selected_qb = quarterbeats[present_and_in_the_right_order].astype(float)
+                if n_problems > 0:
+                    fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
+                    logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df}\n"
+                                   f"Each second row will not have a 'duration_qb' value.")
+                    present_and_in_the_right_order = present_qb & ~(selected_qb > selected_qb.shift(-1))
+                    selected_qb = quarterbeats[present_and_in_the_right_order].astype(float)
+                else:
+                    # the index changed when sorting values but only because some quarterbeats were identical
+                    qb_are_sorted = True
             try:
                 ivs = make_interval_index_from_breaks(selected_qb,
                                                       end_value=float(offset_dict['end']), logger=logger)

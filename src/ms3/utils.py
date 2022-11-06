@@ -318,8 +318,8 @@ def assert_dfs_equal(old, new, exclude=[]):
             old = shorter
         else:
             new = shorter
-    old.index.rename('old_ix', inplace=True)
-    new.index.rename('new_ix', inplace=True)
+    # old.index.rename('old_ix', inplace=True)
+    # new.index.rename('new_ix', inplace=True)
     cols = [col for col in set(old.columns).intersection(set(new.columns)) if col not in exclude]
     diff = [(i, j, ~nan_eq(o, n)) for ((i, o), (j, n)) in zip(old[cols].iterrows(), new[cols].iterrows())]
     old_bool = pd.DataFrame.from_dict({ix: bool_series for ix, _, bool_series in diff}, orient='index')
