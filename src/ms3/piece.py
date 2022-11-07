@@ -3,6 +3,7 @@ from collections import defaultdict, Counter
 from typing import Dict, Literal, Union, Iterator, Optional, overload, List, Tuple
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
@@ -1177,7 +1178,7 @@ class Piece(LoggedClass):
                                                     choose=choose)
             for tsv_file, old_df in file_df_tuples:
                 try:
-                    assert_dfs_equal(old_df, new_df)
+                    assert_frame_equal(old_df, new_df, check_dtype=False)
                 except AssertionError as e:
                     if facet == 'expanded':
                         facet += ' labels'
@@ -1185,7 +1186,7 @@ class Piece(LoggedClass):
                                         f"ones in {tsv_file.rel_path}:\n{e}")
                     continue
                 write_tsv(new_df, tsv_file.full_path, logger=self.logger)
-                written_paths.append([tsv_file.full_path])
+                written_paths.append(tsv_file.full_path)
         return written_paths
 
 
