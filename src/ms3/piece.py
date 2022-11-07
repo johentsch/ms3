@@ -6,10 +6,10 @@ import pandas as pd
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
-    FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe
+    FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe, FileParsedTupleMaybe
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
-    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv
+    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -605,16 +605,21 @@ class Piece(LoggedClass):
             elif choose == 'all' or n_files < 2:
                 result[facet] = files
             else:
-                disambiguated = files2disambiguation_dict(files, logger=self.logger)
+                selected = files2disambiguation_dict(files, logger=self.logger)
                 needs_choice.append(facet)
-                result[facet] = disambiguated
+                result[facet] = selected
         if choose == 'auto':
             for typ in needs_choice:
                 result[typ] = [automatically_choose_from_disambiguated_files(result[typ], self.name, typ)]
         elif choose == 'ask':
             for typ in needs_choice:
                 choices = result[typ]
-                result[typ] = [ask_user_to_choose_from_disambiguated_files(choices, self.name, typ)]
+                selected = ask_user_to_choose_from_disambiguated_files(choices, self.name, typ)
+                if selected is None:
+                    if include_empty:
+                        result[typ] = []
+                else:
+                    result[typ] = [selected]
         elif choose == 'all' and 'scores' in needs_choice:
             # check if any scores can be differentiated solely by means of their file extension
             several_score_files = result['scores'].values()
@@ -645,7 +650,7 @@ class Piece(LoggedClass):
     def get_parsed(self,
                    facet: Facet,
                    view_name: Optional[str] = None,
-                   choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTuple:
+                   choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTupleMaybe:
         facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
@@ -672,7 +677,7 @@ class Piece(LoggedClass):
                        include_empty: bool = False,
                        unfold: bool = False,
                        interval_index: bool = False,
-                       ) -> Union[Dict[str, List[FileParsedTuple]], List[FileParsedTuple]]:
+                       ) -> Union[Dict[Facet, List[FileParsedTuple]], List[FileParsedTuple]]:
         """Return multiple parsed files."""
         if unfold + interval_index > 0:
             raise NotImplementedError(f"Unfolding and interval index currently only available for extracted facets.")
@@ -705,7 +710,11 @@ class Piece(LoggedClass):
                                                      choose=choose,
                                                      logger=self.logger
                                                      )
-                result[facet] = [selected]
+                if selected is None:
+                    if include_empty:
+                        result[facet] = []
+                else:
+                    result[facet] = [selected]
         if flat:
             return sum(result.values(), start=[])
         return result
@@ -981,7 +990,6 @@ class Piece(LoggedClass):
     #         stored_file_paths.append(file_path)
     #     return stored_file_paths
 
-
     def store_extracted_facet(self,
                               facet: ScoreFacet,
                               root_dir: Optional[str] = None,
@@ -990,9 +998,36 @@ class Piece(LoggedClass):
                               view_name: Optional[str] = None,
                               force: bool = False,
                               choose: Literal['all', 'auto', 'ask'] = 'all',
-                       unfold: bool = False,
-                       interval_index: bool = False
+                              unfold: bool = False,
+                              interval_index: bool = False
                               ):
+        """
+        Extract a facet from one or several available scores and store the results as TSV files, the paths of which
+        are computed from the respective score's location.
+
+        Args:
+            facet:
+            root_dir:
+                Defaults to None, meaning that the path is constructed based on the corpus_path.
+                Pass a directory to construct the path relative to it instead. If ``folder`` is an absolute path,
+                ``root_dir`` is ignored.
+            folder:
+                * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                  ``root_dir``.
+            suffix: String to append to the file's fname.
+            view_name:
+            force:
+            choose:
+            unfold:
+            interval_index:
+
+        Returns:
+
+        """
         if choose == 'all':
             extracted_facet = self.iter_extracted_facet(facet=facet,
                                                         view_name=view_name,
@@ -1093,5 +1128,64 @@ class Piece(LoggedClass):
         if show_info:
             self.info()
 
+    def update_tsvs_on_disk(self,
+                       facets: ScoreFacets = 'tsv',
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       ) -> List[str]:
+        """
+        Update existing TSV files corresponding to one or several facets with information freshly extracted from a parsed
+        score, but only if the contents are identical. Otherwise, the existing TSV file is not overwritten and the
+        differences are displayed in a log warning. The purpose is to safely update the format of existing TSV files,
+        (for instance with respect to column order) making sure that the content doesn't change.
+
+        Args:
+            facets:
+            view_name:
+            force:
+                By default, only TSV files that have already been parsed are updated. Set to True in order to
+                force-parse for each facet one of the TSV files included in the given view, if necessary.
+            choose:
+
+        Returns:
+            List of paths that have been overwritten.
+        """
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
+        assert selected_facets is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        assert choose != 'all', "This method does not accept choose='all'."
+        written_paths = []
+        parsed_tsvs = self.get_all_parsed(selected_facets,
+                                          view_name=view_name,
+                                          force=force,
+                                          choose=choose)
+        if len(parsed_tsvs) == 0:
+            self.logger.info(f"No parsed TSV files to update.")
+            return []
+        score_file, score_obj = self.get_parsed_score(view_name=view_name,
+                                             choose=choose
+                                             )
+        if score_obj is None:
+            self.logger.info(f"This method updates TSV files based on a score but the current view includes none.")
+            return []
+        for facet, file_df_tuples in parsed_tsvs.items():
+            if len(file_df_tuples) > 1:
+                self.logger.warning(f"There are more than one TSV files containing {facet} and they will be compared with "
+                                    f"the same score.")
+            score_file, new_df = self.extract_facet(facet,
+                                                    view_name=view_name,
+                                                    choose=choose)
+            for tsv_file, old_df in file_df_tuples:
+                try:
+                    assert_dfs_equal(old_df, new_df)
+                except AssertionError as e:
+                    if facet == 'expanded':
+                        facet += ' labels'
+                    self.logger.warning(f"The {facet} extracted from {score_file.rel_path} is not identical with the "
+                                        f"ones in {tsv_file.rel_path}:\n{e}")
+                    continue
+                write_tsv(new_df, tsv_file.full_path, logger=self.logger)
+                written_paths.append([tsv_file.full_path])
+        return written_paths
 
 

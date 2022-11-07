@@ -499,10 +499,11 @@ class Corpus(LoggedClass):
                       f"{piece_group.to_string()}\n")
                 if ask_for_input:
                     choices = dict(enumerate(piece_group.columns, 1))
-                    print(f"Choose one of the columns:\n{pretty_dict(choices)}")
+                    print(f"Choose one of the columns (or 0 for none):\n{pretty_dict(choices)}")
                     query = f"Selection [{range_str}]: "
                     column = ask_user_to_choose(query, list(choices.values()))
-                    selected_ixs.extend(piece_group[column].values)
+                    if column is not None:
+                        selected_ixs.extend(piece_group[column].values)
                 N_remaining -= N_current
         if ask_for_input:
             excluded_file_paths = [file.full_path for file in all_available_files if file.ix not in selected_ixs]
@@ -1330,6 +1331,37 @@ class Corpus(LoggedClass):
                     updated_file = file
                     logger.debug(f"{file.rel_path} has version {LATEST_MUSESCORE_VERSION} already.")
         return up2date_paths
+
+    def update_tsvs_on_disk(self,
+                       facets: ScoreFacets = 'tsv',
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       ) -> List[str]:
+        """
+        Update existing TSV files corresponding to one or several facets with information freshly extracted from a parsed
+        score, but only if the contents are identical. Otherwise, the existing TSV file is not overwritten and the
+        differences are displayed in a log warning. The purpose is to safely update the format of existing TSV files,
+        (for instance with respect to column order) making sure that the content doesn't change.
+
+        Args:
+            facets:
+            view_name:
+            force:
+                By default, only TSV files that have already been parsed are updated. Set to True in order to
+                force-parse for each facet one of the TSV files included in the given view, if necessary.
+            choose:
+
+        Returns:
+            List of paths that have been overwritten.
+        """
+        paths = []
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            paths.extend(piece.update_tsvs_on_disk(facets=facets,
+                                                   view_name=view_name,
+                                                   force=force,
+                                                   choose=choose))
+        return paths
 
     #####################
     # OLD, needs adapting

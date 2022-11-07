@@ -572,7 +572,7 @@ class Parse(LoggedClass):
                        unfold: bool = False,
                        interval_index: bool = False,
                        flat=False,
-                       concatenate=True) -> Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]:
+                       concatenate=True) -> Union[pd.DataFrame, Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]]:
         return self._aggregate_corpus_data('extract_facets',
                                            facets=facets,
                                            view_name=view_name,
@@ -591,7 +591,7 @@ class Parse(LoggedClass):
                        flat: bool = False,
                        include_empty=False,
                        concatenate: bool = True,
-                       ) -> Dict[CorpusFnameTuple, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]:
+                       ) -> Union[pd.DataFrame, Dict[CorpusFnameTuple, Union[Dict[str, FileParsedTuple], List[FileParsedTuple]]]]:
         return self._aggregate_corpus_data('get_all_parsed',
                                            facets=facets,
                                            view_name=view_name,
@@ -615,7 +615,7 @@ class Parse(LoggedClass):
                    flat=False,
                    include_empty=False,
                    concatenate=True,
-                   ) -> Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]:
+                   ) -> Union[pd.DataFrame, Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]]:
         return self._aggregate_corpus_data('get_facets',
                                            facets=facets,
                                            view_name=view_name,

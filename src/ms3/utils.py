@@ -3896,7 +3896,7 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
                         f"after reducing the choices to the {shortest_length_selector.sum()} with the shortest disambiguation strings.")
     return automatically_choose_from_disambiguated_files(only_shortest_disamb_str, fname, file_type)
 
-def ask_user_to_choose(query: str, choices: Collection[Any]) -> Any:
+def ask_user_to_choose(query: str, choices: Collection[Any]) -> Optional[Any]:
     """Ask user to input an integer and return the nth choice selected by the user."""
     n_choices = len(choices)
     range_str = f"1-{n_choices}"
@@ -3907,13 +3907,17 @@ def ask_user_to_choose(query: str, choices: Collection[Any]) -> Any:
         except Exception:
             print(f"Value '{s}' could not be converted to an integer.")
             continue
-        if not (0 < int_i <= n_choices):
+        if not (0 <= int_i <= n_choices):
             print(f"Value '{s}' is not within {range_str}.")
             continue
+        if int_i == 0:
+            return None
         return choices[int_i - 1]
 
 
-def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File], fname: str, file_type: str = ''):
+def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
+                                                fname: str,
+                                                file_type: str = '') -> Optional[File]:
     sorted_keys = sorted(disambiguated_choices.keys(), key=lambda s: (len(s), s))
     disambiguated_choices = {k: disambiguated_choices[k] for k in sorted_keys}
     file_list = list(disambiguated_choices.values())
@@ -3925,12 +3929,12 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
     range_str = f"0-{len(disambiguated_choices) - 1}"
     query = f"Selection [{range_str}]: "
     print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
-    print(f"Please select one of the files by passing an integer between {range_str}:")
+    print(f"Please select one of the files by passing an integer between {range_str} (or 0 for none):")
     return ask_user_to_choose(query, file_list)
 
 
 @function_logger
-def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
+def disambiguate_files(files: Collection[File], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
     """Receives a collection of :obj:`File` with the aim to pick one of them.
     First, a dictionary is created where the keys are disambiguation strings based on the files' paths and
     suffixes.
@@ -3958,9 +3962,11 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
     return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
 
 @function_logger
-def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> File:
+def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
     files = [tup[0] for tup in tuples_with_file_as_first_element]
     selected = disambiguate_files(files, fname=fname, file_type=file_type, choose=choose, logger=logger)
+    if selected is None:
+        return
     for tup in tuples_with_file_as_first_element:
         if tup[0] == selected:
             return tup
