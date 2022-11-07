@@ -860,8 +860,7 @@ class Piece(LoggedClass):
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_files) == 0 and not include_empty:
                 continue
-            if facet in view.selected_facets:
-                yield facet, filtered_files
+            yield facet, filtered_files
 
 
     def iter_facet2parsed(self, view_name: Optional[str] = None, include_empty: bool = False) -> Iterator[Dict[str, FileList]]:
@@ -875,8 +874,7 @@ class Piece(LoggedClass):
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_ixs) == 0 and not include_empty:
                 continue
-            if facet in view.selected_facets:
-                yield facet, {ix: ix2parsed[ix] for ix in filtered_ixs}
+            yield facet, {ix: ix2parsed[ix] for ix in filtered_ixs}
 
 
     def iter_files(self,

@@ -1,9 +1,9 @@
 import os
 import random
 import re
-from collections import defaultdict
+from collections import defaultdict, Counter
 from copy import deepcopy
-from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple
+from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple, Set
 
 import numpy as np
 import numpy.typing as npt
@@ -52,14 +52,17 @@ class View(LoggedClass):
         # the two main dicts
         self.including: dict = {c: [] for c in self.categories}
         self.excluding: dict = {c: [] for c in self.categories}
-        self.excluded_file_paths = []
+        self.excluded_file_paths: List[str] = []
         self.selected_facets = self.available_facets
         self._last_filtering_counts: Dict[str, npt.NDArray[int, int, int]] = defaultdict(empty_counts)
         """For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].
         Keys are f"filtered_{category}" for :meth:`filter_by_token` and 'files' or 'parsed' for :meth:`filtered_file_list`.
         To inspect, you can use the method :meth:`filtering_report`
         """
-        self._discarded_items: Dict[str, List[str]] = defaultdict(list)
+        self._discarded_items: Dict[str, Set[str]] = defaultdict(set)
+        self._discarded_file_criteria: dict[Literal['subdir', 'file', 'suffix'], Counter] = defaultdict(Counter)
+        """{criterion -> {excluded_name -> n_excluded}} dict for keeping track of which file was discarded based on which criterion.
+        """
         # booleans
         self.fnames_in_metadata: bool = True
         self.fnames_not_in_metadata: bool = not only_metadata_fnames
@@ -184,35 +187,46 @@ class View(LoggedClass):
         return any(re.search(rgx, token) is not None for rgx in self.including[category])
 
 
-    def check_file(self, file: File) -> bool:
-        """Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix."""
+    def check_file(self, file: File) -> Tuple[bool, str]:
+        """ Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.
+
+        Args:
+            file:
+
+        Returns:
+            False if file is to be discarded from this view.
+            The criterion based on which the file is being excluded.
+        """
         if file.full_path in self.excluded_file_paths:
-            return False
-        category2file_component = dict(zip(('folders', 'files', 'suffixes'),
+            return False, 'file'
+        category2file_component = dict(zip((('folders', 'subdir'), ('files', 'file'), ('suffixes', 'suffix')),
                                            (file.subdir, file.file, file.suffix)
                                            ))
-        for category, component in category2file_component.items():
+        for (category, criterion), component in category2file_component.items():
             if any(re.search(rgx, component) is not None for rgx in self.excluding[category]):
-                return False
-        for category, component in category2file_component.items():
-            if len(self.including[category]) == 0 or any(re.search(rgx, component) is not None for rgx in self.including[category]):
+                return False, criterion
+        for (category, criterion), component in category2file_component.items():
+            if len(self.including[category]) == 0:
                 continue
-            else:
-                return False
-        return True
+            if not any(re.search(rgx, component) is not None for rgx in self.including[category]):
+                return False, criterion
+        return True, 'files'
 
     def reset_filtering_data(self, categories: Categories = None):
         if categories is None:
             # reset everything
             self._last_filtering_counts = defaultdict(empty_counts)
-            self._discarded_items = defaultdict(list)
+            self._discarded_items = defaultdict(set)
+            self._discarded_file_criteria = defaultdict(Counter)
         else:
             categories = self.resolve_categories(categories)
             for ctgr in categories:
                 if ctgr in self._last_filtering_counts:
-                    self._last_filtering_counts[ctgr] = empty_counts()
+                    del(self._last_filtering_counts[ctgr])
                 if ctgr in self._discarded_items:
-                    self._discarded_items[ctgr] = []
+                    del(self._discarded_items[ctgr])
+            if 'files' in categories:
+                self._discarded_file_criteria = defaultdict(Counter)
         self.update_facet_selection()
 
     def reset_view(self):
@@ -235,7 +249,7 @@ class View(LoggedClass):
                 discarded_items.append(token)
         key = category
         self._last_filtering_counts[key] += np.array([n_kept, n_discarded, N], dtype='int')
-        self._discarded_items[key].extend(discarded_items)
+        self._discarded_items[key].update(discarded_items)
 
 
     def filtered_file_list(self, files: Collection[File], key: str = None) -> FileList:
@@ -252,16 +266,19 @@ class View(LoggedClass):
             return []
         result, discarded_items = [], []
         for file in files:
-            if self.check_file(file):
+            accept, criterion = self.check_file(file)
+            if accept:
                 result.append(file)
             else:
                 discarded_items.append(file.rel_path)
-        N, n_kept = len(files), len(result)
-        n_discarded = N - n_kept
+                if key is None:
+                    # do not track discarding criteria for special keys such as 'parsed', used by View.iter_facet2parsed
+                    self._discarded_file_criteria[criterion][getattr(file, criterion)] += 1
+        n_kept, n_discarded, N = len(result), len(discarded_items), len(files)
         if key is None:
             key = 'files'
         self._last_filtering_counts[key] += np.array([n_kept, n_discarded, N], dtype='int')
-        self._discarded_items[key].extend(discarded_items)
+        self._discarded_items[key].update(discarded_items)
         return result
 
     def filtering_report(self, drop_zero=True, show_discarded=True, return_str=False) -> Optional[str]:
@@ -281,6 +298,17 @@ class View(LoggedClass):
                         msg += f":\n{sorted(discarded[key])}\n\n"
                     else:
                         msg += ", but unfortunately I don't know which ones.\n"
+                else:
+                    msg += '.\n'
+        if len(self._discarded_file_criteria) > 0:
+            msg += '\n'
+            for criterion, cntr in self._discarded_file_criteria.items():
+                crit = 'file name' if criterion == 'file' else criterion
+                msg += f"{sum(cntr.values())} files have been excluded based on their {crit}"
+                if show_discarded:
+                    msg += ':\n'
+                    for excluded_name, n in cntr.items():
+                        msg += f"\t- '{excluded_name}': {n}\n"
                 else:
                     msg += '.\n'
         if return_str:
@@ -336,6 +364,8 @@ class View(LoggedClass):
                 excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
                 excluded += f" ({n_excluded - 10} more, see filtering report))"
             msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
+        if len(self.excluded_file_paths) > 0:
+            msg_components.append(f"excludes {len(self.excluded_file_paths)} files based on user input")
         msg = f"This view is called '{self.name}'. It "
         n_components = len(msg_components)
         if n_components == 0:
@@ -374,7 +404,7 @@ class View(LoggedClass):
             else:
                 discarded.append(facet)
         self.selected_facets = selected
-        key = 'filtered_facets'
+        key = 'facets'
         if len(discarded) == 0:
             if key in self._last_filtering_counts:
                 del(self._last_filtering_counts[key])
@@ -384,7 +414,7 @@ class View(LoggedClass):
         n_kept, n_discarded = len(selected), len(discarded)
         counts = np.array([n_kept, n_discarded, n_kept+n_discarded])
         self._last_filtering_counts[key] = counts
-        self._discarded_items[key] = discarded
+        self._discarded_items[key] = set(discarded)
 
     def include(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)

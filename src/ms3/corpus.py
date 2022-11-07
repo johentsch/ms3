@@ -808,6 +808,9 @@ class Corpus(LoggedClass):
         header += "\n" + "-" * len(header) + "\n"
         header += f"Location: {self.corpus_path}\n"
 
+        # count changed scores before resetting the view's filtering counts to prevent counting twice
+        n_changed_scores = self.count_changed_scores(view_name)
+
         # start info message with the names of the available views, the header, and info on the active view.
         view = self.get_view(view_name)
         view.reset_filtering_data()
@@ -838,13 +841,12 @@ class Corpus(LoggedClass):
                 msg = f"None of the {n_pieces} pieces is actually listed in 'metadata.tsv'.\n\n"
                 msg += counts_df.to_string()
             else:
-                msg = f"Only the following {included_selector.sum()} pieces are listed in 'metadata.tsv':\n\n"
+                msg += f"Only the following {included_selector.sum()} pieces are listed in 'metadata.tsv':\n\n"
                 msg += counts_df[included_selector].to_string()
                 not_included = ~included_selector
                 plural = f"These {not_included.sum()} here are" if not_included.sum() > 1 else "This one is"
                 msg += f"\n\n{plural} missing from 'metadata.tsv':\n\n"
                 msg += counts_df[not_included].to_string()
-        n_changed_scores = self.count_changed_scores(view_name)
         if n_changed_scores > 0:
             msg += f"\n\n{n_changed_scores} scores have changed since parsing."
         msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
@@ -909,7 +911,7 @@ class Corpus(LoggedClass):
             # all excluded, need to update filter counts accordingly
             key = 'fnames'
             discarded_items, *_ = list(zip(*view.filter_by_token('fnames', self)))
-            view._discarded_items[key].extend(discarded_items)
+            view._discarded_items[key].update(discarded_items)
             filtering_counts = view._last_filtering_counts[key]
             filtering_counts[[0,1]] = filtering_counts[[1, 0]]
             yield from []
@@ -941,7 +943,7 @@ class Corpus(LoggedClass):
                     n_discarded += 1
             key = 'fnames'
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
-            view._discarded_items[key].extend(discarded_items)
+            view._discarded_items[key].update(discarded_items)
 
     def _parse_file_at_index(self, ix: int):
         fname = self.ix2fname[ix]
