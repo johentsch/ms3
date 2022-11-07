@@ -201,9 +201,18 @@ class View(LoggedClass):
                 return False
         return True
 
-    def reset_filtering_data(self):
-        self._last_filtering_counts = defaultdict(empty_counts)
-        self._discarded_items = defaultdict(list)
+    def reset_filtering_data(self, categories: Categories = None):
+        if categories is None:
+            # reset everything
+            self._last_filtering_counts = defaultdict(empty_counts)
+            self._discarded_items = defaultdict(list)
+        else:
+            categories = self.resolve_categories(categories)
+            for ctgr in categories:
+                if ctgr in self._last_filtering_counts:
+                    self._last_filtering_counts[ctgr] = empty_counts()
+                if ctgr in self._discarded_items:
+                    self._discarded_items[ctgr] = []
         self.update_facet_selection()
 
     def reset_view(self):
@@ -224,7 +233,7 @@ class View(LoggedClass):
             else:
                 n_discarded += 1
                 discarded_items.append(token)
-        key = f"filtered_{category}"
+        key = category
         self._last_filtering_counts[key] += np.array([n_kept, n_discarded, N], dtype='int')
         self._discarded_items[key].extend(discarded_items)
 
@@ -250,7 +259,7 @@ class View(LoggedClass):
         N, n_kept = len(files), len(result)
         n_discarded = N - n_kept
         if key is None:
-            key = 'filtered_file_list'
+            key = 'files'
         self._last_filtering_counts[key] += np.array([n_kept, n_discarded, N], dtype='int')
         self._discarded_items[key].extend(discarded_items)
         return result
@@ -258,12 +267,10 @@ class View(LoggedClass):
     def filtering_report(self, drop_zero=True, show_discarded=True, return_str=False) -> Optional[str]:
         aggregated_counts = defaultdict(empty_counts)
         for key, counts in self._last_filtering_counts.items():
-            key = key.replace('filtered_', '')
             aggregated_counts[key] += counts
         if show_discarded:
             discarded = defaultdict(list)
             for key, items in self._discarded_items.items():
-                key = key.replace('filtered_', '')
                 discarded[key].extend(items)
         msg = ''
         for key, (_, n_discarded, N) in aggregated_counts.items():

@@ -903,11 +903,11 @@ class Corpus(LoggedClass):
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
         """Iterate through corpora under the current or specified view."""
         view = self.get_view(view_name)
-        view.reset_filtering_data()
+        view.reset_filtering_data(categories='fnames')
         param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
         if param_sum == 0:
             # all excluded, need to update filter counts accordingly
-            key = 'filtered_fnames'
+            key = 'fnames'
             discarded_items, *_ = list(zip(*view.filter_by_token('fnames', self)))
             view._discarded_items[key].extend(discarded_items)
             filtering_counts = view._last_filtering_counts[key]
@@ -939,7 +939,7 @@ class Corpus(LoggedClass):
                     discarded_items.append(fname)
                     n_kept -= 1
                     n_discarded += 1
-            key = 'filtered_fnames'
+            key = 'fnames'
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
             view._discarded_items[key].extend(discarded_items)
 

@@ -595,7 +595,7 @@ class Piece(LoggedClass):
         if not parsed:
             # i.e., unparsed must be True
             facet2files = {typ: [f for f in files if f.ix not in self.ix2parsed] for typ, files in facet2files.items()}
-        facet2files = {typ: view.filtered_file_list(files, 'files') for typ, files in facet2files.items()}
+        facet2files = {typ: view.filtered_file_list(files) for typ, files in facet2files.items()}
         result = {}
         needs_choice = []
         for facet, files in facet2files.items():
@@ -856,7 +856,7 @@ class Piece(LoggedClass):
         for facet, files in self.facet2files.items():
             if facet not in view.selected_facets:
                 continue
-            filtered_files = view.filtered_file_list(files, 'files')
+            filtered_files = view.filtered_file_list(files)
             # the files need to be filtered even if the facet is excluded, for counting excluded files
             if len(filtered_files) == 0 and not include_empty:
                 continue
