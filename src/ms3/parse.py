@@ -855,7 +855,7 @@ class Parse(LoggedClass):
                       folder: str = '.',
                       suffix: str = '',
                       overwrite: bool = False):
-        for corpus_name, corpus in self.iter_corpora():
+        for _, corpus in self.iter_corpora():
             corpus.update_scores(root_dir=root_dir,
                                  folder=folder,
                                  suffix=suffix,
@@ -907,6 +907,10 @@ class Parse(LoggedClass):
         if concatenate:
             keys, dataframes = [], []
             flat = kwargs['flat']
+            if flat:
+                add_index_level = any(len(piece_result) > 1 for piece_result in result.values())
+            else:
+                add_index_level = any(len(file_dataframe_tuples) > 1 for piece_result in result.values() for file_dataframe_tuples in piece_result.values())
             for corpus_fname, piece_result in result.items():
                 if flat:
                     n_tuples = len(piece_result)
@@ -914,7 +918,12 @@ class Parse(LoggedClass):
                         continue
                     keys.append(corpus_fname)
                     if n_tuples == 1:
-                        dataframes.append(piece_result[0][1])
+                        if add_index_level:
+                            file, df = piece_result[0]
+                            df = pd.concat([df], keys=[file.rel_path])
+                            dataframes.append(df)
+                        else:
+                            dataframes.append(piece_result[0][1])
                     else:
                         files, dfs = list(zip(*piece_result))
                         ix_level = [file.rel_path for file in files]
@@ -927,7 +936,12 @@ class Parse(LoggedClass):
                             continue
                         keys.append(corpus_fname + (facet,))
                         if n_tuples == 1:
-                            dataframes.append(file_dataframe_tuples[0][1])
+                            if add_index_level:
+                                file, df = file_dataframe_tuples[0]
+                                df = pd.concat([df], keys=[file.rel_path])
+                                dataframes.append(df)
+                            else:
+                                dataframes.append(file_dataframe_tuples[0][1])
                         else:
                             files, dfs = list(zip(*file_dataframe_tuples))
                             ix_level = [file.rel_path for file in files]
