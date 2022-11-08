@@ -75,6 +75,7 @@ import re, sys
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from typing import Literal
+from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
@@ -466,10 +467,19 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 return
             events_with_form = pd.concat([self._events, form_label_column], axis=1)
             form_labels = events_with_form[detected_form_labels]
-            cols = ['mc', 'mc_onset', 'mn', 'mn_onset', 'staff', 'voice', 'timesig', 'volta', 'form_label']
+            cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'staff', 'voice', 'timesig', 'form_label']
+            if self.has_voltas:
+                cols.insert(2, 'volta')
             self._fl = self.add_standard_cols(form_labels)[cols].sort_values(['mc', 'mc_onset'])
             return self._fl
         return
+
+    @property
+    @lru_cache
+    def has_voltas(self) -> bool:
+        """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
+        measures = self.ml()
+        return measures.volta.notna().any()
 
     def measures(self, interval_index: bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
@@ -487,11 +497,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         measures.insert(2, "duration_qb", duration_qb)
         # add quarterbeats column
         # functionality adapted from utils.make_continuous_offset()
-        filter_voltas = measures.volta.notna().any()
-        qb_column_name = "quarterbeats_all_endings" if filter_voltas else "quarterbeats"
+        qb_column_name = "quarterbeats_all_endings" if self.has_voltas else "quarterbeats"
         quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
         measures.insert(2, qb_column_name, quarterbeats_col)
-        if filter_voltas:
+        if self.has_voltas:
             self.logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
                          f"compute quarterbeats for a full playthrough.")
             if 3 in measures.volta.values:
@@ -648,7 +657,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
              return
         self._rl = self._rl.rename(columns={'Rest/durationType': 'nominal_duration'})
         self._rl.loc[:, 'nominal_duration'] = self._rl.nominal_duration.map(self.durations)  # replace string values by fractions
-        cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar', 'volta']
+        cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar']
+        if self.has_voltas:
+            cols.insert(2, 'volta')
         self._rl = self._rl[cols].reset_index(drop=True)
 
 
@@ -657,7 +668,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'tpc': 'Note/tpc',
                 }
         nl_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
-                   'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id']
+                   'scalar', 'tied', 'tpc', 'midi', 'chord_id']
+        if self.has_voltas:
+            nl_cols.insert(2, 'volta')
         if len(self._notes.index) == 0:
             self._nl = pd.DataFrame(columns=nl_cols)
             return
@@ -725,7 +738,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'system_text': 'SystemText/text',
                 'tremolo': 'Chord/Tremolo/subtype'}
         main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
-                     'tremolo', 'nominal_duration', 'scalar', 'volta', 'chord_id']
+                     'tremolo', 'nominal_duration', 'scalar', 'chord_id']
+        if self.has_voltas:
+            main_cols.insert(2, 'volta')
         sel = self._events.event == 'Chord'
         aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners']
         if mode == 'all':
@@ -1034,8 +1049,11 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return str(self.soup.find('programVersion').string)
 
     def add_standard_cols(self, df):
-        """Ensures that the DataFrame's first columns are ['mc', 'mn', 'timesig', 'mc_offset', 'volta']"""
-        add_cols = ['mc'] + [c for c in ['mn', 'timesig', 'mc_offset', 'volta'] if c not in df.columns]
+        """Ensures that the DataFrame's first columns are ['mc', 'mn', ('volta'), 'timesig', 'mc_offset']"""
+        ml_columns = ['mn', 'timesig', 'mc_offset']
+        if self.has_voltas:
+            ml_columns.insert(1, 'volta')
+        add_cols = ['mc'] + [c for c in ml_columns if c not in df.columns]
         df =  df.merge(self.ml()[add_cols], on='mc', how='left')
         df['mn_onset'] =  df.mc_onset + df.mc_offset
         return df[[col for col in df.columns if not col == 'mc_offset']]
