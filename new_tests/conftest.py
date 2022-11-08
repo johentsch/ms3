@@ -26,6 +26,7 @@ def directory():
     commit = repo.commit('HEAD')
     sha = commit.hexsha[:len(TEST_COMMIT)]
     assert sha == TEST_COMMIT
+    assert repo.git.diff() == ''
     return path
 
 @pytest.fixture(
