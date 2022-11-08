@@ -1,11 +1,9 @@
-import os
 from git import Repo
 from ms3.cli import get_arg_parser, review_cmd, extract_cmd
 
 def test_review_cmd(directory):
     parser = get_arg_parser()
-    sweelinck = os.path.join(directory, "sweelinck_keyboard")
-    args = parser.parse_args(["review", "-d", sweelinck])
+    args = parser.parse_args(["review", "-d", directory])
     review_cmd(args)
 
 # def test_review_cmd_with_git():
@@ -16,10 +14,9 @@ def test_review_cmd(directory):
 
 def test_extract_cmd(directory):
     parser = get_arg_parser()
-    sweelinck = os.path.join(directory, "sweelinck_keyboard")
-    args = parser.parse_args(["extract", "-d", sweelinck, "-M", "-N", "-X", "-R"])
+    args = parser.parse_args(["extract", "-d", directory, "-M", "-N", "-X"])
     extract_cmd(args)
-    repo = Repo(sweelinck)
+    repo = Repo(directory)
     new_files = repo.untracked_files
     if len(new_files) > 0:
         repo.git.clean('-fdx')

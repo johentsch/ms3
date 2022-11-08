@@ -220,8 +220,9 @@ class TestParsedParse():
                 if col not in df:
                     print(f"{typ} is missing {col}".upper(), df)
                     raise False
-            if 'volta' in df.columns and df.volta.notna().any():
+            if 'volta' in df.columns:
                 if not df.quarterbeats.isna().any():
+                    print(typ)
                     print(df.loc[df.volta.notna(), ['quarterbeats', 'volta']])
                     assert False
             print(df.columns.to_list())
