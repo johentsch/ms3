@@ -212,6 +212,10 @@ class Corpus(LoggedClass):
         return len(self.files)
 
     @property
+    def n_orphans(self):
+        return len(self.ix2orphan_file)
+
+    @property
     def n_parsed(self):
         return len(self.ix2parsed)
 
@@ -226,11 +230,11 @@ class Corpus(LoggedClass):
 
     @property
     def n_parsed_tsvs(self):
-        return len(self.ix2parsed_tsv)# + len(self.ix2metadata_file)
+        return len(self.ix2parsed_tsv)
 
     @property
     def n_unparsed_tsvs(self):
-        return sum(file.ix not in self.ix2parsed_tsv and file.ix not in self.ix2metadata_file for file in self.files if file.type != 'scores')
+        return sum(file.type != 'scores' and file.ix not in self.ix2parsed_tsv and file.ix not in self.ix2orphan_file and file.ix not in self.ix2metadata_file for file in self.files)
 
     @property
     def n_annotations(self):
@@ -560,7 +564,7 @@ class Corpus(LoggedClass):
             file = self.add_file_paths([metadata_path])[0]
         self.metadata_ix = file.ix
         self.metadata_tsv = load_tsv(metadata_path)
-        self.ix2parsed[self.metadata_ix] = self.metadata_tsv
+        self.ix2metadata_file[self.metadata_ix] = self.metadata_tsv
 
     @lru_cache()
     def fnames_in_metadata(self, metadata_ix) -> List[str]:
@@ -850,7 +854,15 @@ class Corpus(LoggedClass):
                 msg += counts_df[not_included].to_string()
         if n_changed_scores > 0:
             msg += f"\n\n{n_changed_scores} scores have changed since parsing."
-        msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
+        filtering_report = view.filtering_report(show_discarded=show_discarded, return_str=True)
+        if filtering_report != '':
+            msg += '\n\n' + filtering_report
+        if self.n_orphans > 0:
+            msg += f"\n\nThe corpus contains {self.n_orphans} orphans that could not be attributed to any of the fnames"
+            if show_discarded:
+                msg += f":\n{list(self.ix2orphan_file.values())}"
+            else:
+                msg += "."
         if return_str:
             return msg
         print(msg)
@@ -1171,7 +1183,7 @@ class Corpus(LoggedClass):
                         file.suffix = file.fname[match.end():]
                     self.ix2metadata_file[file.ix] = file
                 else:
-                    self.logger.warning(f"Could not associate {file.file} with any of the pieces. Stored as orphan.")
+                    self.logger.debug(f"Could not associate {file.file} with any of the pieces. Stored as orphan.")
                     self.ix2orphan_file[file.ix] = file
                 self.ix2fname[file.ix] = None
             else:

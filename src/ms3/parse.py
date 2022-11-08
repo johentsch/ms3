@@ -151,6 +151,11 @@ class Parse(LoggedClass):
         return sum(corpus.n_detected for _, corpus in self)
 
     @property
+    def n_orphans(self) -> int:
+        """Number of files that are always disregarded because they could not be attributed to any of the fnames."""
+        return sum(len(corpus.ix2orphan_file) for _, corpus in self)
+
+    @property
     def n_parsed(self) -> int:
         """Number of parsed files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files."""
         return sum(corpus.n_parsed for _, corpus in self)
@@ -712,7 +717,17 @@ class Parse(LoggedClass):
             n_changed_scores = self.count_changed_scores(view_name)
             if n_changed_scores > 0:
                 msg += f"\n\n{n_changed_scores} scores have changed since parsing."
-            msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
+            filtering_report = view.filtering_report(show_discarded=show_discarded, return_str=True)
+            if filtering_report != '':
+                msg += '\n\n' + filtering_report
+        if self.n_orphans > 0:
+            msg += f"\n\nThere are {self.n_orphans} orphans that could not be attributed to any of the respective corpus's fnames"
+            if show_discarded:
+                msg += ':'
+                for name, corpus in self:
+                    print(f"\n\t{name}: {list(corpus.ix2orphan_file.values())}")
+            else:
+                msg += "."
         if return_str:
             return msg
         print(msg)
