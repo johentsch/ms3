@@ -3,7 +3,6 @@ from collections import defaultdict, Counter
 from typing import Dict, Literal, Union, Iterator, Optional, overload, List, Tuple
 
 import pandas as pd
-from pandas.testing import assert_frame_equal
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
@@ -325,7 +324,7 @@ class Piece(LoggedClass):
                       choose: Literal['auto', 'ask'] = 'auto',
                       unfold: bool = False,
                       interval_index: bool = False,
-                 ) -> Optional[FileDataframeTupleMaybe]:
+                 ) -> FileDataframeTupleMaybe:
         facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
@@ -338,7 +337,7 @@ class Piece(LoggedClass):
                                       flat=True
                                       )
         if len(df_list) == 0:
-            return None
+            return None, None
         if len(df_list) == 1:
             return df_list[0]
 
@@ -1178,7 +1177,14 @@ class Piece(LoggedClass):
                                                     choose=choose)
             for tsv_file, old_df in file_df_tuples:
                 try:
-                    assert_frame_equal(old_df, new_df, check_dtype=False)
+                    # missing_columns = [c for c in old_df.columns if c not in new_df.columns]
+                    # if len(missing_columns) > 0:
+                    #     plural = 'These columns are' if len(missing_columns) > 1 else 'This column is'
+                    #     self.logger.warning(f"{plural} missing in the updated {facet}:\n{old_df[missing_columns]}")
+                    # tmp_new = new_df[[c for c in old_df.columns if c in new_df.columns]]
+                    # assert_frame_equal(old_df, tmp_new, check_dtype=False, obj=facet) # from pandas.testing import assert_frame_equal
+                    assert_dfs_equal(old_df, new_df)
+                    # TODO: make utils.assert_dfs_equal() use math.isclose() for comparing floats
                 except AssertionError as e:
                     if facet == 'expanded':
                         facet += ' labels'
