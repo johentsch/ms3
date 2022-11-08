@@ -514,6 +514,39 @@ class Corpus(LoggedClass):
             self.view.excluded_file_paths.extend(excluded_file_paths)
         return
 
+    def extract_facet(self,
+                      facet: ScoreFacet,
+                      view_name: Optional[str] = None,
+                      force: bool = False,
+                      choose: Literal['auto', 'ask'] = 'auto',
+                      unfold: bool = False,
+                      interval_index: bool = False,
+                      concatenate: bool = True,
+                      ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        view_name_display = self.view_name if view_name is None else view_name
+        result = {}
+        for fname, piece in self.iter_pieces(view_name):
+            file, df = piece.extract_facet(facet=facet,
+                                           view_name=view_name,
+                                           force=force,
+                                           choose=choose,
+                                           unfold=unfold,
+                                           interval_index=interval_index)
+            if df is None:
+                self.logger.info(f"The view '{view_name_display}' does not comprise a score for '{fname}' from which to "
+                                 f"extract {facet}.")
+            else:
+                result[fname] = df if concatenate else (file, df)
+        if concatenate:
+            if len(result) > 0:
+                df = pd.concat(result.values(), keys=result.keys())
+                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+                return df
+            else:
+                return pd.DataFrame()
+        return result
+
+
     def extract_facets(self,
                        facets: ScoreFacets = None,
                        view_name: Optional[str] = None,
