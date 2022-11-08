@@ -1258,9 +1258,12 @@ class Corpus(LoggedClass):
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
         if active is not None:
-            active_name = active.name
-            if active_name in self._views:
-                self.switch_view(active_name, show_info=False, propagate=False)
+            new_name = active.name
+            if new_name in self._views and active != self._views[new_name]:
+                self.logger.info(f"The existing view called '{new_name}' has been overwritten")
+                del (self._views[new_name])
+            old_view = self._views[None]
+            self._views[old_view.name] = old_view
             self._views[None] = active
         for view_name, view in views.items():
             if view.name != view_name:
