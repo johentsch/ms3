@@ -76,7 +76,7 @@ class TestEmptyParse():
                    'sweelinck_keyboard': {},
                    'wagner_overtures': {'.mscx': 2}},
             everything={'mixed_files': {'.mscx': 11, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
-                        'outputs': {'.mscx': 1, '.tsv': 3},
+                        'outputs': {'.mscx': 1},
                         'ravel_piano': {'.mscx': 5, '.tsv': 13},
                         'sweelinck_keyboard': {'.mscx': 1, '.tsv': 3},
                         'wagner_overtures': {'.mscx': 2, '.tsv': 6}},
@@ -108,8 +108,8 @@ class TestEmptyParse():
     def expected_tsv_lines(self, request):
         name2expected = defaultdict(lambda: 0)
         name2expected.update(dict(
-            regex=9,
-            everything=9,
+            regex=8,
+            everything=8,
             # chaotic_dirs = 5,
             # file_re = 1,
             # file_re_without_key = 1,
@@ -152,7 +152,7 @@ class TestParsedParse():
     def n_parsed_files(self, request):
         expected = {
             "regex": (2, 0),
-            "everything": (21, 25),
+            "everything": (21, 22),
             "chaotic_dirs": (11, 4),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),

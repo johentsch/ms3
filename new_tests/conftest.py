@@ -179,7 +179,7 @@ def get_all_warnings(directory):
     p = Parse(directory)
     with capture_parse_logs(p.logger) as captured_warnings:
         p.parse()
-        _ = p.get_dataframes(expanded=True)
+        _ = p.extract_facets('expanded')
     return captured_warnings.content_list
 
 
