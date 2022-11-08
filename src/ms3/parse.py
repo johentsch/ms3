@@ -725,7 +725,8 @@ class Parse(LoggedClass):
             if show_discarded:
                 msg += ':'
                 for name, corpus in self:
-                    print(f"\n\t{name}: {list(corpus.ix2orphan_file.values())}")
+                    if corpus.n_orphans > 0:
+                        msg += f"\n\t{name}: {list(corpus.ix2orphan_file.values())}"
             else:
                 msg += "."
         if return_str:
@@ -859,6 +860,37 @@ class Parse(LoggedClass):
                                  folder=folder,
                                  suffix=suffix,
                                  overwrite=overwrite)
+
+    def update_tsvs_on_disk(self,
+                       facets: ScoreFacets = 'tsv',
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       ) -> List[str]:
+        """
+        Update existing TSV files corresponding to one or several facets with information freshly extracted from a parsed
+        score, but only if the contents are identical. Otherwise, the existing TSV file is not overwritten and the
+        differences are displayed in a log warning. The purpose is to safely update the format of existing TSV files,
+        (for instance with respect to column order) making sure that the content doesn't change.
+
+        Args:
+            facets:
+            view_name:
+            force:
+                By default, only TSV files that have already been parsed are updated. Set to True in order to
+                force-parse for each facet one of the TSV files included in the given view, if necessary.
+            choose:
+
+        Returns:
+            List of paths that have been overwritten.
+        """
+        paths = []
+        for _, corpus in self.iter_corpora(view_name=view_name):
+            paths.extend(corpus.update_tsvs_on_disk(facets=facets,
+                                                   view_name=view_name,
+                                                   force=force,
+                                                   choose=choose))
+        return paths
 
     def _aggregate_corpus_data(self,
                                method,
