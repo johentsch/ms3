@@ -620,6 +620,8 @@ class Corpus(LoggedClass):
         those that are not listed in the 'metadata.tsv' file for this corpus.
         """
         metadata_fnames = self.fnames_in_metadata(self.metadata_ix)
+        # view = self.get_view(view_name)
+        # filtered_score_fnames = view.filtered_tokens('fnames', self.score_fnames)
         if len(metadata_fnames) == 0:
             return self.score_fnames
         return [f for f in self.score_fnames
@@ -865,13 +867,14 @@ class Corpus(LoggedClass):
         counts_df = self.count_files(drop_zero=True, view_name=view_name)
         if counts_df.isna().any().any():
             counts_df = counts_df.fillna(0).astype('int')
+        n_pieces = len(counts_df)
         if self.metadata_tsv is None:
-            msg += "No 'metadata.tsv' file is present.\n\n"
+            msg += f"No 'metadata.tsv' file is present. Use _.create_metadata_tsv() to create one for these " \
+                   f"{n_pieces} pieces.\n\n"
             msg += counts_df.to_string()
         else:
             metadata_fnames = set(self.fnames_in_metadata(self.metadata_ix))
             included_selector = counts_df.index.isin(metadata_fnames)
-            n_pieces = len(counts_df)
             if included_selector.all():
                 msg += f"All {n_pieces} pieces are listed in 'metadata.tsv':\n\n"
                 msg += counts_df.to_string()

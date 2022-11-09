@@ -56,7 +56,7 @@ class View(LoggedClass):
         self.selected_facets = self.available_facets
         self._last_filtering_counts: Dict[str, npt.NDArray[int, int, int]] = defaultdict(empty_counts)
         """For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].
-        Keys are f"filtered_{category}" for :meth:`filter_by_token` and 'files' or 'parsed' for :meth:`filtered_file_list`.
+        Keys are "category" for :meth:`filter_by_token` and 'files' or 'parsed' for :meth:`filtered_file_list`.
         To inspect, you can use the method :meth:`filtering_report`
         """
         self._discarded_items: Dict[str, Set[str]] = defaultdict(set)
@@ -168,14 +168,14 @@ class View(LoggedClass):
     @property
     def exclude_review(self):
         return all(self.review_regex in self.excluding[what_to_exclude]
-                   for what_to_exclude in ('suffixes', 'folders'))
+                   for what_to_exclude in ('files', 'fnames', 'folders'))
 
     @exclude_review.setter
     def exclude_review(self, yes: bool):
         if yes:
-            self.exclude(('suffixes', 'folders'), self.review_regex)
+            self.exclude(('files', 'fnames', 'folders'), self.review_regex)
         else:
-            self.unexclude(('suffixes', 'folders'), self.review_regex)
+            self.unexclude(('files', 'fnames', 'folders'), self.review_regex)
 
     def check_token(self, category: Category, token: str) -> bool:
         """Checks if a string pertaining to a certain category should be included in the view or not."""
@@ -250,6 +250,10 @@ class View(LoggedClass):
         key = category
         self._last_filtering_counts[key] += np.array([n_kept, n_discarded, N], dtype='int')
         self._discarded_items[key].update(discarded_items)
+
+    def filtered_tokens(self, category: Category, tokens: Collection[str]) -> List[str]:
+        """Applies :meth:`filter_by_token` to a collection of tokens."""
+        return [token[0] for token in self.filter_by_token(category, ((t,) for t in tokens))]
 
 
     def filtered_file_list(self, files: Collection[File], key: str = None) -> FileList:
