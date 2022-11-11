@@ -1078,41 +1078,6 @@ class Parse(LoggedClass):
 #         return result
 #
 #
-#     def _extract_and_cache_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-#                                       labels=False, chords=False, expanded=False, form_labels=False, cadences=False, only_new=True):
-#         """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
-#
-#         Parameters
-#         ----------
-#         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-#             Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
-#         ids : :obj:`~collections.abc.Collection`
-#             If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
-#         notes, rests, notes_and_rests, measures, events, labels, chords, expanded, cadences : :obj:`bool`, optional
-#         only_new : :obj:`bool`, optional
-#             Pass False to also retrieve lists that had already been retrieved.
-#         """
-#         if len(self._parsed_mscx) == 0:
-#             self.logger.debug("No scores have been parsed so far. Use Parse.parse_scores()")
-#             return
-#         if ids is None:
-#             only_new = False
-#             ids = list(self._iterids(keys, only_parsed_mscx=True))
-#         scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
-#         bool_params = Score.dataframe_types
-#         l = locals()
-#         params = {p: l[p] for p in bool_params}
-#
-#         for i, score in scores.items():
-#             for param, li in self._dataframes.items():
-#                 if params[param] and (i not in li or not only_new):
-#                     if self.simulate:
-#                         df = pd.DataFrame()
-#                     else:
-#                         df = score.mscx.__getattribute__(param)()
-#                     if df is not None:
-#                         li[i] = df
-#
 #
 #     def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
 #                        detached_is_newer=False):
@@ -2172,10 +2137,6 @@ class Parse(LoggedClass):
         -------
 
         """
-        if simulate is None:
-            simulate = self.simulate
-        else:
-            self.simulate = simulate
         for corpus_name, corpus in self:
             corpus.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, notes_suffix=notes_suffix, rests_folder=rests_folder, rests_suffix=rests_suffix,
                                           notes_and_rests_folder=notes_and_rests_folder, notes_and_rests_suffix=notes_and_rests_suffix, measures_folder=measures_folder,

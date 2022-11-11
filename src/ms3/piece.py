@@ -128,20 +128,23 @@ class Piece(LoggedClass):
     @overload
     def score_metadata(self, as_dict: Literal[True]) -> dict:
         ...
-    def score_metadata(self, as_dict: bool = False) -> Union[pd.Series, dict]:
+    def score_metadata(self,
+                       view_name: Optional[str] = None,
+                       choose: Literal['auto', 'ask'] = 'auto',
+                       as_dict: bool = False) -> Union[pd.Series, dict]:
         """
 
         Args:
+            choose:
             force: Make sure you retrieve metadata, even if a score has to be automatically
             selected and parsed for that (default).
 
         Returns:
 
         """
-        parsed_score = self.get_parsed_score()
-        if parsed_score is None:
+        file, score = self.get_parsed_score(view_name=view_name, choose=choose)
+        if score is None:
             return None
-        file, score = parsed_score
         meta_dict = score.mscx.metadata
         meta_dict['subdirectory'] = file.subdir
         meta_dict['fname'] = self.name

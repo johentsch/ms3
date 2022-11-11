@@ -24,7 +24,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert
+    convert, string2identifier
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -162,6 +162,8 @@ class Corpus(LoggedClass):
         self.ix2orphan_file: Dict[int, File] = {}
         """{ix -> File} dict for collecting all metadata files."""
 
+        self._ix2parsed: Dict[int, pd.DataFrame] = {}
+        """{ix -> DataFrame} dictionary for parsed metadata and orphan TSV files. Managed by :attr:`ix2parsed`."""
 
         self.score_fnames: List[str] = []
         """Sorted list of unique file names of all detected scores"""
@@ -181,7 +183,7 @@ class Corpus(LoggedClass):
 
     @property
     def ix2parsed(self) -> Dict[int, ParsedFile]:
-        result = {}
+        result = dict(self._ix2parsed)
         for _, piece in self:
             result.update(piece.ix2parsed)
         return result
@@ -369,14 +371,17 @@ class Corpus(LoggedClass):
             elif not overwrite:
                 self.logger.warning(f"{path} existed already. Consider updating it.")
                 return
-        metadata = self.score_metadata(view_name=view_name, force=force)
+        metadata = self.score_metadata(view_name=view_name, choose=force)
         metadata = prepare_metadata_for_writing(metadata)
         metadata.to_csv(path, sep='\t', index=False)
         if already_there:
             self.logger.info(f"{path} overwritten.")
         else:
             self.logger.info(f"{path} created.")
-        file = self.add_file_paths([path])[0]
+        new_paths = self.add_file_paths([path])
+        if len(new_paths) == 0:
+            return
+        file = new_paths[0]
         metadata_df = load_tsv(path)
         self.ix2parsed[file.ix] = metadata_df
         if suffix == '':
@@ -594,22 +599,39 @@ class Corpus(LoggedClass):
             file = next(file for file in self.files if file.full_path == metadata_path)
         except StopIteration:
             self.logger.warning(f"Metadata file exists but had not been among the detected files: {metadata_path}")
-            file = self.add_file_paths([metadata_path])[0]
-        self.metadata_ix = file.ix
-        self.metadata_tsv = load_tsv(metadata_path)
-        self.ix2metadata_file[self.metadata_ix] = self.metadata_tsv
+            new_paths = self.add_file_paths([metadata_path])
+            if len(new_paths) == 0:
+                self.logger.error(f"Unable to add {metadata_path} to the Corpus object.")
+                return
+            file = new_paths[0]
+        self.load_metadata_file(file)
 
     @lru_cache()
-    def fnames_in_metadata(self, metadata_ix) -> List[str]:
+    def fnames_in_metadata(self, metadata_ix: Optional[int] = None) -> List[str]:
         """fnames (file names without extension and suffix) serve as IDs for pieces. Retrieve
         those that are listed in the 'metadata.tsv' file for this corpus. The argument is simply
         self.metadata_ix and serves caching of the results for multiple metadata.tsv files.
         """
-        if self.metadata_tsv is None:
-            return  []
+        if metadata_ix is None:
+            if self.metadata_ix is None:
+                msg = f"No metadata.tsv file has been detected for this Corpus object."
+                if len(self.ix2metadata_file) > 0:
+                    available = [file for ix, file in self.ix2metadata_file.items() if ix in self.ix2parsed]
+                    if len(available) > 0:
+                        msg += f" However, the following metadata files are available: {available}"
+                self.logger.error(msg)
+                return []
+            metadata_ix = self.metadata_ix
+        if metadata_ix not in self.ix2metadata_file:
+            self.logger.error(f"Index {metadata_ix} does not seem to belong to a metadata file.")
+            return []
+        if metadata_ix not in self.ix2parsed:
+            self.logger.error(f"The metadata file at index {metadata_ix} has no parsed DataFrame.")
+            return []
+        metadata_df = self.ix2parsed[metadata_ix]
         try:
-            fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in self.metadata_tsv.columns)
-            return sorted(str(fname) for fname in self.metadata_tsv[fname_col].unique() if not pd.isnull(fname))
+            fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in metadata_df.columns)
+            return sorted(str(fname) for fname in metadata_df[fname_col].unique() if not pd.isnull(fname))
         except StopIteration:
             file = self.files[metadata_ix]
             self.logger.warning(f"The file {file.rel_path} is missing a column called 'fname' or 'fnames':\n{self.metadata_tsv.columns}")
@@ -994,10 +1016,45 @@ class Corpus(LoggedClass):
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
             view._discarded_items[key].update(discarded_items)
 
+
+    def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
+        if file.ix in self.ix2metadata_file and file.ix in self.ix2parsed:
+            return
+        if not file.fname.startswith('metadata') and not allow_prefixed:
+            self.logger.info(f"The file {file.rel_path} has a prefix and is disregarded as metadata file.")
+            self.ix2metadata_file[file.ix] = file
+            return
+        if not file.fname.endswith('metadata'):
+            match = re.search('metadata', file.fname)
+            suffix = file.fname[match.end():]
+            file.suffix = suffix
+        else:
+            suffix = ''
+        self.ix2metadata_file[file.ix] = file
+        try:
+            metadata_df = load_tsv(file.full_path)
+        except Exception as e:
+            self.logger.warning(f"Parsing {file.rel_path} as metadata failed with the exception '{e}'")
+            return
+        if len(metadata_df) == 0:
+            self.logger.warning(f"Parsed metadata file {file.rel_path} was empty.")
+            return
+        self._ix2parsed[file.ix] = metadata_df
+        if suffix == '':
+            self.metadata_ix = file.ix
+            self.metadata_tsv = metadata_df
+        else:
+            # create views for metadata files with suffix
+            view_name = string2identifier(suffix)
+            fnames = self.fnames_in_metadata(file.ix)
+            fnames = [re.escape(fname) for fname in fnames]
+            new_view = DefaultView(view_name)
+            new_view.include('fnames', *fnames)
+            self.set_view(**{view_name: new_view})
+            self.logger.debug(f"Added view '{view_name}' corresponding to {file.rel_path}.")
+
     def _parse_file_at_index(self, ix: int):
-        fname = self.ix2fname[ix]
-        piece = self.get_piece(fname)
-        piece._parse_file_at_index(ix)
+        self[ix]._parse_file_at_index(ix)
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
         """ Shorthand for executing parse_scores and parse_tsv at a time.
@@ -1214,14 +1271,10 @@ class Corpus(LoggedClass):
                         break
             if piece_name is None:
                 if 'metadata' in file.fname:
-                    if not file.fname.endswith('metadata'):
-                        match = re.search('metadata', file.fname)
-                        file.suffix = file.fname[match.end():]
-                    self.ix2metadata_file[file.ix] = file
+                    self.load_metadata_file(file)
                 else:
                     self.logger.debug(f"Could not associate {file.file} with any of the pieces. Stored as orphan.")
                     self.ix2orphan_file[file.ix] = file
-                self.ix2fname[file.ix] = None
             else:
                 piece = self.get_piece(piece_name)
                 registration_result = piece.register_file(file)
@@ -1233,18 +1286,15 @@ class Corpus(LoggedClass):
                 else:
                     self.logger.warning(f"Stored '{file.rel_path}' as orphan because it could not be registered with Piece('{piece_name}')")
                     self.ix2orphan_file[file.ix] = file
-                    self.ix2fname[file.ix] = None
 
 
-    def score_metadata(self, view_name: Optional[str] = None, force: bool = False):
+    def score_metadata(self,
+                       view_name: Optional[str] = None,
+                       choose: Literal['auto', 'ask'] = 'auto'):
         fnames, rows = [], []
-        if force:
-            iter_pieces = self
-        else:
-            iter_pieces = self.iter_pieces(view_name=view_name)
-        for fname, piece in iter_pieces:
+        for fname, piece in self.iter_pieces(view_name=view_name):
             try:
-                row = piece.score_metadata()
+                row = piece.score_metadata(view_name=view_name, choose=choose)
                 if row is not None:
                     rows.append(row)
                     fnames.append(fname)
@@ -1252,7 +1302,7 @@ class Corpus(LoggedClass):
                 print(fname)
                 print(piece.score_metadata())
                 raise
-        df = pd.DataFrame(rows, index=fnames)
+        df = pd.DataFrame(rows).set_index('fname')
         if len(df) > 0:
             return column_order(df, METADATA_COLUMN_ORDER, sort=False).sort_index()
         return df
@@ -1831,40 +1881,6 @@ Continuing with {annotation_key}.""")
         return result
 
 
-    def _extract_and_cache_dataframes(self, keys=None, ids=None, notes=False, rests=False, notes_and_rests=False, measures=False, events=False,
-                                      labels=False, chords=False, expanded=False, form_labels=False, cadences=False, only_new=True):
-        """ Extracts DataFrames from the parsed scores in ``keys`` and stores them in dictionaries.
-
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
-        ids : :obj:`~collections.abc.Collection`
-            If you pass a collection of IDs, ``keys`` is ignored and ``only_new`` is set to False.
-        notes, rests, notes_and_rests, measures, events, labels, chords, expanded, cadences : :obj:`bool`, optional
-        only_new : :obj:`bool`, optional
-            Set to False to also retrieve lists that had already been retrieved.
-        """
-        if len(self._parsed_mscx) == 0:
-            self.logger.debug("No scores have been parsed so far. Use Corpus.parse_scores()")
-            return
-        if ids is None:
-            only_new = False
-            ids = list(self._iterids(keys, only_parsed_mscx=True))
-        scores = {id: self._parsed_mscx[id] for id in ids if id in self._parsed_mscx}
-        bool_params = Score.dataframe_types
-        l = locals()
-        params = {p: l[p] for p in bool_params}
-
-        for i, score in scores.items():
-            for param, li in self._dataframes.items():
-                if params[param] and (i not in li or not only_new):
-                    if self.simulate:
-                        df = pd.DataFrame()
-                    else:
-                        df = score.mscx.__getattribute__(param)()
-                    if df is not None:
-                        li[i] = df
 
 
     def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
@@ -2159,6 +2175,25 @@ Available keys: {available_keys}""")
             return pd.concat(annotation_tables, keys=idx, names=names)
         return annotation_tables
 
+    def get_parsed_at_index(self, ix: int) -> Optional[ParsedFile]:
+        parsed = self.ix2parsed
+        if ix in parsed:
+            return parsed[ix]
+        if ix in self.ix2fname:
+            piece = self.get_piece(self.ix2fname[ix])
+            try:
+                return piece._get_parsed_at_index(ix)
+            except RuntimeError:
+                return None
+        if ix in self.ix2orphan_file:
+            file = self.ix2orphan_file[ix]
+            try:
+                df = load_tsv(file.full_path)
+            except Exception:
+                df = pd.read_csv(file.full_path, sep='\t')
+            self._ix2parsed[file.ix] = df
+            return df
+        self.logger.warning(f"This Corpus does not include a file with index {ix}.")
 
 
     def get_playthrough2mc(self, keys=None, ids=None):
@@ -2502,6 +2537,7 @@ Available keys: {available_keys}""")
                         self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
                     else:
                         write_tsv(df, file_path, logger=self.logger)
+                        self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
                     paths.append(file_path)
         if metadata_path is not None:
             full_path = self.update_metadata_from_parsed(metadata_path, markdown)
@@ -2509,7 +2545,13 @@ Available keys: {available_keys}""")
                 paths[full_path] = 'metadata'
         return paths
 
-    def update_metadata_from_parsed(self, metadata_path: str, markdown: bool = True) -> str:
+    def update_metadata_from_parsed(self,
+                                    root_dir: Optional[str] = None,
+                                    folder: str = '.',
+                                    suffix: str = '',
+                                    markdown: bool = True,
+                                    view_name: Optional[str] = None,
+                                    ) -> str:
         """ Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
 
         Args:
@@ -2519,7 +2561,7 @@ Available keys: {available_keys}""")
         Returns:
 
         """
-        md = self.metadata_from_parsed()
+        md = self.score_metadata(view_name=view_name)
         if len(md.index) == 0:
             self.logger.debug(f"\n\nNo metadata to write.")
             return None
@@ -2536,6 +2578,7 @@ Available keys: {available_keys}""")
         if not os.path.isdir(path):
             os.makedirs(path)
         full_path = os.path.join(path, file)
+        print(full_path)
         write_metadata(md, full_path, markdown=markdown, logger=self.logger)
         return full_path
 
@@ -2826,75 +2869,75 @@ Load one of the identically named files with a different key using add_dir(key='
                 f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: {', '.join(not_found)}")
         return [all_types[t] for user_input in lt for t in get_matches(user_input)]
 
-    def update_metadata(self, allow_suffix=False):
-        """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
-        the IDs of those that have been changed.
-
-        Parameters
-        ----------
-        allow_suffix : :obj:`bool`, optional
-            If set to True, this would also update the metadata for currently parsed MuseScore files
-            corresponding to the columns 'rel_paths' and 'fnames' + [ANY SUFFIX]. For example,
-            the row ('MS3', 'bwv846') would also update the metadata of 'MS3/bwv846_reviewed.mscx'.
-
-        Returns
-        -------
-        :obj:`list`
-            IDs of the parsed MuseScore files whose metadata has been updated.
-        """
-        metadata_dfs = self.metadata_tsv()
-        if len(metadata_dfs) > 0:
-            metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys())
-        else:
-            metadata = self._metadata
-        if len(metadata) == 0:
-            self.logger.debug("No parsed metadata found.")
-            return
-        old = metadata
-        if old.index.names != ['rel_paths', 'fnames']:
-            try:
-                old = old.set_index(['rel_paths', 'fnames'])
-            except KeyError:
-                self.logger.warning(f"Corpusd metadata do not contain the columns 'rel_paths' and 'fnames' "
-                                    f"needed to match information on identical files.")
-                return []
-        new = self.metadata_from_parsed(from_tsv=False).set_index(['rel_paths', 'fnames'])
-        excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
-                         'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
-        old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
-
-        parsed = old.index.map(lambda i: i in new.index)
-        relevant = old.loc[parsed, old_cols]
-        updates = defaultdict(dict)
-        for i, row in relevant.iterrows():
-            new_row = new.loc[i]
-            for j, val in row[row.notna()].iteritems():
-                val = str(val)
-                if j not in new_row or str(new_row[j]) != val:
-                    updates[i][j] = val
-
-        l = len(updates)
-        ids = []
-        if l > 0:
-            for (rel_path, fname), new_dict in updates.items():
-                matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)
-                match_ids = [id for id in matches.keys() if id in self._parsed_mscx]
-                n_files_to_update = len(match_ids)
-                if n_files_to_update == 0:
-                    self.logger.debug(
-                        f"rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.")
-                    continue
-                for id in match_ids:
-                    for name, val in new_dict.items():
-                        self._parsed_mscx[id].mscx.parsed.metatags[name] = val
-                    self._parsed_mscx[id].mscx.parsed.update_metadata()
-                    self.ix_logger(id).debug(f"Updated with {new_dict}")
-                    ids.append(id)
-
-            self.logger.info(f"{l} files updated.")
-        else:
-            self.logger.info("Nothing to update.")
-        return ids
+    # def update_metadata(self, allow_suffix=False):
+    #     """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
+    #     the IDs of those that have been changed.
+    #
+    #     Parameters
+    #     ----------
+    #     allow_suffix : :obj:`bool`, optional
+    #         If set to True, this would also update the metadata for currently parsed MuseScore files
+    #         corresponding to the columns 'rel_paths' and 'fnames' + [ANY SUFFIX]. For example,
+    #         the row ('MS3', 'bwv846') would also update the metadata of 'MS3/bwv846_reviewed.mscx'.
+    #
+    #     Returns
+    #     -------
+    #     :obj:`list`
+    #         IDs of the parsed MuseScore files whose metadata has been updated.
+    #     """
+    #     metadata_dfs = self.metadata_tsv()
+    #     if len(metadata_dfs) > 0:
+    #         metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys())
+    #     else:
+    #         metadata = self._metadata
+    #     if len(metadata) == 0:
+    #         self.logger.debug("No parsed metadata found.")
+    #         return
+    #     old = metadata
+    #     if old.index.names != ['rel_paths', 'fnames']:
+    #         try:
+    #             old = old.set_index(['rel_paths', 'fnames'])
+    #         except KeyError:
+    #             self.logger.warning(f"Corpusd metadata do not contain the columns 'rel_paths' and 'fnames' "
+    #                                 f"needed to match information on identical files.")
+    #             return []
+    #     new = self.metadata_from_parsed(from_tsv=False).set_index(['rel_paths', 'fnames'])
+    #     excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
+    #                      'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
+    #     old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
+    #
+    #     parsed = old.index.map(lambda i: i in new.index)
+    #     relevant = old.loc[parsed, old_cols]
+    #     updates = defaultdict(dict)
+    #     for i, row in relevant.iterrows():
+    #         new_row = new.loc[i]
+    #         for j, val in row[row.notna()].iteritems():
+    #             val = str(val)
+    #             if j not in new_row or str(new_row[j]) != val:
+    #                 updates[i][j] = val
+    #
+    #     l = len(updates)
+    #     ids = []
+    #     if l > 0:
+    #         for (rel_path, fname), new_dict in updates.items():
+    #             matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)
+    #             match_ids = [id for id in matches.keys() if id in self._parsed_mscx]
+    #             n_files_to_update = len(match_ids)
+    #             if n_files_to_update == 0:
+    #                 self.logger.debug(
+    #                     f"rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.")
+    #                 continue
+    #             for id in match_ids:
+    #                 for name, val in new_dict.items():
+    #                     self._parsed_mscx[id].mscx.parsed.metatags[name] = val
+    #                 self._parsed_mscx[id].mscx.parsed.update_metadata()
+    #                 self.ix_logger(id).debug(f"Updated with {new_dict}")
+    #                 ids.append(id)
+    #
+    #         self.logger.info(f"{l} files updated.")
+    #     else:
+    #         self.logger.info("Nothing to update.")
+    #     return ids
 
 
     def __getstate__(self):
@@ -2902,13 +2945,11 @@ Load one of the identically named files with a different key using add_dir(key='
         return self.__dict__
 
 
-    def __getitem__(self, fname_or_ix) -> Piece:
+    def __getitem__(self, fname_or_ix: Union[str, int]) -> Union[Piece, ParsedFile]:
         if isinstance(fname_or_ix, str):
             return self.get_piece(fname_or_ix)
         if isinstance(fname_or_ix, int):
-            assert fname_or_ix in self.ix2fname, f"This Corpus does not include a file with index {fname_or_ix}."
-            fname = self.ix2fname[fname_or_ix]
-            return self.get_piece(fname)[fname_or_ix]
+            return self.get_parsed_at_index(fname_or_ix)
         if isinstance(fname_or_ix, tuple):
             if len(fname_or_ix) == 1:
                 return self.get_piece(fname_or_ix[0])

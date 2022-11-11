@@ -2938,9 +2938,14 @@ def prepare_metadata_for_writing(metadata_df):
     metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
     staff_cols, other_cols = [], []
     for col in metadata_df.columns:
-        staff_cols.append(col) if re.match(r"^staff_(\d+)", col) else other_cols.append(col)
+        if re.match(r"^staff_(\d+)", col):
+            staff_cols.append(col)
+        else:
+            other_cols.append(col)
     staff_cols = sorted(staff_cols, key=lambda s: int(re.match(r"^staff_(\d+)", s)[1]))
     metadata_df = metadata_df[other_cols + staff_cols]
+    if not isinstance(metadata_df.index, pd.RangeIndex):
+        metadata_df = metadata_df.reset_index()
     return metadata_df
 
 
@@ -4251,3 +4256,16 @@ def make_file_path(file: File,
     path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
     fname = file.fname + suffix + fext
     return os.path.join(path, fname)
+
+def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
+    """Transform a string in a way that it can be used as identifier (variable or attribute name).
+    Solution by Kenan Banks on https://stackoverflow.com/a/3303361
+    """
+    # Remove invalid characters
+    s = re.sub('[^0-9a-zA-Z_]', '', s)
+
+    # Remove leading characters until we find a letter or underscore
+    regex = '^[^a-zA-Z]+' if remove_leading_underscore else '^[^a-zA-Z_]+'
+    s = re.sub(regex, '', s)
+
+    return s
