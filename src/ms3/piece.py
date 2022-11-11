@@ -233,6 +233,8 @@ class Piece(LoggedClass):
 
     def __repr__(self):
         return self.info(return_str=True)
+
+
     def add_parsed_score(self, ix: int, score_obj: Score) -> None:
         assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
         if score_obj is None:

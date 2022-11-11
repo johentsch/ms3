@@ -122,15 +122,13 @@ class Parse(LoggedClass):
         """
         self.labels_cfg.update(update_labels_cfg(labels_cfg, logger=self.logger))
 
-        if directory is None:
-            if paths is not None:
-                # try to detect parent corpus for the files
-                self.add_files(paths)
-        else:
+        if directory is not None:
             if isinstance(directory, str):
                 directory = [directory]
             for d in directory:
                 self.add_dir(directory=d, recursive=recursive)
+        if paths is not None:
+            self.add_files(paths)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -404,9 +402,8 @@ class Parse(LoggedClass):
     def add_files(self, paths: Union[str, Collection[str]], corpus_name: Optional[str] = None) -> None:
         """
         Deprecated: To deal with particular files only, use :meth:`add_corpus` passing the directory containing them and
-        configure the :class`~.view.View` accordingly. This method here easily leads to unexpected behaviour.
-
-        This method here does it for you but expects the file paths to point to files located in a shared corpus folder
+        configure the :class`~.view.View` accordingly. This method here does it for you but easily leads to unexpected behaviour.
+        It expects the file paths to point to files located in a shared corpus folder
         on some higher level or in folders for which :class:`~.corpus.Corpus` objects have already been created.
 
         Args:

@@ -93,19 +93,32 @@ def update(parse_obj: Parse,
            above: bool = False,
            safe: bool = True):
     for corpus_name, corpus in parse_obj.iter_corpora():
-        up2date_paths = corpus.update_scores(root_dir=root_dir,
-                                             folder=folder,
-                                             suffix=suffix,
-                                             overwrite=overwrite)
-        filtered_view = create_view_from_parameters(paths=up2date_paths)
-        corpus.set_view(filtered_view)
-        corpus.info()
-        corpus.parse_scores()
+        need_update = []
+        latest_version = LATEST_MUSESCORE_VERSION.split('.')
+        for fname, piece in corpus.iter_pieces():
+            for file, score in piece.iter_parsed('scores'):
+                score_version = score.mscx.metadata['musescore'].split('.')
+                need_update.append(score_version < latest_version)
+        if any(need_update):
+            if corpus.ms is None:
+                n_need_update = sum(need_update)
+                print(f"No MuseScore 3 executable was specified, so none of the {n_need_update} outdated scores "
+                      f"have been updated.")
+            else:
+                up2date_paths = corpus.update_scores(root_dir=root_dir,
+                                                     folder=folder,
+                                                     suffix=suffix,
+                                                     overwrite=overwrite)
+                filtered_view = corpus.view.copy()
+                filtered_view.update_config(paths=up2date_paths)
+                corpus.set_view(filtered_view)
+                corpus.info()
+                corpus.parse_scores()
         scores_with_updated_labels = corpus.update_labels(staff=staff,
                                                           voice=voice,
                                                           harmony_layer=harmony_layer,
                                                           above=above,
                                                           safe=safe)
         corpus.logger.info(f"Labels updated in {len(scores_with_updated_labels)}")
-        file_paths = corpus.store_parsed_scores(suffix='_labels', overwrite=overwrite, only_changed=True)
+        file_paths = corpus.store_parsed_scores(overwrite=overwrite, only_changed=True)
         return file_paths

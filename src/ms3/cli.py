@@ -9,7 +9,7 @@ import argparse, os
 import pandas as pd
 
 from ms3 import Score, Parse
-from ms3.operations import extract, check, compare
+from ms3.operations import extract, check, compare, update
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
 from ms3.logger import get_logger
 
@@ -25,19 +25,6 @@ def gather_extract_params(args):
     return params
 
 
-def make_parse_obj(args):
-    labels_cfg = {}
-    if hasattr(args, 'positioning'):
-        labels_cfg['positioning'] = args.positioning
-    if hasattr(args, 'raw'):
-        labels_cfg['decode'] = args.raw
-
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    ms = args.musescore if hasattr(args, 'musescore') else None
-    return Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, labels_cfg=labels_cfg, ms=ms, **logger_cfg)
 
 
 def make_suffixes(args):
@@ -254,66 +241,20 @@ def transform(args):
             p.logger.info(f"{path} written.")
 
 
-def update(args):
-    update_logger = get_logger("ms3.update", level=args.level)
-    MS = get_musescore(args.musescore, logger=update_logger)
-    assert MS is not None, f"MuseScore not found: {ms}"
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    if args.dir is None:
-        paths = args.file
+def update_cmd(args):
+    parse_obj = make_parse_obj(args)
+    changed_paths = update(parse_obj,
+                           root_dir=args.out,
+                           suffix='' if args.suffix is None else args.suffix,
+                           overwrite=True,
+                           staff=args.staff,
+                           harmony_layer=args.type,
+                           above=args.above,
+                           safe=args.safe)
+    if len(changed_paths) > 0:
+        print(f"Paths of scores with updated labels:\n{changed_paths}")
     else:
-        paths = scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=not args.nonrecursive,
-                               subdirs=False,
-                               exclude_files_only=True,
-                               logger=update_logger)
-
-    for old in paths:
-        path, name = os.path.split(old)
-        fname, fext = os.path.splitext(name)
-        if fext not in ('.mscx', '.mscz'):
-            continue
-        logger_cfg = dict(logger_cfg, name=f"ms3.{fname}")
-        if args.suffix is not None:
-            fname = f"{fname}{args.suffix}.mscx"
-        else:
-            fname = fname + '.mscx'
-        if args.out is None:
-            new = os.path.join(path, fname)
-        else:
-            new = os.path.join(args.out, fname)
-        convert(old, new, MS, logger=name)
-        s = Score(new)
-        if s.mscx.has_annotations:
-            s.mscx.style['romanNumeralPlacement'] = 0 if args.above else 1
-            before = s.annotations.df
-            harmony_layers = before.harmony_layer.astype(str).str[0].unique()
-            if len(harmony_layers) > 1 or harmony_layers[0] != str(args.type):
-                # If all labels have the target type already, nothing is changed, even if the staves don't meet the
-                # target staff: For that one would have to transform the default target -1 into the last staff number
-                s.detach_labels('old')
-                if 'old' not in s._detached_annotations:
-                    continue
-                s.old.remove_initial_dots()
-                s.attach_labels('old', staff=int(args.staff), voice=1, harmony_layer=int(args.type))
-                if args.safe:
-                    after = s.annotations.df
-                    try:
-                        assert_dfs_equal(before, after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
-                        s.store_score(new)
-                    except:
-                        s.logger.error(f"File was not updated because of the following error:\n{sys.exc_info()[1]}")
-                        continue
-                else:
-                    s.store_score(new)
-            else:
-                s.logger.info(f"All labels are already of type {harmony_layers[0]}; no labels changed")
-                s.store_score(new)
-        else:
-            s.logger.debug(f"File has no labels to update.")
-            s.store_score(new)
+        print(f"Nothing to do.")
 
 def check_and_create(d):
     """ Turn input into an existing, absolute directory path.
@@ -372,29 +313,87 @@ def review_cmd(args, parse_obj=None):
 
 
 
+def make_parse_obj(args, parse_scores=True, parse_tsv=False):
+    labels_cfg = {}
+    if hasattr(args, 'positioning'):
+        labels_cfg['positioning'] = args.positioning
+    if hasattr(args, 'raw'):
+        labels_cfg['decode'] = args.raw
+
+    logger_cfg = {
+        'level': args.level,
+        'path': args.log,
+    }
+    ms = args.musescore if hasattr(args, 'musescore') else None
+    file_re_str = None if args.include is None else f"'{args.include}'"
+    folder_re_str = None if args.folders is None else f"'{args.folders}'"
+    exclude_re_str = None if args.exclude is None else f"'{args.exclude}'"
+    ms_str = None if ms is None else f"'{ms}'"
+    print(f"""Parse('{args.dir}',
+             recursive={not args.nonrecursive},
+             only_metadata_fnames={not args.all},
+             include_convertible={ms is not None},
+             exclude_review={not args.reviewed},
+             file_re={file_re_str},
+             folder_re={folder_re_str},
+             exclude_re={exclude_re_str},
+             paths={args.files},
+             labels_cfg={labels_cfg},
+             ms={ms_str},
+             **{logger_cfg})""")
+    parse_obj = Parse(args.dir,
+                 recursive=not args.nonrecursive,
+                 only_metadata_fnames=not args.all,
+                 include_convertible=ms is not None,
+                 exclude_review=not args.reviewed,
+                 file_re=args.include,
+                 folder_re=args.folders,
+                 exclude_re=args.exclude,
+                 paths=args.files,
+                 labels_cfg=labels_cfg,
+                 ms=ms,
+                 **logger_cfg)
+    if parse_scores:
+        parse_obj.parse_scores()
+    if parse_tsv:
+        parse_obj.parse_tsv()
+    parse_obj.info()
+    return parse_obj
 
 
 
 
 def get_arg_parser():
     # reusable argument sets
-    input_args = argparse.ArgumentParser(add_help=False)
-    input_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', type=check_dir,
+    parse_args = argparse.ArgumentParser(add_help=False)
+    parse_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', default=os.getcwd(), type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
-    input_args.add_argument('-n', '--nonrecursive', action='store_true',
-                            help="Treat DIR as single corpus even if it contains corpus directories itself.")
-    input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
-                            help='Add path(s) of individual file(s) to be checked.')
-    input_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
-                                help="""Output directory. Subfolder trees are retained.""")
-    input_args.add_argument('-r', '--regex', metavar="REGEX", default=r'(\.mscx|\.mscz|\.tsv)$',
-                                help="Select only file names including this string or regular expression. Defaults to MSCX, MSCZ and TSV files only.")
-    input_args.add_argument('-e', '--exclude', metavar="REGEX",
+    parse_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
+                                help='Output directory.')
+    parse_args.add_argument('-n', '--nonrecursive', action='store_true',
+                            help='Treat DIR as single corpus even if it contains corpus directories itself.')
+    parse_args.add_argument('-a', '--all', action='store_true',
+                            help="By default, only files listed in the 'fname' column of a 'metadata.tsv' file are parsed. With "
+                                 "this option, all files will be parsed.")
+    parse_args.add_argument('-i', '--include', metavar="REGEX",
+                                help="Select only files whose names include this string or regular expression.")
+    parse_args.add_argument('-e', '--exclude', metavar="REGEX",
                                 help="Any files or folders (and their subfolders) including this regex will be disregarded."
                                      "By default, files including '_reviewed' or starting with . or _ or 'concatenated' are excluded.")
-    input_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
+    parse_args.add_argument('-f', '--folders', metavar="REGEX",
+                                help="Select only folders whose names include this string or regular expression.")
+    parse_args.add_argument('-m', '--musescore', metavar="PATH", nargs='?', const='auto', help="""Command or path of your MuseScore 3 executable. -m by itself will set 'auto' (attempt to use standard path for your system).
+        Other shortcuts are -m win, -m mac, and -m mscore (for Linux).""")
+    parse_args.add_argument('--reviewed', action='store_true',
+                            help='By default, review files and folder are excluded from parsing. With this option, '
+                                 'they will be included, too.')
+    parse_args.add_argument('--files', metavar='PATHs', nargs='+',
+                            help='(Deprecated) The paths are expected to be within DIR. They will be converted into a view '
+                                 'that includes only the indicated files. This is equivalent to specifying the file names as '
+                                 'a regex via --include (assuming that file names are unique amongst corpora.')
+    parse_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
-    input_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
+    parse_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
 
     # main argument parser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='''\
@@ -410,7 +409,7 @@ The library offers you the following commands. Add the flag -h to one of them to
 
     add_parser = subparsers.add_parser('add',
                                          help="Add labels from annotation tables to scores.",
-                                         parents=[input_args])
+                                         parents=[parse_args])
     # TODO: staff parameter needs to accept one to several integers including negative
     # add_parser.add_argument('-s', '--staff',
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
@@ -427,7 +426,7 @@ show detected files are to be used.""")
 
 
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
-In particular, check DCML harmony labels for syntactic correctness.""", parents=[input_args])
+In particular, check DCML harmony labels for syntactic correctness.""", parents=[parse_args])
     check_parser.add_argument('--labels_only', action='store_true',
                               help="Don't check scores for encoding errors.")
     check_parser.add_argument('--scores_only', action='store_true',
@@ -439,7 +438,7 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
 
     compare_parser = subparsers.add_parser('compare',
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.",
-        parents = [input_args])
+        parents = [parse_args])
     compare_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
                                 help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
 To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
@@ -459,13 +458,11 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.",
-                                           parents=[input_args])
+                                           parents=[parse_args])
     # convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
     #                             help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
     convert_parser.add_argument('-t', '--target_format', default='mscx',
                                 help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
-    convert_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
-    To use standard paths on commercial systems, try -m win, or -m mac.""")
     convert_parser.add_argument('-p', '--nonparallel', action='store_false',
                                 help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
@@ -476,7 +473,7 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     empty_parser = subparsers.add_parser('empty',
                                          help="Remove harmony annotations and store the MuseScore files without them.",
-                                         parents=[input_args])
+                                         parents=[parse_args])
     # TODO: staff parameter needs to accept one to several integers including negative
     # empty_parser.add_argument('-s', '--staff',
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
@@ -488,7 +485,7 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     extract_parser = subparsers.add_parser('extract',
                                            help="Extract selected information from MuseScore files and store it in TSV files.",
-                                           parents=[input_args])
+                                           parents=[parse_args])
     extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
                                 const='../measures',
                                 help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
@@ -511,8 +508,6 @@ To prevent the interaction, set this flag to use the first annotation table that
     extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
-    extract_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
-    Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
     extract_parser.add_argument('-t', '--test', action='store_true',
                                 help="No data is written to disk.")
     extract_parser.add_argument('-p', '--positioning', action='store_true',
@@ -531,19 +526,19 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     metadata_parser = subparsers.add_parser('metadata',
                                             help="Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D).",
-                                            parents=[input_args])
+                                            parents=[parse_args])
     metadata_parser.set_defaults(func=metadata)
 
     repair_parser = subparsers.add_parser('repair',
                                           help="Apply automatic repairs to your uncompressed MuseScore files.",
-                                          parents=[input_args])
+                                          parents=[parse_args])
     repair_parser.set_defaults(func=repair)
 
 
 
     transform_parser = subparsers.add_parser('transform',
                                           help="Concatenate and transform TSV data from one or several corpora.",
-                                          parents=[input_args])
+                                          parents=[parse_args])
     transform_parser.add_argument('-M', '--measures', action='store_true',
                                 help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
     transform_parser.add_argument('-N', '--notes', action='store_true',
@@ -577,21 +572,19 @@ To prevent the interaction, set this flag to use the first annotation table that
     update_parser = subparsers.add_parser('update',
                                            help="Convert MSCX files to the latest MuseScore version and move all chord annotations "
                                                 "to the Roman Numeral Analysis layer. This command overwrites existing files!!!",
-                                           parents=[input_args])
+                                           parents=[parse_args])
     # update_parser.add_argument('-a', '--annotations', metavar='PATH', default='../harmonies',
     #                             help='Path relative to the score file(s) where to look for existing annotation tables.')
     update_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
-    update_parser.add_argument('-m', '--musescore', default='mscore', help="""Path to MuseScore executable. Defaults to the command 'mscore' (standard on *nix systems).
-        To try standard paths on commercial systems, try -m win, or -m mac.""")
     update_parser.add_argument('--above', action='store_true', help="Display Roman Numerals above the system.")
     update_parser.add_argument('--safe', action='store_true', help="Only moves labels if their temporal positions stay intact.")
     update_parser.add_argument('--staff', default=-1, help="Which staff you want to move the annotations to. 1=upper staff; -1=lowest staff (default)")
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
-    update_parser.set_defaults(func=update)
+    update_parser.set_defaults(func=update_cmd)
 
     review_parser = subparsers.add_parser('review',
                                          help="Extract facets, check labels, and create _reviewed files.",
-                                         parents=[input_args])
+                                         parents=[parse_args])
     review_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
                                 const='../measures',
                                 help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
@@ -615,9 +608,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     review_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
-    review_parser.add_argument('-m', '--musescore', default='auto', help="""Command or path of MuseScore executable. Defaults to 'auto' (attempt to use standard path for your system).
-        Other standard options are -m win, -m mac, and -m mscore (for Linux).""")
-    review_parser.add_argument('-i', '--ignore_score_warnings', action='store_true',
+    review_parser.add_argument('--ignore_score_warnings', action='store_true',
                                 help="By default, tests also fail upon erroneous score encodings. Pass -i to prevent this.")
     review_parser.add_argument('-t', '--test', action='store_true',
                                 help="No data is written to disk.")
@@ -651,11 +642,8 @@ def run():
     if 'func' not in args:
         parser.print_help()
         return
-    if args.file is None:
-        if args.dir is None:
-            args.dir = os.getcwd()
-    else:
-        args.file = [resolve_dir(path) for path in args.file]
+    if args.files is not None:
+        args.files = [resolve_dir(path) for path in args.file]
     args.func(args)
 
 
