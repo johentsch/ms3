@@ -219,7 +219,7 @@ class Corpus(LoggedClass):
 
     @property
     def n_parsed(self):
-        return len(self.ix2parsed)
+        return sum(file.ix not in self._ix2parsed for file in self.ix2parsed.values())
 
     @property
     def n_parsed_scores(self):
@@ -382,11 +382,7 @@ class Corpus(LoggedClass):
         if len(new_files) == 0:
             return
         file = new_files[0]
-        metadata_df = load_tsv(path)
-        self.ix2parsed[file.ix] = metadata_df
-        if suffix == '':
-            self.metadata_ix = file.ix
-            self.metadata_tsv = metadata_df
+        self.load_metadata_file(file)
 
 
 
@@ -616,19 +612,22 @@ class Corpus(LoggedClass):
             if self.metadata_ix is None:
                 msg = f"No metadata.tsv file has been detected for this Corpus object."
                 if len(self.ix2metadata_file) > 0:
-                    available = [file for ix, file in self.ix2metadata_file.items() if ix in self.ix2parsed]
+                    available = [file for ix, file in self.ix2metadata_file.items() if ix in self._ix2parsed]
                     if len(available) > 0:
                         msg += f" However, the following metadata files are available: {available}"
-                self.logger.error(msg)
+                if self.view.fnames_not_in_metadata:
+                    self.logger.info(msg)
+                else:
+                    self.logger.warning(msg)
                 return []
             metadata_ix = self.metadata_ix
         if metadata_ix not in self.ix2metadata_file:
             self.logger.error(f"Index {metadata_ix} does not seem to belong to a metadata file.")
             return []
-        if metadata_ix not in self.ix2parsed:
+        if metadata_ix not in self._ix2parsed:
             self.logger.error(f"The metadata file at index {metadata_ix} has no parsed DataFrame.")
             return []
-        metadata_df = self.ix2parsed[metadata_ix]
+        metadata_df = self._ix2parsed[metadata_ix]
         try:
             fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in metadata_df.columns)
             return sorted(str(fname) for fname in metadata_df[fname_col].unique() if not pd.isnull(fname))
@@ -1135,21 +1134,16 @@ class Corpus(LoggedClass):
                 pool.close()
                 pool.join()
                 successful_results = {file.ix: score for file, score in zip(selected_files, res) if score is not None}
-                self.ix2parsed.update(successful_results)
-                self.ix2parsed_score.update(successful_results)
                 with_captured_logs = [score for score in successful_results.values() if hasattr(score, 'captured_logs')]
                 if len(with_captured_logs) > 0:
                     log_capture_handler = get_log_capture_handler(self.logger)
                     if log_capture_handler is not None:
                         for score in with_captured_logs:
                             log_capture_handler.log_queue.extend(score.captured_logs)
-                successful = len(successful_results)
             else:
                 parsing_results = [parse_musescore_file(*params) for params in parse_this]
                 successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
-                self.ix2parsed.update(successful_results)
-                successful = len(successful_results)
-                self.ix2parsed_score.update(successful_results)
+            successful = len(successful_results)
             for ix, score in successful_results.items():
                 self.get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
@@ -1216,8 +1210,6 @@ class Corpus(LoggedClass):
             pool.close()
             pool.join()
             successful_results = {file.ix: df for file, df in zip(selected_files, parsing_results) if df is not None}
-            self.ix2parsed.update(successful_results)
-            self.ix2parsed_tsv.update(successful_results)
         else:
             parsing_results = [load_tsv(*params, **kwargs) for params in parse_this]
             for file, logger in parse_this:
@@ -1230,8 +1222,6 @@ class Corpus(LoggedClass):
                     logger.info(f"Couldn't be loaded, probably no tabular format or you need to specify 'sep', the delimiter as **kwargs."
                                 f"\n{file.rel_path}\nError: {e}")
             successful_results = {file.ix: score for file, score in zip(selected_files, parsing_results) if score is not None}
-            self.ix2parsed.update(successful_results)
-            self.ix2parsed_tsv.update(successful_results)
         successful = len(successful_results)
         for ix, df in successful_results.items():
             self.get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
@@ -1253,7 +1243,7 @@ class Corpus(LoggedClass):
         fnames = sorted(fnames, key=len, reverse=True)
         # sort so that longest fnames come first for preventing errors when detecting suffixes
         if len(fnames) == 0:
-            self.logger.warning(f"Corpus contains neither scores nor metadata.")
+            self.logger.info(f"Corpus contains neither scores nor metadata.")
             return
         if files is None:
             files = self.files
