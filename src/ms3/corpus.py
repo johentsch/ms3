@@ -24,7 +24,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier
+    convert, string2identifier, write_markdown
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -366,10 +366,10 @@ class Corpus(LoggedClass):
         if already_there:
             if overwrite and suffix == '':
                 self.logger.warning("For security reasons I won't overwrite the 'metadata.tsv' file of this corpus. "
-                                    "Consider updating it or delete it yourself.")
+                                    "Consider using _.update_metadata_from_parsed() or delete it yourself.")
                 return
             elif not overwrite:
-                self.logger.warning(f"{path} existed already. Consider updating it.")
+                self.logger.warning(f"{path} existed already. Consider using _.update_metadata_from_parsed().")
                 return
         metadata = self.score_metadata(view_name=view_name, choose=force)
         metadata = prepare_metadata_for_writing(metadata)
@@ -378,10 +378,10 @@ class Corpus(LoggedClass):
             self.logger.info(f"{path} overwritten.")
         else:
             self.logger.info(f"{path} created.")
-        new_paths = self.add_file_paths([path])
-        if len(new_paths) == 0:
+        new_files = self.add_file_paths([path])
+        if len(new_files) == 0:
             return
-        file = new_paths[0]
+        file = new_files[0]
         metadata_df = load_tsv(path)
         self.ix2parsed[file.ix] = metadata_df
         if suffix == '':
@@ -599,11 +599,11 @@ class Corpus(LoggedClass):
             file = next(file for file in self.files if file.full_path == metadata_path)
         except StopIteration:
             self.logger.warning(f"Metadata file exists but had not been among the detected files: {metadata_path}")
-            new_paths = self.add_file_paths([metadata_path])
-            if len(new_paths) == 0:
+            new_files = self.add_file_paths([metadata_path])
+            if len(new_files) == 0:
                 self.logger.error(f"Unable to add {metadata_path} to the Corpus object.")
                 return
-            file = new_paths[0]
+            file = new_files[0]
         self.load_metadata_file(file)
 
     @lru_cache()
@@ -745,7 +745,7 @@ class Corpus(LoggedClass):
             self.logger.warning(f"You have set force=True, which forces me to parse {n_unparsed} scores iteratively. "
                                 f"Next time, call _.parse() on me, so we can speed this up!")
 
-    def get_file_from_path(self, full_path: Optional[str] = None) -> Optional[File]:
+    def get_file_from_path(self, full_path: str) -> Optional[File]:
         for file in self.files:
             if file.full_path == full_path:
                 return file
@@ -1018,8 +1018,6 @@ class Corpus(LoggedClass):
 
 
     def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
-        if file.ix in self.ix2metadata_file and file.ix in self.ix2parsed:
-            return
         if not file.fname.startswith('metadata') and not allow_prefixed:
             self.logger.info(f"The file {file.rel_path} has a prefix and is disregarded as metadata file.")
             self.ix2metadata_file[file.ix] = file
@@ -1050,8 +1048,9 @@ class Corpus(LoggedClass):
             fnames = [re.escape(fname) for fname in fnames]
             new_view = DefaultView(view_name)
             new_view.include('fnames', *fnames)
+            action = 'Replaced' if view_name in self.view_names else 'Added'
             self.set_view(**{view_name: new_view})
-            self.logger.debug(f"Added view '{view_name}' corresponding to {file.rel_path}.")
+            self.logger.debug(f"{action} view '{view_name}' corresponding to {file.rel_path}.")
 
     def _parse_file_at_index(self, ix: int):
         self[ix]._parse_file_at_index(ix)
@@ -1398,9 +1397,30 @@ class Corpus(LoggedClass):
 
     def update_scores(self,
                       root_dir: Optional[str] = None,
-                      folder: str = '.',
+                      folder: Optional[str] = '.',
                       suffix: str = '',
-                      overwrite: bool = False) -> Collection[str]:
+                      overwrite: bool = False) -> List[str]:
+        """ Update scores created with an older MuseScore version to the latest MuseScore 3 version.
+
+        Args:
+            root_dir:
+                In case you want to create output paths for the updated MuseScore files based on a folder different
+                from :attr:`corpus_path`.
+            folder:
+                * The default '.' has the updated scores written to the same directory as the old ones, effectively
+                  overwriting them if ``root_dir`` is None.
+                * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.
+                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                  For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.
+                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                  ``root_dir``.
+            suffix: String to append to the file names of the updated files, e.g. '_updated'.
+            overwrite: By default, existing files are not overwritten. Pass True to allow this.
+
+        Returns:
+            A list of all up-to-date paths, whether they had to be converted or were already in the latest version.
+        """
         assert self.ms is not None, "Set the attribute 'ms' to your MuseScore 3 executable to update scores."
         up2date_paths = []
         latest_version = LATEST_MUSESCORE_VERSION.split('.')
@@ -2486,7 +2506,7 @@ Available keys: {available_keys}""")
             measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
                 Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
             metadata_path:
-                Where to store an overview file with the MuseScore files' metadata.
+                Where to store (or update) an overview file with the MuseScore files' metadata.
                 If no file name is specified, the file will be named ``metadata.tsv``.
             markdown:
                 By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
@@ -2540,47 +2560,67 @@ Available keys: {available_keys}""")
                         self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
                     paths.append(file_path)
         if metadata_path is not None:
-            full_path = self.update_metadata_from_parsed(metadata_path, markdown)
-            if full_path is not None:
-                paths[full_path] = 'metadata'
+            if not markdown:
+                metadata_paths = self.update_metadata_from_parsed(metadata_path, markdown_file=None)
+            else:
+                metadata_paths = self.update_metadata_from_parsed(metadata_path)
+            paths.extend(metadata_paths)
         return paths
 
     def update_metadata_from_parsed(self,
                                     root_dir: Optional[str] = None,
-                                    folder: str = '.',
                                     suffix: str = '',
-                                    markdown: bool = True,
+                                    markdown_file: Optional[str] = "README.md",
                                     view_name: Optional[str] = None,
-                                    ) -> str:
-        """ Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
+                                    ) -> List[str]:
+        """
+        Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
 
         Args:
-            metadata_path: Folder where to update or create the TSV file.
-            markdown: Pass False if you don't want to also create or update an README.md file.
+            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.
+            suffix:
+                Added to the filename: 'metadata{suffix}.tsv'. Defaults to ''. Metadata files with suffix may be
+                used to store views with particular subselections of pieces.
+            markdown_file:
+                By default, a subset of metadata columns will be written to 'README.md' in the same folder as the TSV file.
+                If the file exists, it will be scanned for a line containing the string '# Overview' and overwritten
+                from that line onwards.
+            view_name:
+                The view under which you want to update metadata from the selected parsed files. Defaults to None,
+                i.e. the active view.
 
         Returns:
-
+            The file paths to which metadata was written.
         """
         md = self.score_metadata(view_name=view_name)
         if len(md.index) == 0:
             self.logger.debug(f"\n\nNo metadata to write.")
-            return None
-        if os.path.isabs(metadata_path) or '~' in metadata_path:
-            metadata_path = resolve_dir(metadata_path)
-            path = metadata_path
+            return []
+        if root_dir is None:
+            root_dir = self.corpus_path
         else:
-            path = os.path.abspath(os.path.join(self.corpus_path, metadata_path))
-        fname, ext = os.path.splitext(path)
-        if ext != '':
-            path, file = os.path.split(path)
+            root_dir = resolve_dir(root_dir)
+            assert not os.path.isfile(root_dir), "Pass a path to a folder, not to a file."
+            if not os.path.isdir(root_dir):
+                os.makedirs(root_dir)
+        metadata_path = os.path.join(root_dir, 'metadata' + suffix + '.tsv')
+        if not write_metadata(md, metadata_path, logger=self.logger):
+            return []
+        new_files = self.add_file_paths([metadata_path])
+        if len(new_files) == 0:
+            file = self.get_file_from_path(metadata_path)
         else:
-            file = 'metadata.tsv'
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        full_path = os.path.join(path, file)
-        print(full_path)
-        write_metadata(md, full_path, markdown=markdown, logger=self.logger)
-        return full_path
+            file = new_files[0]
+        self.load_metadata_file(file)
+        updated_metadata = self[file.ix]
+        if markdown_file is not None:
+            if os.path.isabs(markdown_file):
+                markdown_path = markdown_file
+            else:
+                markdown_path = os.path.join(root_dir, markdown_file)
+            write_markdown(updated_metadata, markdown_path, logger=self.logger)
+            return [metadata_path, markdown_path]
+        return [metadata_path]
 
 
 
@@ -2794,51 +2834,6 @@ Load one of the identically named files with a different key using add_dir(key='
                     file_to_register = new_files[0]
                 piece.add_parsed_score(file_to_register.ix, score)
         return file_paths
-
-
-    def _store_tsv(self, df, ix, folder, suffix='', root_dir=None, simulate=False):
-        """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
-
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame`
-            DataFrame to store as a TSV.
-        ix : :obj:`int`
-            index of the file from which to construct the new path and filename.
-        folder, root_dir : :obj:`str`
-            Parameters passed to :py:meth:`_calculate_path`.
-        suffix : :obj:`str`, optional
-            Suffix to append to the original file name.
-        what : :obj:`str`, optional
-            Descriptor, what the DataFrame contains for more informative log message.
-        simulate : :obj:`bool`, optional
-            Set to True if no files are to be written.
-
-        Returns
-        -------
-        :obj:`str`
-            Path of the stored file.
-
-        """
-        tsv_logger = self.ix_logger(ix)
-
-        if df is None:
-            tsv_logger.debug(f"No DataFrame for {what}.")
-            return
-
-        file = self.files[ix]
-        file_path = make_file_path(file=file,
-                                   root_dir=root_dir,
-                                   folder=folder,
-                                   suffix=suffix,
-                                   )
-        if simulate:
-            tsv_logger.debug(f"Would have written {what} to {file_path}.")
-        else:
-            tsv_logger.debug(f"Writing {what} to {file_path}.")
-            write_tsv(df, file_path, logger=tsv_logger)
-        return file_path
-
 
 
     def _treat_key_param(self, keys):
