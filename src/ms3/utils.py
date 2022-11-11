@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction as frac
 from functools import reduce, lru_cache
+from inspect import getfullargspec
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
@@ -754,7 +755,7 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
     return df
 
 
-def df2md(df, name="Overview"):
+def df2md(df: pd.DataFrame, name: str = "Overview") -> MarkdownTableWriter:
     """ Turns a DataFrame into a MarkDown table. The returned writer can be converted into a string.
     """
     writer = MarkdownTableWriter()
@@ -2858,76 +2859,118 @@ def update_labels_cfg(labels_cfg):
 
 
 @function_logger
-def write_metadata(df, path, markdown=False, index=False):
+def write_metadata(metadata_df: pd.DataFrame,
+                   path: str,
+                   index=False) -> bool:
+    """
+    Write the DataFrame ``metadata_df`` to ``path``, updating an existing file rather than overwriting it.
+
+    Args:
+        metadata_df:
+            DataFrame with one row per piece and an index of strings identifying pieces. The index is used for
+            updating a potentially pre-existent file, from which the first column ∈ ('fname', 'fnames', 'name', 'names')
+            will be used as index.
+        path:
+            If folder path, the filename 'metadata.tsv' will be appended; file_path will be used as is but a
+            warning is thrown if the extension is not .tsv
+        index: Pass True if you want the first column of the output to be a RangeIndex starting from 0.
+
+    Returns:
+        True if the metadata were successfully written, False otherwise.
+    """
+    metadata_df = metadata_df.astype('string')
+    if 'fname' in metadata_df.columns:
+        metadata_df = metadata_df.set_index('fname')
+    assert not isinstance(metadata_df.index, pd.RangeIndex), "Make sure to pass a metadata DataFrame with an index of unique fnames."
+    if metadata_df.index.name is None:
+        metadata_df.index.rename('fname', inplace=True)
     path = resolve_dir(path)
     if os.path.isdir(path):
         tsv_path = os.path.join(path, 'metadata.tsv')
     else:
         tsv_path = path
-        path = os.path.dirname(tsv_path)
+    _, fext = os.path.splitext(tsv_path)
+    if fext != '.tsv':
+        logger.warning(f"The output format for metadata is Tab-Separated Values (.tsv) but the file extensions is {fext}.")
     if not os.path.isfile(tsv_path):
-        write_this = df
+        output_df = metadata_df
         msg = 'Created'
     else:
+        # Trying to load an existing 'metadata.tsv' file to update existing rows
+        previous = pd.read_csv(tsv_path, sep='\t', dtype='string')
         try:
-            # Trying to load an existing 'metadata.tsv' file to update overlapping indices, assuming two index levels
-            previous = pd.read_csv(tsv_path, sep='\t', dtype='string', index_col=['rel_paths', 'fnames'])
-            df_tmp = df.reset_index(drop=True).astype('string')
-            df_tmp = df_tmp.set_index(['rel_paths', 'fnames'])
-            for ix, what in zip((previous.index, previous.columns, df_tmp.index, df_tmp.columns),
-                          ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
-                if not ix.is_unique:
-                    duplicated = ix[ix.duplicated()].to_list()
-                    logger.error(f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}")
-                    return
-            ix_union = previous.index.union(df_tmp.index)
-            col_union = previous.columns.union(df_tmp.columns)
-            previous = previous.reindex(index=ix_union, columns=col_union)
-            previous.loc[df_tmp.index, df_tmp.columns] = df_tmp
-            write_this = previous.reset_index()
-            msg = 'Updated'
-        except Exception:
-            logger.warning(f"Updating existing metadata at {tsv_path} failed with the following error:\n{sys.exc_info()[1]}")
-            write_this = df
-            msg = 'Replaced '
-    write_this = prepare_metadata_for_writing(write_this)
-    write_this.to_csv(tsv_path, sep='\t', index=index)
-    logger.info(f"{msg} {tsv_path}")
-    if markdown:
-        rename4markdown = {
-            'fnames': 'file_name',
-            'last_mn': 'measures',
-            'label_count': 'labels',
-            'harmony_version': 'standard',
-            'annotators': 'annotators',
-            'reviewers': 'reviewers',
-        }
-        drop_index = 'fnames' in write_this.columns
-        md = write_this.reset_index(drop=drop_index).fillna('')
-        for c in rename4markdown.keys():
-            if c not in md.columns:
-                md[c] = ''
-        md = md.rename(columns=rename4markdown)[list(rename4markdown.values())]
-        md_table = str(df2md(md))
-
-        readme = os.path.join(path, 'README.md')
-        if os.path.isfile(readme):
-            msg = 'Updated'
-            with open(readme, 'r', encoding='utf-8') as f:
-                lines = f.readlines()
-        else:
-            msg = 'Created'
-            lines = []
-        # in case the README.rst exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
-        with open(readme, 'w', encoding='utf-8') as f:
-            for line in lines:
-                if '# Overview' in line:
-                    break
-                f.write(line)
+            prev_fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in previous.columns)
+        except StopIteration:
+            if metadata_df.index.name is not None and metadata_df.index.name in previous.columns:
+                prev_fname_col = metadata_df.index.name
             else:
-                f.write('\n\n')
-            f.write(md_table)
-        logger.info(f"{msg} {readme}")
+                logger.error(f"The existing {tsv_path} has no 'fname' or 'fnames' column so I cannot update it.")
+                return False
+        if prev_fname_col != 'fname':
+            previous = previous.rename(columns={prev_fname_col: 'fname'})
+            logger.info(f"Renamed column {prev_fname_col} -> fname")
+        previous = previous.set_index('fname')
+        for ix, what in zip((previous.index, previous.columns, metadata_df.index, metadata_df.columns),
+                            ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
+            if not ix.is_unique:
+                duplicated = ix[ix.duplicated()].to_list()
+                logger.error(f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}")
+                return False
+        new_cols = [c for c in metadata_df.columns if c not in previous.columns]
+        previous.update(metadata_df)
+        previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
+        if 'rel_paths' in previous.columns:
+            logger.info(f"Dropped legacy column 'rel_paths'.")
+            previous = previous.drop(columns='rel_paths')
+        output_df = previous.reset_index()
+        msg = 'Updated'
+    output_df = prepare_metadata_for_writing(output_df)
+    output_df.to_csv(tsv_path, sep='\t', index=index)
+    logger.info(f"{msg} {tsv_path}")
+    return True
+
+
+@function_logger
+def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
+    """
+    Write a subset of the DataFrame ``metadata_df`` to ``path`` in markdown format. If the file exists, it will be
+    scanned for a line containing the string '# Overview' and overwritten from that line onwards.
+
+    Args:
+        metadata_df: DataFrame containing metadata.
+        file_path: Path of the markdown file.
+    """
+    rename4markdown = {
+        'fname': 'file_name',
+        'last_mn': 'measures',
+        'label_count': 'labels',
+        'harmony_version': 'standard',
+        'annotators': 'annotators',
+        'reviewers': 'reviewers',
+    }
+    rename4markdown = {k: v for k, v in rename4markdown.items() if k in metadata_df.columns}
+    drop_index = 'fnames' in metadata_df.columns
+    md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
+    md = md.rename(columns=rename4markdown)
+    md_table = str(df2md(md))
+
+    if os.path.isfile(file_path):
+        msg = 'Updated'
+        with open(file_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+    else:
+        msg = 'Created'
+        lines = []
+    # in case the README.rst exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
+    with open(file_path, 'w', encoding='utf-8') as f:
+        for line in lines:
+            if '# Overview' in line:
+                break
+            f.write(line)
+        else:
+            f.write('\n\n')
+        f.write(md_table)
+    logger.info(f"{msg} {file_path}")
 
 
 def prepare_metadata_for_writing(metadata_df):
