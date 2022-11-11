@@ -30,8 +30,8 @@ def extract(parse_obj,
     parse_obj.parse_scores(parallel=parallel)
     parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
                                      measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
-                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_path=metadata_path,
-                                     markdown=markdown, simulate=simulate, unfold=unfold, interval_index=quarterbeats, silence_label_warnings=silence_label_warnings, **suffixes)
+                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, markdown=markdown, simulate=simulate,
+                                     unfold=unfold, interval_index=quarterbeats, silence_label_warnings=silence_label_warnings, **suffixes)
 
 
 
@@ -91,7 +91,9 @@ def update(parse_obj: Parse,
            voice: Literal[1, 2, 3, 4] = 1,
            harmony_layer: Literal[0, 1, 2, 3] = 1,
            above: bool = False,
-           safe: bool = True):
+           safe: bool = True,
+           parallel: bool = True):
+    parse_obj.parse_scores(parallel=parallel)
     for corpus_name, corpus in parse_obj.iter_corpora():
         need_update = []
         latest_version = LATEST_MUSESCORE_VERSION.split('.')

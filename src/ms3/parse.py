@@ -2093,54 +2093,59 @@ class Parse(LoggedClass):
 
 
 
-    def store_extracted_facets(self, root_dir=None, notes_folder=None, notes_suffix='', rests_folder=None, rests_suffix='', notes_and_rests_folder=None, notes_and_rests_suffix='',
-                               measures_folder=None, measures_suffix='', events_folder=None, events_suffix='', labels_folder=None, labels_suffix='', chords_folder=None,
-                               chords_suffix='', expanded_folder=None, expanded_suffix='', cadences_folder=None, cadences_suffix='', form_labels_folder=None, form_labels_suffix='',
-                               metadata_path=None, markdown=True, simulate=None, unfold=False, interval_index=False, silence_label_warnings=False):
-        """ Store score information as TSV files.
+    def store_extracted_facets(self,
+                               view_name: Optional[str] = None,
+                               root_dir: Optional[str] = None,
+                               measures_folder: Optional[str] = None, measures_suffix: str = '',
+                               notes_folder: Optional[str] = None, notes_suffix: str = '',
+                               rests_folder: Optional[str] = None, rests_suffix: str = '',
+                               notes_and_rests_folder: Optional[str] = None, notes_and_rests_suffix: str = '',
+                               labels_folder: Optional[str] = None, labels_suffix: str = '',
+                               expanded_folder: Optional[str] = None, expanded_suffix: str = '',
+                               form_labels_folder: Optional[str] = None, form_labels_suffix: str = '',
+                               cadences_folder: Optional[str] = None, cadences_suffix: str = '',
+                               events_folder: Optional[str] = None, events_suffix: str = '',
+                               chords_folder: Optional[str] = None, chords_suffix: str = '',
+                               metadata_suffix: Optional[str] = None, markdown: bool = True,
+                               simulate: bool = False,
+                               unfold: bool = False,
+                               interval_index: bool = False,
+                               silence_label_warnings: bool = False):
+        """  Store facets extracted from parsed scores as TSV files.
 
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which score files are stored. By default, all keys are selected.
-        root_dir : :obj:`str`, optional
-            Defaults to None, meaning that the original root directory is used that was added to the Parse object.
-            Otherwise, pass a directory to rebuild the original directory structure. For ``_folder`` parameters describing
-            absolute paths, ``root_dir`` is ignored.
-        notes_folder, rests_folder, notes_and_rests_folder, measures_folder, events_folder, labels_folder, chords_folder, expanded_folder, cadences_folder, form_labels_folder : str, optional
-            Specify directory where to store the corresponding TSV files.
-        notes_suffix, rests_suffix, notes_and_rests_suffix, measures_suffix, events_suffix, labels_suffix, chords_suffix, expanded_suffix, cadences_suffix, form_labels_suffix : str, optional
-            Optionally specify suffixes appended to the TSVs' file names.
-        metadata_path : str, optional
-            Where to store an overview file with the MuseScore files' metadata.
-            If no file name is specified, the file will be named ``metadata.tsv``.
-        markdown : bool, optional
-            By default, when ``metadata_path`` is specified, a markdown file called ``README.rst.md`` containing
-            the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
-            this table will be appended or overwritten after the heading ``# Overview``.
-        simulate : bool, optional
-            Defaults to ``None``. Pass a value to set the object attribute :py:attr:`~ms3.parse.Parse.simulate`.
-        unfold : bool, optional
-            By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
-            playthrough, including correct positioning of first and second endings.
-        interval_index : bool, optional
-            By default, no ``quarterbeats`` column is added with distances from the piece's beginning measured in quarter notes.
-            Pass True to add the columns ``quarterbeats`` and ``duration_qb``. If a score has first and second endings,
-            the behaviour depends on ``unfold``: If False, repetitions are not unfolded and only last endings are included in the
-            continuous count. If repetitions are being unfolded, all endings are taken into account.
+        Args:
+            view_name:
+            root_dir:
+                ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'form_labels', 'cadences', 'events', 'chords')
 
-        Returns
-        -------
+            measures_folder, notes_folder, rests_folder, notes_and_rests_folder, labels_folder, expanded_folder, form_labels_folder, cadences_folder, events_folder, chords_folder:
+                Specify directory where to store the corresponding TSV files.
+            measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
+                Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
+            metadata_suffix:
+                Specify a suffix to update the 'metadata{suffix}.tsv' file for each corpus. For the main file, pass ''
+            markdown:
+                By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
+                the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
+                this table will be appended or overwritten after the heading ``# Overview``.
+            simulate:
+            unfold:
+                By default, repetitions are not unfolded. Pass True to duplicate values so that they correspond to a full
+                playthrough, including correct positioning of first and second endings.
+            interval_index:
+            silence_label_warnings:
+
+        Returns:
 
         """
         for corpus_name, corpus in self:
-            corpus.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, notes_suffix=notes_suffix, rests_folder=rests_folder, rests_suffix=rests_suffix,
-                                          notes_and_rests_folder=notes_and_rests_folder, notes_and_rests_suffix=notes_and_rests_suffix, measures_folder=measures_folder,
-                                          measures_suffix=measures_suffix, events_folder=events_folder, events_suffix=events_suffix, labels_folder=labels_folder,
-                                          labels_suffix=labels_suffix, chords_folder=chords_folder, chords_suffix=chords_suffix, expanded_folder=expanded_folder,
-                                          expanded_suffix=expanded_suffix, cadences_folder=cadences_folder, cadences_suffix=cadences_suffix, form_labels_folder=form_labels_folder,
-                                          form_labels_suffix=form_labels_suffix, metadata_path=metadata_path, markdown=markdown, simulate=simulate, unfold=unfold,
-                                          interval_index=interval_index, silence_label_warnings=silence_label_warnings)
+            corpus.store_extracted_facets(view_name=view_name, root_dir=root_dir, measures_folder=measures_folder, measures_suffix=measures_suffix, notes_folder=notes_folder, notes_suffix=notes_suffix,
+                                          rests_folder=rests_folder, rests_suffix=rests_suffix, notes_and_rests_folder=notes_and_rests_folder,
+                                          notes_and_rests_suffix=notes_and_rests_suffix, labels_folder=labels_folder, labels_suffix=labels_suffix, expanded_folder=expanded_folder,
+                                          expanded_suffix=expanded_suffix, form_labels_folder=form_labels_folder, form_labels_suffix=form_labels_suffix,
+                                          cadences_folder=cadences_folder, cadences_suffix=cadences_suffix, events_folder=events_folder, events_suffix=events_suffix,
+                                          chords_folder=chords_folder, chords_suffix=chords_suffix, metadata_suffix=metadata_suffix, markdown=markdown, simulate=simulate,
+                                          unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings)
 
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):

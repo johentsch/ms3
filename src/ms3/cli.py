@@ -5,6 +5,7 @@ Command line interface for ms3.
 """
 
 import argparse, os
+from typing import Optional
 
 import pandas as pd
 
@@ -19,7 +20,7 @@ __license__ = "gpl3"
 
 def gather_extract_params(args):
     params = [name for name, arg in zip(
-        ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'),
+        ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords', 'metadata'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata, args.form_labels))
               if arg is not None]
     return params
@@ -28,6 +29,7 @@ def gather_extract_params(args):
 
 
 def make_suffixes(args):
+    params = gather_extract_params(args)
     if args.suffix is None:
         suffixes = {}
     else:
@@ -113,7 +115,7 @@ def convert_cmd(args):
                    recursive=not args.nonrecursive,
                    ms=args.musescore,
                    overwrite=args.safe,
-                   parallel=args.nonparallel,
+                   parallel=not args.iterative,
                    logger=update_logger)
 
 def empty(args):
@@ -132,7 +134,7 @@ def empty(args):
         p.store_scores(ids=ids, overwrite=True)
 
 
-def extract_cmd(args, parse_obj=None):
+def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
@@ -187,9 +189,9 @@ def metadata(args):
     else:
         p.store_scores(ids=ids, overwrite=True)
     if args.out is not None:
-        p.store_extracted_facets(metadata_path=args.out)
+        p.store_extracted_facets(metadata_suffix=args.out)
     elif args.dir is not None:
-        p.store_extracted_facets(metadata_path=args.dir)
+        p.store_extracted_facets(metadata_suffix=args.dir)
 
 
 def repair(args):
@@ -241,9 +243,12 @@ def transform(args):
             p.logger.info(f"{path} written.")
 
 
-def update_cmd(args):
-    parse_obj = make_parse_obj(args)
-    changed_paths = update(parse_obj,
+def update_cmd(args, parse_obj: Optional[Parse] = None):
+    if parse_obj is None:
+        p = make_parse_obj(args)
+    else:
+        p = parse_obj
+    changed_paths = update(p,
                            root_dir=args.out,
                            suffix='' if args.suffix is None else args.suffix,
                            overwrite=True,
@@ -354,7 +359,7 @@ def make_parse_obj(args, parse_scores=True, parse_tsv=False):
                  ms=ms,
                  **logger_cfg)
     if parse_scores:
-        parse_obj.parse_scores()
+        parse_obj.parse_scores(parallel=not args.iterative)
     if parse_tsv:
         parse_obj.parse_tsv()
     parse_obj.info()
@@ -391,6 +396,8 @@ def get_arg_parser():
                             help='(Deprecated) The paths are expected to be within DIR. They will be converted into a view '
                                  'that includes only the indicated files. This is equivalent to specifying the file names as '
                                  'a regex via --include (assuming that file names are unique amongst corpora.')
+    parse_args.add_argument('--iterative', action='store_true',
+                                help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     parse_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
     parse_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
@@ -463,8 +470,6 @@ To prevent the interaction, set this flag to use the first annotation table that
     #                             help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
     convert_parser.add_argument('-t', '--target_format', default='mscx',
                                 help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
-    convert_parser.add_argument('-p', '--nonparallel', action='store_false',
-                                help="Do not use all available CPU cores in parallel to speed up batch jobs.")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
     convert_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
@@ -481,8 +486,6 @@ To prevent the interaction, set this flag to use the first annotation table that
     #                            help="Only remove particular types of harmony labels.")
     empty_parser.set_defaults(func=empty)
 
-
-
     extract_parser = subparsers.add_parser('extract',
                                            help="Extract selected information from MuseScore files and store it in TSV files.",
                                            parents=[parse_args])
@@ -497,14 +500,15 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Folder where to store TSV files with information on all annotation labels.")
     extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
                                 help="Folder where to store TSV files with expanded DCML labels.")
+    extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
+                                help="Folder where to store TSV files with all form labels.")
     extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
                                 help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
     extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chords',
                                 help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
-    extract_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
-                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
-    extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
-                                help="Folder where to store TSV files with all form labels.")
+    extract_parser.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
+                                help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
+                                     "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
     extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")

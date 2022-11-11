@@ -2479,7 +2479,7 @@ Available keys: {available_keys}""")
                                cadences_folder: Optional[str] = None, cadences_suffix: str = '',
                                events_folder: Optional[str] = None, events_suffix: str = '',
                                chords_folder: Optional[str] = None, chords_suffix: str = '',
-                               metadata_path: Optional[str] = None, markdown: bool = True,
+                               metadata_suffix: Optional[str] = None, markdown: bool = True,
                                simulate: bool = False,
                                unfold: bool = False,
                                interval_index: bool = False,
@@ -2495,9 +2495,8 @@ Available keys: {available_keys}""")
                 Specify directory where to store the corresponding TSV files.
             measures_suffix, notes_suffix, rests_suffix, notes_and_rests_suffix, labels_suffix, expanded_suffix, form_labels_suffix, cadences_suffix, events_suffix, chords_suffix:
                 Optionally specify suffixes appended to the TSVs' file names. If ``unfold=True`` the suffixes default to ``_unfolded``.
-            metadata_path:
-                Where to store (or update) an overview file with the MuseScore files' metadata.
-                If no file name is specified, the file will be named ``metadata.tsv``.
+            metadata_suffix:
+                Specify a suffix to update the 'metadata{suffix}.tsv' file for this corpus. For the main file, pass ''
             markdown:
                 By default, when ``metadata_path`` is specified, a markdown file called ``README.md`` containing
                 the columns [file_name, measures, labels, standard, annotators, reviewers] is created. If it exists already,
@@ -2517,43 +2516,43 @@ Available keys: {available_keys}""")
         folder_vars = [t + '_folder' for t in df_types]
         suffix_vars = [t + '_suffix' for t in df_types]
         folder_params = {t: l[p] for t, p in zip(df_types, folder_vars) if l[p] is not None}
-        if len(folder_params) == 0 and metadata_path is None:
+        output_metadata = metadata_suffix is not None
+        if len(folder_params) == 0 and not output_metadata:
             self.logger.warning("Pass at least one parameter to store files.")
-            return [] if simulate else None
+            return []
         facets = list(folder_params.keys())
         suffix_params = {t: '_unfolded' if l[p] == '' and unfold else l[p] for t, p in zip(df_types, suffix_vars) if t in folder_params}
         df_params = {p: True for p in folder_params.keys()}
         n_scores = len(self._get_parsed_score_files(view_name=view_name, flat=True))
         self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
-        target = len(facets) * n_scores
-        if target == 0:
-            return []
         paths = []
-        for piece_name, piece in self.iter_pieces(view_name=view_name):
-            for file, facet2dataframe in piece.iter_extracted_facets(facets,
-                                                                 view_name=view_name,
-                                                                 unfold=unfold,
-                                                                 interval_index=interval_index):
-                for facet, df in facet2dataframe.items():
-                    if df is None:
-                        continue
-                    folder = folder_params[facet]
-                    suffix = suffix_params[facet]
-                    file_path = make_file_path(file,
-                                               root_dir=root_dir,
-                                               folder=folder,
-                                               suffix=suffix)
-                    if simulate:
-                        self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
-                    else:
-                        write_tsv(df, file_path, logger=self.logger)
-                        self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
-                    paths.append(file_path)
-        if metadata_path is not None:
+        target = len(facets) * n_scores
+        if target > 0:
+            for piece_name, piece in self.iter_pieces(view_name=view_name):
+                for file, facet2dataframe in piece.iter_extracted_facets(facets,
+                                                                     view_name=view_name,
+                                                                     unfold=unfold,
+                                                                     interval_index=interval_index):
+                    for facet, df in facet2dataframe.items():
+                        if df is None:
+                            continue
+                        folder = folder_params[facet]
+                        suffix = suffix_params[facet]
+                        file_path = make_file_path(file,
+                                                   root_dir=root_dir,
+                                                   folder=folder,
+                                                   suffix=suffix)
+                        if simulate:
+                            self.logger.info(f"Would have stored the {facet} from {file.rel_path} as {file_path}.")
+                        else:
+                            write_tsv(df, file_path, logger=self.logger)
+                            self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
+                        paths.append(file_path)
+        if output_metadata:
             if not markdown:
-                metadata_paths = self.update_metadata_from_parsed(metadata_path, markdown_file=None)
+                metadata_paths = self.update_metadata_from_parsed(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
             else:
-                metadata_paths = self.update_metadata_from_parsed(metadata_path)
+                metadata_paths = self.update_metadata_from_parsed(root_dir=root_dir, suffix=metadata_suffix)
             paths.extend(metadata_paths)
         return paths
 
