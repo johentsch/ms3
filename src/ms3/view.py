@@ -94,8 +94,10 @@ class View(LoggedClass):
             raise ValueError(msg)
         self._name = new_name
 
-    def copy(self, new_name: str) -> 'View':
+    def copy(self, new_name: Optional[str] = None) -> 'View':
         """Returns a copy of this view, i.e., a new View object."""
+        if new_name is None:
+            new_name = get_ferocious_name()
         new_view = self.__class__(view_name=new_name)
         new_view.including = deepcopy(self.including)
         new_view.excluding = deepcopy(self.excluding)
