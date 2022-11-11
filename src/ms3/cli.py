@@ -4,7 +4,7 @@
 Command line interface for ms3.
 """
 
-import argparse, os, sys
+import argparse, os
 
 import pandas as pd
 
@@ -36,10 +36,8 @@ def make_parse_obj(args):
         'level': args.level,
         'path': args.log,
     }
-    simulate = args.test if hasattr(args, 'test') else False
     ms = args.musescore if hasattr(args, 'musescore') else None
-    return Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive, labels_cfg=labels_cfg,
-              simulate=simulate, ms=ms, **logger_cfg)
+    return Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, labels_cfg=labels_cfg, ms=ms, **logger_cfg)
 
 
 def make_suffixes(args):
@@ -63,8 +61,7 @@ def add(args):
         'level': args.level,
         'path': args.log,
     }
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
-              recursive=args.nonrecursive, **logger_cfg)
+    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
     p.parse(parallel=False)
     if args.replace:
         p.detach_labels()
@@ -126,7 +123,7 @@ def convert_cmd(args):
                    target_extension=args.target_format,
                    regex=args.regex,
                    suffix=args.suffix,
-                   recursive=args.nonrecursive,
+                   recursive=not args.nonrecursive,
                    ms=args.musescore,
                    overwrite=args.safe,
                    parallel=args.nonparallel,
@@ -137,8 +134,7 @@ def empty(args):
         'level': args.level,
         'path': args.log,
     }
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude,
-              recursive=args.nonrecursive, **logger_cfg)
+    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
     p.parse_scores(parallel=False)
     p.detach_labels()
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
@@ -187,8 +183,7 @@ def metadata(args):
 
     regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
 
-    p = Parse(args.dir, paths=args.file, file_re=regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              **logger_cfg)
+    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
     if not any('metadata' in fnames for fnames in p.fnames.values()):
         p.logger.info("metadata.tsv not found.")
         return
@@ -242,8 +237,7 @@ def transform(args):
         'path': args.log,
     }
 
-    p = Parse(args.dir, paths=args.file, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
-              simulate=args.test, **logger_cfg)
+    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
     p.parse_tsv()
     for param in params:
         if param == 'metadata':
@@ -271,7 +265,7 @@ def update(args):
     if args.dir is None:
         paths = args.file
     else:
-        paths = scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=args.nonrecursive,
+        paths = scan_directory(args.dir, file_re=args.regex, exclude_re=args.exclude, recursive=not args.nonrecursive,
                                subdirs=False,
                                exclude_files_only=True,
                                logger=update_logger)
@@ -387,8 +381,8 @@ def get_arg_parser():
     input_args = argparse.ArgumentParser(add_help=False)
     input_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
-    input_args.add_argument('-n', '--nonrecursive', action='store_false',
-                            help="Don't scan folders recursively, i.e. parse only files in DIR.")
+    input_args.add_argument('-n', '--nonrecursive', action='store_true',
+                            help="Treat DIR as single corpus even if it contains corpus directories itself.")
     input_args.add_argument('-f', '--file', metavar='PATHs', nargs='+',
                             help='Add path(s) of individual file(s) to be checked.')
     input_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,

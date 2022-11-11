@@ -39,7 +39,6 @@ class Parse(LoggedClass):
                  folder_re: Optional[Union[str, re.Pattern]] = None, 
                  exclude_re: Optional[Union[str, re.Pattern]] = None,
                  paths: Optional[Collection[str]] = None,
-                 simulate: bool = False,
                  labels_cfg: dict = {},
                  ms=None,
                  **logger_cfg):
