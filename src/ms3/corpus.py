@@ -652,6 +652,38 @@ class Corpus(LoggedClass):
     def get_changed_scores(self, view_name: Optional[str] = None) -> Dict[str, List[FileScoreTuple]]:
         return {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
 
+    def get_dataframes(self,
+                       notes: bool = False,
+                       rests: bool = False,
+                       notes_and_rests: bool = False,
+                       measures: bool = False,
+                       events: bool = False,
+                       labels: bool = False,
+                       chords: bool = False,
+                       expanded: bool = False,
+                       form_labels: bool = False,
+                       cadences: bool = False,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                       unfold: bool = False,
+                       interval_index: bool = False,
+                       flat=False,
+                       include_empty: bool = False,
+                      ) -> Dict[str, Union[Dict[str, FileDataframeTuple], List[FileDataframeTuple]]]:
+        """Renamed to :meth:`get_facets`."""
+        l = locals()
+        facets = [facet for facet in ScoreFacet.__args__ if l[facet]]
+        return self.get_facets(facets=facets,
+                               view_name=view_name,
+                               force=force,
+                               choose=choose,
+                               unfold=unfold,
+                               interval_index=interval_index,
+                               flat=flat,
+                               include_empty=include_empty)
+
+
     def get_facet(self,
                    facet: ScoreFacet,
                    view_name: Optional[str] = None,
@@ -1061,6 +1093,11 @@ class Corpus(LoggedClass):
         """
         self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
+
+
+    def parse_mscx(self, *args, **kwargs):
+        """Renamed to :meth:`parse_scores`."""
+        self.parse_scores(*args, **kwargs)
 
     def parse_scores(self,
                      level: str = None,
@@ -1622,57 +1659,145 @@ class Corpus(LoggedClass):
             return pd.DataFrame()
         return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
 
-    def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('cadences', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def cadences(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('cadences',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('chords', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def chords(self,
+               view_name: Optional[str] = None,
+               choose: Literal['auto', 'ask'] = 'auto',
+               unfold: bool = False,
+               interval_index: bool = False,
+               concatenate: bool = True,
+               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('chords',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def events(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('events', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def events(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('events',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('expanded', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def expanded(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('expanded',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('form_labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def form_labels(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('form_labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def labels(self,
+               view_name: Optional[str] = None,
+               choose: Literal['auto', 'ask'] = 'auto',
+               unfold: bool = False,
+               interval_index: bool = False,
+               concatenate: bool = True,
+               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('measures', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def measures(self,
+                 view_name: Optional[str] = None,
+                 choose: Literal['auto', 'ask'] = 'auto',
+                 unfold: bool = False,
+                 interval_index: bool = False,
+                 concatenate: bool = True,
+                 ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('measures',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('notes', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def notes(self,
+              view_name: Optional[str] = None,
+              choose: Literal['auto', 'ask'] = 'auto',
+              unfold: bool = False,
+              interval_index: bool = False,
+              concatenate: bool = True,
+              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('notes',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('notes_and_rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
+    def notes_and_rests(self,
+                        view_name: Optional[str] = None,
+                        choose: Literal['auto', 'ask'] = 'auto',
+                        unfold: bool = False,
+                        interval_index: bool = False,
+                        concatenate: bool = True,
+                        ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('notes_and_rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
-    def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-        return self._concat_lists('rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-                                  interval_index=interval_index)
-
-    def ids(self, keys=None):
-        data = {}
-        keys = self._treat_key_param(keys)
-        for key in keys:
-            fnames = self.fnames[key]
-            for i, fname in enumerate(fnames):
-                id = (key, i)
-                data[id] = os.path.join(self.rel_paths[key][i], fname)
-        result = pd.Series(data, name='file')
-        result.index = pd.MultiIndex.from_tuples(result.index, names=['key', 'i'])
-        return result
+    def rests(self,
+              view_name: Optional[str] = None,
+              choose: Literal['auto', 'ask'] = 'auto',
+              unfold: bool = False,
+              interval_index: bool = False,
+              concatenate: bool = True,
+              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
 
 
     @property
@@ -1683,47 +1808,42 @@ class Corpus(LoggedClass):
     def ms(self, ms):
         self._ms = get_musescore(ms, logger=self.logger)
 
-
-    @property
-    def parsed_mscx(self):
-        """:obj:`pandas.DataFrame`
-        Returns an overview of the parsed scores."""
-        if len(self._parsed_mscx) == 0:
-            self.logger.info("No scores have been parsed yet. Use parse() or parse_scores()")
-            return None
-        ids = list(self._iterids(only_parsed_mscx=True))
-        ix = self.ids2idx(ids, pandas_index=True)
-        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
-        attached = pd.Series([len(self._parsed_mscx[id].annotations.df) if self._parsed_mscx[id].annotations is not None else 0 for id in ids],
-                             index=ix, name='labels')
-        detached_keys = [', '.join(self._parsed_mscx[id]._detached_annotations.keys()) if len(
-            self._parsed_mscx[id]._detached_annotations) > 0 else None for id in ids]
-        if all(k is None for k in detached_keys):
-            res = pd.concat([paths, attached], axis=1)
-        else:
-            detached_keys = pd.Series(detached_keys, index=ix,
-                                  name='detached_annotations')
-            res = pd.concat([paths, attached, detached_keys], axis=1)
-        return res.sort_index()
-
-    @property
-    def parsed_tsv(self):
-        """:obj:`pandas.DataFrame`
-        Returns an overview of the parsed TSV files."""
-        if len(self._parsed_tsv) == 0:
-            self.logger.info("No TSV files have been parsed yet. Use parse() or parse_tsv()")
-            return None
-        ids = list(self._iterids(only_parsed_tsv=True))
-        ix = self.ids2idx(ids, pandas_index=True)
-        paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
-        types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
-        res = pd.concat([paths, types], axis=1)
-        return res.sort_index()
-
-
-    def add_labels(self, use=None):
-        for _, view in self:
-            view.add_labels(use=use)
+    #
+    # @property
+    # def parsed_mscx(self):
+    #     """:obj:`pandas.DataFrame`
+    #     Returns an overview of the parsed scores."""
+    #     if len(self._parsed_mscx) == 0:
+    #         self.logger.info("No scores have been parsed yet. Use parse() or parse_scores()")
+    #         return None
+    #     ids = list(self._iterids(only_parsed_mscx=True))
+    #     ix = self.ids2idx(ids, pandas_index=True)
+    #     paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+    #     attached = pd.Series([len(self._parsed_mscx[id].annotations.df) if self._parsed_mscx[id].annotations is not None else 0 for id in ids],
+    #                          index=ix, name='labels')
+    #     detached_keys = [', '.join(self._parsed_mscx[id]._detached_annotations.keys()) if len(
+    #         self._parsed_mscx[id]._detached_annotations) > 0 else None for id in ids]
+    #     if all(k is None for k in detached_keys):
+    #         res = pd.concat([paths, attached], axis=1)
+    #     else:
+    #         detached_keys = pd.Series(detached_keys, index=ix,
+    #                               name='detached_annotations')
+    #         res = pd.concat([paths, attached, detached_keys], axis=1)
+    #     return res.sort_index()
+    #
+    # @property
+    # def parsed_tsv(self):
+    #     """:obj:`pandas.DataFrame`
+    #     Returns an overview of the parsed TSV files."""
+    #     if len(self._parsed_tsv) == 0:
+    #         self.logger.info("No TSV files have been parsed yet. Use parse() or parse_tsv()")
+    #         return None
+    #     ids = list(self._iterids(only_parsed_tsv=True))
+    #     ix = self.ids2idx(ids, pandas_index=True)
+    #     paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
+    #     types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
+    #     res = pd.concat([paths, types], axis=1)
+    #     return res.sort_index()
 
 
 

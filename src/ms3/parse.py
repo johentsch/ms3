@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet
 from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
     update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument
@@ -605,6 +605,39 @@ class Parse(LoggedClass):
     def get_corpus(self, name) -> Corpus:
         assert name in self.corpus_objects, f"Don't have a corpus called '{name}', only {list(self.corpus_objects.keys())}"
         return self.corpus_objects[name]
+
+
+    def get_dataframes(self,
+                       notes: bool = False,
+                       rests: bool = False,
+                       notes_and_rests: bool = False,
+                       measures: bool = False,
+                       events: bool = False,
+                       labels: bool = False,
+                       chords: bool = False,
+                       expanded: bool = False,
+                       form_labels: bool = False,
+                       cadences: bool = False,
+                       view_name: Optional[str] = None,
+                       force: bool = False,
+                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                       unfold: bool = False,
+                       interval_index: bool = False,
+                       flat=False,
+                       include_empty: bool = False,
+                      ) -> Union[pd.DataFrame, Dict[CorpusFnameTuple, Union[Dict[str,  List[FileDataframeTuple]], List[FileDataframeTuple]]]]:
+        """Renamed to :meth:`get_facets`."""
+        l = locals()
+        facets = [facet for facet in ScoreFacet.__args__ if l[facet]]
+        return self.get_facets(facets=facets,
+                               view_name=view_name,
+                               force=force,
+                               choose=choose,
+                               unfold=unfold,
+                               interval_index=interval_index,
+                               flat=flat,
+                               include_empty=include_empty)
+
 
     def get_facets(self,
                    facets: ScoreFacets = None,
@@ -2156,7 +2189,9 @@ class Parse(LoggedClass):
         self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
-
+    def parse_mscx(self, *args, **kwargs):
+        """Renamed to :meth:`parse_scores`."""
+        self.parse_scores(*args, **kwargs)
 
     def parse_scores(self,
                      level: str = None,
