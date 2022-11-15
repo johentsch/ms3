@@ -1,3 +1,5 @@
+import dataclasses
+import io
 import json
 import os,sys, platform, re, shutil, subprocess
 from collections import defaultdict, namedtuple, Counter
@@ -12,16 +14,18 @@ from tempfile import NamedTemporaryFile as Temp
 from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any
 from zipfile import ZipFile as Zip
 
+import git
 import pandas as pd
 import numpy as np
 import webcolors
+from gitdb.exc import BadName
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
 from pytablewriter import MarkdownTableWriter
 
 from .logger import function_logger, update_cfg, LogCapturer
-from ._typing import FileDict, Facet, ViewDict
+from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
 MS3_VERSION = '1.0.0beta'
 LATEST_MUSESCORE_VERSION = '3.6.2'
@@ -3873,10 +3877,12 @@ class File:
     full_path: str
     directory: str
     suffix: str
+    commit_sha: str = ''
 
     def __repr__(self):
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
-        return f"{self.ix}: '{self.rel_path}'{suffix}"
+        commit = '' if self.commit_sha == '' else f"@{self.commit_sha[:7]}"
+        return f"{self.ix}: '{self.rel_path}'{commit}{suffix}"
 
 @function_logger
 def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[str, File],
@@ -4005,7 +4011,7 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
     if n_files == 1:
         return files[0]
     if choose not in ('auto', 'ask'):
-        self.logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
+        logger.info(f"The value for choose needs to be 'auto' or 'ask', not {choose}. Setting to 'auto'.")
         choose = 'auto'
     disambiguation_dict = files2disambiguation_dict(files, logger=logger)
     if choose == 'ask':
@@ -4039,7 +4045,7 @@ def files2disambiguation_dict(files: Collection[File], include_disambiguator: bo
         # done disambiguating
         return dict(zip(disambiguation, files))
     if include_disambiguator and len(set(disambiguation)) > 1:
-        self.logger.warning(f"Including the disambiguator removes the facet name, but the files pertain to "
+        logger.warning(f"Including the disambiguator removes the facet name, but the files pertain to "
                      f"several facets: {set(disambiguation)}")
     # first, try to disambiguate based on the files' sub-directories
     subdirs = []
@@ -4162,10 +4168,12 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
     logger.warning(f"Pass at least one of {allowed}.")
     return
 
+L = TypeVar('L')
+
 @lru_cache
 @function_logger
 def check_argument_against_literal_type(argument: str,
-                                        typ: TypeVar) -> Optional[str]:
+                                        typ: L) -> Optional[L]:
     if not isinstance(argument, str):
         logger.warning(f"Argument needs to be a string, not '{type(argument)}'")
         return None
@@ -4315,3 +4323,39 @@ def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
     s = re.sub(regex, '', s)
 
     return s
+
+@function_logger
+def get_file_blob_from_git_revision(file: File,
+                                    git_revision: str,
+                                    repo_path: Optional[str] = None) -> FileDataframeTupleMaybe:
+    if file.type == 'scores':
+        raise NotImplementedError(f"Parsing older revisions of scores is not implemented. Checkout the revision yourself.")
+    if repo_path is None:
+        repo_path = file.corpus_path
+    git_repo = os.path.basename(repo_path)
+    try:
+        repo = git.Repo(repo_path, search_parent_directories=True)
+        commit = repo.commit(git_revision)
+    except BadName:
+        logger.error(f"{git_revision} does not resolve to a commit for repo {git_repo}.")
+        return None, None
+    commit_sha = commit.hexsha
+    short_sha = commit_sha[:7]
+    commit_info = f"{short_sha} with message '{commit.message.strip()}'"
+    if short_sha != git_revision:
+        logger.debug(f"Resolved '{git_revision}' to '{short_sha}'.")
+    rel_path = os.path.normpath(file.rel_path)
+    try:
+        targetfile = commit.tree / rel_path
+    except KeyError:
+        # add logic here to find older path when the file has been moved or renamed
+        logger.error(f"{rel_path} did not exist at commit {commit_info}.")
+        return None, None
+    try:
+        with io.BytesIO(targetfile.data_stream.read()) as f:
+            parsed = load_tsv(f)
+    except Exception as e:
+        logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following exception:\n{e}")
+        return None, None
+    new_file = dataclasses.replace(file, commit_sha=commit_sha)
+    return new_file, parsed

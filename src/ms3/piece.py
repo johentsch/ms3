@@ -6,10 +6,11 @@ import pandas as pd
 
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
-    FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe, FileParsedTupleMaybe
+    FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe, FileParsedTupleMaybe, AnnotationsFacet
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
-    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal
+    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
+    get_file_blob_from_git_revision
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -658,7 +659,9 @@ class Piece(LoggedClass):
     def get_parsed(self,
                    facet: Facet,
                    view_name: Optional[str] = None,
-                   choose: Literal['auto', 'ask'] = 'auto') -> FileParsedTupleMaybe:
+                   choose: Literal['auto', 'ask'] = 'auto',
+                   git_revision: Optional[str] = None,
+                   ) -> FileParsedTupleMaybe:
         facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
@@ -667,13 +670,21 @@ class Piece(LoggedClass):
                                     choose=choose,
                                     flat=True)
         if len(files) == 0:
-            unparsed_file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
-            if unparsed_file is not None:
-                return unparsed_file, self._get_parsed_at_index(unparsed_file.ix)
-            else:
+            file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
+            if file is None:
                 return None, None
+            if git_revision is None:
+                parsed = self._get_parsed_at_index(file.ix)
+                if file.type != facet:
+                    # i.e., after parsing the file turned out to be of a different type than inferred from its path
+                    return None, None
+                return file, parsed
         if len(files) == 1:
-            return files[0]
+            if git_revision is None:
+                return files[0]
+            file = files[0][0]
+        return get_file_blob_from_git_revision(file=file,
+                                               git_revision=git_revision)
 
 
     def get_all_parsed(self,
@@ -954,6 +965,63 @@ class Piece(LoggedClass):
             else:
                 self.add_parsed_tsv(ix, df)
 
+    def load_annotation_table_into_score(self,
+                                         ix: Optional[int] = None,
+                                         df: Optional[pd.DataFrame] = None,
+                                         view_name: Optional[str] = None,
+                                         choose: Literal['auto', 'ask'] = 'auto',
+                                         key: str = 'detached',
+                                         infer: bool = True,
+                                         **cols) -> None:
+        """ Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
+        It can be an existing object or one newly created from the TSV file ``tsv_path``.
+
+        Args:
+            ix: Either pass the index of a TSV file containing annotations, or
+            df: A DataFrame containing annotations.
+            key:
+                Specify a new key for accessing the set of annotations. The string needs to be usable
+                as an identifier, e.g. not start with a number, not contain special characters etc. In return you
+                may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
+                ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
+            infer:
+                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
+                Pass False to not add and not change any label types.
+            **cols:
+                If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
+                pass them as standard_name='custom name' keywords.
+        """
+        assert (ix is None) + (df is None) == 1, "Pass either the index of a TSV file or a DataFrame with annotations."
+        if ix is not None:
+            assert ix in self.ix2file, f"Index {ix} is not associated with Piece '{self.name}'."
+            file = self.ix2file[ix]
+            df = self._get_parsed_at_index(ix)
+            assert file.type in ('labels', 'expanded'), f"File needs to contain annotations, but {file.rel_path} is of type '{file.type}'."
+        score_file, score = self.get_parsed_score(view_name=view_name, choose=choose)
+        score.load_annotations(df=df, key=key, infer=infer, **cols)
+
+
+    def load_facet_into_score(self,
+                              facet: Facet,
+                              view_name: Optional[str] = None,
+                              choose: Literal['auto', 'ask'] = 'auto',
+                              git_revision: Optional[str] = None,
+                              key: str = 'detached',
+                              infer: bool = True,
+                              **cols) -> None:
+        facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {AnnotationsFacet.__args__}"
+        file, df = self.get_parsed(facet=facet,
+                             view_name=view_name,
+                             choose=choose,
+                             git_revision=git_revision,
+                             )
+        self.load_annotation_table_into_score(df=df,
+                                              view_name=view_name,
+                                              choose=choose,
+                                              key=key,
+                                              infer=infer,
+                                              **cols)
 
 
     def register_file(self, file: File, reject_incongruent_fnames: bool = True) -> bool:
@@ -979,24 +1047,6 @@ class Piece(LoggedClass):
         self.facet2files[file.type].append(file)
         self.ix2file[file.ix] = file
         return True
-    #
-    # def store_changed_scores(self,
-    #                         view_name: Optional[str] = None,
-    #                         root_dir: Optional[str] = None,
-    #                         folder: str = '.',
-    #                         suffix: str = '',
-    #                         overwrite: bool = False,
-    #                         simulate=False) -> List[str]:
-    #     stored_file_paths = []
-    #     for file, _ in self.get_changed_scores(view_name):
-    #         file_path = self.store_parsed_score_at_ix(ix=file.ix,
-    #                                                   root_dir=root_dir,
-    #                                                   folder=folder,
-    #                                                   suffix=suffix,
-    #                                                   overwrite=overwrite,
-    #                                                   simulate=simulate)
-    #         stored_file_paths.append(file_path)
-    #     return stored_file_paths
 
     def store_extracted_facet(self,
                               facet: ScoreFacet,

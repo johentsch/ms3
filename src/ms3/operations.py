@@ -1,6 +1,8 @@
 import os.path
 from typing import Literal, Optional
 
+import pandas as pd
+
 from ms3 import Parse
 from ms3.score import Score, compare_two_score_objects
 from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert
@@ -20,7 +22,8 @@ def extract(parse_obj,
             expanded_folder=None,
             cadences_folder=None,
             form_labels_folder=None,
-            metadata_path=None, markdown=True,
+            metadata_suffix=None,
+            markdown=True,
             simulate=None,
             parallel=True,
             unfold=False,
@@ -30,8 +33,8 @@ def extract(parse_obj,
     parse_obj.parse_scores(parallel=parallel)
     parse_obj.store_extracted_facets(root_dir=root_dir, notes_folder=notes_folder, rests_folder=rests_folder, notes_and_rests_folder=notes_and_rests_folder,
                                      measures_folder=measures_folder, events_folder=events_folder, labels_folder=labels_folder, chords_folder=chords_folder,
-                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, markdown=markdown, simulate=simulate,
-                                     unfold=unfold, interval_index=quarterbeats, silence_label_warnings=silence_label_warnings, **suffixes)
+                                     expanded_folder=expanded_folder, cadences_folder=cadences_folder, form_labels_folder=form_labels_folder, metadata_suffix=metadata_suffix,
+                                     markdown=markdown, simulate=simulate, unfold=unfold, interval_index=quarterbeats, silence_label_warnings=silence_label_warnings, **suffixes)
 
 
 
@@ -80,6 +83,38 @@ def compare(parse_obj, use=None, revision_specifier=None, flip=False, root_dir=N
         return
     parse_obj.add_detached_annotations(use=use, new_key='old', revision_specifier=revision_specifier)
     return parse_obj.compare_labels('old', detached_is_newer=flip)
+
+def review(parse_obj: Parse,
+           commit: Optional[str] = None,
+           root_dir: Optional[str] = None,
+           reviewed_folder: str = 'reviewed',
+           reviewed_suffix: str = '_reviewed',
+           ignore_score_warnings: bool = False,
+           ignore_labels_warnings: bool = False,
+           n_colored_ratio_threshold: Optional[float] = 0.5,
+           assertion: bool = False,
+           ):
+    review_logger = get_logger('ms3.review')
+    parse_obj.parse_scores(parallel=False)
+    test_passes = True
+    if ignore_labels_warnings + ignore_labels_warnings < 2:
+        test_passes = check(parse_obj,
+                            scores_only = not ignore_score_warnings,
+                            labels_only = not ignore_labels_warnings)
+    extract_cmd(args, parse_obj)
+    review_reports = parse_obj.color_non_chord_tones()
+    filtered_report = pd.concat(review_reports.values(), keys=[(key, parse_obj.files[key][i]) for (key, i) in review_reports.keys()])
+    print(filtered_report[filtered_report.dur_ratio > n_colored_ratio_threshold])
+    comparison = compare(parse_obj, use=args.use, revision_specifier=commit)
+    parse_obj.store_parsed_scores(only_changed=True, root_dir=root_dir, folder=reviewed_folder, suffix=reviewed_suffix)
+    if test_passes:
+        review_logger.info(f"Parsed scores passed all tests.")
+    else:
+        msg = "Not all tests have passed."
+        if assertion:
+            assert test_passes, msg
+        else:
+            review_logger.info(msg)
 
 
 def update(parse_obj: Parse,

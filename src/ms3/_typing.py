@@ -6,6 +6,7 @@ if TYPE_CHECKING:
     from .score import Score
     from .utils import File
 
+AnnotationsFacet: TypeAlias = Literal['expanded', 'labels']
 CorpusFnameTuple = Tuple[str, str]
 FileDict: TypeAlias = Dict[str, 'File']
 FileList: TypeAlias = List['File']

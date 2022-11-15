@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 
 from ms3 import Score, Parse
-from ms3.operations import extract, check, compare, update
+from ms3.operations import extract, check, compare, update, review
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
 from ms3.logger import get_logger
 
@@ -283,7 +283,10 @@ def check_dir(d):
 
 
 
-def review_cmd(args, parse_obj=None):
+def review_cmd(args,
+               parse_obj: Optional[Parse] = None,
+               n_colored_ratio_threshold: Optional[float] = 0.5,
+               ):
     review_logger = get_logger('ms3.review')
     if parse_obj is None:
         args.raw = True
