@@ -2145,7 +2145,7 @@ class Parse(LoggedClass):
         Returns:
 
         """
-        for corpus_name, corpus in self:
+        for corpus_name, corpus in self.iter_corpora(view_name=view_name):
             corpus.store_extracted_facets(view_name=view_name, root_dir=root_dir, measures_folder=measures_folder, measures_suffix=measures_suffix, notes_folder=notes_folder, notes_suffix=notes_suffix,
                                           rests_folder=rests_folder, rests_suffix=rests_suffix, notes_and_rests_folder=notes_and_rests_folder,
                                           notes_and_rests_suffix=notes_and_rests_suffix, labels_folder=labels_folder, labels_suffix=labels_suffix, expanded_folder=expanded_folder,
@@ -2154,6 +2154,40 @@ class Parse(LoggedClass):
                                           chords_folder=chords_folder, chords_suffix=chords_suffix, metadata_suffix=metadata_suffix, markdown=markdown, simulate=simulate,
                                           unfold=unfold, interval_index=interval_index, silence_label_warnings=silence_label_warnings)
 
+    def store_parsed_scores(self,
+                            view_name: Optional[str] = None,
+                            only_changed: bool = True,
+                            root_dir: Optional[str] = None,
+                            folder: str = '.',
+                            suffix: str = '',
+                            overwrite: bool = False,
+                            simulate=False) -> Dict[str, List[str]]:
+        """ Stores all parsed scores under this view as MuseScore 3 files.
+
+        Args:
+            view_name:
+            only_changed:
+                By default, only scores that have been modified since parsing are written. Set to False to store
+                all scores regardless.
+            root_dir:
+            folder:
+            suffix: Suffix to append to the original file name.
+            overwrite: Pass True to overwrite existing files.
+            simulate: Set to True if no files are to be written.
+
+        Returns:
+            Paths of the stored files.
+        """
+        paths = {}
+        for corpus_name, corpus in self.iter_corpora(view_name):
+            paths[corpus_name] = corpus.store_parsed_scores(view_name=view_name,
+                                                    only_changed=only_changed,
+                                                    root_dir=root_dir,
+                                                    folder=folder,
+                                                    suffix=suffix,
+                                                    overwrite=overwrite,
+                                                    simulate=simulate)
+        return paths
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
         """ Shorthand for executing parse_scores and parse_tsv at a time.
