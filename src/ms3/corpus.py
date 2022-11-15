@@ -183,6 +183,10 @@ class Corpus(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
+    def ix2file(self) -> dict:
+        return dict(enumerate(self.files))
+
+    @property
     def ix2parsed(self) -> Dict[int, ParsedFile]:
         result = dict(self._ix2parsed)
         for _, piece in self:
@@ -209,6 +213,14 @@ class Corpus(LoggedClass):
         for _, piece in self:
             result.update(piece.ix2annotations)
         return result
+
+    @property
+    def ms(self):
+        return self._ms
+
+    @ms.setter
+    def ms(self, ms):
+        self._ms = get_musescore(ms, logger=self.logger)
 
     @property
     def n_detected(self):
@@ -242,6 +254,147 @@ class Corpus(LoggedClass):
     @property
     def n_annotations(self):
         return len(self.ix2annotations)
+
+    def cadences(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('cadences',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def chords(self,
+               view_name: Optional[str] = None,
+               choose: Literal['auto', 'ask'] = 'auto',
+               unfold: bool = False,
+               interval_index: bool = False,
+               concatenate: bool = True,
+               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('chords',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def events(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('events',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def expanded(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('expanded',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def form_labels(self,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    concatenate: bool = True,
+                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('form_labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def labels(self,
+               view_name: Optional[str] = None,
+               choose: Literal['auto', 'ask'] = 'auto',
+               unfold: bool = False,
+               interval_index: bool = False,
+               concatenate: bool = True,
+               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def measures(self,
+                 view_name: Optional[str] = None,
+                 choose: Literal['auto', 'ask'] = 'auto',
+                 unfold: bool = False,
+                 interval_index: bool = False,
+                 concatenate: bool = True,
+                 ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('measures',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def notes(self,
+              view_name: Optional[str] = None,
+              choose: Literal['auto', 'ask'] = 'auto',
+              unfold: bool = False,
+              interval_index: bool = False,
+              concatenate: bool = True,
+              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('notes',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def notes_and_rests(self,
+                        view_name: Optional[str] = None,
+                        choose: Literal['auto', 'ask'] = 'auto',
+                        unfold: bool = False,
+                        interval_index: bool = False,
+                        concatenate: bool = True,
+                        ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('notes_and_rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
+    def rests(self,
+              view_name: Optional[str] = None,
+              choose: Literal['auto', 'ask'] = 'auto',
+              unfold: bool = False,
+              interval_index: bool = False,
+              concatenate: bool = True,
+              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+        return self.get_facet('rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index,
+                              concatenate=concatenate)
+
 
 
     def __getattr__(self, view_name):
@@ -1585,43 +1738,6 @@ class Corpus(LoggedClass):
 
 
 
-    def _add_detached_annotations_by_ids(self, list_of_pairs, new_key):
-        """ For each pair, adds the labels at tsv_id to the score at score_id as a detached
-        :py:class:`~ms3.annotations.Annotations` object.
-
-        Parameters
-        ----------
-        list_of_pairs : list of (score_id, tsv_id)
-            IDs of parsed files.
-        new_key : :obj:`str`
-            The key under which the detached annotations can be addressed using Score[new_key].
-        """
-        assert list_of_pairs is not None, "list_of_pairs cannot be None"
-        for score_id, tsv_id in list_of_pairs:
-            if pd.isnull(score_id):
-                self.logger.info(f"No score found for annotation table {tsv_id}")
-                continue
-            if pd.isnull(tsv_id):
-                self.logger.info(f"No labels found for score {score_id}")
-                continue
-            if score_id not in self._parsed_mscx:
-                self.logger.info(f"{score_id} has not been parsed yet.")
-                continue
-            if tsv_id in self._annotations:
-                k = tsv_id[0] if pd.isnull(new_key) else new_key
-                try:
-                    self._parsed_mscx[score_id].load_annotations(anno_obj=self._annotations[tsv_id], key=k)
-                except:
-                    print(f"score_id: {score_id}, labels_id: {tsv_id}")
-                    raise
-            elif tsv_id in self._parsed_tsv:
-                k, i = tsv_id
-                self.logger.warning(f"""The TSV {tsv_id} has not yet been parsed as Annotations object. Use parse_tsv(key='{k}') and specify cols={{'label': label_col}}.""")
-            else:
-                self.logger.debug(
-                    f"Nothing to add to {score_id}. Make sure that its counterpart has been recognized as tsv_type 'labels' or 'expanded'.")
-
-
     def _make_grouped_ids(self, keys=None, ids=None):
         if ids is not None:
             grouped_ids = group_id_tuples(ids)
@@ -1697,191 +1813,6 @@ class Corpus(LoggedClass):
             return pd.DataFrame()
         return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
 
-    def cadences(self,
-                    view_name: Optional[str] = None,
-                    choose: Literal['auto', 'ask'] = 'auto',
-                    unfold: bool = False,
-                    interval_index: bool = False,
-                    concatenate: bool = True,
-                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('cadences',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def chords(self,
-               view_name: Optional[str] = None,
-               choose: Literal['auto', 'ask'] = 'auto',
-               unfold: bool = False,
-               interval_index: bool = False,
-               concatenate: bool = True,
-               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('chords',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def events(self,
-                    view_name: Optional[str] = None,
-                    choose: Literal['auto', 'ask'] = 'auto',
-                    unfold: bool = False,
-                    interval_index: bool = False,
-                    concatenate: bool = True,
-                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('events',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def expanded(self,
-                    view_name: Optional[str] = None,
-                    choose: Literal['auto', 'ask'] = 'auto',
-                    unfold: bool = False,
-                    interval_index: bool = False,
-                    concatenate: bool = True,
-                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('expanded',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def form_labels(self,
-                    view_name: Optional[str] = None,
-                    choose: Literal['auto', 'ask'] = 'auto',
-                    unfold: bool = False,
-                    interval_index: bool = False,
-                    concatenate: bool = True,
-                    ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('form_labels',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def labels(self,
-               view_name: Optional[str] = None,
-               choose: Literal['auto', 'ask'] = 'auto',
-               unfold: bool = False,
-               interval_index: bool = False,
-               concatenate: bool = True,
-               ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('labels',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def measures(self,
-                 view_name: Optional[str] = None,
-                 choose: Literal['auto', 'ask'] = 'auto',
-                 unfold: bool = False,
-                 interval_index: bool = False,
-                 concatenate: bool = True,
-                 ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('measures',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def notes(self,
-              view_name: Optional[str] = None,
-              choose: Literal['auto', 'ask'] = 'auto',
-              unfold: bool = False,
-              interval_index: bool = False,
-              concatenate: bool = True,
-              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('notes',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def notes_and_rests(self,
-                        view_name: Optional[str] = None,
-                        choose: Literal['auto', 'ask'] = 'auto',
-                        unfold: bool = False,
-                        interval_index: bool = False,
-                        concatenate: bool = True,
-                        ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('notes_and_rests',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-    def rests(self,
-              view_name: Optional[str] = None,
-              choose: Literal['auto', 'ask'] = 'auto',
-              unfold: bool = False,
-              interval_index: bool = False,
-              concatenate: bool = True,
-              ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
-        return self.get_facet('rests',
-                              view_name=view_name,
-                              choose=choose,
-                              unfold=unfold,
-                              interval_index=interval_index,
-                              concatenate=concatenate)
-
-
-    @property
-    def ms(self):
-        return self._ms
-
-    @ms.setter
-    def ms(self, ms):
-        self._ms = get_musescore(ms, logger=self.logger)
-
-    #
-    # @property
-    # def parsed_mscx(self):
-    #     """:obj:`pandas.DataFrame`
-    #     Returns an overview of the parsed scores."""
-    #     if len(self._parsed_mscx) == 0:
-    #         self.logger.info("No scores have been parsed yet. Use parse() or parse_scores()")
-    #         return None
-    #     ids = list(self._iterids(only_parsed_mscx=True))
-    #     ix = self.ids2idx(ids, pandas_index=True)
-    #     paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
-    #     attached = pd.Series([len(self._parsed_mscx[id].annotations.df) if self._parsed_mscx[id].annotations is not None else 0 for id in ids],
-    #                          index=ix, name='labels')
-    #     detached_keys = [', '.join(self._parsed_mscx[id]._detached_annotations.keys()) if len(
-    #         self._parsed_mscx[id]._detached_annotations) > 0 else None for id in ids]
-    #     if all(k is None for k in detached_keys):
-    #         res = pd.concat([paths, attached], axis=1)
-    #     else:
-    #         detached_keys = pd.Series(detached_keys, index=ix,
-    #                               name='detached_annotations')
-    #         res = pd.concat([paths, attached, detached_keys], axis=1)
-    #     return res.sort_index()
-    #
-    # @property
-    # def parsed_tsv(self):
-    #     """:obj:`pandas.DataFrame`
-    #     Returns an overview of the parsed TSV files."""
-    #     if len(self._parsed_tsv) == 0:
-    #         self.logger.info("No TSV files have been parsed yet. Use parse() or parse_tsv()")
-    #         return None
-    #     ids = list(self._iterids(only_parsed_tsv=True))
-    #     ix = self.ids2idx(ids, pandas_index=True)
-    #     paths = pd.Series([os.path.join(self.rel_paths[k][i], self.files[k][i]) for k, i in ids], index=ix, name='paths')
-    #     types = pd.Series([self._tsv_types[id] for id in ids], index=ix, name='types')
-    #     res = pd.concat([paths, types], axis=1)
-    #     return res.sort_index()
 
 
 
@@ -2290,39 +2221,6 @@ Available keys: {available_keys}""")
         self._collect_annotations_objects_references(ids=ids)
 
 
-
-    def fname2ids(self, fname, key=None, rel_path=None, allow_suffix=True):
-        """For a given filename, return corresponding IDs.
-
-        Parameters
-        ----------
-        fname : :obj:`str`
-            Filename (without extension) to get IDs for.
-        key : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            If you want to scan through IDs of one or several particular keys, specify.
-        rel_path : :obj:`str`, optional
-            Passing a rel_path is useful for associating a row from metadata.tsv with a parsed
-            MuseScore file.
-        allow_suffix : :obj:`bool`, optional
-            By default, filenames are matched even if they continue with a suffix. Pass False to return only exact matches.
-
-        Returns
-        -------
-        :obj:`dict`
-            {ID -> filename)
-        """
-        if allow_suffix:
-            l = len(fname)
-            ids = {(k, i): self.fnames[k][i]  for k, i in self._iterids(key) if self.fnames[k][i][:l] == fname}
-        else:
-            ids = {(k, i): self.fnames[k][i] for k, i in self._iterids(key) if self.fnames[k][i] == fname}
-        if rel_path is not None:
-            ids = {(k, i): fname for (k, i), fname in ids.items() if self.rel_paths[k][i] == rel_path}
-        return ids
-
-
-
-
     def get_labels(self, keys=None, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, column_name=None,
                    color_format=None, concat=True):
         """ This function does not take into account self.labels_cfg """
@@ -2490,41 +2388,6 @@ Available keys: {available_keys}""")
         join_this = [[self._parsed_tsv[id] for id in ids if not pd.isnull(id)] for ids in join_this]
         joined = [join_tsvs(dfs) for dfs in join_this]
         return pd.concat(joined, keys=key_ids)
-
-
-
-    # def metadata_tsv(self, keys=None, parse_if_necessary=True):
-    #     """Returns a {id -> DataFrame} dictionary with all metadata.tsv files. To retrieve parsed
-    #     files recognized as containing metadata independent of their names, use :py:meth:`get_tsvs`."""
-    #     keys = self._treat_key_param(keys)
-    #     if len(self._parsed_tsv) == 0:
-    #         if not parse_if_necessary:
-    #             self.logger.debug(f"No TSV files have been parsed so far. Use Corpus.parse_tsv().")
-    #             return pd.DataFrame()
-    #     metadata_dfs = {}
-    #     for k in keys:
-    #         try:
-    #             i = self.files[k].index('metadata.tsv')
-    #         except ValueError:
-    #             self.logger.debug(f"Key '{k}' does not include a file named 'metadata.tsv'.")
-    #             return metadata_dfs
-    #         id = (k, i)
-    #         if id not in self._parsed_tsv:
-    #             if parse_if_necessary:
-    #                 self.parse_tsv()
-    #             else:
-    #                 self.logger.debug(
-    #                     f"Found unparsed metadata for key '{k}' but parse_if_necessary is set to False.")
-    #         if id in self._parsed_tsv:
-    #             metadata_dfs[id] = self._parsed_tsv[id]
-    #         elif parse_if_necessary:
-    #             self.logger.debug(f"Could not find the DataFrame for the freshly parsed {self.full_paths[k][i]}.")
-    #     n_found = len(metadata_dfs)
-    #     if n_found == 0:
-    #         self.logger.debug(f"No metadata.tsv files have been found for they keys {', '.join(keys)}")
-    #         return {}
-    #     return metadata_dfs
-
 
 
     def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
@@ -2939,24 +2802,27 @@ Load one of the identically named files with a different key using add_dir(key='
 
     def store_parsed_scores(self,
                             view_name: Optional[str] = None,
-                            only_changed: bool = False,
+                            only_changed: bool = True,
                             root_dir: Optional[str] = None,
                             folder: str = '.',
                             suffix: str = '',
                             overwrite: bool = False,
                             simulate=False) -> List[str]:
-        """
-        Stores all parsed scores under this view as MuseScore 3 files.
+        """ Stores all parsed scores under this view as MuseScore 3 files.
 
         Args:
+            view_name:
+            only_changed:
+                By default, only scores that have been modified since parsing are written. Set to False to store
+                all scores regardless.
+            root_dir:
             folder:
             suffix: Suffix to append to the original file name.
-            root_dir:
             overwrite: Pass True to overwrite existing files.
             simulate: Set to True if no files are to be written.
 
         Returns:
-            Path of the stored file.
+            Paths of the stored files.
         """
         file_paths = []
         for fname, piece in self.iter_pieces(view_name):
