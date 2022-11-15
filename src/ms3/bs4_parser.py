@@ -74,7 +74,7 @@
 import re, sys
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal
+from typing import Literal, Optional, List, Tuple
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -1623,50 +1623,47 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return tag
 
 
-    def color_notes(self, from_mc, from_mc_onset, to_mc=None, to_mc_onset=None,
-                    midi=[], tpc=[], inverse=False,
-                    color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
-                    ):
+    def color_notes(self,
+                    from_mc: int,
+                    from_mc_onset: frac,
+                    to_mc: Optional[int] = None,
+                    to_mc_onset: Optional[frac] = None,
+                    midi: List[int] = [],
+                    tpc: List[int] = [],
+                    inverse: bool = False,
+                    color_name: Optional[str] = None,
+                    color_html: Optional[str] = None,
+                    color_r: Optional[int] = None,
+                    color_g: Optional[int] = None,
+                    color_b: Optional[int] = None,
+                    color_a: Optional[int] = None,
+                    ) -> Tuple[List[frac], List[frac]]:
         """ Colors all notes occurring in a particular score segment in one particular color, or
         only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
 
-        Parameters
-        ----------
-        from_mc : :obj:`int`
-            MC in which the score segment starts.
-        from_mc_onset : :obj:`fractions.Fraction`
-            mc_onset where the score segment starts.
-        to_mc : :obj:`int`, optional
-            MC in which the score segment ends. If not specified, the segment ends at the end of the score.
-        to_mc_onset : :obj:`fractions.Fraction`, optional
-            If ``to_mc`` is defined, the mc_onset where the score segment ends.
-        midi : :obj:`Collection[int]`, optional
-            Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
-        tpc : :obj:`Collection[int]`, optional
-            Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
-        inverse : :obj:`bool`, optional
-            By default, only notes where all specified filters (midi and/or tpc) apply are colored.
-            Set to True to color only those notes where none of the specified filters match.
-        color_name : :obj:`str`, optional
-            Specify the color either as a name, or as HTML color, or as RGB(A). As a name you can
-            use CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-        color_html : :obj:`str`, optional
-            Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
-            needs to be string of length 6.
-        color_r : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_g and color_b.
-        color_g : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_r and color_b.
-        color_b : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_r and color_g.
-        color_a : :obj:`int`, optional
-            If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+        Args:
+            from_mc: MC in which the score segment starts.
+            from_mc_onset: mc_onset where the score segment starts.
+            to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.
+            to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.
+            midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
+            tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
+            inverse:
+                By default, only notes where all specified filters (midi and/or tpc) apply are colored.
+                Set to True to color only those notes where none of the specified filters match.
+            color_name:
+                Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+            color_html:
+                Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
+                needs to be string of length 6.
+            color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.
+            color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.
+            color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.
+            color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
 
-        Returns
-        -------
-        :obj:`list`
+        Returns:
             List of durations (in fractions) of all notes that have been colored.
-        :obj:`list`
             List of durations (in fractions) of all notes that have not been colored.
         """
         if len(self.tags) == 0:

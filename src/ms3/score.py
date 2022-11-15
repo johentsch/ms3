@@ -73,7 +73,7 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import Literal, Optional
+from typing import Literal, Optional, Collection, Dict
 
 import pandas as pd
 
@@ -518,24 +518,34 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
 
-    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
-        """
+    def color_non_chord_tones(self,
+                              df: pd.DataFrame,
+                              color_name: str = 'red',
+                              chord_tone_cols: Collection[str] = ['chord_tones', 'added_tones'],
+                              color_nan: bool = True) -> pd.DataFrame:
+        """ Iterates backwards through the rows of the given DataFrame, interpreting each row as a score segment,
+        and colors all notes that do not correspond to one of the tonal pitch classes (TPC) indicated in one of the
+        tuples contained in the ``chord_tone_cols``. The columns 'mc' and 'mc_onset' are taken to indicate each score
+        segment's start, which reaches to the subsequent one (the last segment reaching to the end of the score). Only
+        notes whose onsets lie within the respective segment are colored, meaning that those whose durations reach
+        into a segment are not taken into account.
 
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame`
-            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
-        color_name : :obj:`str`, optional
-            Name the color that the non-chord tones should get, defaults to 'red'.
-        chord_tone_cols : :obj:`list`, optional
-            Names of the columns containing tuples of chord tones, expressed as TPC.
-        color_nan : :obj:`bool`, optional
-            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
-            will be colored. Pass False to add the segment to the previous one instead.
+        Args:
+            df: A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+            color_name:
+                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+            chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
+            color_nan:
+                By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
+                will be colored. Pass False to add the segment to the previous one instead.
 
-        Returns
-        -------
-
+        Returns:
+            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+            segment.
         """
         if self.read_only:
             self.parsed.make_writeable()
@@ -759,87 +769,87 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self.read_only:
             self.parsed.make_writeable()
         return self.parsed.store_score(filepath=filepath)
-
-    def store_list(self, what='all', folder=None, suffix=None):
-        """
-        Store one or several several lists as TSV files(s).
-
-        Parameters
-        ----------
-        what : :obj:`str` or :obj:`Collection`, optional
-            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
-        folder : :obj:`str`, optional
-            Where to store. Defaults to the directory of the parsed MSCX file.
-        suffix : :obj:`str` or :obj:`Collection`, optional
-            Suffix appended to the file name of the parsed MSCX file to create a new file name.
-            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
-            Number of suffixes needs to be equal to the number of ``what``.
-
-        Returns
-        -------
-        None
-
-        """
-        folder = resolve_dir(folder)
-        mscx_path, file = os.path.split(self.mscx_src)
-        fname, _ = os.path.splitext(file)
-        if folder is None:
-            folder = mscx_path
-        if not os.path.isdir(folder):
-            if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.makedirs(folder)
-            else:
-                return
-        what, suffix = self._treat_storing_params(what, suffix)
-        self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
-        if what is None:
-            self.logger.error("Tell me 'what' to store.")
-            return
-
-        for w, s in zip(what, suffix):
-            df = self.__getattribute__(w)
-            if len(df.index) > 0:
-                new_name = f"{fname}{s}{ext}"
-                full_path = os.path.join(folder, new_name)
-                write_tsv(df, full_path, logger=self.logger)
-            else:
-                self.logger.debug(f"{w} empty, no file written.")
-
-    def _treat_storing_params(self, what, suffix):
-        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
-        if what == 'all':
-            if suffix is None:
-                return tables, [f"_{t}" for t in tables]
-            elif len(suffix) < len(tables) or isinstance(suffix, str):
-                self.logger.error(
-                    f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
-                return None, None
-            elif len(suffix) > len(tables):
-                suffix = suffix[:len(tables)]
-            return tables, [str(s) for s in suffix]
-
-        if isinstance(what, str):
-            what = [what]
-        if isinstance(suffix, str):
-            suffix = [suffix]
-
-        correct = [(i, w) for i, w in enumerate(what) if w in tables]
-        if suffix is None:
-            suffix = [f"_{w}" for _, w in correct]
-        if len(correct) < len(what):
-            if len(correct) == 0:
-                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
-                return None, None
-            else:
-                incorrect = [w for w in what if w not in tables]
-                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
-                suffix = [suffix[i] for i, _ in correct]
-        if len(correct) < len(suffix):
-            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
-            return None, None
-        elif len(suffix) > len(correct):
-            suffix = suffix[:len(correct)]
-        return what, [str(s) for s in suffix]
+    #
+    # def store_list(self, what='all', folder=None, suffix=None):
+    #     """
+    #     Store one or several several lists as TSV files(s).
+    #
+    #     Parameters
+    #     ----------
+    #     what : :obj:`str` or :obj:`Collection`, optional
+    #         Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
+    #     folder : :obj:`str`, optional
+    #         Where to store. Defaults to the directory of the parsed MSCX file.
+    #     suffix : :obj:`str` or :obj:`Collection`, optional
+    #         Suffix appended to the file name of the parsed MSCX file to create a new file name.
+    #         Defaults to None, meaning that standard suffixes based on ``what`` are attached.
+    #         Number of suffixes needs to be equal to the number of ``what``.
+    #
+    #     Returns
+    #     -------
+    #     None
+    #
+    #     """
+    #     folder = resolve_dir(folder)
+    #     mscx_path, file = os.path.split(self.mscx_src)
+    #     fname, _ = os.path.splitext(file)
+    #     if folder is None:
+    #         folder = mscx_path
+    #     if not os.path.isdir(folder):
+    #         if input(folder + ' does not exist. Create? (y|n)') == "y":
+    #             os.makedirs(folder)
+    #         else:
+    #             return
+    #     what, suffix = self._treat_storing_params(what, suffix)
+    #     self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
+    #     if what is None:
+    #         self.logger.error("Tell me 'what' to store.")
+    #         return
+    #
+    #     for w, s in zip(what, suffix):
+    #         df = self.__getattribute__(w)
+    #         if len(df.index) > 0:
+    #             new_name = f"{fname}{s}{ext}"
+    #             full_path = os.path.join(folder, new_name)
+    #             write_tsv(df, full_path, logger=self.logger)
+    #         else:
+    #             self.logger.debug(f"{w} empty, no file written.")
+    #
+    # def _treat_storing_params(self, what, suffix):
+    #     tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
+    #     if what == 'all':
+    #         if suffix is None:
+    #             return tables, [f"_{t}" for t in tables]
+    #         elif len(suffix) < len(tables) or isinstance(suffix, str):
+    #             self.logger.error(
+    #                 f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
+    #             return None, None
+    #         elif len(suffix) > len(tables):
+    #             suffix = suffix[:len(tables)]
+    #         return tables, [str(s) for s in suffix]
+    #
+    #     if isinstance(what, str):
+    #         what = [what]
+    #     if isinstance(suffix, str):
+    #         suffix = [suffix]
+    #
+    #     correct = [(i, w) for i, w in enumerate(what) if w in tables]
+    #     if suffix is None:
+    #         suffix = [f"_{w}" for _, w in correct]
+    #     if len(correct) < len(what):
+    #         if len(correct) == 0:
+    #             self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
+    #             return None, None
+    #         else:
+    #             incorrect = [w for w in what if w not in tables]
+    #             self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
+    #             suffix = [suffix[i] for i, _ in correct]
+    #     if len(correct) < len(suffix):
+    #         self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
+    #         return None, None
+    #     elif len(suffix) > len(correct):
+    #         suffix = suffix[:len(correct)]
+    #     return what, [str(s) for s in suffix]
 
     def _update_annotations(self, infer_types={}):
         if len(infer_types) == 0 and self._annotations is not None:
@@ -1251,12 +1261,21 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
     def color_non_chord_tones(self, color_name: str = 'red') -> Optional[pd.DataFrame]:
-        """ Goes through the attached labels, tries to interpret them as DCML harmony labels,
-        colors the notes in the parsed score, and stores a report under :py:attr:`review_report`.
+        """ Iterates through the attached labels, tries to interpret them as DCML harmony labels,
+        colors the notes in the parsed score that are not expressed by the respective label for a score segment,
+        and stores a report under :py:attr:`review_report`.
 
-        Returns
-        -------
+        Args:
+            color_name:
+                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
 
+        Returns:
+            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+            segment.
         """
         if not self.mscx.has_annotations:
             self.mscx.logger.debug("Score contains no harmony labels.")
@@ -1522,30 +1541,35 @@ Use one of the existing keys or load a new set with the method load_annotations(
             for key in self:
                 self[key].infer_types(self.get_infer_regex())
 
-    def load_annotations(self, tsv_path=None, anno_obj=None, df=None, key='tsv', cols={}, infer=True):
+    def load_annotations(self,
+                         tsv_path: Optional[str] = None,
+                         anno_obj: Optional[Annotations] = None,
+                         df: Optional[pd.DataFrame] = None,
+                         key: str = 'detached',
+                         infer: bool = True,
+                         **cols) -> None:
         """ Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
-        Parameters
-        ----------
-        tsv_path : :obj:`str`
-            If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
-        anno_obj : :py:class:`~.annotations.Annotations`
-            Instead, you can pass an existing object.
-        key : :obj:`str`, defaults to 'tsv'
-            Specify a new key for accessing the set of annotations. The string needs to be usable
-            as an identifier, e.g. not start with a number, not contain special characters etc. In return you
-            may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
-            ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
-        cols : :obj:`dict`, optional
-            If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
-            pass a {standard name: custom name} dictionary.
-        infer : :obj:`bool`, optional
-            By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
-            Pass False to not add and not change any label types.
+        Args:
+            tsv_path: If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
+            anno_obj: Instead, you can pass an existing object.
+            df: Or you can automatically create one from a given DataFrame.
+            key:
+                Specify a new key for accessing the set of annotations. The string needs to be usable
+                as an identifier, e.g. not start with a number, not contain special characters etc. In return you
+                may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
+                ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
+            infer:
+                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
+                Pass False to not add and not change any label types.
+            **cols:
+                If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
+                pass them as standard_name='custom name' keywords.
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         assert key is not None, "Key cannot be None."
+        assert key.isidentifier(), f"Key '{key}' is not a valid identifier."
         assert sum(arg is not None for arg in (tsv_path, anno_obj, df)) == 1, "Pass either tsv_path or anno_obj or df."
         inf_dict = self.get_infer_regex() if infer else {}
         mscx = None if self._mscx is None else self._mscx
