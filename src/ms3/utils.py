@@ -3547,24 +3547,24 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
             added_notes.append(new_val)
         elif next_octave:
             if any((replacing_lower, replacing_upper, substracted)):
-                logger.warning(f"{MC}{full[0]} has no effect in {full}  because the interval is larger than an octave.")
+                logger.info(f"{MC}{full[0]} has no effect in {full}  because the interval is larger than an octave.")
             added_notes.append(new_val)
         elif chord_interval in [1, 3, 5]:  # these are changes to scale degree 2, 4, 6 that replace the lower neighbour unless they have a # or ^
             if '#' in acc or replacing_upper:
                 if '#' in acc and replacing_upper:
-                    logger.warning(f"{MC}^ is redundant in {full}.")
+                    logger.info(f"{MC}^ is redundant in {full}.")
                 if chord_interval == 5 and is_triad:  # leading tone to 7 but not in seventh chord
                     added_notes.append(new_val)
                 else:
                     replace_chord_tone(chord_interval + 1, new_val)
             else:
                 if replacing_lower:
-                    logger.warning(f"{MC}v is redundant in {full}.")
+                    logger.info(f"{MC}v is redundant in {full}.")
                 replace_chord_tone(chord_interval - 1, new_val)
         else:  # chord tone alterations
             if replacing_lower:
                 # TODO: This must be possible, e.g. V(6v5) where 5 is suspension of 4
-                logger.warning(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
+                logger.info(f"{MC}{full} -> chord tones cannot replace neighbours, use + instead.")
             elif chord_interval == 6 and figbass != '7':  # 7th are a special case:
                 if figbass == '':  # in root position triads they are added
                     # TODO: The standard is lacking a distinction, because the root in root pos. can also be replaced from below!
@@ -3573,9 +3573,10 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
                     replace_chord_tone(0, new_val)
                 else:  # otherwise they are unclear
                     logger.warning(
-                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.")
+                        f"{MC}In seventh chords, such as {label}, it is not clear whether the {full} alters the 7 or replaces the 8 and should not be used.",
+                        extra={"message_id": (18, )})
             elif tpcs[chord_interval] == new_val:
-                logger.warning(
+                logger.info(
                     f"{MC}The change {full} has no effect in {numeral}{form}{figbass}")
             else:
                 root_position[chord_interval] = [new_val]

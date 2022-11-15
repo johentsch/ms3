@@ -250,7 +250,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         expanded = self._annotations.expand_dcml(**self.labels_cfg)
         if expanded is None:
             labels = self.labels()
-            self.logger.warning(f"Annotations are present but expansion failed due to errors.")
+            if 'regex_match' in labels and 'dcml' in labels.regex_match.unique():
+                self.logger.warning(f"Annotations are present but expansion failed due to errors.",
+                                    extra={"message_id": (17, )})
             return None
         has_chord = expanded.chord.notna()
         if not has_chord.all():
@@ -537,7 +539,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         """
         if self.read_only:
             self.parsed.make_writeable()
-        if len(df) == 0:
+        if df is None or len(df) == 0:
             return df
         for col in chord_tone_cols:
             assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
@@ -1248,7 +1250,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return checks[0]
 
 
-    def color_non_chord_tones(self, color_name='red'):
+    def color_non_chord_tones(self, color_name: str = 'red') -> Optional[pd.DataFrame]:
         """ Goes through the attached labels, tries to interpret them as DCML harmony labels,
         colors the notes in the parsed score, and stores a report under :py:attr:`review_report`.
 
@@ -1257,9 +1259,12 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
         """
         if not self.mscx.has_annotations:
-            self.mscx.logger.debug("Score contains no Annotations.")
+            self.mscx.logger.debug("Score contains no harmony labels.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
+        if expanded is None:
+            self.mscx.logger.debug("Score contains no DCML harmony labels.")
+            return
         self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
         return self.review_report
 
@@ -1625,8 +1630,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.fexts[key] = file_ext
             logger_name = self.logger.name
             if logger_name == 'ms3.Score':
-                logger_name += '.' + file_name.replace('.', '')
-            logger_name += '.' + key
+                logger_name += '.' + file_name.replace('.', '') + file_ext
             self.logger_names[key] = logger_name  # logger
             return key
         else:

@@ -24,7 +24,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -173,6 +173,7 @@ class Corpus(LoggedClass):
         self.collect_fnames_from_scores()
         self.find_and_load_metadata()
         self.create_pieces()
+        self.look_for_ignored_warnings()
         self.register_files_with_pieces()
         # self.look_for_ignored_warnings(directory, key=top_level)
         # if len(mscx_files) > 0:
@@ -649,8 +650,13 @@ class Corpus(LoggedClass):
                 if not (f in metadata_fnames or any(f.startswith(md_fname) for md_fname in metadata_fnames))
                 ]
 
-    def get_changed_scores(self, view_name: Optional[str] = None) -> Dict[str, List[FileScoreTuple]]:
-        return {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
+    def get_changed_scores(self,
+                           view_name: Optional[str] = None,
+                           include_empty: bool = False) -> Dict[str, List[FileScoreTuple]]:
+        result = {fname: piece.get_changed_scores(view_name) for fname, piece in self.iter_pieces(view_name)}
+        if include_empty:
+            return result
+        return {k: v for k, v in result.items() if len(v) > 0}
 
     def get_dataframes(self,
                        notes: bool = False,
@@ -1046,6 +1052,38 @@ class Corpus(LoggedClass):
             key = 'fnames'
             view._last_filtering_counts[key] += np.array([n_kept, n_discarded, 0], dtype='int')
             view._discarded_items[key].update(discarded_items)
+
+
+    def look_for_ignored_warnings(self, directory: Optional[str] = None):
+        if directory is None:
+            directory = self.corpus_path
+        default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
+        if os.path.isfile(default_ignored_warnings_path):
+            self.logger.info(f"IGNORED_WARNINGS detected.")
+            self.load_ignored_warnings(default_ignored_warnings_path)
+
+    def load_ignored_warnings(self, path: str):
+        ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        self.logger.debug(f"Ignored warnings contained in {path}:\n{ignored_warnings}")
+        logger_names = set(self.logger_names.values())
+        all_logger_names = set()
+        for name in logger_names:
+            while name != '' and name not in all_logger_names:
+                all_logger_names.add(name)
+                try:
+                    split_pos = name.rindex('.')
+                    name = name[:split_pos]
+                except:
+                    name = ''
+        for to_be_configured, message_ids in ignored_warnings.items():
+            self._ignored_warnings[to_be_configured].extend(message_ids)
+            if to_be_configured not in all_logger_names:
+                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}', "
+                                    f"which was, however, indicated in {path}. Available loggers: {all_logger_names}",
+                                    extra={"message_id": (14, to_be_configured)})
+            configured = get_logger(to_be_configured, ignored_warnings=message_ids)
+            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+
 
 
     def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
@@ -1996,19 +2034,23 @@ Continuing with {annotation_key}.""")
             return pd.concat(checks.values(), keys=idx, names=idx.names)
         return pd.DataFrame()
 
-    def color_non_chord_tones(self, keys=None, ids=None, color_name='red'):
-        if len(self._parsed_mscx) == 0:
+    def color_non_chord_tones(self,
+                              color_name: str = 'red',
+                              view_name: Optional[str] = None,
+                              force: bool = False,
+                              choose: Literal['all', 'auto', 'ask'] = 'all', ) -> Dict[str, List[FileDataframeTuple]]:
+        if self.n_parsed_scores == 0:
             self.logger.info("No scores have been parsed so far. Use parse_scores()")
             return
-        if ids is None:
-            ids = list(self._iterids(keys, only_parsed_mscx=True))
-        else:
-            ids = [id for id in ids if id in self._parsed_mscx]
-        result = {}
-        for id in ids:
-            score = self._parsed_mscx[id]
-            result[id] = score.color_non_chord_tones(color_name=color_name)
-        return result
+        result = defaultdict(list)
+        for file, score in self.iter_parsed('scores',
+                                            view_name=view_name,
+                                            force=force,
+                                            choose=choose,):
+            report = score.color_non_chord_tones(color_name=color_name)
+            if report is not None:
+                result[file.fname].append((file, report))
+        return dict(result)
 
 
 

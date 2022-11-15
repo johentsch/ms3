@@ -469,6 +469,20 @@ class Parse(LoggedClass):
             # new_view = create_view_from_parameters(only_metadata_fnames=False, exclude_review=False, paths=paths)
             # corpus.set_view(new_view)
 
+    def color_non_chord_tones(self,
+                              color_name: str = 'red',
+                              view_name: Optional[str] = None,
+                              force: bool = False,
+                              choose: Literal['all', 'auto', 'ask'] = 'all', ) -> Dict[CorpusFnameTuple, List[FileDataframeTuple]]:
+        result = {}
+        for corpus_name, corpus in self.iter_corpora(view_name):
+            fname2reports = corpus.color_non_chord_tones(color_name,
+                                                    view_name=view_name,
+                                                    force=force,
+                                                    choose=choose)
+            result.update({(corpus_name, fname): report for fname, report in fname2reports.items()})
+        return result
+
     def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
         """ Update :obj:`Parse.labels_cfg` and retrieve new 'labels' tables accordingly.
 
@@ -1049,34 +1063,7 @@ class Parse(LoggedClass):
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
-#
-#     def look_for_ignored_warnings(self, directory, key):
-#         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
-#         if os.path.isfile(default_ignored_warnings_path):
-#             self.logger.info(f"IGNORED_WARNINGS detected for {key}.")
-#             self.load_ignored_warnings(default_ignored_warnings_path)
-#
-#     def load_ignored_warnings(self, path):
-#         ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
-#         logger_names = set(self.logger_names.values())
-#         all_logger_names = set()
-#         for name in logger_names:
-#             while name != '' and name not in all_logger_names:
-#                 all_logger_names.add(name)
-#                 try:
-#                     split_pos = name.rindex('.')
-#                     name = name[:split_pos]
-#                 except:
-#                     name = ''
-#         for to_be_configured, message_ids in ignored_warnings.items():
-#             self._ignored_warnings[to_be_configured].extend(message_ids)
-#             if to_be_configured not in all_logger_names:
-#                 self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}', "
-#                                     f"which was, however, indicated in {path}.", extra={"message_id": (14, to_be_configured)})
-#             configured = get_logger(to_be_configured, ignored_warnings=message_ids)
-#             configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
-#
-#
+
 #
 #
 #     def check_labels(self, keys=None, ids=None):
@@ -1092,19 +1079,6 @@ class Parse(LoggedClass):
 #             return pd.concat(checks.values(), keys=idx, names=idx.names)
 #         return pd.DataFrame()
 #
-#     def color_non_chord_tones(self, keys=None, ids=None, color_name='red'):
-#         if len(self._parsed_mscx) == 0:
-#             self.logger.info("No scores have been parsed so far. Use parse_scores()")
-#             return
-#         if ids is None:
-#             ids = list(self._iterids(keys, only_parsed_mscx=True))
-#         else:
-#             ids = [id for id in ids if id in self._parsed_mscx]
-#         result = {}
-#         for id in ids:
-#             score = self._parsed_mscx[id]
-#             result[id] = score.color_non_chord_tones(color_name=color_name)
-#         return result
 #
 #
 #
