@@ -292,29 +292,16 @@ def review_cmd(args, parse_obj=None):
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    test_passes = True
-    scores_ok = check(p, scores_only=True, parallel=False)
-    if not args.ignore_score_warnings:
-        test_passes = scores_ok
-    labels_ok = check(p, labels_only=True)
-    test_passes = test_passes and labels_ok
-    extract_cmd(args, p)
-    review_report = p.color_non_chord_tones()
-    filtered_report = pd.concat(review_report.values(), keys=[(key, p.files[key][i]) for (key, i) in review_report.keys()])
-    #filtered_report.to_csv('/home/hentsche/unittest_metacorpus/sweelinck_keyboard/MS3/report.tsv', sep='\t')
-    threshold = 0.5
-    print(filtered_report[filtered_report.dur_ratio > threshold])
-    comparison = compare(p, use=args.use, revision_specifier=args.commit)
-    modified_ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    p.store_scores(ids=modified_ids, folder="../reviewed", suffix='_reviewed', overwrite=args.safe, root_dir=args.out)
-    if test_passes:
-        review_logger.info(f"Parsed scores passed all tests.")
-    else:
-        msg = "Not all tests have passed."
-        if args.assertion:
-            assert test_passes, msg
-        else:
-            review_logger.info(msg)
+    review(parse_obj=parse_obj,
+           commit=args.commit,
+           root_dir=args.out,
+           reviewed_folder='reviewed',
+           reviewed_suffix='_reviewed',
+           ignore_score_warnings=args.ignore_score_warnings,
+           ignore_labels_warnings=False,
+           n_colored_ratio_threshold=0.5,
+           assertion=args.assertion)
+
 
 
 
@@ -402,6 +389,42 @@ def get_arg_parser():
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
     parse_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
 
+    extract_args = argparse.ArgumentParser(add_help=False)
+    extract_args.add_argument('-M', '--measures', metavar='folder', nargs='?',
+                                const='../measures',
+                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+    extract_args.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
+                                help="Folder where to store TSV files with information on all notes.")
+    extract_args.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
+                                help="Folder where to store TSV files with information on all rests.")
+    extract_args.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../labels',
+                                help="Folder where to store TSV files with information on all annotation labels.")
+    extract_args.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
+                                help="Folder where to store TSV files with expanded DCML labels.")
+    extract_args.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
+                                help="Folder where to store TSV files with all form labels.")
+    extract_args.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
+                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+    extract_args.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chords',
+                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+    extract_args.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
+                                help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
+                                     "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
+    extract_args.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
+                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
+                                     "in which they are listed above (capital letter arguments).")
+    extract_args.add_argument('-t', '--test', action='store_true',
+                                help="No data is written to disk.")
+    extract_args.add_argument('-p', '--positioning', action='store_true',
+                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
+    extract_args.add_argument('--raw', action='store_false',
+                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
+    extract_args.add_argument('-u', '--unfold', action='store_true',
+                                help="Unfold the repeats for all stored DataFrames.")
+    extract_args.add_argument('-q', '--quarterbeats', action='store_true',
+                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
+                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
+                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
     # main argument parser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='''\
 --------------------------
@@ -488,42 +511,7 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     extract_parser = subparsers.add_parser('extract',
                                            help="Extract selected information from MuseScore files and store it in TSV files.",
-                                           parents=[parse_args])
-    extract_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
-                                const='../measures',
-                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
-    extract_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
-                                help="Folder where to store TSV files with information on all notes.")
-    extract_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
-                                help="Folder where to store TSV files with information on all rests.")
-    extract_parser.add_argument('-L', '--labels', metavar='folder', nargs='?', const='../labels',
-                                help="Folder where to store TSV files with information on all annotation labels.")
-    extract_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?', const='../harmonies',
-                                help="Folder where to store TSV files with expanded DCML labels.")
-    extract_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
-                                help="Folder where to store TSV files with all form labels.")
-    extract_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
-    extract_parser.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chords',
-                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
-    extract_parser.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
-                                help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
-                                     "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
-    extract_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
-                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
-                                     "in which they are listed above (capital letter arguments).")
-    extract_parser.add_argument('-t', '--test', action='store_true',
-                                help="No data is written to disk.")
-    extract_parser.add_argument('-p', '--positioning', action='store_true',
-                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
-    extract_parser.add_argument('--raw', action='store_false',
-                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
-    extract_parser.add_argument('-u', '--unfold', action='store_true',
-                                help="Unfold the repeats for all stored DataFrames.")
-    extract_parser.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
-                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+                                           parents=[extract_args, parse_args])
     extract_parser.set_defaults(func=extract_cmd)
 
 
@@ -588,44 +576,7 @@ To prevent the interaction, set this flag to use the first annotation table that
 
     review_parser = subparsers.add_parser('review',
                                          help="Extract facets, check labels, and create _reviewed files.",
-                                         parents=[parse_args])
-    review_parser.add_argument('-M', '--measures', metavar='folder', nargs='?',
-                                const='../measures',
-                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
-    review_parser.add_argument('-N', '--notes', metavar='folder', nargs='?', const='../notes',
-                                help="Folder where to store TSV files with information on all notes.")
-    review_parser.add_argument('-R', '--rests', metavar='folder', nargs='?', const='../rests',
-                                help="Folder where to store TSV files with information on all rests.")
-    review_parser.add_argument('-L', '--labels', metavar='folder', nargs='?',
-                                const='../labels',
-                                help="Folder where to store TSV files with information on all annotation labels.")
-    review_parser.add_argument('-X', '--expanded', metavar='folder', nargs='?',
-                                const='../harmonies',
-                                help="Folder where to store TSV files with expanded DCML labels.")
-    review_parser.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
-    review_parser.add_argument('-C', '--chords', metavar='folder', nargs='?',
-                                const='../chord_events',
-                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
-    review_parser.add_argument('-D', '--metadata', metavar='path', nargs='?', const='.',
-                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
-    review_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
-                                help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
-                                     "in which they are listed above (capital letter arguments).")
-    review_parser.add_argument('--ignore_score_warnings', action='store_true',
-                                help="By default, tests also fail upon erroneous score encodings. Pass -i to prevent this.")
-    review_parser.add_argument('-t', '--test', action='store_true',
-                                help="No data is written to disk.")
-    review_parser.add_argument('-p', '--positioning', action='store_true',
-                                help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
-    review_parser.add_argument('--raw', action='store_false',
-                                help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
-    review_parser.add_argument('-u', '--unfold', action='store_true',
-                                help="Unfold the repeats for all stored DataFrames.")
-    review_parser.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
-                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+                                         parents=[extract_args, parse_args])
     review_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
                                 help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
     review_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
@@ -634,7 +585,6 @@ To prevent the interaction, set this flag to use the first annotation table that
 'expanded' or 'labels' to use only annotation tables that have the respective type.""")
 
     review_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
-    review_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     review_parser.set_defaults(func=review_cmd)
 
     return parser
