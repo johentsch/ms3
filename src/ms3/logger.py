@@ -2,7 +2,7 @@ import logging, sys, os
 from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
-
+from inspect import stack
 LEVELS = {
     'DEBUG': logging.DEBUG,
     'INFO': logging.INFO,
@@ -335,7 +335,8 @@ def update_cfg(cfg_dict, admitted_keys):
     incorrect = {k: v for k, v in cfg_dict.items() if k not in admitted_keys}
     if len(incorrect) > 0:
         corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
-        logger.warning(f"Unknown config options: {incorrect}{corr}")
+        last_5 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
+        logger.warning(f"Unknown config options: {incorrect}{corr}\nLast 5 function calls leading here: {last_5}")
     return correct
 
 
