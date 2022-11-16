@@ -1290,14 +1290,14 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
+    def compare_labels(self, key='detached', new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
         """ Compare detached labels ``key`` to the ones attached to the Score.
         By default, the attached labels are considered as the reviewed version and changes are colored in green;
         Changes with respect to the detached labels are attached to the Score in red.
 
         Parameters
         ----------
-        detached_key : :obj:`str`
+        key : :obj:`str`
             Key of the detached labels you want to compare to the ones in the score.
         new_color, old_color : :obj:`str` or :obj:`tuple`, optional
             The colors by which new and old labels are differentiated. Identical labels remain unchanged.
@@ -1314,16 +1314,16 @@ Use one of the existing keys or load a new set with the method load_annotations(
         :obj:`int`
             Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
-        assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
+        assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
             return (0, 0)
-        if detached_key not in self._detached_annotations:
-            self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
+        if key not in self._detached_annotations:
+            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return (0, 0)
 
-        old_obj = self._detached_annotations[detached_key]
+        old_obj = self._detached_annotations[key]
         new_obj = self.mscx._annotations
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]

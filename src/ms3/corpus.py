@@ -2071,8 +2071,7 @@ Available keys: {available_keys}""")
         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
         comparison_results = {}
         for id in ids:
-            comparison_results[id] = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
-                                                 detached_is_newer=detached_is_newer)
+            comparison_results[id] = self._parsed_mscx[id].compare_labels(key=detached_key, new_color=new_color, old_color=old_color, detached_is_newer=detached_is_newer)
         return comparison_results
 
 

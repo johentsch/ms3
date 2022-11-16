@@ -968,6 +968,9 @@ class Piece(LoggedClass):
         header = f"Piece '{self.name}'"
         header += "\n" + "-" * len(header) + "\n"
 
+        # get parsed scores before resetting the view's filtering counts to prevent counting twice
+        parsed_scores = self.get_parsed_scores(view_name=view_name)
+
         # start info message with the names of the available views, the header, and info on the active view.
         view = self.get_view(view_name)
         view.reset_filtering_data()
@@ -999,6 +1002,22 @@ class Piece(LoggedClass):
                 else:
                     info_columns = ['rel_path', 'is_parsed']
                 msg += files_df[info_columns].to_string()
+        changed_score_ixs = []
+        ix2detached_annotations = {}
+        for file, score in parsed_scores:
+            if score.mscx.changed:
+                changed_score_ixs.append(file.ix)
+            if len(score._detached_annotations) > 0:
+                ix2detached_annotations[file.ix] = list(score._detached_annotations.keys())
+        has_changed = len(changed_score_ixs) > 0
+        has_detached = len(ix2detached_annotations) > 0
+        if has_changed or has_detached:
+            msg += "\n\n"
+            if has_changed:
+                plural = f"Score {changed_score_ixs[0]} has" if len(changed_score_ixs) > 1 else f"Scores {changed_score_ixs} have"
+                msg += f"{plural} changed since parsing."
+            if has_detached:
+                msg += pretty_dict(ix2detached_annotations, "ix", "Loaded annotations")
         msg += '\n\n' + view.filtering_report(show_discarded=show_discarded, return_str=True)
         if return_str:
             return msg
