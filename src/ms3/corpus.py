@@ -606,15 +606,15 @@ class Corpus(LoggedClass):
                 self.files.append(F)
 
 
-    def disambiguate_facet(self, facet: Facet, ask_for_input=True):
-        """
+    def disambiguate_facet(self, facet: Facet, view_name: Optional[str] = None, ask_for_input=True) -> None:
+        """ Make sure that, for a given facet, the current view includes only one or zero files. If at least one piece
+        has more than one file, the user will be asked which ones to use. The others will be excluded from the view.
 
         Args:
-            facet:
+            facet: Which facet to disambiguate.
             ask_for_input:
-
-        Returns:
-
+                By default, if there is anything to disambiguate, the user is asked to select a group of files.
+                Pass False to see only the questions and choices without actually disambiguating.
         """
         assert isinstance(facet, str), f"Let's disambiguate one facet at a time. Received invalid argument {facet}"
         assert facet in Facet.__args__, f"'{facet}' is not a valid facet. Choose one of {Facet.__args__}."
@@ -623,7 +623,7 @@ class Corpus(LoggedClass):
         missing = []
         all_available_files = []
         selected_ixs = []
-        fname2files = self.get_files(facet, choose='all', flat=True, include_empty=False)
+        fname2files = self.get_files(facet, view_name=view_name, choose='all', flat=True, include_empty=False)
         for fname, files in fname2files.items():
             if len(files) == 0:
                 missing.append(fname)
@@ -666,7 +666,8 @@ class Corpus(LoggedClass):
                 N_remaining -= N_current
         if ask_for_input:
             excluded_file_paths = [file.full_path for file in all_available_files if file.ix not in selected_ixs]
-            self.view.excluded_file_paths.extend(excluded_file_paths)
+            view = self.get_view(view_name)
+            view.excluded_file_paths.extend(excluded_file_paths)
         return
 
     def extract_facet(self,
