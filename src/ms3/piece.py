@@ -447,6 +447,48 @@ class Piece(LoggedClass):
     #     except Exception as e:
     #         self.logger.error(f"Parsing {self.rel_paths[key][i]} failed with the following error:\n{e}")
 
+    def compare_labels(self,
+                       key: str = 'detached',
+                       new_color: str = 'ms3_darkgreen',
+                       old_color: str = 'ms3_darkred',
+                       detached_is_newer: bool = False,
+                       add_to_rna: bool = True,
+                       view_name: Optional[str] = None) -> Tuple[int, int]:
+        """ Compare detached labels ``key`` to the ones attached to the Score to create a diff.
+        By default, the attached labels are considered as the reviewed version and labels that have changed or been added
+        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are
+        attached to the Score in red, just like any deleted label.
+
+        Args:
+            key: Key of the detached labels you want to compare to the ones in the score.
+            new_color, old_color:
+                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+            detached_is_newer:
+                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+                will turn ``old_color``, as opposed to the default.
+            add_to_rna:
+                By default, new labels are attached to the Roman Numeral layer.
+                Pass False to attach them to the chord layer instead.
+
+        Returns:
+            Number of scores in which labels have changed.
+            Number of scores in which no label has chnged.
+        """
+        changed, unchanged = 0, 0
+        for file, score in self.get_parsed_scores(view_name=view_name):
+            if key in score._detached_annotations:
+                changes = score.compare_labels(key=key,
+                                     new_color=new_color,
+                                     old_color=old_color,
+                                     detached_is_newer=detached_is_newer,
+                                     add_to_rna=add_to_rna)
+                if changes > (0, 0):
+                    changed += 1
+                else:
+                    unchanged += 1
+        return changed, unchanged
+
     def count_changed_scores(self, view_name: Optional[str]) -> int:
         parsed_scores = self.get_parsed_scores(view_name=view_name)
         return sum(score.mscx.changed for _, score in parsed_scores)
@@ -1014,7 +1056,7 @@ class Piece(LoggedClass):
         if has_changed or has_detached:
             msg += "\n\n"
             if has_changed:
-                plural = f"Score {changed_score_ixs[0]} has" if len(changed_score_ixs) > 1 else f"Scores {changed_score_ixs} have"
+                plural = f"Scores {changed_score_ixs} have" if len(changed_score_ixs) > 1 else f"Score {changed_score_ixs[0]} has"
                 msg += f"{plural} changed since parsing."
             if has_detached:
                 msg += pretty_dict(ix2detached_annotations, "ix", "Loaded annotations")

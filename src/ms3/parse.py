@@ -506,6 +506,47 @@ class Parse(LoggedClass):
         if len(ids) > 0:
             self._extract_and_cache_dataframes(ids=ids, labels=True)
 
+    def compare_labels(self,
+                       key: str = 'detached',
+                       new_color: str = 'ms3_darkgreen',
+                       old_color: str = 'ms3_darkred',
+                       detached_is_newer: bool = False,
+                       add_to_rna: bool = True,
+                       view_name: Optional[str] = None) -> Tuple[int, int]:
+        """ Compare detached labels ``key`` to the ones attached to the Score to create a diff.
+        By default, the attached labels are considered as the reviewed version and labels that have changed or been added
+        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are
+        attached to the Score in red, just like any deleted label.
+
+        Args:
+            key: Key of the detached labels you want to compare to the ones in the score.
+            new_color, old_color:
+                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+            detached_is_newer:
+                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+                will turn ``old_color``, as opposed to the default.
+            add_to_rna:
+                By default, new labels are attached to the Roman Numeral layer.
+                Pass False to attach them to the chord layer instead.
+
+        Returns:
+            Number of scores in which labels have changed.
+            Number of scores in which no label has chnged.
+        """
+        changed, unchanged = 0, 0
+        for _, corpus in self.iter_corpora(view_name=view_name):
+            c, u = corpus.compare_labels(key=key,
+                                        new_color=new_color,
+                                        old_color=old_color,
+                                        detached_is_newer=detached_is_newer,
+                                        add_to_rna=add_to_rna,
+                                        view_name=view_name)
+            changed += c
+            unchanged += u
+        return changed, unchanged
+
+
     def count_changed_scores(self, view_name: Optional[str] = None):
         return sum(corpus.count_changed_scores() for _, corpus in self.iter_corpora(view_name))
 
@@ -1080,51 +1121,6 @@ class Parse(LoggedClass):
 #         return pd.DataFrame()
 #
 #
-#
-#
-#     def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='red',
-#                        detached_is_newer=False):
-#         """ Compare detached labels ``key`` to the ones attached to the Score.
-#         By default, the attached labels are considered as the reviewed version and changes are colored in green;
-#         Changes with respect to the detached labels are attached to the Score in red.
-#
-#         Parameters
-#         ----------
-#         detached_key : :obj:`str`
-#             Key under which the detached labels that you want to compare have been added to the scores.
-#         new_color, old_color : :obj:`str` or :obj:`tuple`, optional
-#             The colors by which new and old labels are differentiated. Identical labels remain unchanged.
-#         detached_is_newer : :obj:`bool`, optional
-#             Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-#             will turn ``old_color``, as opposed to the default.
-#         store_with_suffix : :obj:`str`, optional
-#             If you pass a suffix, the comparison MSCX files are stored with this suffix next to the originals.
-#
-#         Returns
-#         -------
-#         :obj:`dict`
-#             {ID -> (n_new_labels, n_removed_labels)} dictionary.
-#         """
-#         assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
-#         ids = list(self._iterids(None, only_detached_annotations=True))
-#         if len(ids) == 0:
-#             if len(self._parsed_mscx) == 0:
-#                 self.logger.info("No scores have been parsed so far.")
-#                 return {}
-#             self.logger.info("None of the parsed scores include detached labels to compare.")
-#             return {}
-#         available_keys = set(k for id in ids for k in self._parsed_mscx[id]._detached_annotations)
-#         if detached_key not in available_keys:
-#             self.logger.info(f"""None of the parsed scores include detached labels with the key '{detached_key}'.
-# Available keys: {available_keys}""")
-#             return {}
-#         ids = [id for id in ids if detached_key in self._parsed_mscx[id]._detached_annotations]
-#         self.logger.info(f"{len(ids)} parsed scores include detached labels with the key '{detached_key}'.")
-#         comparison_results = {}
-#         for id in ids:
-#             comparison_results[id] = self._parsed_mscx[id].compare_labels(detached_key=detached_key, new_color=new_color, old_color=old_color,
-#                                                  detached_is_newer=detached_is_newer)
-#         return comparison_results
 #
 #
 #     def count_annotation_layers(self, keys=None, which='attached', per_key=False):

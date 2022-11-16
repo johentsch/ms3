@@ -73,7 +73,7 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import Literal, Optional, Collection, Dict
+from typing import Literal, Optional, Collection, Dict, Tuple
 
 import pandas as pd
 
@@ -1290,28 +1290,31 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def compare_labels(self, key='detached', new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
-        """ Compare detached labels ``key`` to the ones attached to the Score.
-        By default, the attached labels are considered as the reviewed version and changes are colored in green;
-        Changes with respect to the detached labels are attached to the Score in red.
+    def compare_labels(self,
+                       key: str = 'detached',
+                       new_color: str = 'ms3_darkgreen',
+                       old_color: str = 'ms3_darkred',
+                       detached_is_newer: bool = False,
+                       add_to_rna: bool = True) -> Tuple[int, int]:
+        """ Compare detached labels ``key`` to the ones attached to the Score to create a diff.
+        By default, the attached labels are considered as the reviewed version and labels that have changed or been added
+        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are
+        attached to the Score in red, just like any deleted label.
 
-        Parameters
-        ----------
-        key : :obj:`str`
-            Key of the detached labels you want to compare to the ones in the score.
-        new_color, old_color : :obj:`str` or :obj:`tuple`, optional
-            The colors by which new and old labels are differentiated. Identical labels remain unchanged.
-        detached_is_newer : :obj:`bool`, optional
-            Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-            will turn ``old_color``, as opposed to the default.
-        add_to_rna : :obj:`bool`, optional
-            By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
+        Args:
+            key: Key of the detached labels you want to compare to the ones in the score.
+            new_color, old_color:
+                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+            detached_is_newer:
+                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+                will turn ``old_color``, as opposed to the default.
+            add_to_rna:
+                By default, new labels are attached to the Roman Numeral layer.
+                Pass False to attach them to the chord layer instead.
 
-        Returns
-        -------
-        :obj:`int`
+        Returns:
             Number of attached labels that were not present in the old version and whose color has been changed.
-        :obj:`int`
             Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
         assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
