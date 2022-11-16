@@ -7,7 +7,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction as frac
 from functools import reduce, lru_cache
-from inspect import getfullargspec
+from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
@@ -2857,9 +2857,11 @@ def update_labels_cfg(labels_cfg):
     keys = ['staff', 'voice', 'harmony_layer', 'positioning', 'decode', 'column_name', 'color_format']
     if 'logger' in labels_cfg:
         del(labels_cfg['logger'])
-    updated = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys, logger=logger)
-    if 'logger' in updated:
-        del(updated['logger'])
+    updated, incorrect = update_cfg(cfg_dict=labels_cfg, admitted_keys=keys)
+    if len(incorrect) > 0:
+        last_5 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
+        plural = 'These options are' if len(incorrect) > 1 else 'This option is'
+        logger.warning(f"{plural} not valid to configure labels: {incorrect}\nLast 5 function calls leading here: {last_5}")
     return updated
 
 

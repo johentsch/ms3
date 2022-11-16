@@ -1,5 +1,6 @@
-import sys, re
+import sys
 from functools import lru_cache
+from inspect import stack
 
 import pandas as pd
 
@@ -62,7 +63,12 @@ class Annotations(LoggedClass):
 
         columns = self.main_cols + self.additional_cols
         self.cols = {c: c for c in columns}
-        self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
+        cols_update, incorrect = update_cfg(cols, self.cols.keys())
+        if len(incorrect) > 0:
+            last_5 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
+            plural = 'These mappings do' if len(incorrect) > 1 else 'This mapping does'
+            self.logger.warning(f"{plural} not pertain to standard columns: {incorrect}\nLast 5 function calls leading here: {last_5}")
+        self.cols.update(cols_update)
 
 
         if df is not None:
