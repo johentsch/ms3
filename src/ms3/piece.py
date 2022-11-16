@@ -235,6 +235,145 @@ class Piece(LoggedClass):
     def __repr__(self):
         return self.info(return_str=True)
 
+    def cadences(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('cadences',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def chords(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('chords',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def events(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('events',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def expanded(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('expanded',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def form_labels(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('form_labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def labels(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('labels',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def measures(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('measures',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def notes(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('notes',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def notes_and_rests(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('notes_and_rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def rests(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto',
+                  unfold: bool = False,
+                  interval_index: bool = False) -> Optional[pd.DataFrame]:
+        file, df = self.get_facet('rests',
+                              view_name=view_name,
+                              choose=choose,
+                              unfold=unfold,
+                              interval_index=interval_index)
+        self.logger.debug(f"Returning {file}.")
+        return df
+
+    def score(self,
+                  view_name: Optional[str] = None,
+                  choose: Literal['auto', 'ask'] = 'auto') -> Optional[Score]:
+        file, score = self.get_parsed('scores',
+                              view_name=view_name,
+                              choose=choose)
+        self.logger.debug(f"Returning {file}.")
+        return score
+
 
     def add_parsed_score(self, ix: int, score_obj: Score) -> None:
         assert ix in self.ix2file, f"Piece '{self.name}' does not include a file with index {ix}."
@@ -678,6 +817,8 @@ class Piece(LoggedClass):
         facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
+        if git_revision is not None:
+            assert facet != 'scores', f"I don't parse scores from older commits. Check out {git_revision} yourself."
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
                                     choose=choose,
