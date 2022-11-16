@@ -10,7 +10,7 @@ from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, Sco
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    get_file_blob_from_git_revision
+    get_file_blob_from_git_revision, disambiguate_files
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -627,6 +627,8 @@ class Piece(LoggedClass):
                 if selected is None:
                     if include_empty:
                         result[typ] = []
+                    else:
+                        del(result[typ])
                 else:
                     result[typ] = [selected]
         elif choose == 'all' and 'scores' in needs_choice:
@@ -662,6 +664,17 @@ class Piece(LoggedClass):
                    choose: Literal['auto', 'ask'] = 'auto',
                    git_revision: Optional[str] = None,
                    ) -> FileParsedTupleMaybe:
+        """ Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.
+
+        Args:
+            facet:
+            view_name:
+            choose:
+            git_revision:
+
+        Returns:
+
+        """
         facet = check_argument_against_literal_type(facet, Facet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {Facet.__args__}"
         assert choose != 'all', "If you want to choose='all', use _.get_all_parsed()."
@@ -703,37 +716,64 @@ class Piece(LoggedClass):
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return [] if flat else {}
-        facet2files = self.get_files(selected_facets, view_name=view_name, choose=choose, include_empty=include_empty)
+        facet2files = self.get_files(selected_facets, view_name=view_name, include_empty=include_empty)
         result = {}
         for facet, files in facet2files.items():
-            unparsed_ixs = [file.ix for file in files if file.ix not in self.ix2parsed]
-            n_unparsed = len(unparsed_ixs)
-            if force:
-                if len(unparsed_ixs) > 0:
-                    for ix in unparsed_ixs:
-                        self._parse_file_at_index(ix)
-            elif n_unparsed > 0:
-                plural = 'files' if n_unparsed > 1 else 'facet'
+            if len(files) == 0:
+                ## implies include_empty=True
+                result[facet] = []
+                continue
+            parsed_files = [file for file in files if file.ix in self.ix2parsed]
+            unparsed_files = [file for file in files if file.ix not in parsed_files]
+            n_parsed = len(parsed_files)
+            n_unparsed = len(unparsed_files)
+            if choose=='all':
+                if force:
+                    if n_unparsed > 0:
+                        for file in unparsed_files:
+                            self._parse_file_at_index(file.ix)
+                else:
+                    files = parsed_files
+            # otherwise, each facet will have a list of 1 or 0 elements (or is skipped if include_empty=False)
+            elif n_parsed == 0:
+                if force:
+                    if n_unparsed > 1:
+                        selected = disambiguate_files(unparsed_files,
+                                                      self.name,
+                                                      facet,
+                                                      choose=choose,
+                                                      logger=self.logger)
+                        if selected is None:
+                            if include_empty:
+                                result[facet] = []
+                            continue
+                    else:
+                        selected = unparsed_files[0]
+                    self._parse_file_at_index(selected.ix)
+                    files = [selected]
+                else:
+                    files = []
+            elif n_parsed == 1:
+                files = parsed_files
+            else:
+                selected = disambiguate_files(parsed_files,
+                                              self.name,
+                                              facet,
+                                              choose=choose,
+                                              logger=self.logger)
+                if selected is None:
+                    if include_empty:
+                        result[facet] = []
+                    continue
+                files = [selected]
+            if n_unparsed > 0:
+                plural = 'files' if n_unparsed > 1 else 'file'
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
             parsed_files = [(file, self.ix2parsed[file.ix]) for file in files if file.ix in self.ix2parsed]
             n_parsed = len(parsed_files)
             if n_parsed == 0 and not include_empty:
                 continue
-            elif choose == 'all' or n_parsed < 2:
-                # no disambiguation required
-                result[facet] = parsed_files
-            else:
-                selected = disambiguate_parsed_files(parsed_files,
-                                                     self.name,
-                                                     facet,
-                                                     choose=choose,
-                                                     logger=self.logger
-                                                     )
-                if selected is None:
-                    if include_empty:
-                        result[facet] = []
-                else:
-                    result[facet] = [selected]
+            result[facet] = parsed_files
         if flat:
             return sum(result.values(), start=[])
         return result

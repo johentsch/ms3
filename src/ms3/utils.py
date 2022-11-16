@@ -3982,8 +3982,8 @@ def ask_user_to_choose_from_disambiguated_files(disambiguated_choices: Dict[str,
     choices_df = pd.concat([disamb_strings,
                             pd.DataFrame(file_list)[['rel_path', 'type', 'ix']]],
                            axis=1)
-    choices_df.index.rename('select:', inplace=True)
-    range_str = f"0-{len(disambiguated_choices) - 1}"
+    choices_df.index = pd.Index(range(1, len(file_list) + 1), name='select:')
+    range_str = f"1-{len(disambiguated_choices)}"
     query = f"Selection [{range_str}]: "
     print(f"Several '{file_type}' available for '{fname}':\n{choices_df.to_string()}")
     print(f"Please select one of the files by passing an integer between {range_str} (or 0 for none):")
@@ -4015,18 +4015,18 @@ def disambiguate_files(files: Collection[File], fname: str, file_type: str, choo
         choose = 'auto'
     disambiguation_dict = files2disambiguation_dict(files, logger=logger)
     if choose == 'ask':
-        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
+        return ask_user_to_choose_from_disambiguated_files(disambiguation_dict, fname, file_type)
     return automatically_choose_from_disambiguated_files(disambiguation_dict, fname, file_type, logger=logger)
 
-@function_logger
-def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
-    files = [tup[0] for tup in tuples_with_file_as_first_element]
-    selected = disambiguate_files(files, fname=fname, file_type=file_type, choose=choose, logger=logger)
-    if selected is None:
-        return
-    for tup in tuples_with_file_as_first_element:
-        if tup[0] == selected:
-            return tup
+# @function_logger
+# def disambiguate_parsed_files(tuples_with_file_as_first_element: Collection[Tuple], fname: str, file_type: str, choose: Literal['auto', 'ask'] = 'auto') -> Optional[File]:
+#     files = [tup[0] for tup in tuples_with_file_as_first_element]
+#     selected = disambiguate_files(files, fname=fname, file_type=file_type, choose=choose, logger=logger)
+#     if selected is None:
+#         return
+#     for tup in tuples_with_file_as_first_element:
+#         if tup[0] == selected:
+#             return tup
 
 
 @function_logger
