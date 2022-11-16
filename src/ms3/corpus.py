@@ -17,14 +17,14 @@ from .logger import LoggedClass, get_logger, get_log_capture_handler, temporaril
 from .piece import Piece
 from .score import Score, compare_two_score_objects
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, \
-    Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple
+    Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
     load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown, parse_ignored_warnings_file
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -404,6 +404,7 @@ class Corpus(LoggedClass):
             return self
         else:
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
+
     def ix_logger(self, ix):
         return get_logger(self.logger_names[ix])
 
@@ -851,7 +852,7 @@ class Corpus(LoggedClass):
                    unfold: bool = False,
                    interval_index: bool = False,
                    concatenate: bool = True,
-                   ) -> Union[Dict[str, FileParsedTuple], pd.DataFrame]:
+                   ) -> Union[Dict[str, FileDataframeTuple], pd.DataFrame]:
         view_name_display = self.view_name if view_name is None else view_name
         result = {}
         for fname, piece in self.iter_pieces(view_name):
@@ -1208,7 +1209,44 @@ class Corpus(LoggedClass):
             view._discarded_items[key].update(discarded_items)
 
 
+    def load_facet_into_scores(self,
+                               facet: AnnotationsFacet,
+                               view_name: Optional[str] = None,
+                               force: bool = False,
+                               choose: Literal['auto', 'ask'] = 'auto',
+                               git_revision: Optional[str] = None,
+                               key: str = 'detached',
+                               infer: bool = True,
+                               **cols) -> None:
+        facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {AnnotationsFacet.__args__}"
+        assert choose != 'all', "Only one set of annotations can be added under a given key."
+        if git_revision is None:
+            fname2tuples = self.get_all_parsed(facets=facet,
+                                view_name=view_name,
+                                force=force,
+                                choose=choose,
+                                flat=True,
+                                )
+            fname2tuple = {fname: tuples[0] for fname, tuples in fname2tuples.items()}
+        else:
+            fname2tuple = self.get_facet_at_git_revision(facet=facet,
+                                                          git_revision=git_revision,
+                                                          view_name=view_name,
+                                                          choose=choose)
+        for fname, tuple in fname2tuple.items():
+            file, df = tuple
+            self[fname].load_annotation_table_into_score(df=df,
+                                                         view_name=view_name,
+                                                         choose=choose,
+                                                         key=key,
+                                                         infer=infer,
+                                                         **cols)
+
+
+
     def look_for_ignored_warnings(self, directory: Optional[str] = None):
+        """Looks for a text file called IGNORED_WARNINGS and, if it exists, loads it, configuring loggers as indicated."""
         if directory is None:
             directory = self.corpus_path
         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
@@ -1217,6 +1255,10 @@ class Corpus(LoggedClass):
             self.load_ignored_warnings(default_ignored_warnings_path)
 
     def load_ignored_warnings(self, path: str):
+        """
+        Loads in a text file containing warnings that are to be ignored, i.e., wrapped in DEBUG messages. The purpose
+        is to mark certain warnings as OK, warranted by a human, to allow checks to pass regardless.
+        """
         ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
         self.logger.debug(f"Ignored warnings contained in {path}:\n{ignored_warnings}")
         logger_names = set(self.logger_names.values())
@@ -1241,6 +1283,10 @@ class Corpus(LoggedClass):
 
 
     def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
+        """Loads the TSV file at the given path and stores it as metadata. If the file is called 'metadata.tsv' it will
+        be treated as the corpus' main file for determining fnames. Otherwise it is expected to be named 'metadata{suffix}.tsv'
+        and the suffix will be used as name for an additionally created view.
+        """
         if not file.fname.startswith('metadata') and not allow_prefixed:
             self.logger.info(f"The file {file.rel_path} has a prefix and is disregarded as metadata file.")
             self.ix2metadata_file[file.ix] = file
@@ -1275,8 +1321,6 @@ class Corpus(LoggedClass):
             self.set_view(**{view_name: new_view})
             self.logger.debug(f"{action} view '{view_name}' corresponding to {file.rel_path}.")
 
-    def _parse_file_at_index(self, ix: int):
-        self[ix]._parse_file_at_index(ix)
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
         """ Shorthand for executing parse_scores and parse_tsv at a time.
@@ -2245,6 +2289,67 @@ Available keys: {available_keys}""")
         if concat:
             return pd.concat(annotation_tables, keys=idx, names=names)
         return annotation_tables
+
+    def get_facet_at_git_revision(self,
+                                  facet: ScoreFacet,
+                                  git_revision: str,
+                                  view_name: Optional[str] = None,
+                                  choose: Literal['auto', 'ask'] = 'auto',
+                                  concatenate: bool = False,
+                                  ) -> Union[Dict[str, FileDataframeTuple], pd.DataFrame]:
+        facet = check_argument_against_literal_type(facet, ScoreFacet, logger=self.logger)
+        assert facet is not None, f"Pass a valid facet {ScoreFacet.__args__}"
+        if choose == 'ask':
+            self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
+        fname2files = self.get_files(facets=facet,
+                                     view_name=view_name,
+                                     flat=True
+                                     )
+        fname2selected = {}
+        for fname, files in fname2files.items():
+            parsed_files = [file for file in files if file.ix in self.ix2parsed]
+            unparsed_files = [file for file in files if file.ix not in parsed_files]
+            n_parsed = len(parsed_files)
+            n_unparsed = len(unparsed_files)
+            if n_parsed == 1:
+                fname2selected[fname] = parsed_files[0]
+            else:
+                if n_parsed == 0:
+                    if n_unparsed > 1:
+                        selected = disambiguate_files(unparsed_files,
+                                                      self.name,
+                                                      facet,
+                                                      choose=choose,
+                                                      logger=self.logger)
+                    else:
+                        selected = unparsed_files[0]
+                else:
+                    selected = disambiguate_files(parsed_files,
+                                                  self.name,
+                                                  facet,
+                                                  choose=choose,
+                                                  logger=self.logger)
+                if selected is None:
+                    continue
+                fname2selected[fname] = selected
+        fname2tuples = {}
+        for fname, file in fname2selected.items():
+            new_file, parsed = parse_tsv_file_at_git_revision(file, git_revision, self.corpus_path, logger=self.ix_logger(file.ix))
+            if parsed is None:
+                self.logger.warning(f"Could not retrieve {file.rel_path} @ '{git_revision}'.")
+            else:
+                fname2tuples[fname] = (new_file, parsed)
+        if concatenate:
+            if len(fname2tuples) > 0:
+                dfs = [df for file, df in fname2tuples.values()]
+                df = pd.concat(dfs, keys=fname2tuples.keys())
+                df.index.rename(['fname', f"{facet}_i"], inplace=True)
+                return df
+            else:
+                return pd.DataFrame()
+        return fname2tuples
+
 
     def get_parsed_at_index(self, ix: int) -> Optional[ParsedFile]:
         parsed = self.ix2parsed

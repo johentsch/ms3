@@ -4326,20 +4326,42 @@ def string2identifier(s: str, remove_leading_underscore: bool = True) -> str:
 
     return s
 
+@lru_cache()
 @function_logger
-def get_file_blob_from_git_revision(file: File,
-                                    git_revision: str,
-                                    repo_path: Optional[str] = None) -> FileDataframeTupleMaybe:
+def get_git_commit(repo_path: str, git_revision: str) -> Optional[git.Commit]:
+    try:
+        repo = git.Repo(repo_path, search_parent_directories=True)
+    except Exception as e:
+        logger.error(f"{repo_path} is not an existing git repository: {e}")
+        return
+    try:
+        return repo.commit(git_revision)
+    except BadName:
+        logger.error(f"{git_revision} does not resolve to a commit for repo {os.path.basename(repo_path)}.")
+
+
+@function_logger
+def parse_tsv_file_at_git_revision(file: File,
+                                   git_revision: str,
+                                   repo_path: Optional[str] = None) -> FileDataframeTupleMaybe:
+    """
+    Pass a File object of a TSV file and an identifier for a git revision to retrieve the parsed TSV file at that commit.
+    The file needs to have existed at the revision in question.
+
+    Args:
+        file:
+        git_revision:
+        repo_path:
+
+    Returns:
+
+    """
     if file.type == 'scores':
         raise NotImplementedError(f"Parsing older revisions of scores is not implemented. Checkout the revision yourself.")
     if repo_path is None:
         repo_path = file.corpus_path
-    git_repo = os.path.basename(repo_path)
-    try:
-        repo = git.Repo(repo_path, search_parent_directories=True)
-        commit = repo.commit(git_revision)
-    except BadName:
-        logger.error(f"{git_revision} does not resolve to a commit for repo {git_repo}.")
+    commit = get_git_commit(repo_path, git_revision, logger=logger)
+    if commit is None:
         return None, None
     commit_sha = commit.hexsha
     short_sha = commit_sha[:7]

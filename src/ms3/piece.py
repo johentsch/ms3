@@ -9,8 +9,8 @@ from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, Sco
     FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe, FileParsedTupleMaybe, AnnotationsFacet
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
-    disambiguate_parsed_files, available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    get_file_blob_from_git_revision, disambiguate_files
+    available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
+    parse_tsv_file_at_git_revision, disambiguate_files
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -692,12 +692,12 @@ class Piece(LoggedClass):
                     # i.e., after parsing the file turned out to be of a different type than inferred from its path
                     return None, None
                 return file, parsed
-        if len(files) == 1:
+        else:
             if git_revision is None:
                 return files[0]
             file = files[0][0]
-        return get_file_blob_from_git_revision(file=file,
-                                               git_revision=git_revision)
+        return parse_tsv_file_at_git_revision(file=file,
+                                              git_revision=git_revision)
 
 
     def get_all_parsed(self,
@@ -1042,7 +1042,7 @@ class Piece(LoggedClass):
 
 
     def load_facet_into_score(self,
-                              facet: Facet,
+                              facet: AnnotationsFacet,
                               view_name: Optional[str] = None,
                               choose: Literal['auto', 'ask'] = 'auto',
                               git_revision: Optional[str] = None,
