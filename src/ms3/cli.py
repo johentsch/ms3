@@ -80,23 +80,23 @@ def check_cmd(args, parse_obj=None):
     return p
 
 
-def compare_cmd(args, parse_obj=None):
+def compare_cmd(args, parse_obj=None) -> None:
+    compare_logger = get_logger("ms3.compare", level=args.level)
     if parse_obj is None:
-        args.raw = True
-        if args.regex is None:
-            args.regex = r'\.mscx$'
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    comparison_results = compare(p, use=args.use, revision_specifier=args.commit, flip=args.flip)
-    modified_ids = [id for id, res in comparison_results.items() if res > (0, 0)]
-    if args.out is None:
-        folder_args = {}
-    elif os.path.isabs(args.out):
-        folder_args = dict(root_dir=args.out)
-    else:
-        folder_args = dict(folder=args.out)
-    p.store_scores(ids=modified_ids, suffix=args.suffix, overwrite=args.safe, **folder_args)
+    corpus2paths = compare(p,
+                                 facet=args.use,
+                                 ask=args.ask,
+                                 revision_specifier=args.commit,
+                                 flip=args.flip,
+                                 root_dir=args.out,
+                                 suffix=args.suffix,
+                                 simulate=args.test
+                                 )
+    changed = sum(map(len, corpus2paths.values()))
+    compare_logger.info(f"Operation resulted in {changed} comparison file{'s' if changed > 1 else ''}.")
 
 
 
@@ -154,7 +154,7 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
                 chords_folder=args.chords,
                 expanded_folder=args.expanded,
                 form_labels_folder=args.form_labels,
-                metadata_path=resolve_dir(args.metadata),
+                metadata_suffix=args.metadata,
                 simulate=args.test,
                 unfold=args.unfold,
                 quarterbeats=args.quarterbeats,
@@ -470,13 +470,15 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
 
 
     compare_parser = subparsers.add_parser('compare',
-        help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison.",
+        help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison if differences are found.",
         parents = [parse_args])
-    compare_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
+    compare_parser.add_argument('--ask', action='store_true',
+                                help="If several files are available for the selected facet (default: 'expanded', see --use), I will pick one "
+                                     "automatically. Add --ask if you want me to have you select which ones to compare with the scores.")
+    compare_parser.add_argument('--use', default='expanded', metavar="{labels, expanded}",
                                 help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
 To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
 'expanded' or 'labels' to use only annotation tables that have the respective type.""")
-
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
                                 help='Suffix of the newly created comparison files. Defaults to _reviewed')
     compare_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
@@ -485,6 +487,7 @@ To prevent the interaction, set this flag to use the first annotation table that
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")
     compare_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
+    compare_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     compare_parser.set_defaults(func=compare_cmd)
 
 

@@ -16,7 +16,7 @@ from .annotations import Annotations
 from .logger import LoggedClass, get_logger
 from .piece import Piece
 from .score import Score
-from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet
 from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
     update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument
@@ -898,6 +898,25 @@ class Parse(LoggedClass):
             for fname, piece in corpus:
                 yield (corpus_name, fname), piece
 
+    def load_facet_into_scores(self,
+                               facet: AnnotationsFacet,
+                               view_name: Optional[str] = None,
+                               force: bool = False,
+                               choose: Literal['auto', 'ask'] = 'auto',
+                               git_revision: Optional[str] = None,
+                               key: str = 'detached',
+                               infer: bool = True,
+                               **cols) -> None:
+        for corpus_name, corpus in self.iter_corpora(view_name):
+            corpus.load_facet_into_scores(facet=facet,
+                                          view_name=view_name,
+                                          force=force,
+                                          choose=choose,
+                                          git_revision=git_revision,
+                                          key=key,
+                                          infer=infer,
+                                          **cols)
+
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
         if active is not None:
@@ -1367,108 +1386,6 @@ class Parse(LoggedClass):
 #         #             self.logger.info(f'keys={keys}, ids={ids}, does not yield any {msg[which]}.')
 #         #         return pd.DataFrame()
 #         #     return self._concat_id_df_dict(d, id_index=id_index, third_level_name=f"{which}_id")
-#         #
-#         # def cadences(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('cadences', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def chords(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('chords', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def events(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('events', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def expanded(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('expanded', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def form_labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('form_labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def labels(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('labels', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def measures(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('measures', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def notes(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('notes', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def notes_and_rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('notes_and_rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def rests(self, keys=None, ids=None, quarterbeats=False, unfold=False, interval_index=False):
-#         #     return self._concat_lists('rests', keys=keys, ids=ids, quarterbeats=quarterbeats, unfold=unfold,
-#         #                               interval_index=interval_index)
-#         #
-#         # def ids(self, keys=None):
-#         #     data = {}
-#         #     keys = self._treat_key_param(keys)
-#         #     for key in keys:
-#         #         fnames = self.fnames[key]
-#         #         for i, fname in enumerate(fnames):
-#         #             id = (key, i)
-#         #             data[id] = os.path.join(self.rel_paths[key][i], fname)
-#         #     result = pd.Series(data, name='file')
-#         #     result.index = pd.MultiIndex.from_tuples(result.index, names=['key', 'i'])
-#         #     return result
-#         #
-#         #
-#         #
-#         #
-#         # def add_labels(self, use=None):
-#         #     for _, view in self:
-#         #         view.add_labels(use=use)
-#         #
-#         #
-#         #
-#         # def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', revision_specifier=None):
-#         #     """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
-#         #     objects to which they are being matched based on their filenames or on ``match_dict``.
-#         #
-#         #     Parameters
-#         #     ----------
-#         #     keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-#         #         Key(s) under which score files are stored. By default, all keys are selected.
-#         #     use : :obj:`str`, optional
-#         #         By default, if several sets of annotation files are found, the user is asked to input
-#         #         in which order to pick them. Instead, they can specify the name of a column of
-#         #         _.pieces(), especially 'expanded' or 'labels' to be using only these.
-#         #     new_key : :obj:`str`, optional
-#         #         The key under which the :py:attr:`~.annotations.Annotations` objects will be available after attaching
-#         #         them to the :py:attr:`~.score.Score` objects (``Parsed.parsed_mscx[ID].new_key``).
-#         #     tsv_key : :obj:`str`, optional
-#         #         A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
-#         #         Note that passing ``tsv_key`` results in the deprecated use of Parse.match_files(). The preferred way
-#         #         is to parse the labels to be attached under the same key as the scores and use
-#         #         View.add_detached_labels().
-#         #     revision_specifier : :obj:`str`, optional
-#         #         If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-#         #         using compare_labels()), pass the commit's SHA.
-#         #     """
-#         #     keys = self._treat_key_param(keys)
-#         #     if tsv_key is None:
-#         #         for key in keys:
-#         #             view = self.get_view(key)
-#         #             view.add_detached_annotations(use=use, new_key=new_key, revision_specifier=revision_specifier)
-#         #         return
-#         #     matches = self.match_files(keys=keys + [tsv_key])
-#         #     matches = matches[matches.labels.notna() | matches.expanded.notna()]
-#         #     matches.labels.fillna(matches.expanded, inplace=True)
-#         #     list_of_pairs = list(matches[['scores', 'labels']].itertuples(name=None, index=False))
-#         #     if len(list_of_pairs) == 0:
-#         #         self.logger.error(f"No files could be matched based on file names, probably a bug due to the deprecated use of the tsv_key parameter."
-#         #                 f"The preferred way of adding labels is parsing them under the same key as the scores and use Parse[key].add_detached_annotations()")
-#         #         return
-#         #     self._add_detached_annotations_by_ids(list_of_pairs, new_key=new_key)
-#         #
 
     #
     #

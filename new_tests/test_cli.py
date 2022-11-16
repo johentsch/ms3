@@ -1,10 +1,22 @@
+import os
 from git import Repo
-from ms3.cli import get_arg_parser, review_cmd, extract_cmd
+from ms3.cli import get_arg_parser, review_cmd, extract_cmd, compare_cmd
+
 
 def test_review_cmd(directory):
     parser = get_arg_parser()
     args = parser.parse_args(["review", "-d", directory])
     review_cmd(args)
+
+def test_compare_cmd():
+    parser = get_arg_parser()
+    directory = os.path.expanduser("~/debussy_suite_bergamasque")
+    args = parser.parse_args(["compare", "-d", directory])
+    compare_cmd(args)
+    repo = Repo(directory)
+    new_files = repo.untracked_files
+    repo.git.clean('-fdx')
+    assert len(new_files) > 0
 
 # def test_review_cmd_with_git():
 #     parser = get_arg_parser()

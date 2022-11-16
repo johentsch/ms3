@@ -1,9 +1,10 @@
 import os.path
-from typing import Literal, Optional
+from typing import Literal, Optional, Tuple, Dict, List
 
 import pandas as pd
 
 from ms3 import Parse
+from ms3._typing import AnnotationsFacet
 from ms3.score import Score, compare_two_score_objects
 from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
@@ -76,13 +77,31 @@ def check(parse_obj, scores_only=False, labels_only=False, assertion=False, para
         return False
 
 
-def compare(parse_obj, use=None, revision_specifier=None, flip=False, root_dir=None, folder='.', suffix='_reviewed', simulate=False):
+def compare(parse_obj: Parse,
+            facet: AnnotationsFacet,
+            ask: bool = False,
+            revision_specifier=None,
+            flip=False,
+            root_dir=None,
+            folder='reviewed',
+            suffix='_compared',
+            simulate=False) -> Dict[str, List[str]]:
     parse_obj.parse(parallel=False)
-    if len(parse_obj._parsed_mscx) == 0:
+    if parse_obj.n_parsed_scores == 0:
         parse_obj.logger.warning(f"Parse object does not include any scores.")
         return
-    parse_obj.add_detached_annotations(use=use, new_key='old', revision_specifier=revision_specifier)
-    return parse_obj.compare_labels('old', detached_is_newer=flip)
+    choose = 'ask' if ask else 'auto'
+    key = f"previous_{facet}" if revision_specifier is None else revision_specifier
+    if not key.isidentifier():
+        key = "old"
+    parse_obj.load_facet_into_scores(facet=facet,
+                                     choose=choose,
+                                     git_revision=revision_specifier,
+                                     key=key,
+                                     )
+    parse_obj.compare_labels(key=key,
+                             detached_is_newer=flip)
+    return parse_obj.store_parsed_scores(only_changed=True, root_dir=root_dir, folder=folder, suffix=suffix, simulate=simulate)
 
 def review(parse_obj: Parse,
            commit: Optional[str] = None,
