@@ -4263,6 +4263,7 @@ def compute_path_from_file(file: File,
               For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
             * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
               ``root_dir``.
+            * If ``folder`` == '' (empty string), the result will be `root_dir`.
 
     Returns:
         The constructed directory path.
@@ -4274,6 +4275,8 @@ def compute_path_from_file(file: File,
         root = file.corpus_path if root_dir is None else resolve_dir(root_dir)
         if folder is None:
             path = os.path.join(root, file.type)
+        elif folder == '':
+            path = root
         elif folder[0] == '.':
             path = os.path.abspath(os.path.join(root, file.subdir, folder))
         else:
@@ -4309,7 +4312,10 @@ def make_file_path(file: File,
     Returns:
         The constructed file path.
     """
+    assert fext is not None, ""
     path = compute_path_from_file(file, root_dir=root_dir, folder=folder)
+    if suffix is None:
+        suffix = ''
     fname = file.fname + suffix + fext
     return os.path.join(path, fname)
 

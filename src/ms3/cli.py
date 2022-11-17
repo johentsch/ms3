@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 
 from ms3 import Score, Parse
-from ms3.operations import extract, check, compare, update, review
+from ms3.operations import extract, check, compare, update, store_scores
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
 from ms3.logger import get_logger
 
@@ -66,37 +66,41 @@ def add(args):
 
 def check_cmd(args, parse_obj=None):
     if parse_obj is None:
-        args.raw = True
-        if args.regex is None:
-            args.regex = r'\.mscx$'
         p = make_parse_obj(args)
     else:
         p = parse_obj
-
     _ = check(p,
-                 scores_only=args.scores_only,
-                 labels_only=args.labels_only,
-                 assertion=args.assertion)
+              ignore_labels=args.ignore_labels,
+              ignore_scores=args.ignore_scores,
+              assertion=args.fail)
     return p
 
 
-def compare_cmd(args, parse_obj=None) -> None:
-    compare_logger = get_logger("ms3.compare", level=args.level)
+def compare_cmd(args,
+                parse_obj=None,
+                output: bool = True,
+                logger = None) -> None:
+    if logger is None:
+        logger = get_logger("ms3.compare", level=args.level)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    corpus2paths = compare(p,
+    n_changed, n_unchanged = compare(p,
                                  facet=args.use,
                                  ask=args.ask,
                                  revision_specifier=args.commit,
                                  flip=args.flip,
-                                 root_dir=args.out,
-                                 suffix=args.suffix,
-                                 simulate=args.test
                                  )
-    changed = sum(map(len, corpus2paths.values()))
-    compare_logger.info(f"Operation resulted in {changed} comparison file{'s' if changed > 1 else ''}.")
+    logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
+    if output:
+        corpus2paths = store_scores(p,
+                                    root_dir=args.out,
+                                    simulate=args.test)
+        changed = sum(map(len, corpus2paths.values()))
+        logger.info(f"Operation resulted in {changed} comparison file{'s' if changed != 1 else ''}.")
+    else:
+        logger.info(f"Operation resulted in {n_changed} comparison file{'s' if n_changed != 1 else ''}.")
 
 
 
@@ -145,21 +149,22 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
         return
     suffixes = make_suffixes(args)
     silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
-    extract(p, root_dir=args.out,
-                notes_folder=args.notes,
-                labels_folder=args.labels,
-                measures_folder=args.measures,
-                rests_folder=args.rests,
-                events_folder=args.events,
-                chords_folder=args.chords,
-                expanded_folder=args.expanded,
-                form_labels_folder=args.form_labels,
-                metadata_suffix=args.metadata,
-                simulate=args.test,
-                unfold=args.unfold,
-                quarterbeats=args.quarterbeats,
-                silence_label_warnings=silence_label_warnings,
-                **suffixes)
+    extract(p,
+            root_dir=args.out,
+            notes_folder=args.notes,
+            labels_folder=args.labels,
+            measures_folder=args.measures,
+            rests_folder=args.rests,
+            events_folder=args.events,
+            chords_folder=args.chords,
+            expanded_folder=args.expanded,
+            form_labels_folder=args.form_labels,
+            metadata_suffix=args.metadata,
+            simulate=args.test,
+            unfold=args.unfold,
+            interval_index=args.interval_index,
+            silence_label_warnings=silence_label_warnings,
+            **suffixes)
 
 def metadata(args):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
@@ -237,7 +242,7 @@ def transform(args):
         if args.test:
             p.logger.info(f"Would have written {path}.")
         else:
-            df = p.__getattribute__(param)(quarterbeats=args.quarterbeats, unfold=args.unfold)
+            df = p.__getattribute__(param)(interval_index=args.interval_index, unfold=args.unfold)
             df = df.reset_index(drop=False)
             write_tsv(df, path)
             p.logger.info(f"{path} written.")
@@ -285,25 +290,54 @@ def check_dir(d):
 
 def review_cmd(args,
                parse_obj: Optional[Parse] = None,
-               n_colored_ratio_threshold: Optional[float] = 0.5,
                ):
-    review_logger = get_logger('ms3.review')
+    """Thie command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
+    logger = get_logger('ms3.review')
     if parse_obj is None:
-        args.raw = True
-        if args.regex is None:
-            args.regex = r'\.mscx$'
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    review(parse_obj=parse_obj,
-           commit=args.commit,
-           root_dir=args.out,
-           reviewed_folder='reviewed',
-           reviewed_suffix='_reviewed',
-           ignore_score_warnings=args.ignore_score_warnings,
-           ignore_labels_warnings=False,
-           n_colored_ratio_threshold=0.5,
-           assertion=args.assertion)
+    p.parse(parallel=False)
+    if args.ignore_scores + args.ignore_labels < 2:
+        what = '' if args.ignore_scores else 'SCORES'
+        if args.ignore_labels:
+            what += 'LABELS' if what == '' else 'AND LABELS'
+        print(f"CHECKING {what}...")
+        test_passes = check_cmd(args, p)
+    params = gather_extract_params(args)
+    if len(params) > 0:
+        print("EXTRACTING FACETS...")
+        extract_cmd(args, p)
+    print("COLORING NON-CHORD TONES...")
+    review_reports = p.color_non_chord_tones()
+    dataframes, keys = [], []
+    for (corpus_name, fname), tuples in review_reports.items():
+        for file, df in tuples:
+            dataframes.append(df)
+            keys.append((corpus_name, file.rel_path))
+    report = pd.concat(dataframes, keys=keys)
+    warning_selection = report.count_ratio > args.threshold
+    if warning_selection.sum() > 0:
+        test_passes = False
+        filtered_report = report[warning_selection]
+        logger.warning(filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio']),
+                       extra={'message_id': (19,)})
+    commit = '' if args.commit is None else f" @{args.commit}"
+    print(f"COMPARING CURRENT LABELS WITH PREVIOUS ONES FROM TSVs{commit}...")
+    compare_cmd(args, p, output=False)
+    corpus2paths = store_scores(p,
+                                root_dir=args.out,
+                                simulate=args.test)
+    changed = sum(map(len, corpus2paths.values()))
+    logger.info(f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}.")
+    if test_passes:
+        logger.info(f"Parsed scores passed all tests.")
+    else:
+        msg = "Not all tests have passed."
+        if args.fail:
+            assert test_passes, msg
+        else:
+            logger.info(msg)
 
 
 
@@ -324,18 +358,20 @@ def make_parse_obj(args, parse_scores=True, parse_tsv=False):
     folder_re_str = None if args.folders is None else f"'{args.folders}'"
     exclude_re_str = None if args.exclude is None else f"'{args.exclude}'"
     ms_str = None if ms is None else f"'{ms}'"
-    print(f"""Parse('{args.dir}',
-             recursive={not args.nonrecursive},
-             only_metadata_fnames={not args.all},
-             include_convertible={ms is not None},
-             exclude_review={not args.reviewed},
-             file_re={file_re_str},
-             folder_re={folder_re_str},
-             exclude_re={exclude_re_str},
-             paths={args.files},
-             labels_cfg={labels_cfg},
-             ms={ms_str},
-             **{logger_cfg})""")
+    print(f"""CREATING PARSE OBJECT WITH THE FOLLOWING PARAMETERS:
+Parse('{args.dir}',
+     recursive={not args.nonrecursive},
+     only_metadata_fnames={not args.all},
+     include_convertible={ms is not None},
+     exclude_review={not args.reviewed},
+     file_re={file_re_str},
+     folder_re={folder_re_str},
+     exclude_re={exclude_re_str},
+     paths={args.files},
+     labels_cfg={labels_cfg},
+     ms={ms_str},
+     **{logger_cfg})
+""")
     parse_obj = Parse(args.dir,
                  recursive=not args.nonrecursive,
                  only_metadata_fnames=not args.all,
@@ -352,7 +388,8 @@ def make_parse_obj(args, parse_scores=True, parse_tsv=False):
         parse_obj.parse_scores(parallel=not args.iterative)
     if parse_tsv:
         parse_obj.parse_tsv()
-    parse_obj.info()
+    info_str = parse_obj.info(show_discarded=True, return_str=True).replace('\n', '\n\t')
+    print(f"RESULTING PARSE OBJECT:\n\t{info_str}")
     return parse_obj
 
 
@@ -391,6 +428,23 @@ def get_arg_parser():
     parse_args.add_argument('-l', '--level', metavar='{c, e, w, i, d}', default='i',
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
     parse_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
+    parse_args.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+
+    check_args = argparse.ArgumentParser(add_help=False)
+    check_args.add_argument('--ignore_scores', action='store_true',
+                              help="Don't check scores for encoding errors.")
+    check_args.add_argument('--ignore_labels', action='store_true',
+                              help="Don't check DCML labels for syntactic correctness.")
+    check_args.add_argument('--fail', action='store_true', help="If you pass this argument the process will deliberately fail with an AssertionError "
+                                                                "when there are any mistakes.")
+
+    compare_args = argparse.ArgumentParser(add_help=False)
+    compare_args.add_argument('-c', '--commit', metavar='SPECIFIER',
+                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
+    compare_args.add_argument('--flip', action='store_true',
+                                help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
+                                     "effectively resulting in a swap of the colors in the output files.")
+    compare_args.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
 
     extract_args = argparse.ArgumentParser(add_help=False)
     extract_args.add_argument('-M', '--measures', metavar='folder', nargs='?',
@@ -416,18 +470,24 @@ def get_arg_parser():
     extract_args.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
-    extract_args.add_argument('-t', '--test', action='store_true',
-                                help="No data is written to disk.")
     extract_args.add_argument('-p', '--positioning', action='store_true',
                                 help="When extracting labels, include manually shifted position coordinates in order to restore them when re-inserting.")
     extract_args.add_argument('--raw', action='store_false',
                                 help="When extracting labels, leave chord symbols encoded instead of turning them into a single column of strings.")
     extract_args.add_argument('-u', '--unfold', action='store_true',
                                 help="Unfold the repeats for all stored DataFrames.")
-    extract_args.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
-                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    extract_args.add_argument('--interval_index', action='store_true',
+                                help="Prepend a column with [start, end) intervals to the TSV files.")
+
+    select_facet_args = argparse.ArgumentParser(add_help=False)
+    select_facet_args.add_argument('--ask', action='store_true',
+                              help="If several files are available for the selected facet (default: 'expanded', see --use), I will pick one "
+                                   "automatically. Add --ask if you want me to have you select which ones to compare with the scores.")
+    select_facet_args.add_argument('--use', default='expanded', metavar="{labels, expanded}",
+                              help="Which type of labels you want to compare with the ones in the score. Defaults to 'expanded', "
+                                   "i.e., DCML labels. Set --use labels to use other labels available as TSV and set --ask if several "
+                                   "sets of labels are available that you want to choose from.")
+
     # main argument parser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter, description='''\
 --------------------------
@@ -442,7 +502,7 @@ The library offers you the following commands. Add the flag -h to one of them to
 
     add_parser = subparsers.add_parser('add',
                                          help="Add labels from annotation tables to scores.",
-                                         parents=[parse_args])
+                                         parents=[select_facet_args, parse_args])
     # TODO: staff parameter needs to accept one to several integers including negative
     # add_parser.add_argument('-s', '--staff',
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
@@ -450,44 +510,21 @@ The library offers you the following commands. Add the flag -h to one of them to
     #                            help="Only remove particular types of harmony labels.")
     add_parser.add_argument('--replace', action='store_true',
                                help="Remove existing labels from the scores prior to adding. Like calling ms3 empty first.")
-    add_parser.add_argument('--use',
-                            help="""In case there are several annotation labels present, set this value to expanded or to labels. 
-If you don't, you will be asked for every ambiguous corpus to specify in which order the columns that 
-show detected files are to be used.""")
     add_parser.set_defaults(func=add)
 
 
 
     check_parser = subparsers.add_parser('check', help="""Parse MSCX files and look for errors.
-In particular, check DCML harmony labels for syntactic correctness.""", parents=[parse_args])
-    check_parser.add_argument('--labels_only', action='store_true',
-                              help="Don't check scores for encoding errors.")
-    check_parser.add_argument('--scores_only', action='store_true',
-                              help="Don't check DCML labels for syntactic correctness.")
-    check_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
+In particular, check DCML harmony labels for syntactic correctness.""", parents=[check_args, parse_args])
     check_parser.set_defaults(func=check_cmd)
 
 
 
     compare_parser = subparsers.add_parser('compare',
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison if differences are found.",
-        parents = [parse_args])
-    compare_parser.add_argument('--ask', action='store_true',
-                                help="If several files are available for the selected facet (default: 'expanded', see --use), I will pick one "
-                                     "automatically. Add --ask if you want me to have you select which ones to compare with the scores.")
-    compare_parser.add_argument('--use', default='expanded', metavar="{labels, expanded}",
-                                help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
-To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
-'expanded' or 'labels' to use only annotation tables that have the respective type.""")
-    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_reviewed',
-                                help='Suffix of the newly created comparison files. Defaults to _reviewed')
-    compare_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
-                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
-    compare_parser.add_argument('--flip', action='store_true',
-                                help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
-                                     "effectively resulting in a swap of the colors in the output files.")
-    compare_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
-    compare_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+        parents = [select_facet_args, compare_args, parse_args])
+    compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_compared',
+                              help='Suffix of the newly created comparison files. Defaults to _compared')
     compare_parser.set_defaults(func=compare_cmd)
 
 
@@ -495,9 +532,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.",
                                            parents=[parse_args])
-    # convert_parser.add_argument('-x', '--extensions', nargs='+', default=['mscx', 'mscz'],
-    #                             help="List, separated by spaces, the file extensions that you want to convert. Defaults to mscx mscz")
-    convert_parser.add_argument('-t', '--target_format', default='mscx',
+    convert_parser.add_argument('--format', default='mscx',
                                 help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
     convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
     convert_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
@@ -532,7 +567,13 @@ To prevent the interaction, set this flag to use the first annotation table that
                                           parents=[parse_args])
     repair_parser.set_defaults(func=repair)
 
-
+    review_parser = subparsers.add_parser('review',
+                                          help="Extract facets, check labels, and create _reviewed files.",
+                                          parents=[check_args, select_facet_args, compare_args, extract_args, parse_args])
+    review_parser.add_argument('--threshold', default=4/7,
+                                  help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
+                                       "will be printed in a warning and will cause the check to fail if the --fail flag is set.")
+    review_parser.set_defaults(func=review_cmd)
 
     transform_parser = subparsers.add_parser('transform',
                                           help="Concatenate and transform TSV data from one or several corpora.",
@@ -556,13 +597,10 @@ To prevent the interaction, set this flag to use the first annotation table that
     transform_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
-    transform_parser.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
     transform_parser.add_argument('-u', '--unfold', action='store_true',
                                 help="Unfold the repeats for all stored DataFrames.")
-    transform_parser.add_argument('-q', '--quarterbeats', action='store_true',
-                                help="Add a column with continuous quarterbeat positions. If a score has first and second endings, the behaviour depends on "
-                                     "the parameter --unfold: If it is not set, repetitions are not unfolded and only last endings are included in the continuous "
-                                     "positions. If repetitions are being unfolded, all endings are taken into account.")
+    transform_parser.add_argument('--interval_index', action='store_true',
+                              help="Prepend a column with [start, end) intervals to the TSV files.")
     transform_parser.set_defaults(func=transform)
 
 
@@ -580,18 +618,7 @@ To prevent the interaction, set this flag to use the first annotation table that
     update_parser.add_argument('--type', default=1, help="defaults to 1, i.e. moves labels to Roman Numeral layer. Other types have not been tested!")
     update_parser.set_defaults(func=update_cmd)
 
-    review_parser = subparsers.add_parser('review',
-                                         help="Extract facets, check labels, and create _reviewed files.",
-                                         parents=[extract_args, parse_args])
-    review_parser.add_argument('-c', '--commit', metavar='SPECIFIER',
-                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
-    review_parser.add_argument('--use', nargs='?', const='any', metavar="{labels, expanded}",
-                                help="""By default, if several sets of annotation files are found, the user is asked which one(s) to use.
-To prevent the interaction, set this flag to use the first annotation table that comes along for every score. Alternatively, you can add the string
-'expanded' or 'labels' to use only annotation tables that have the respective type.""")
 
-    review_parser.add_argument('--assertion', action='store_true', help="If you pass this argument, an error will be thrown if there are any mistakes.")
-    review_parser.set_defaults(func=review_cmd)
 
     return parser
 
