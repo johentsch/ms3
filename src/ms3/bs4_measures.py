@@ -709,7 +709,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
                 add_offset(compl)
         elif offsets[mc] == 0:
             add_offset(mc)
-    mc2ix = {m: ix for ix, m in df.mc.iteritems()}
+    mc2ix = {m: ix for ix, m in df.mc.items()}
     result = {mc2ix[m]: offset for m, offset in offsets.items()}
     return pd.Series(result, name=name, dtype='object').reindex(df.index, fill_value=0)
 

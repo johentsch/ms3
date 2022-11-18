@@ -11,7 +11,7 @@ from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any
+from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any, overload, Callable
 from zipfile import ZipFile as Zip
 
 import git
@@ -19,6 +19,8 @@ import pandas as pd
 import numpy as np
 import webcolors
 from gitdb.exc import BadName
+from numpy.typing import NDArray
+from pandas._typing import Dtype
 from pandas.errors import EmptyDataError
 from pathos import multiprocessing
 from tqdm import tqdm
@@ -1012,12 +1014,79 @@ def expand_form_labels(fl: pd.DataFrame, fill_mn_until: int = None, default_abbr
         res = pd.concat([res, missing_mn], ignore_index=True).sort_values([mn_col, mn_onset]).reset_index(drop=True)
     return res
 
+@overload
+def add_collections(left: pd.Series, right: Collection, dtype: Dtype) -> pd.Series:
+    ...
+@overload
+def add_collections(left: NDArray, right: Collection, dtype: Dtype) -> NDArray:
+    ...
+@overload
+def add_collections(left: list, right: Collection, dtype: Dtype) -> list:
+    ...
+@overload
+def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple:
+    ...
+def add_collections(left: Union[pd.Series, NDArray, list, tuple],
+                    right: Collection,
+                    dtype: Dtype = str):
+    if isinstance(left, pd.Series) and isinstance(right, pd.Series):
+        try:
+            return left + right
+        except TypeError:
+            return left.astype(dtype) + right.astype(dtype)
+    result_series = pd.Series(left, dtype=dtype) + pd.Series(right, dtype=dtype)
+    try:
+        return left.__class__(result_series.to_list())
+    except (TypeError, ValueError):
+        return result_series.values
+
+@overload
+def cast2collection(coll: pd.Series, func: Callable, *args, **kwargs) -> pd.Series:
+    ...
+@overload
+def cast2collection(coll: NDArray, func: Callable, *args, **kwargs) -> NDArray:
+    ...
+@overload
+def cast2collection(coll: list, func: Callable, *args, **kwargs) -> list:
+    ...
+@overload
+def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple:
+    ...
+def cast2collection(coll: Union[pd.Series, NDArray, list, tuple], func: Callable, *args, **kwargs) -> Union[pd.Series, NDArray, list, tuple]:
+    if isinstance(coll, pd.Series):
+        return transform(coll, func, *args, **kwargs)
+    result_series = func(pd.Series(coll), *args, **kwargs)
+    try:
+        return coll.__class__(result_series.to_list())
+    except TypeError:
+        return result_series.values
 
 
-def fifths2acc(fifths):
+
+@overload
+def fifths2acc(fifths: int) -> str:
+    ...
+@overload
+def fifths2acc(fifths: pd.Series) -> pd.Series:
+    ...
+@overload
+def fifths2acc(fifths: NDArray[int]) -> NDArray[str]:
+    ...
+@overload
+def fifths2acc(fifths: List[int]) -> List[str]:
+    ...
+@overload
+def fifths2acc(fifths: Tuple[int]) -> Tuple[str]:
+    ...
+def fifths2acc(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """ Returns accidentals for a stack of fifths that can be combined with a
         basic representation of the seven steps."""
-    return abs(fifths // 7) * 'b' if fifths < 0 else fifths // 7 * '#'
+    try:
+        fifths = int(float(fifths))
+    except TypeError:
+        return cast2collection(coll=fifths, func=fifths2acc)
+    acc = (fifths + 1) // 7
+    return abs(acc) * 'b' if acc < 0 else acc * '#'
 
 
 @function_logger
@@ -1063,12 +1132,57 @@ def fifths2iv(fifths: int,
         quality += flat_wise_quality * ((-fifths + 1) // 7)
     return quality + int_num
 
+@overload
+def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> str:
+    ...
+@overload
+def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> pd.Series:
+    ...
+@overload
+def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> NDArray[str]:
+    ...
+@overload
+def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> List[str]:
+    ...
+@overload
+def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Tuple[str]:
+    ...
+def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+             ms: bool = False,
+             minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+    try:
+        tpc = int(float(tpc))
+    except TypeError:
+        return cast2collection(coll=tpc, func=tpc2name, ms=ms, minor=minor)
+    note_names = ('f', 'c', 'g', 'd', 'a', 'e', 'b') if minor else ('F', 'C', 'G', 'D', 'A', 'E', 'B')
+    if ms:
+        tpc = tpc - 14
+    acc, ix = divmod(tpc + 1, 7)
+    acc_str = abs(acc) * 'b' if acc < 0 else acc * '#'
+    return f"{note_names[ix]}{acc_str}"
 
+@overload
+def fifths2name(fifths: int, midi: int, ms: bool = False, minor: bool = False) -> str:
+    ...
+@overload
+def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool = False, minor: bool = False) -> pd.Series:
+    ...
+@overload
+def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool = False, minor: bool = False) -> NDArray[str]:
+    ...
+@overload
+def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool = False, minor: bool = False) -> List[str]:
+    ...
+@overload
+def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool = False, minor: bool = False) -> Tuple[str]:
+    ...
 @function_logger
-def fifths2name(fifths, midi=None, ms=False, minor=False):
+def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]],
+                ms: bool = False,
+                minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """ Return note name of a stack of fifths such that
        0 = C, -1 = F, -2 = Bb, 1 = G etc.
-       Uses: map2elements(), fifths2str()
 
     Parameters
     ----------
@@ -1084,23 +1198,17 @@ def fifths2name(fifths, midi=None, ms=False, minor=False):
     """
     try:
         fifths = int(float(fifths))
-    except Exception:
-        if isinstance(fifths, pd.Series):
-            return fifths.apply(fifths2name, ms=ms, logger=logger)
-        if isinstance(fifths, Iterable):
-            return map2elements(fifths, fifths2name, ms=ms, logger=logger)
-        return fifths
-
-    if ms:
-        fifths -= 14
-    note_names = ['F', 'C', 'G', 'D', 'A', 'E', 'B']
-    name = _fifths2str(fifths, note_names, inverted=True)
-    if midi is not None:
-        octave = midi2octave(midi, fifths, logger=logger)
-        return f"{name}{octave}"
-    if minor:
-        return name.lower()
-    return name
+    except TypeError:
+        names = tpc2name(fifths, ms=ms, minor=minor)
+        if midi is None:
+            return names
+        octaves = midi2octave(midi, fifths)
+        return add_collections(names, octaves)
+    name = tpc2name(fifths, ms=ms, minor=minor)
+    if midi is None:
+        return name
+    octave = midi2octave(midi, fifths)
+    return f"{name}{octave}"
 
 
 
@@ -1159,8 +1267,18 @@ def fifths2sd(fifths, minor=False):
 
 
 
-def _fifths2str(fifths, steps, inverted=False):
+def _fifths2str(fifths: int,
+                steps: Collection[str],
+                inverted: bool = False) -> str:
     """ Boiler plate used by fifths2-functions.
+
+    Args:
+        fifths: Stack of fifths
+        steps: Collection of seven names, scale degrees, intervals, etc.
+        inverted: By default, return accidental + step. Pass True to get step + accidental instead.
+
+    Returns:
+
     """
     fifths += 1
     acc = fifths2acc(fifths)
@@ -1937,11 +2055,53 @@ def metadata2series(d: dict) -> pd.Series:
     s = pd.Series(d)
     return s
 
+@overload
+def midi_and_tpc2octave(midi: int, tpc: int) -> int:
+    ...
+@overload
+def midi_and_tpc2octave(midi: pd.Series, tpc: pd.Series) -> pd.Series:
+    ...
+@overload
+def midi_and_tpc2octave(midi: NDArray[int], tpc: NDArray[int]) -> NDArray[int]:
+    ...
+@overload
+def midi_and_tpc2octave(midi: List[int], tpc: List[int]) -> List[int]:
+    ...
+@overload
+def midi_and_tpc2octave(midi:  Tuple[int], tpc:  Tuple[int]) -> Tuple[int]:
+    ...
+def midi_and_tpc2octave(midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                        tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
+    try:
+        midi = int(float(midi))
+    except TypeError:
+        try:
+            # if numpy array or Pandas Series, compute vectorized, otherwise iterate
+            midi.dtype
+        except AttributeError:
+            return midi.__class__(midi_and_tpc2octave(m, t) for m, t in zip(midi, tpc))
+    acc = tpc // 7
+    return (midi - acc) // 12 - 1
 
-@function_logger
-def midi2octave(midi, fifths=None):
+@overload
+def midi2octave(midi: int, fifths: Optional[int]) -> int:
+    ...
+@overload
+def midi2octave(midi: pd.Series, fifths: Optional[pd.Series]) -> pd.Series:
+    ...
+@overload
+def midi2octave(midi: NDArray[int], fifths: Optional[NDArray]) -> NDArray[int]:
+    ...
+@overload
+def midi2octave(midi: List[int], fifths: Optional[List[int]]) -> List[int]:
+    ...
+@overload
+def midi2octave(midi:  Tuple[int], fifths: Optional[Tuple[int]]) -> Tuple[int]:
+    ...
+def midi2octave(midi: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
+                        fifths: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None) -> Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]:
     """ For a given MIDI pitch, calculate the octave. Middle octave = 4
-        Uses: fifths2pc(), map2elements()
+        Uses: midi_and_tpc2octave(), map2elements()
 
     Parameters
     ----------
@@ -1951,32 +2111,17 @@ def midi2octave(midi, fifths=None):
         To be precise, for some Tonal Pitch Classes, the octave deviates
         from the simple formula ``MIDI // 12 - 1``, e.g. for B# or Cb.
     """
+    if fifths is not None:
+        return midi_and_tpc2octave(midi, fifths)
     try:
         midi = int(float(midi))
-    except Exception:
-        if isinstance(midi, Iterable):
-            return map2elements(midi, midi2octave, logger=logger)
-        return midi
-    i = -1
-    if fifths is not None:
-        pc = fifths2pc(fifths)
-        if midi % 12 != pc:
-            logger.debug(f"midi2octave(): The Tonal Pitch Class {fifths} cannot be MIDI pitch {midi} ")
-        if fifths in [
-            12,  # B#
-            19,  # B##
-            26,  # B###
-            24,  # A###
-        ]:
-            i -= 1
-        elif fifths in [
-            -7,  # Cb
-            -14,  # Cbb
-            -21,  # Cbbb
-            -19,  # Dbbb
-        ]:
-            i += 1
-    return midi // 12 + i
+    except TypeError:
+        try:
+            # if numpy array or Pandas Series, compute vectorized, otherwise iterate
+            midi.dtype
+        except AttributeError:
+            return map2elements(midi, midi2octave)
+    return midi // 12 - 1
 
 
 def midi2name(midi):
@@ -1984,7 +2129,7 @@ def midi2name(midi):
         midi = int(float(midi))
     except Exception:
         if isinstance(midi, pd.Series):
-            return midi.apply(midi2name)
+            return transform(midi, midi2name)
         if isinstance(midi, Iterable):
             return map2elements(midi, midi2name)
         return midi
@@ -2504,10 +2649,10 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
     normal_ix = df.loc[~is_grace, [mc_col, mc_onset_col, midi_col, duration_col]].groupby([mc_col, mc_onset_col]).apply(
         lambda gr: gr.index[np.lexsort((gr.values[:, 3], gr.values[:, 2]))].to_numpy())
     sorted_ixs = [np.concatenate((grace_ix[onset], ix)) if onset in grace_ix else ix for onset, ix in
-                  normal_ix.iteritems()]
+                  normal_ix.items()]
     df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
     if has_nan:
-        df.loc[:, midi_col] = df[midi_col].replace({1000: np.nan}).astype('Int64')
+        df.loc[:, midi_col] = df[midi_col].replace({1000: pd.NA}).astype('Int64')
     return df
 
 

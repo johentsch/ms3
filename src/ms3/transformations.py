@@ -474,7 +474,7 @@ def group_annotations_by_features(at, features='numeral'):
             return a | ~nan_eq(b, b.shift())
         # The change mask is True for every row where either of the feature or safety columns is different from its previous value.
         change_mask = reduce(column_shift_mask,
-                             (col for _, col in at[cols].iteritems()),
+                             (col for _, col in at[cols].items()),
                              pd.Series(False, index=at.index))
         res = at[change_mask]
     keep_cols = [c for c in keep_cols if c in at.columns] + features
@@ -934,7 +934,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         while len(na_values) < N:
             na_values.append('group')
     groups, names = zip(
-        *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
+        *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].items(), na_values)))
 
     grouped = df.groupby(list(groups), dropna=False).apply(reduce_dataframe_duration_to_first_row)
     if any(gr.isna().any() for gr in groups):
