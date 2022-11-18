@@ -85,7 +85,8 @@ from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col
 from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_offset_dict_from_measures, ordinal_suffix, resolve_dir, rgba2attrs, rgb_tuple2format, sort_note_list
+    get_quarterbeats_length, make_offset_dict_from_measures, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
+    rgb_tuple2format, sort_note_list, tpc2name
 
 
 
@@ -668,7 +669,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'tpc': 'Note/tpc',
                 }
         nl_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
-                   'scalar', 'tied', 'tpc', 'midi', 'chord_id']
+                   'scalar', 'tied', 'tpc', 'midi', 'name', 'octave', 'chord_id']
         if self.has_voltas:
             nl_cols.insert(2, 'volta')
         if len(self._notes.index) == 0:
@@ -678,12 +679,21 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             nl_cols.insert(9, 'tremolo')
         self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
-        self._nl.loc[:, ['midi', 'tpc']] = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
-        self._nl.tpc -= 14
         self._nl = self._nl.merge(self.cl()[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
-        self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
-
+        tied = make_tied_col(self._notes, *tie_cols)
+        pitch_info = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
+        pitch_info.tpc -= 14
+        octaves = midi2octave(pitch_info.midi, pitch_info.tpc).rename('octave')
+        names = (tpc2name(pitch_info.tpc) + octaves.astype(str)).rename('name')
+        print(names.name)
+        append_cols = [
+            pitch_info,
+            tied,
+            names,
+            octaves
+        ]
+        self._nl = pd.concat([self._nl.drop(columns=['midi', 'tpc'])] + append_cols, axis=1)
         final_cols = [col for col in nl_cols if col in self._nl.columns]
         self._nl = sort_note_list(self._nl[final_cols])
 
