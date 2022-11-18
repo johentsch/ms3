@@ -272,7 +272,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
             logger.warning(str(sys.exc_info()[1]))
     if expand:
         res = pd.DataFrame([result_dict[t] for t in param_tuples], index=df.index)
-        res['bass_note'] = res.chord_tones.apply(lambda l: np.nan if pd.isnull(l) or len(l) == 0 else l[0])
+        res['bass_note'] = res.chord_tones.apply(lambda l: pd.NA if pd.isnull(l) or len(l) == 0 else l[0])
         res[['root', 'bass_note']] = res[['root', 'bass_note']].astype('Int64')
     else:
         res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)

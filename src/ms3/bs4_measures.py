@@ -97,7 +97,7 @@ class MeasureList(LoggedClass):
                    'play_until', 'sigD_col', 'sigN_col', 'startRepeat', 'volta_start', 'volta_length']
         for col in [self.cols[col] for col in info_cols]:
             if not col in self.ml.columns:
-                self.ml[col] = np.nan
+                self.ml[col] = pd.NA
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
         if self.ml.jump_fwd.notna().any():
             self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})

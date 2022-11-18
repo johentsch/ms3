@@ -740,7 +740,7 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
         compose_label.append('rightParen')
         drop_cols.append('rightParen')
     new_label_col = df[compose_label].fillna('').sum(axis=1).astype(str)
-    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony', regex=True).replace('', np.nan)
+    new_label_col = new_label_col.str.replace('^/$', 'empty_harmony', regex=True).replace('', pd.NA)
 
     if alt_cols is not None:
         if isinstance(alt_cols, str):
@@ -1373,8 +1373,8 @@ def get_quarterbeats_length(measures, decimals=2):
             length_qb_unfolded = pd.NA
         else:
             length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
-    except Exception as e:
-        length_qb_unfolded = np.nan
+    except Exception:
+        length_qb_unfolded = pd.NA
     return length_qb, length_qb_unfolded
 
 
@@ -2727,7 +2727,7 @@ def split_alternatives(df, column='label', regex=r"-(?!(\d|b+\d|\#+\d))", max=2,
             if i == max:
                 break
             alt_name = f"alt_{column}" if i == 1 else f"alt{i}_{column}"
-            df.insert(position, alt_name, alternatives[i].fillna(np.nan))  # replace None by NaN
+            df.insert(position, alt_name, alternatives[i].fillna(pd.NA))  # replace None by NA
             position += 1
         if len(alternatives.columns) > max:
             logger.warning(
@@ -3228,7 +3228,7 @@ def abs2rel_key(absolute, localkey, global_minor=False):
         'III'       # Ab major expressed with respect to F minor
     """
     if pd.isnull(absolute):
-        return np.nan
+        return pd.NA
     maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
     min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
     shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
@@ -3561,12 +3561,12 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     """
     if pd.isnull(numeral) or numeral == '@none':
         if bass_only or merge_tones:
-            return np.nan
+            return pd.NA
         else:
             return {
-                'chord_tones': np.nan,
-                'added_tones': np.nan,
-                'root': np.nan,
+                'chord_tones': pd.NA,
+                'added_tones': pd.NA,
+                'root': pd.NA,
             }
     form, figbass, changes, relativeroot = tuple(
         '' if pd.isnull(val) else val for val in (form, figbass, changes, relativeroot))

@@ -354,7 +354,7 @@ def replace_special(df, regex, merge=False, inplace=False, cols={}, special_map=
 
     logger.debug(f"Moving special symbols from {cols['numeral']} to {cols['special']}...")
     if not cols['special'] in df.columns:
-        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], np.nan)
+        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], pd.NA)
     df.loc[select_all_special, cols['special']] = df.loc[select_all_special, cols['numeral']]
 
     def repl_spec(frame, special, instead):
