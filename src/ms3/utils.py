@@ -4317,7 +4317,6 @@ def argument_and_literal_type2list(argument: Union[str, Tuple[str], Literal[None
 
 L = TypeVar('L')
 
-@lru_cache
 @function_logger
 def check_argument_against_literal_type(argument: str,
                                         typ: L) -> Optional[L]:

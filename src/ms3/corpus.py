@@ -1149,6 +1149,34 @@ class Corpus(LoggedClass):
             else:
                 yield file, df
 
+    def iter_facets(self,
+                    facets: ScoreFacets = None,
+                    view_name: Optional[str] = None,
+                    choose: Literal['auto', 'ask'] = 'auto',
+                    unfold: bool = False,
+                    interval_index: bool = False,
+                    include_files: bool = False,
+                    ) -> Iterator:
+        selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
+        if choose == 'ask':
+            for facet in selected_facets:
+                self.disambiguate_facet(facet, ask_for_input=True)
+            choose = 'auto'
+        for fname, piece in self.iter_pieces(view_name=view_name):
+            facet2parsed = piece.get_facets(facets=selected_facets,
+                                            view_name=view_name,
+                                            force=True,
+                                            choose=choose,
+                                            unfold=unfold,
+                                            interval_index=interval_index,
+                                            flat=False,
+                                            )
+            if include_files:
+                result = [tup for facet in selected_facets for tup in facet2parsed[facet]]
+            else:
+                result = [df for facet in selected_facets for file, df in facet2parsed[facet]]
+            yield (fname, *result)
+
     def iter_parsed(self,
                     facet: Facet = None,
                     view_name: Optional[str] = None,
