@@ -1162,23 +1162,23 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     return f"{note_names[ix]}{acc_str}"
 
 @overload
-def fifths2name(fifths: int, midi: int, ms: bool = False, minor: bool = False) -> str:
+def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> str:
     ...
 @overload
-def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool = False, minor: bool = False) -> pd.Series:
+def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> pd.Series:
     ...
 @overload
-def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool = False, minor: bool = False) -> NDArray[str]:
+def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> NDArray[str]:
     ...
 @overload
-def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool = False, minor: bool = False) -> List[str]:
+def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> List[str]:
     ...
 @overload
-def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool = False, minor: bool = False) -> Tuple[str]:
+def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Tuple[str]:
     ...
 @function_logger
 def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
-                midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]],
+                midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
                 ms: bool = False,
                 minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
     """ Return note name of a stack of fifths such that
