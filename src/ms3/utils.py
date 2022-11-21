@@ -42,6 +42,8 @@ METADATA_COLUMN_ORDER = ['fname',
                          'composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
                          'mscVersion', 'platform', 'source', 'translator', 'musescore',
+                         ## default text fields
+                         'title_text', 'subtitle_text', 'lyricist_text', 'composer_text', 'part_name_text',
                          # ambitus and all the rest
                          'ambitus']
 

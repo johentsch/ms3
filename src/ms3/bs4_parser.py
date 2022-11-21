@@ -74,11 +74,12 @@
 import re, sys
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple
+from typing import Literal, Optional, List, Tuple, Dict
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
+from bs4 import NavigableString
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
@@ -88,6 +89,12 @@ from .utils import adjacency_groups, color_params2rgba, column_order, fifths2nam
     get_quarterbeats_length, make_offset_dict_from_measures, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name
 
+NOTE_SYMBOL_MAP = {
+    'metNoteHalfUp': '𝅗𝅥',
+    'metNoteQuarterUp': '𝅘𝅥',
+    'metNote8thUp': '𝅘𝅥𝅮',
+    'metAugmentationDot': '.'
+}
 
 
 class _MSCX_bs4(LoggedClass):
@@ -686,7 +693,6 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         pitch_info.tpc -= 14
         octaves = midi2octave(pitch_info.midi, pitch_info.tpc).rename('octave')
         names = (tpc2name(pitch_info.tpc) + octaves.astype(str)).rename('name')
-        print(names.name)
         append_cols = [
             pitch_info,
             tied,
@@ -836,10 +842,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
             if 'Tempo/text/sym' in df.columns:
                 replace_symbols = defaultdict(lambda: '')
-                replace_symbols.update({'metNoteHalfUp': '𝅗𝅥',
-                                        'metNoteQuarterUp': '𝅘𝅥',
-                                        'metNote8thUp': '𝅘𝅥𝅮',
-                                        'metAugmentationDot': '.'})
+                replace_symbols.update(NOTE_SYMBOL_MAP)
                 symbols = df['Tempo/text/sym'].str.split(expand=True)\
                                               .apply(lambda S: S.str.strip()\
                                               .map(replace_symbols))\
@@ -957,6 +960,29 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             self.logger.warning(f"The onset {mn_onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
         return mc, mc_onset
 
+    def get_texts(self) -> Dict[str, str]:
+        """Process <Text> nodes (normally attached to <Staff id="1">)."""
+        texts = defaultdict(set)
+        tags = self.soup.find_all('Text')
+        for t in tags:
+            txt, style = tag2text(t)
+            if style == 'Title':
+                style = 'title_text'
+            elif style == 'Subtitle':
+                style = 'subtitle_text'
+            elif style == 'Composer':
+                style = 'composer_text'
+            elif style == 'Lyricist':
+                style = 'lyricist_text'
+            elif style == 'Instrument Name (Part)':
+                style = 'part_name_text'
+            else:
+                style = 'text'
+            texts[style].add(txt)
+        return {st: '; '.join(txt) for st, txt in texts.items()}
+
+
+
     def _get_metadata(self):
         """
 
@@ -968,6 +994,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
+        data.update(self.get_texts())
         if 'reviewer' in data:
             if 'reviewers' in data:
                 self.logger.warning("Score properties contain a superfluous key called 'reviewer'. "
@@ -2169,3 +2196,19 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
+    sty_tag = tag.find('style')
+    txt_tag = tag.find('text')
+    style = sty_tag.string if sty_tag is not None else ''
+    txt = ''
+    if txt_tag is not None:
+        components = []
+        for c in txt_tag.contents:
+            if isinstance(c, NavigableString):
+                components.append(c)
+            elif c.name == 'sym':
+                sym = c.string
+                if sym in NOTE_SYMBOL_MAP:
+                    components.append(NOTE_SYMBOL_MAP[sym])
+        txt = ''.join(components)
+    return txt, style
