@@ -446,7 +446,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
             self.start = None
 
     def treat_input(self, mc, repeat, section_break=False):
-        if section_break:
+        if not pd.isnull(section_break) and section_break:
             self.potential_ending = (mc, 'precedes a section break')
             self.potential_start = (mc + 1, 'follows a section break')
 
