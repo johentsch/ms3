@@ -2,7 +2,7 @@
 import sys
 from fractions import Fraction as frac
 from functools import reduce
-from typing import Union
+from typing import Union, List
 
 import numpy as np
 import pandas as pd
@@ -284,7 +284,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 
 @function_logger
-def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
+def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True) -> List[pd.DataFrame]:
     """ Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.
 
     Parameters

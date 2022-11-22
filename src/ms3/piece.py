@@ -7,10 +7,11 @@ import pandas as pd
 from .annotations import Annotations
 from ._typing import FileList, ParsedFile, FileDict, Facet, TSVtype, Facets, ScoreFacets, ScoreFacet, FileParsedTuple, FacetArguments, FileScoreTuple, \
     FileDataframeTupleMaybe, DataframeDict, FileDataframeTuple, TSVtypes, FileScoreTupleMaybe, FileParsedTupleMaybe, AnnotationsFacet
+from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -55,7 +56,10 @@ class Piece(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""
-        self._tsv_metadata: dict = None
+        self._tsv_metadata: Optional[Dict[str, str]] = None
+        """If the :class:`~.corpus.Corpus` has :attr:`~.corpus.Corpus.metadata_tsv`, this field will contain the
+        {column: value} pairs of the row pertaining to this piece.
+        """
         # self.score_obj: Score = None
         # self.score_metadata: pd.Series = None
         # """:obj:`pandas.Series`
@@ -902,8 +906,8 @@ class Piece(LoggedClass):
                        interval_index: bool = False,
                        ) -> Union[Dict[Facet, List[FileParsedTuple]], List[FileParsedTuple]]:
         """Return multiple parsed files."""
-        if unfold + interval_index > 0:
-            raise NotImplementedError(f"Unfolding and interval index currently only available for extracted facets.")
+        if unfold:
+            raise NotImplementedError(f"Unfolding index currently only available for extracted facets.")
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return [] if flat else {}
@@ -960,7 +964,7 @@ class Piece(LoggedClass):
             if n_unparsed > 0:
                 plural = 'files' if n_unparsed > 1 else 'file'
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
-            parsed_files = [(file, self.ix2parsed[file.ix]) for file in files if file.ix in self.ix2parsed]
+            parsed_files = [(file, self._get_transformed_facet_at_ix(ix=file.ix, unfold=unfold, interval_index=interval_index)) for file in files if file.ix in self.ix2parsed]
             n_parsed = len(parsed_files)
             if n_parsed == 0 and not include_empty:
                 continue
@@ -970,6 +974,22 @@ class Piece(LoggedClass):
         return result
 
 
+    def _get_transformed_facet_at_ix(self,
+                                     ix: int,
+                                     unfold: bool = False,
+                                     interval_index: bool = False) -> ParsedFile:
+        if ix not in self.ix2parsed:
+            return None
+        if ix not in self.ix2parsed_tsv:
+            return self.ix2parsed[ix]
+        df = self.ix2parsed_tsv[ix]
+        if interval_index:
+            if any(c not in df.columns for c in ('quarterbeats', 'duration_qb')):
+                _, measures = self.get_facet('measures')
+                df = dfs2quarterbeats(df, measures=measures, interval_index=True)[0]
+            else:
+                df = replace_index_by_intervals(df, logger=self.logger)
+        return df
 
 
     def get_parsed_score(self,
