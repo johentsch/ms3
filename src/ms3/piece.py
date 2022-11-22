@@ -571,6 +571,14 @@ class Piece(LoggedClass):
         parsed_scores = self.get_parsed_scores(view_name=view_name)
         return [(file, score) for file, score in parsed_scores if score.mscx.changed]
 
+
+    def get_dataframe(self, *args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`."""
+        raise AttributeError(f"Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, "
+                             f"_.extract_facet() to retrieve a freshly extracted DataFrame, "
+                             f"or _.get_facet() to retrieve either, according to availability.")
+
+
     def get_facets(self,
                    facets: ScoreFacets = None,
                    view_name: Optional[str] = None,
