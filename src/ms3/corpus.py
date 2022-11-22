@@ -1082,7 +1082,11 @@ class Corpus(LoggedClass):
         if counts_df.isna().any().any():
             counts_df = counts_df.fillna(0).astype('int')
         n_pieces = len(counts_df)
-        if self.metadata_tsv is None:
+        if n_pieces == 0:
+            if self.metadata_tsv is None:
+                msg += "No 'metadata.tsv' file is present.\n\n"
+            msg += "All pieces are excluded from the current view.\n\n"
+        elif self.metadata_tsv is None:
             msg += f"No 'metadata.tsv' file is present. Use _.create_metadata_tsv() to create one for these " \
                    f"{n_pieces} pieces.\n\n"
             msg += counts_df.to_string()
@@ -1119,7 +1123,7 @@ class Corpus(LoggedClass):
                 msg += pretty_dict(detached_key_counter, "key", "#scores")
         filtering_report = view.filtering_report(show_discarded=show_discarded, return_str=True)
         if filtering_report != '':
-            msg += '\n\n' + filtering_report
+            msg += '\n' + filtering_report
         if self.n_orphans > 0:
             msg += f"\n\nThe corpus contains {self.n_orphans} orphans that could not be attributed to any of the fnames"
             if show_discarded:
