@@ -124,15 +124,18 @@ class MeasureList(LoggedClass):
             self.ml.reset_index(drop=True, inplace=True)
         rn = {self.cols[col]: col for col in ['barline', 'dont_count', 'numbering_offset']}
         self.ml.rename(columns=rn, inplace=True)
-        ml_cols = ['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta', 'numbering_offset', 'dont_count',
-                   'barline', 'breaks', 'repeats']
-        remove_if_empty = ['markers', 'jump_bwd', 'jump_fwd', 'play_until']
-        if self.ml[remove_if_empty].isna().all().all():
-            ml_cols += ['next']
-        else:
-            ml_cols += remove_if_empty + ['next']
-        self.ml = self.ml[ml_cols]
-        self.ml.loc[:, ['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
+        cols1 = ['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta']
+        cols2 = ['numbering_offset', 'dont_count']
+        cols3 = ['barline', 'breaks', 'repeats']
+        cols4 = ['markers', 'jump_bwd', 'jump_fwd', 'play_until']
+        chunk1 = self.ml[cols1]
+        chunk2 = self.ml[cols2].apply(pd.to_numeric).astype('Int64')
+        chunk3 = self.ml[cols3]
+        chunk4 = self.ml[cols4]
+        chunks = [chunk1, chunk2, chunk3]
+        if not chunk4.isna().all().all():
+            chunks.append(chunk4)
+        self.ml = pd.concat(chunks, axis=1)
         self.check_measure_numbers()
 
 
