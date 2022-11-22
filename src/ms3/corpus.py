@@ -1348,18 +1348,22 @@ class Corpus(LoggedClass):
             self.logger.warning(f"Parsed metadata file {file.rel_path} was empty.")
             return
         self._ix2parsed[file.ix] = metadata_df
-        if suffix == '' and file.directory == self.corpus_path:
+        rel_dir = os.path.normpath(os.path.dirname(file.rel_path))
+        if suffix == '' and rel_dir == '.':
             self.metadata_ix = file.ix
             self.metadata_tsv = metadata_df
             return
         # create views for other metadata files
+        view_name = ''
+        if rel_dir != '.':
+            view_name = string2identifier(rel_dir)
         if suffix != '':
-            view_name = string2identifier(suffix)
-        else:
-            view_name = string2identifier(file.rel_path)
+            if view_name != '':
+                view_name += '_'
+            view_name += string2identifier(suffix)
         fnames = self.fnames_in_metadata(file.ix)
         fnames = [re.escape(fname) for fname in fnames]
-        new_view = DefaultView(view_name)
+        new_view = DefaultView(view_name, only_metadata_fnames=False)
         new_view.include('fnames', *fnames)
         action = 'Replaced' if view_name in self.view_names else 'Added'
         self.set_view(**{view_name: new_view})
