@@ -1348,19 +1348,22 @@ class Corpus(LoggedClass):
             self.logger.warning(f"Parsed metadata file {file.rel_path} was empty.")
             return
         self._ix2parsed[file.ix] = metadata_df
-        if suffix == '':
+        if suffix == '' and file.directory == self.corpus_path:
             self.metadata_ix = file.ix
             self.metadata_tsv = metadata_df
-        else:
-            # create views for metadata files with suffix
+            return
+        # create views for other metadata files
+        if suffix != '':
             view_name = string2identifier(suffix)
-            fnames = self.fnames_in_metadata(file.ix)
-            fnames = [re.escape(fname) for fname in fnames]
-            new_view = DefaultView(view_name)
-            new_view.include('fnames', *fnames)
-            action = 'Replaced' if view_name in self.view_names else 'Added'
-            self.set_view(**{view_name: new_view})
-            self.logger.debug(f"{action} view '{view_name}' corresponding to {file.rel_path}.")
+        else:
+            view_name = string2identifier(file.rel_path)
+        fnames = self.fnames_in_metadata(file.ix)
+        fnames = [re.escape(fname) for fname in fnames]
+        new_view = DefaultView(view_name)
+        new_view.include('fnames', *fnames)
+        action = 'Replaced' if view_name in self.view_names else 'Added'
+        self.set_view(**{view_name: new_view})
+        self.logger.debug(f"{action} view '{view_name}' corresponding to {file.rel_path}.")
 
 
     def parse(self, view_name=None, level=None, parallel=True, only_new=True, labels_cfg={}, cols={}, infer_types=None, **kwargs):
