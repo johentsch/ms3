@@ -448,11 +448,12 @@ For correction, MC {start} is interpreted as such because it {reason}."""
                 self.potential_start = (mc + 1, 'is the first bar after the previous endRepeat')
             self.start = None
 
-    def treat_input(self, mc, repeat, section_break=False):
+    def treat_input(self, mc, repeat, section_break=False) -> None:
         if not pd.isnull(section_break) and section_break:
             self.potential_ending = (mc, 'precedes a section break')
             self.potential_start = (mc + 1, 'follows a section break')
-
+        if pd.isnull(repeat):
+            return
         if repeat == 'firstMeasure':
             self.potential_start = (mc, 'firstMeasure')
         elif repeat == 'start':
