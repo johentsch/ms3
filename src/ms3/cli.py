@@ -64,7 +64,8 @@ def add(args):
         p.store_scores(ids=ids, overwrite=True)
 
 
-def check_cmd(args, parse_obj=None):
+def check_cmd(args,
+              parse_obj: Optional[Parse] = None) -> Parse:
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
@@ -303,7 +304,10 @@ def review_cmd(args,
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
-        test_passes = check_cmd(args, p)
+        test_passes = check(p,
+              ignore_labels=args.ignore_labels,
+              ignore_scores=args.ignore_scores,
+              assertion=False)
     params = gather_extract_params(args)
     if len(params) > 0:
         print("EXTRACTING FACETS...")
