@@ -291,7 +291,7 @@ def check_dir(d):
 
 def review_cmd(args,
                parse_obj: Optional[Parse] = None,
-               ):
+               ) -> None:
     """Thie command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
     logger = get_logger('ms3.review')
     if parse_obj is None:
@@ -299,6 +299,13 @@ def review_cmd(args,
     else:
         p = parse_obj
     p.parse(parallel=False)
+    if p.n_parsed_scores == 0:
+        msg = "NO SCORES PARSED, NOTHING TO DO."
+        if not args.all:
+            msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
+                   "Add -a if you want me to include all scores."
+        print(msg)
+        return
     if args.ignore_scores + args.ignore_labels < 2:
         what = '' if args.ignore_scores else 'SCORES'
         if args.ignore_labels:
