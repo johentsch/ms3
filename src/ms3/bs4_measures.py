@@ -135,6 +135,7 @@ class MeasureList(LoggedClass):
         chunks = [chunk1, chunk2, chunk3]
         if not chunk4.isna().all().all():
             chunks.append(chunk4)
+        chunks.append(self.ml['next'])
         self.ml = pd.concat(chunks, axis=1)
         self.check_measure_numbers()
 
@@ -258,8 +259,10 @@ class NextColumnMaker(LoggedClass):
             if fines.sum() > 1:
                 self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")
             elif last_row.repeats != 'end' and pd.isnull(last_row.jump_bwd):
+                fine_mc = df.loc[fines, 'mc'].values[0]
                 self.logger.warning(
-                    f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.")
+                    f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.",
+                extra={"message_id": (20, fine_mc)})
             else:
                 fine_mc = df[fines].iloc[0].mc
                 volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
@@ -298,7 +301,8 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                     jump_to_mc = get_marker_mc(marker)
                 else:
                     self.logger.warning(
-                        f"MC {from_mc} is supposed to jump to label {marker} but there is no corresponding marker in the score. Ignoring.")
+                        f"MC {from_mc} is supposed to jump to label {marker} but there is no corresponding marker in the score. Ignoring.",
+                    extra={'message_id': (22, from_mc)})
                     return None, None
 
                 if pd.isnull(untill):
@@ -310,7 +314,8 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                 else:
                     end_of_jump_mc = None
                     self.logger.warning(
-                        f"After jumping from MC {from_mc} to {marker}, the music is supposed to play until label {untill} but there is no corresponding marker in the score. Ignoring.")
+                        f"After jumping from MC {from_mc} to {marker}, the music is supposed to play until label {untill} but there is no corresponding marker in the score. Ignoring.",
+                    extra={'message_id': (21, from_mc)})
                 return jump_to_mc, end_of_jump_mc
 
             bwd_jumps = df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']] #.copy()

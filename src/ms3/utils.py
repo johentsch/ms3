@@ -11,7 +11,7 @@ from inspect import getfullargspec, stack
 from itertools import chain, repeat, takewhile
 from shutil import which
 from tempfile import NamedTemporaryFile as Temp
-from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any, overload, Callable
+from typing import Collection, Union, Dict, Tuple, List, Iterable, Literal, Optional, TypeVar, Any, overload, Callable, Iterator
 from zipfile import ZipFile as Zip
 
 import git
@@ -3815,7 +3815,7 @@ def transpose(e, n):
     return map2elements(e, lambda x: x + n)
 
 
-def parse_ignored_warnings(messages):
+def parse_ignored_warnings(messages: Collection[str]) -> Iterator[Tuple[str, Tuple[int]]]:
     if isinstance(messages, str):
         yield from parse_ignored_warnings([messages])
     else:
@@ -3853,15 +3853,23 @@ def parse_ignored_warnings(messages):
                 info = str2inttuple(tuple_str, strict=False)
                 yield logger_name, info
 
-def ignored_warnings2dict(messages):
+def ignored_warnings2dict(messages: Collection[str]) -> Dict[str, List[Tuple[int]]]:
+    """
+
+    Args:
+        messages:
+
+    Returns:
+        {logger_name -> [ignored_warnings]} dict.
+    """
     ignored_warnings = defaultdict(list)
     for logger_name, info in parse_ignored_warnings(messages):
         ignored_warnings[logger_name].append(info)
     return dict(ignored_warnings)
 
-def parse_ignored_warnings_file(path):
+def parse_ignored_warnings_file(path: str) -> Dict[str, List[Tuple[int, Tuple[int]]]]:
     """Parse file with log messages that have to be ignored to the dict.
-    The expected structure of message: warning_type (warning_type_id, label) file
+    The expected structure of message: warning_type (warning_type_id, *integers) file
     Example of message: INCORRECT_VOLTA_MN_WARNING (2, 94) ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx.MeasureList
 
     Parameters
@@ -3872,7 +3880,7 @@ def parse_ignored_warnings_file(path):
     Returns
     -------
     :obj: dict
-        {file_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
+        {logger_name: [(message_id, label_of_message), (message_id, label_of_message), ...]}.
     """
     path = resolve_dir(path)
     messages = open(path, 'r', encoding='utf-8').readlines()
