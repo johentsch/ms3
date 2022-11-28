@@ -292,7 +292,7 @@ def check_dir(d):
 def review_cmd(args,
                parse_obj: Optional[Parse] = None,
                ) -> None:
-    """Thie command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
+    """This command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
     logger = get_logger('ms3.review')
     if parse_obj is None:
         p = make_parse_obj(args)
@@ -321,18 +321,19 @@ def review_cmd(args,
         extract_cmd(args, p)
     print("COLORING NON-CHORD TONES...")
     review_reports = p.color_non_chord_tones()
-    dataframes, keys = [], []
-    for (corpus_name, fname), tuples in review_reports.items():
-        for file, df in tuples:
-            dataframes.append(df)
-            keys.append((corpus_name, file.rel_path))
-    report = pd.concat(dataframes, keys=keys)
-    warning_selection = report.count_ratio > args.threshold
-    if warning_selection.sum() > 0:
-        test_passes = False
-        filtered_report = report[warning_selection]
-        logger.warning(filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio']),
-                       extra={'message_id': (19,)})
+    if len(review_reports) > 0:
+        dataframes, keys = [], []
+        for (corpus_name, fname), tuples in review_reports.items():
+            for file, df in tuples:
+                dataframes.append(df)
+                keys.append((corpus_name, file.rel_path))
+        report = pd.concat(dataframes, keys=keys)
+        warning_selection = report.count_ratio > args.threshold
+        if warning_selection.sum() > 0:
+            test_passes = False
+            filtered_report = report[warning_selection]
+            logger.warning(filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio']),
+                           extra={'message_id': (19,)})
     commit = '' if args.commit is None else f" @{args.commit}"
     print(f"COMPARING CURRENT LABELS WITH PREVIOUS ONES FROM TSVs{commit}...")
     compare_cmd(args, p, output=False)
