@@ -261,7 +261,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             offset_dict = self.offset_dict()
             with_chord = add_quarterbeats_col(expanded[has_chord], offset_dict, logger=self.logger)
             without_chord = add_quarterbeats_col(expanded[~has_chord], offset_dict, logger=self.logger)
-            without_chord.loc[:, 'duration_qb'] = 0.0
+            without_chord.duration_qb = 0.0
             expanded = pd.concat([with_chord, without_chord]).sort_index()
             if interval_index:
                 expanded = replace_index_by_intervals(expanded, logger=self.logger)
