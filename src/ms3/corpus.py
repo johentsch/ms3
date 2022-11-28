@@ -2073,7 +2073,7 @@ Continuing with {annotation_key}.""")
                               choose: Literal['all', 'auto', 'ask'] = 'all', ) -> Dict[str, List[FileDataframeTuple]]:
         if self.n_parsed_scores == 0:
             self.logger.info("No scores have been parsed so far. Use parse_scores()")
-            return
+            return dict()
         result = defaultdict(list)
         for file, score in self.iter_parsed('scores',
                                             view_name=view_name,
