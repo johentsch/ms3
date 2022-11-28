@@ -1304,7 +1304,11 @@ class Corpus(LoggedClass):
         Loads in a text file containing warnings that are to be ignored, i.e., wrapped in DEBUG messages. The purpose
         is to mark certain warnings as OK, warranted by a human, to allow checks to pass regardless.
         """
-        ignored_warnings = parse_ignored_warnings_file(path)  # parse IGNORED_WARNINGS file into a {logger_name -> [message_id]} dict
+        try:
+            ignored_warnings = parse_ignored_warnings_file(path)
+        except ValueError as e:
+            self.logger.warning(e)
+            return
         self.logger.debug(f"Ignored warnings contained in {path}:\n{ignored_warnings}")
         logger_names = set(self.logger_names.values())
         all_logger_names = set()
@@ -1616,10 +1620,10 @@ class Corpus(LoggedClass):
                 print(fname)
                 print(piece.score_metadata())
                 raise
-        df = pd.DataFrame(rows).set_index('fname')
-        if len(df) > 0:
+        if len(rows) > 0:
+            df = pd.DataFrame(rows).set_index('fname')
             return column_order(df, METADATA_COLUMN_ORDER, sort=False).sort_index()
-        return df
+        return pd.DataFrame()
 
 
     def set_view(self, active: View = None, **views: View):
