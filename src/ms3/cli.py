@@ -400,7 +400,7 @@ Parse('{args.dir}',
         parse_obj.parse_scores(parallel=not args.iterative)
     if parse_tsv:
         parse_obj.parse_tsv()
-    info_str = parse_obj.info(show_discarded=True, return_str=True).replace('\n', '\n\t')
+    info_str = parse_obj.info(show_discarded=args.verbose, return_str=True).replace('\n', '\n\t')
     print(f"RESULTING PARSE OBJECT:\n\t{info_str}")
     return parse_obj
 
@@ -441,6 +441,7 @@ def get_arg_parser():
                                 help="Choose how many log messages you want to see: c (none), e, w, i, d (maximum)")
     parse_args.add_argument('--log', nargs='?', const='.', help='Can be a file path or directory path. Relative paths are interpreted relative to the current directory.')
     parse_args.add_argument('-t', '--test', action='store_true', help="No data is written to disk.")
+    parse_args.add_argument('-v', '--verbose', action='store_true', help="Show more output such as files discarded from parsing.")
 
     check_args = argparse.ArgumentParser(add_help=False)
     check_args.add_argument('--ignore_scores', action='store_true',
