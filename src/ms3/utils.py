@@ -779,7 +779,10 @@ def dict2oneliner(d):
     return ', '.join(f"{k}: {v}" for k, v in d.items())
 
 @function_logger
-def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowercase: bool = True) -> str:
+def resolve_form_abbreviations(token: str,
+                               abbreviations: dict,
+                               mc: Optional[Union[int, str]] = None,
+                               fallback_to_lowercase: bool = True) -> str:
     """ Checks for each consecutive substring of the token if it matches one of the given abbreviations and replaces
     it with the corresponding long name. Trailing numbers are separated by a space in this case.
     
@@ -792,8 +795,9 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
     Returns:
 
     """
+    mc_string = '' if mc is None else f"MC {mc}: "
     if ',' in token:
-        logger.warning(f"'{token}' contains a comma, which might result from a syntax error.")
+        logger.warning(f"{mc_string}'{token}' contains a comma, which might result from a syntax error.")
     sub_component_regex = r"\W+"
     ends_on_numbers_regex = r"\d+$"
     resolved_substrings = []
@@ -827,7 +831,7 @@ def resolve_form_abbreviations(token: str, abbreviations: dict, fallback_to_lowe
 @function_logger
 def distribute_tokens_over_levels(levels: Collection[str],
                                   tokens: Collection[str],
-                                  mc: Union[int, str] = None,
+                                  mc: Optional[Union[int, str]] = None,
                                   abbreviations: dict = {},
                                   ) -> Dict[Tuple[str, str], str]:
     """Takes the regex matches of one label and turns them into as many {layer -> token} pairs as the label contains
@@ -862,7 +866,7 @@ def distribute_tokens_over_levels(levels: Collection[str],
         token_alternatives = [re.sub(r'\s+',  ' ', t).strip(' \n,') for t in token_str.split(' - ')]
         token_alternatives = [t for t in token_alternatives if t != '']
         if len(abbreviations) > 0:
-            token_alternatives = [resolve_form_abbreviations(token, abbreviations, logger=logger) for token in token_alternatives]
+            token_alternatives = [resolve_form_abbreviations(token, abbreviations, mc=mc, logger=logger) for token in token_alternatives]
         if len(token_alternatives) == 1:
             if levels_include_reading:
                 analytical_layers.reading += token_alternatives[0]
@@ -885,8 +889,10 @@ def distribute_tokens_over_levels(levels: Collection[str],
                         for roman in readings_str.group(1).split('&'):
                             reading = f"{roman}: "
                             if levels_include_reading and reading in analytical_layers.reading.values:
+                                column_empty = (analytical_layers == '').all()
+                                show_layers = analytical_layers.loc[:, ~column_empty]
                                 logger.warning(
-                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{analytical_layers}")
+                                    f"{mc_string}Alternative reading in '{token_str}' specifies Roman '{reading}' which conflicts with one specified in the level:\n{show_layers}")
                             reading2token[reading] = token_component
                 label = ' - '.join(reading + tkn for reading, tkn in reading2token.items())
                 if levels_include_reading:

@@ -77,8 +77,8 @@ from typing import Literal, Optional, Collection, Dict, Tuple
 
 import pandas as pd
 
-from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
+from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler, function_logger
@@ -287,7 +287,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> Optional[pd.DataFrame]:
+    def form_labels(self,
+                    detection_regex: str = None,
+                    exclude_harmony_layer: bool = False,
+                    interval_index: bool = False,
+                    expand=True) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -303,10 +307,14 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        form = self.parsed.form_labels(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer, interval_index=interval_index)
+        form = self.parsed.form_labels(detection_regex=detection_regex,
+                                       exclude_harmony_layer=exclude_harmony_layer,
+                                       interval_index=interval_index)
         if form is None:
             self.logger.info("The score does not contain any form labels.")
             return
+        if expand:
+            form = expand_form_labels(form, logger=self.logger)
         return form
 
     def labels(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
