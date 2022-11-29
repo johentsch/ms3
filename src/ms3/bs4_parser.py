@@ -161,7 +161,7 @@ class _MSCX_bs4(LoggedClass):
 
 
 
-    def parse_mscx(self):
+    def parse_mscx(self) -> None:
         """ Load the XML structure from the score in self.mscx_src and store references to staves and measures.
         """
         assert self.mscx_src is not None, "No MSCX file specified." \
@@ -177,7 +177,12 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
         # <Part> contains <Staff> nodes with staff information which is being ignored for now
-        for staff in self.soup.find('Part').find_next_siblings('Staff'):
+        part_tag = self.soup.find('Part')
+        if part_tag is None:
+            iterator = self.soup.find_all('Staff')
+        else:
+            iterator = part_tag.find_next_siblings('Staff')
+        for staff in iterator:
             staff_id = int(staff['id'])
             self.measure_nodes[staff_id] = {}
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
