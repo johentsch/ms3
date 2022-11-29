@@ -1,4 +1,5 @@
 import sys
+import warnings
 from functools import lru_cache
 from inspect import stack
 
@@ -370,7 +371,19 @@ class Annotations(LoggedClass):
                 self._expanded = exp
             else:
                 df = self.df.copy()
-                df.loc[select_dcml, exp.columns] = exp
+                with warnings.catch_warnings():
+                    # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+                    # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+                    # See also: https://stackoverflow.com/q/74057367/859591
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=FutureWarning,
+                        message=(
+                            ".*will attempt to set the values inplace instead of always setting a new array. "
+                            "To retain the old behavior, use either.*"
+                        ),
+                    )
+                    df.loc[select_dcml, exp.columns] = exp
                 self._expanded = df
             drop_cols = [col for col in ('harmony_layer', 'regex_match') if col in df.columns]
             if len(drop_cols) > 0:

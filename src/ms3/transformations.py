@@ -1,5 +1,6 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
+import warnings
 from fractions import Fraction as frac
 from functools import reduce
 from typing import Union, List
@@ -1319,5 +1320,17 @@ def transpose_chord_tones_by_localkey(df, by_global=False):
     ct = pd.DataFrame(transposed_row_tuples,
                       index=df.index,
                       columns=ct_cols)
-    df.loc[:, ct_cols] = ct
+    with warnings.catch_warnings():
+        # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+        # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+        # See also: https://stackoverflow.com/q/74057367/859591
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*will attempt to set the values inplace instead of always setting a new array. "
+                "To retain the old behavior, use either.*"
+            ),
+        )
+        df.loc[:, ct_cols] = ct
     return df

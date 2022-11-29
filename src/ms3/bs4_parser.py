@@ -71,7 +71,7 @@
 .. |voice| replace:: :ref:`voice <voice>`
 """
 
-import re, sys
+import re, sys, warnings
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from typing import Literal, Optional, List, Tuple, Dict
@@ -1956,8 +1956,20 @@ def make_spanner_cols(df, spanner_types=None):
             sel &= df[subtype_col] == subtype
         features = pd.DataFrame(index=df.index, columns=f_cols)
         features.loc[sel, existing] = df.loc[sel, existing]
-        features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-        features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
+            features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
         features = pd.concat([df[['mc', 'mc_onset', 'staff']], features], axis=1)
 
         current_id = -1
