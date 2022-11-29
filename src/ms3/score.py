@@ -1292,7 +1292,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if expanded is None:
             self.mscx.logger.debug("Score contains no DCML harmony labels.")
             return
-        self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        self.review_report = self.mscx.color_non_chord_tones(expanded[expanded.chord.notna()], color_name=color_name)
         return self.review_report
 
 
