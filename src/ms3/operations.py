@@ -6,7 +6,7 @@ import pandas as pd
 from ms3 import Parse
 from ms3._typing import AnnotationsFacet
 from ms3.score import Score, compare_two_score_objects
-from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert
+from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert, pretty_dict
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
 from ms3.view import create_view_from_parameters
 
@@ -80,7 +80,7 @@ def check(parse_obj: Parse,
     else:
         return False
 
-
+@function_logger
 def compare(parse_obj: Parse,
             facet: AnnotationsFacet,
             ask: bool = False,
@@ -91,14 +91,19 @@ def compare(parse_obj: Parse,
         parse_obj.logger.warning(f"Parse object does not include any scores.")
         return
     choose = 'ask' if ask else 'auto'
-    key = f"previous_{facet}" if revision_specifier is None else revision_specifier
+    if revision_specifier is None:
+        key = f"previous_{facet}"
+        logger.info(f"Comparing annotations to those contained in the current '{facet}' TSV files...")
+    else:
+        key = revision_specifier
+        logger.info(f"Comparing annotations to those contained in the '{facet}' TSV files @ git revision {revision_specifier}...")
     if not key.isidentifier():
         key = "old"
-    parse_obj.load_facet_into_scores(facet=facet,
-                                     choose=choose,
-                                     git_revision=revision_specifier,
-                                     key=key,
-                                     )
+    comparisons_per_corpus = parse_obj.load_facet_into_scores(facet=facet,
+                                                              choose=choose,
+                                                              git_revision=revision_specifier,
+                                                              key=key)
+    logger.info(f"Comparisons to be performed:\n{pretty_dict(comparisons_per_corpus, 'Corpus', 'Comparisons')}")
     return parse_obj.compare_labels(key=key,
                              detached_is_newer=flip)
 

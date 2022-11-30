@@ -92,6 +92,7 @@ def compare_cmd(args,
                                  ask=args.ask,
                                  revision_specifier=args.commit,
                                  flip=args.flip,
+                                 logger=logger
                                  )
     logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
     if output:
@@ -101,7 +102,7 @@ def compare_cmd(args,
         changed = sum(map(len, corpus2paths.values()))
         logger.info(f"Operation resulted in {changed} comparison file{'s' if changed != 1 else ''}.")
     else:
-        logger.info(f"Operation resulted in {n_changed} comparison file{'s' if n_changed != 1 else ''}.")
+        logger.info(f"Operation resulted in colored labels within {n_changed} score{'s' if n_changed != 1 else ''}.")
 
 
 

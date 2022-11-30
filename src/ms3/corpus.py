@@ -1262,7 +1262,10 @@ class Corpus(LoggedClass):
                                git_revision: Optional[str] = None,
                                key: str = 'detached',
                                infer: bool = True,
-                               **cols) -> None:
+                               **cols) -> int:
+        """Loads annotations from maximum one TSV file to maximum one score per piece. Each score will contain the
+        annotations as a 'detached' annotation object accessible via the indicated ``key`` (defaults to 'detached').
+        """
         facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=self.logger)
         assert facet is not None, f"Pass a valid facet {AnnotationsFacet.__args__}"
         assert choose != 'all', "Only one set of annotations can be added under a given key."
@@ -1274,19 +1277,27 @@ class Corpus(LoggedClass):
                                 flat=True,
                                 )
             fname2tuple = {fname: tuples[0] for fname, tuples in fname2tuples.items()}
+            revision_str = ''
         else:
             fname2tuple = self.get_facet_at_git_revision(facet=facet,
                                                           git_revision=git_revision,
                                                           view_name=view_name,
                                                           choose=choose)
-        for fname, tuple in fname2tuple.items():
-            file, df = tuple
+            revision_str = f" @ git revision {git_revision}"
+        n_pieces = len(fname2tuple)
+        if n_pieces == 0:
+            self.logger.debug(f"No parsed '{facet}' TSV files found{revision_str}.")
+        else:
+            plural = 's' if n_pieces > 1 else ''
+            self.logger.debug(f"Parsed '{facet}' file{revision_str} added to {n_pieces} piece{plural}.")
+        for fname, (file, df) in fname2tuple.items():
             self[fname].load_annotation_table_into_score(df=df,
                                                          view_name=view_name,
                                                          choose=choose,
                                                          key=key,
                                                          infer=infer,
                                                          **cols)
+        return n_pieces
 
 
 

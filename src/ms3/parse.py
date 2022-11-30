@@ -906,16 +906,18 @@ class Parse(LoggedClass):
                                git_revision: Optional[str] = None,
                                key: str = 'detached',
                                infer: bool = True,
-                               **cols) -> None:
+                               **cols) -> Dict[str, int]:
+        result = {}
         for corpus_name, corpus in self.iter_corpora(view_name):
-            corpus.load_facet_into_scores(facet=facet,
-                                          view_name=view_name,
-                                          force=force,
-                                          choose=choose,
-                                          git_revision=git_revision,
-                                          key=key,
-                                          infer=infer,
-                                          **cols)
+            result[corpus_name] = corpus.load_facet_into_scores(facet=facet,
+                                                                view_name=view_name,
+                                                                force=force,
+                                                                choose=choose,
+                                                                git_revision=git_revision,
+                                                                key=key,
+                                                                infer=infer,
+                                                                **cols)
+        return result
 
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
