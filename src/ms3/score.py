@@ -595,7 +595,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 expand_segment = False
             else:
                 to_mc, to_mc_onset = mc, mc_onset
-        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
+        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'], index=df.index)
         if (stats.n_colored > 0).any():
             self.parsed.parse_measures()
             self.changed = True
@@ -751,7 +751,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self.parser in implemented_parsers:
             try:
                 self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
-            except:
+            except Exception:
                 self.logger.error(f"Failed parsing {self.mscx_src}.")
                 raise
         else:

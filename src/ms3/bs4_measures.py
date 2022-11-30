@@ -595,8 +595,8 @@ def make_actdur_col(df, len_col, timesig_col='timesig', name='act_dur'):
     actdur = actdur.fillna(df[timesig_col])
     try:
         return actdur.map(frac).rename(name)
-    except:
-        print(df.to_dict())
+    except Exception:
+        print(f"Failed to turn all values into fractions: {actdur}")
         raise
 
 
@@ -742,24 +742,25 @@ def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
 
 @function_logger
 def make_timesig_col(df, sigN_col, sigD_col, name='timesig'):
-    if pd.isnull(df[sigN_col].iloc[0]):
-        logger.info("No time signature defined in MC 1 (maybe an incipit?).")
-        ## old behaviour where missing time signature is set to 4/4
-        # sigN_pos, sigD_pos = df.columns.get_loc(sigN_col), df.columns.get_loc(sigD_col)
-        # df.iloc[0, [sigN_pos, sigD_pos]] = '4'
     n = pd.to_numeric(df[sigN_col]).astype('Int64').fillna(method='ffill').astype('string')
     d = pd.to_numeric(df[sigD_col]).astype('Int64').fillna(method='ffill').astype('string')
     result = (n + '/' + d).rename(name)
-    if result.isna().any():
-        missing = result.isna()
+    missing = result.isna()
+    if missing.all():
+        logger.warning("No time signature specified. Wild-guessing it's the default 4/4.",
+                       extra={'message_id': (23,)})
+        result = result.fillna('4/4')
+    elif missing.any():
+        # because of the forward fill, only initial measures can have missing values
         result.fillna(method='bfill', inplace=True)
-        if result.isna().any():
-            logger.warning("No time signature specified. Wild-guessing it's the default 4/4.")
-            result = result.fillna('4/4')
+        fill_value = result.iloc[0]
+        if missing.sum() == 1:
+            logger.info(f"The first measure doesn't come with a time signature (probably an incipit?) but for matters "
+                        f"of consistency the measure table will indicate {fill_value}")
         else:
-            inferred = result[missing].to_dict()
-            logger.info(f"The following measures have received the first timesig of the piece although "
-                             f"it occurred only later:\n{inferred}")
+            logger.warning(f"The {missing.sum()} first MCs came without time signature but the measure table will indicate "
+                           f"the first time signature occurring in the piece for them, namely {fill_value}",
+                           extra = {'message_id': (24,)})
     return result
 
 
