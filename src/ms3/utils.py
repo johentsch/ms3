@@ -37,7 +37,7 @@ METADATA_COLUMN_ORDER = ['fname',
                          'n_onset_positions', 'TimeSig', 'KeySig', 'label_count', 'harmony_version', 'annotated_key',
                          # metadata from the files metadata fields
                          ## custom fields
-                         'composed_start', 'composed_end', 'annotators', 'reviewers', 'score_integrity',
+                         'annotators', 'reviewers', 'score_integrity', 'composed_start', 'composed_end',
                          ## default fields
                          'composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
