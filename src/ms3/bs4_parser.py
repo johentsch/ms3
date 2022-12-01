@@ -1044,7 +1044,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['TimeSig'] = timesigs
         ks_groups, _ = adjacency_groups(measures.keysig)
         mc_ks = measures.groupby(ks_groups)[['mc', 'keysig']].head(1)
-        keysigs = dict(mc_ks.values)
+        keysigs = {int(k): int(v) for k, v in mc_ks.values}
         data['KeySig']  = keysigs
         annotated_key = None
         for harmony_tag in self.soup.find_all('Harmony'):
@@ -1063,13 +1063,13 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             return data
         data['all_notes_qb'] = round((notes.duration * 4.).sum(), 2)
         not_tied = ~notes.tied.isin((0, -1))
-        data['n_onsets'] = sum(not_tied)
+        data['n_onsets'] = int(sum(not_tied))
         data['n_onset_positions'] = notes[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
         staff_groups = notes.groupby('staff').midi
-        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
+        ambitus = {t.staff: {'min_midi': int(t.midi), 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
                         for t in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
-            ambitus[t.staff]['max_midi'] = t.midi
+            ambitus[t.staff]['max_midi'] = int(t.midi)
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
         for part, part_dict in data['parts'].items():
