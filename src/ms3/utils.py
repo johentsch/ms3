@@ -2,6 +2,7 @@ import dataclasses
 import io
 import json
 import os,sys, platform, re, shutil, subprocess
+import warnings
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -725,7 +726,19 @@ def decode_harmonies(df, label_col='label', keep_layer=True, return_series=False
         drop_cols.append('absolute_root')
         if 'rootCase' in df.columns:
             sel = df.rootCase.notna()
-            df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
+            with warnings.catch_warnings():
+                # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+                # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+                # See also: https://stackoverflow.com/q/74057367/859591
+                warnings.filterwarnings(
+                    "ignore",
+                    category=FutureWarning,
+                    message=(
+                        ".*will attempt to set the values inplace instead of always setting a new array. "
+                        "To retain the old behavior, use either.*"
+                    ),
+                )
+                df.loc[sel, 'absolute_root'] = df.loc[sel, 'absolute_root'].str.lower()
             drop_cols.append('rootCase')
     if label_col in df.columns:
         compose_label.append(label_col)
@@ -1361,7 +1374,7 @@ def get_path_component(path, after):
     return os.path.join(higher_levels, base1)
 
 
-def get_quarterbeats_length(measures, decimals=2):
+def get_quarterbeats_length(measures: pd.DataFrame, decimals: int = 2) -> Tuple[float, Optional[float]]:
     """ Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.
 
     Parameters
@@ -1378,11 +1391,11 @@ def get_quarterbeats_length(measures, decimals=2):
     try:
         playthrough2mc = make_playthrough2mc(measures, logger=logger)
         if len(playthrough2mc) == 0:
-            length_qb_unfolded = pd.NA
+            length_qb_unfolded = None
         else:
             length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
     except Exception:
-        length_qb_unfolded = pd.NA
+        length_qb_unfolded = None
     return length_qb, length_qb_unfolded
 
 
@@ -2387,7 +2400,11 @@ def pretty_dict(ugly_dict: dict, heading_key: str = None, heading_value: str = N
         d.update(ugly_dict)
     else:
         head_val_length = -1
-        d = dict(ugly_dict)
+        try:
+            d = dict(ugly_dict)
+        except ValueError:
+            print(f"Please pass a dictionary, not a {type(ugly_dict)}: {ugly_dict}")
+            raise
     left = max(len(str(k)) for k in d.keys())
     res = []
     for k, v in d.items():
@@ -3176,12 +3193,12 @@ def write_tsv(df, file_path, pre_process=True, **kwargs):
     -------
     None
     """
-    path, fname = os.path.split(file_path)
+    path, file = os.path.split(file_path)
     path = resolve_dir(path)
-    os.path.join(path, fname)
-    name, ext = os.path.splitext(fname)
+    os.path.join(path, file)
+    fname, ext = os.path.splitext(file)
     if ext.lower() not in ('.tsv', '.csv'):
-        logger.error(f"This function expects file_path to include the file name ending on .csv or tsv, not '{ext}'.")
+        logger.error(f"This function expects file_path to include the file name ending on .csv or .tsv, not '{ext}'.")
         return
     os.makedirs(path, exist_ok=True)
     if ext.lower() == '.tsv':
