@@ -84,7 +84,7 @@ from bs4 import NavigableString
 from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
-from .transformations import add_quarterbeats_col
+from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
     get_quarterbeats_length, make_offset_dict_from_measures, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name
@@ -156,7 +156,11 @@ class _MSCX_bs4(LoggedClass):
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
         self._style = None
-
+        self.staff2drum_map: Dict[int, pd.DataFrame] = {}
+        """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
+        note and instrument features. The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut']. 
+        When creating note tables, the 'name' column will be populated with the names here rather than note names.
+        """
         self.parse_measures()
 
 
@@ -174,10 +178,24 @@ class _MSCX_bs4(LoggedClass):
             raise ValueError(f"""Cannot parse MuseScore {self.version} file.
 Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
+        # Check if any of the <Part> tags contains a pitch -> drumset instrument map
+        for part_tag in self.soup.find_all('Part'):
+            drum_tags = part_tag.find_all('Drum')
+            staff_tag = part_tag.find('Staff')
+            if len(drum_tags) == 0 or staff_tag is None:
+                continue
+            staff = int(staff_tag['id'])
+            drum_map = {}
+            for tag in drum_tags:
+                pitch = int(tag['pitch'])
+                features = {t.name: str(t.string) for t in tag.find_all()}
+                drum_map[pitch] = features
+            df = pd.DataFrame.from_dict(drum_map, orient='index')
+            df.index.rename('pitch', inplace=True)
+            self.staff2drum_map[staff] = df
+
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
-        # <Part> contains <Staff> nodes with staff information which is being ignored for now
-        part_tag = self.soup.find('Part')
         if part_tag is None:
             iterator = self.soup.find_all('Staff')
         else:
@@ -696,8 +714,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         tied = make_tied_col(self._notes, *tie_cols)
         pitch_info = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
         pitch_info.tpc -= 14
-        octaves = midi2octave(pitch_info.midi, pitch_info.tpc).rename('octave')
-        names = (tpc2name(pitch_info.tpc) + octaves.astype(str)).rename('name')
+        names, octaves = make_note_name_and_octave_columns(pd.concat([pitch_info, self._nl.staff], axis=1),
+                                                           staff2drums=self.staff2drum_map)
         append_cols = [
             pitch_info,
             tied,

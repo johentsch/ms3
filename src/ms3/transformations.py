@@ -3,22 +3,44 @@ import sys
 import warnings
 from fractions import Fraction as frac
 from functools import reduce
-from typing import Union, List
+from typing import Union, List, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
 from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
-    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
+    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, midi2octave, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
+    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, tpc2name, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
 
 def add_localkey_change_column(at, key_column='localkey'):
     key_segment, _ = adjacency_groups(at[key_column], na_values='ffill')
     return pd.concat([at, key_segment.rename('key_segment')], axis=1)
 
+@function_logger
+def make_note_name_and_octave_columns(notes: pd.DataFrame,
+                                      staff2drums: Optional[Dict[int, Union[dict, pd.DataFrame, pd.Series]]] = None) -> Tuple[pd.Series, pd.Series]:
+    """Takes a notelist and maybe a {staff -> {midi_pitch -> 'instrument_name'}} mapping and returns two columns named 'name' and 'octave'."""
+    octaves = midi2octave(notes.midi, notes.tpc).rename('octave')
+    names = (tpc2name(notes.tpc) + octaves.astype(str)).rename('name')
+    if staff2drums is None or len(staff2drums) == 0:
+        return names, octaves
+    result = pd.Series(index=notes.index, dtype='string', name='name')
+    for staff, drum_map in staff2drums.items():
+        if isinstance(drum_map, pd.DataFrame):
+            drum_map = drum_map.name
+        drum_notes = notes.staff == staff
+        result.loc[drum_notes] = notes.midi[drum_notes].map(drum_map)
+    not_drum = result.isna()
+    if not_drum.sum() > 0:
+        result = result.fillna(names)
+    if not not_drum.all():
+        is_drum = ~not_drum
+        octaves = octaves.astype('Int64')
+        octaves.loc[is_drum] = pd.NA
+    return result, octaves
 
 @function_logger
 def add_quarterbeats_col(df, offset_dict, interval_index=False):

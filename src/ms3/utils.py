@@ -1,6 +1,7 @@
 import dataclasses
 import io
 import json
+import logging
 import os,sys, platform, re, shutil, subprocess
 import warnings
 from collections import defaultdict, namedtuple, Counter
@@ -3014,7 +3015,18 @@ def unpack_mscz(mscz, tmp_dir=None):
 
 @contextmanager
 @function_logger
-def capture_parse_logs(logger_object, level='w'):
+def capture_parse_logs(logger_object: logging.Logger,
+                       level: Union[str, int] = 'w') -> LogCapturer:
+    """Within the context, the given logger will have an additional handler that captures all messages with level
+    ``level`` or higher. At the end of the context, retrieve the message list via LocCapturer.content_list.
+
+    Example:
+        .. code-block:: python
+
+            with capture_parse_logs(logger, level='d') as capturer:
+                # do the stuff of which you want to capture
+                all_messages = capturer.content_list
+    """
     captured_warnings = LogCapturer(level=level)
     logger_object.addHandler(captured_warnings.log_handler)
     yield captured_warnings
