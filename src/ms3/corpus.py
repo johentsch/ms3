@@ -1322,23 +1322,15 @@ class Corpus(LoggedClass):
             return
         self.logger.debug(f"Ignored warnings contained in {path}:\n{ignored_warnings}")
         logger_names = set(self.logger_names.values())
-        all_logger_names = set()
-        for name in logger_names:
-            while name != '' and name not in all_logger_names:
-                all_logger_names.add(name)
-                try:
-                    split_pos = name.rindex('.')
-                    name = name[:split_pos]
-                except:
-                    name = ''
-        for to_be_configured, message_ids in ignored_warnings.items():
-            self._ignored_warnings[to_be_configured].extend(message_ids)
-            if to_be_configured not in all_logger_names:
-                self.logger.warning(f"This Parse object is not using any logger called '{to_be_configured}', "
-                                    f"which was, however, indicated in {path}. Available loggers: {all_logger_names}",
-                                    extra={"message_id": (14, to_be_configured)})
-            configured = get_logger(to_be_configured, ignored_warnings=message_ids)
-            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+        filtered_loggers = []
+        for name, message_ids in ignored_warnings.items():
+            normalized_name = normalize_logger_name(name)
+            for to_be_configured in logger_names:
+                if normalized_name in to_be_configured:
+                    filtered_loggers.append(to_be_configured)
+                    self._ignored_warnings[to_be_configured].extend(message_ids)
+                    configured = get_logger(name, ignored_warnings=message_ids)
+                    configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
 
 
 

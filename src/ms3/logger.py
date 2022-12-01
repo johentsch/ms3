@@ -390,3 +390,17 @@ def temporarily_suppress_warnings(logged_object: LoggedClass):
     logged_object.change_logger_cfg(level='c')
     yield logged_object
     logged_object.change_logger_cfg(level=prev_level)
+
+def normalize_logger_name(name: str) -> str:
+    """Shorten a logger name to Corpus.Piece so that it can be used to configure all associated loggers, no matter what."""
+    components = name.split('.')
+    for remove in ('ms3', 'Corpus', 'Parse'):
+        try:
+            components.remove(remove)
+        except ValueError:
+            pass
+    for extension in ('tsv', 'mscx', 'mscz', 'cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml'):
+        if components[-1] == extension:
+            components = components[:-1]
+            break
+    return '.'.join(components)
