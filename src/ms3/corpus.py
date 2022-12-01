@@ -13,7 +13,7 @@ from git import Repo, InvalidGitRepositoryError
 from gitdb.exc import BadName
 
 from .annotations import Annotations
-from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger
+from .logger import LoggedClass, get_logger, get_log_capture_handler, temporarily_suppress_warnings, function_logger, normalize_logger_name
 from .piece import Piece
 from .score import Score, compare_two_score_objects
 from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, \
@@ -625,22 +625,22 @@ class Corpus(LoggedClass):
         all_available_files = []
         selected_ixs = []
         fname2files = self.get_files(facet, view_name=view_name, choose='all', flat=True, include_empty=False)
-        for fname, files in fname2files.items():
+        for peace, files in fname2files.items():
             if len(files) == 0:
-                missing.append(fname)
+                missing.append(peace)
             elif len(files) == 1:
-                no_need[fname] = files[0]
+                no_need[peace] = files[0]
             else:
                 all_available_files.extend(files)
                 disamb2file = files2disambiguation_dict(files, include_disambiguator=True)
-                disambiguated[fname] = {disamb: file.ix for disamb, file in disamb2file.items()}
+                disambiguated[peace] = {disamb: file.ix for disamb, file in disamb2file.items()}
         if len(missing) > 0:
             self.logger.info(f"{len(missing)} files don't come with '{facet}'.")
-        if len(no_need) > 0:
-            self.logger.info(f"{len(no_need)} files do not require disambiguation for facet '{facet}'.")
         if len(disambiguated) == 0:
             self.logger.info(f"No files require disambiguation for facet '{facet}'.")
             return
+        if len(no_need) > 0:
+            self.logger.info(f"{len(no_need)} files do not require disambiguation for facet '{facet}'.")
         N_target = len(disambiguated)
         N_remaining = N_target
         print(f"{N_target} pieces require disambiguation for facet '{facet}'.")
@@ -648,22 +648,40 @@ class Corpus(LoggedClass):
         n_files_per_disambiguator = df.notna().sum().sort_values(ascending=False)
         df = df.loc[:, n_files_per_disambiguator.index]
         n_choices_groups = df.notna().sum(axis=1).sort_values()
-        for n_choices, chunk in df.groupby(n_choices_groups):
+        gpb: Iterator[Tuple[int, pd.DataFrame]] = df.groupby(n_choices_groups)
+        for n_choices, chunk in gpb:
             range_str = f"1-{n_choices}"
             chunk = chunk.dropna(axis=1, how='all')
             choices_groups = chunk.apply(lambda S: tuple(S.index[S.notna()]), axis=1)
-            for choices, piece_group in chunk.groupby(choices_groups):
+            # question_gpb: Iterator[Tuple[Dict[int, str], pd.DataFrame]] = chunk.groupby(choices_groups)
+            question_gpb = chunk.groupby(choices_groups)
+            n_questions = question_gpb.ngroups
+            for i, (choices, piece_group) in enumerate(question_gpb):
                 N_current = len(piece_group)
+                choices = dict(enumerate(piece_group.columns, 1))
                 piece_group = piece_group.dropna(axis=1, how='all').sort_index(axis=1, key=lambda S: S.str.len())
-                print(f"{N_current} of the {N_remaining} remaining can be disambiguated by choosing one of the {n_choices} columns:\n\n"
-                      f"{piece_group.to_string()}\n")
+                remaining_string = '' if N_current == N_remaining else f" ({N_remaining} remaining)"
+                if N_current == 1:
+                    for piece, first_row in piece_group.iterrows():
+                        break
+                    prompt = f"Choose one of the files (or 0 for none):\n{pretty_dict(choices)}"
+                    choices_representation = f"'{piece}'{remaining_string} by choosing one of the {n_choices} files:\n"
+                else:
+                    try:
+                        prompt = f"Choose one of the columns (or 0 for none):\n{pretty_dict(choices)}"
+                    except ValueError:
+                        print(choices, piece_group)
+                        raise
+                    choices_representation = f"the following {N_current} pieces{remaining_string} by choosing one of the {n_choices} columns:\n\n{piece_group.to_string()}\n"
+                question_number = f"({i}/{n_questions}) " if n_questions > 1 else ''
+                print(f"{question_number} Disambiguation for {choices_representation}")
                 if ask_for_input:
-                    choices = dict(enumerate(piece_group.columns, 1))
-                    print(f"Choose one of the columns (or 0 for none):\n{pretty_dict(choices)}")
+                    print(prompt)
                     query = f"Selection [{range_str}]: "
                     column = ask_user_to_choose(query, list(choices.values()))
                     if column is not None:
                         selected_ixs.extend(piece_group[column].values)
+                        print()
                 N_remaining -= N_current
         if ask_for_input:
             excluded_file_paths = [file.full_path for file in all_available_files if file.ix not in selected_ixs]
@@ -1161,6 +1179,19 @@ class Corpus(LoggedClass):
                     interval_index: bool = False,
                     include_files: bool = False,
                     ) -> Iterator:
+        """ Iterate through (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet.
+
+        Args:
+            facets:
+            view_name:
+            choose:
+            unfold:
+            interval_index:
+            include_files:
+
+        Returns:
+            (fname, *DataFrame) tuples containing exactly one or zero DataFrames per requested facet per piece (fname).
+        """
         selected_facets = resolve_facets_param(facets, ScoreFacet, logger=self.logger)
         if choose == 'ask':
             for facet in selected_facets:
