@@ -356,7 +356,7 @@ class View(LoggedClass):
                 included = 'one of ' + str(re_strings)
             else:
                 included = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
-                included += f" ({n_included - 10} more, see filtering report))"
+                included += f" ({n_included - 10} more, see filtering_report()))"
             msg_components.append(f"includes only {what_to_exclude} containing {included}")
         for what_to_exclude, re_strings in excluded_re.items():
             n_excluded = len(re_strings)
@@ -368,7 +368,7 @@ class View(LoggedClass):
                 excluded = 'one of ' + str(re_strings)
             else:
                 excluded = 'one of [' + ', '.join(f"'{regex}'" for regex in re_strings[:10]) + '... '
-                excluded += f" ({n_excluded - 10} more, see filtering report))"
+                excluded += f" ({n_excluded - 10} more, see filtering_report())"
             msg_components.append(f"excludes any {what_to_exclude} containing {excluded}")
         if len(self.excluded_file_paths) > 0:
             msg_components.append(f"excludes {len(self.excluded_file_paths)} files based on user input")

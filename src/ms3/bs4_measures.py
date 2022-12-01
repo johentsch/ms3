@@ -368,7 +368,7 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
             # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
             # and they are set to True if
-            lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
+            lasts_with_repeat = [l for l in lasts if not pd.isnull(self.repeats[l]) and self.repeats[l] == 'end']
             for l in lasts:
                 has_repeat = not pd.isnull(self.repeats[l])
                 has_backward_jump = l in bwd_jumps.mc.values

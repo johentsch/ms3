@@ -110,19 +110,30 @@ def convert_cmd(args):
     # assert target[:len(
     #    dir)] != dir, "TARGET_DIR cannot be identical with nor a subfolder of DIR.\nDIR:        " + dir + '\nTARGET_DIR: ' + target
     update_logger = get_logger("ms3.convert", level=args.level)
+    for argument_name, argument, default in (('-a/--all', args.all, False),
+                                             ('-e/--exclude', args.exclude, None),
+                                             ('-f/--folders', args.folders, None),
+                                             ('--reviewed', args.reviewed, False),
+                                             ('-t/--test', args.test, False),
+                                             ('-v/--verbose', args.verbose, False),
+                                             ):
+        if argument != default:
+            update_logger.info(f"Argument '{argument_name}' is currently being ignored.")
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
-    convert_folder(directory=resolve_dir(args.dir),
-                   paths=args.file,
-                   target_dir=out_dir,
-                   # extensions=args.extensions,
-                   target_extension=args.target_format,
-                   regex=args.regex,
-                   suffix=args.suffix,
-                   recursive=not args.nonrecursive,
-                   ms=args.musescore,
-                   overwrite=args.safe,
-                   parallel=not args.iterative,
-                   logger=update_logger)
+    ms = 'auto' if args.musescore is None else self.musescore
+    for directory in args.dir:
+        convert_folder(directory=directory,
+                       paths=args.files,
+                       target_dir=out_dir,
+                       extensions=args.extensions,
+                       target_extension=args.format,
+                       regex=args.include,
+                       suffix=args.suffix,
+                       recursive=not args.nonrecursive,
+                       ms=ms,
+                       overwrite=args.safe,
+                       parallel=not args.iterative,
+                       logger=update_logger)
 
 def empty(args):
     logger_cfg = {
@@ -546,9 +557,13 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     convert_parser = subparsers.add_parser('convert',
                                            help="Use your local install of MuseScore to convert MuseScore files.",
                                            parents=[parse_args])
+    convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='',
+                              help='Suffix of the converted files. Defaults to ''.')
     convert_parser.add_argument('--format', default='mscx',
-                                help="You may choose one out of {png, svg, pdf, mscz, mscx, wav, mp3, flac, ogg, xml, mxl, mid}")
-    convert_parser.add_argument('-s', '--suffix', metavar='SUFFIX', help='Add this suffix to the filename of every new file.')
+                                help="Output format of converted files. Defaults to mscx. Other options are "
+                                     "{png, svg, pdf, mscz, wav, mp3, flac, ogg, xml, mxl, mid}")
+    convert_parser.add_argument('--extensions', nargs='+', default=['mscx', 'mscz'],
+                                help="Those file extensions that you want to be converted, separated by spaces. Defaults to mscx mscz")
     convert_parser.add_argument('--safe', action='store_false', help="Don't overwrite existing files.")
     convert_parser.set_defaults(func=convert_cmd)
 
