@@ -19,7 +19,7 @@ from .score import Score
 from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet
 from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
     make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument
+    update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata
 from .view import View, create_view_from_parameters, DefaultView
 
 
@@ -1654,8 +1654,19 @@ class Parse(LoggedClass):
         metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
         return metadata
 
+    def metadata(self,
+                 view_name: Optional[str] = None,
+                 choose: Optional[Literal['auto', 'ask']] = None) -> pd.DataFrame:
+        metadata_dfs = {corpus_name: corpus.metadata(view_name=view_name, choose=choose)
+                        for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
+        metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys(), names=['corpus', 'fname'])
+        return metadata
+
     def metadata_tsv(self, view_name: Optional[str] = None) -> pd.DataFrame:
-        metadata_dfs = {corpus_name: corpus.metadata_tsv
+        """Concatenates the 'metadata.tsv' (as they come) files for all corpora with a [corpus, fname] MultiIndex. If
+        you need metadata that filters out fnames according to the current view, use :meth:`metadata`.
+        """
+        metadata_dfs = {corpus_name: enforce_fname_index_for_metadata(corpus.metadata_tsv)
                         for corpus_name, corpus in self.iter_corpora(view_name=view_name)
                         if corpus.metadata_tsv is not None
                         }

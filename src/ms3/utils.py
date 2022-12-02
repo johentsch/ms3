@@ -3087,17 +3087,7 @@ def write_metadata(metadata_df: pd.DataFrame,
     else:
         # Trying to load an existing 'metadata.tsv' file to update existing rows
         previous = pd.read_csv(tsv_path, sep='\t', dtype='string')
-        try:
-            prev_fname_col = next(col for col in ('fname', 'fnames', 'name', 'names') if col in previous.columns)
-        except StopIteration:
-            if metadata_df.index.name is not None and metadata_df.index.name in previous.columns:
-                prev_fname_col = metadata_df.index.name
-            else:
-                logger.error(f"The existing {tsv_path} has no 'fname' or 'fnames' column so I cannot update it.")
-                return False
-        if prev_fname_col != 'fname':
-            previous = previous.rename(columns={prev_fname_col: 'fname'})
-            logger.info(f"Renamed column {prev_fname_col} -> fname")
+        previous = enforce_fname_index_for_metadata(metadata_df, previous)
         previous = previous.set_index('fname')
         for ix, what in zip((previous.index, previous.columns, metadata_df.index, metadata_df.columns),
                             ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
@@ -3117,6 +3107,21 @@ def write_metadata(metadata_df: pd.DataFrame,
     output_df.to_csv(tsv_path, sep='\t', index=index)
     logger.info(f"{msg} {tsv_path}")
     return True
+
+@function_logger
+def enforce_fname_index_for_metadata(metadata_df: pd.DataFrame, append=False) -> pd.DataFrame:
+    """Returns a copy of the DataFrame that has an index level called 'fname'."""
+    possible_column_names = ('fname', 'fnames', 'name', 'names')
+    if any(name in metadata_df.index.names for name in possible_column_names):
+        return metadata_df
+    try:
+        fname_col = next(col for col in possible_column_names if col in metadata_df.columns)
+    except StopIteration:
+        raise ValueError(f"Metadata is expected to come with a column or index level called 'fname' or (previously) 'fnames'.")
+    if fname_col != 'fname':
+        metadata_df = metadata_df.rename(columns={fname_col: 'fname'})
+        logger.info(f"Renamed column '{fname_col}' -> 'fname'")
+    return metadata_df.set_index('fname', append=append)
 
 
 @function_logger
@@ -3436,11 +3441,11 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
         logger.warning(f"Column{plural} not present in DataFrame: {', '.join(missing)}")
         return df
     mask = df[position_col].notna() & (df[position_col] != '') & df[duration_col].notna()
-    n_dropped = mask.sum()
+    n_dropped = (~mask).sum()
     if filter_zero_duration:
         mask &= (df[duration_col] > 0)
     elif n_dropped > 0:
-        logger.info(f"Had to drop {n_dropped} rows for creating the IntervalIndex.")
+        logger.info(f"Had to drop {n_dropped} rows for creating the IntervalIndex:\n{df[~mask]}")
     df = df[mask].copy()
     iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
                     closed=closed, round=round, name=name, logger=logger)

@@ -128,10 +128,16 @@ class Piece(LoggedClass):
         self._ms = get_musescore(ms, logger=self.logger)
 
     @overload
-    def score_metadata(self, as_dict: Literal[False]) -> pd.Series:
+    def score_metadata(self,
+                       view_name: Optional[str],
+                       choose: Literal['auto', 'ask'],
+                       as_dict: Literal[False]) -> pd.Series:
         ...
     @overload
-    def score_metadata(self, as_dict: Literal[True]) -> dict:
+    def score_metadata(self,
+                       view_name: Optional[str],
+                       choose: Literal['auto', 'ask'],
+                       as_dict: Literal[True]) -> dict:
         ...
     def score_metadata(self,
                        view_name: Optional[str] = None,
@@ -986,7 +992,7 @@ class Piece(LoggedClass):
         if interval_index:
             if any(c not in df.columns for c in ('quarterbeats', 'duration_qb')):
                 _, measures = self.get_facet('measures')
-                df = dfs2quarterbeats(df, measures=measures, interval_index=True)[0]
+                df = dfs2quarterbeats(df, measures=measures, interval_index=True, logger=self.logger)[0]
             else:
                 df = replace_index_by_intervals(df, logger=self.logger)
         return df
