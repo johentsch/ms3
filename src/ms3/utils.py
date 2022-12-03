@@ -7,6 +7,7 @@ import warnings
 from collections import defaultdict, namedtuple, Counter
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime
 from fractions import Fraction as frac
 from functools import reduce, lru_cache
 from inspect import getfullargspec, stack
@@ -1748,6 +1749,7 @@ TSV_DTYPES = {
     'barline': str,
     'base': 'Int64',
     'bass_note': 'Int64',
+    'breaks': 'string',
     'cadence': str,
     'cadences_id': 'Int64',
     'changes': str,
@@ -1761,6 +1763,7 @@ TSV_DTYPES = {
     'color_b': 'Int64',
     'color_a': 'Int64',
     'dont_count': 'Int64',
+    'duration_qb': float,
     'expanded_id': 'Int64',
     'figbass': str,
     'form': str,
@@ -1777,6 +1780,7 @@ TSV_DTYPES = {
     'mc_playthrough': 'Int64',
     'midi': 'Int64',
     'mn': str,
+    'name': str,
     'offset:x': str,
     'offset_x': str,
     'offset:y': str,
@@ -1785,6 +1789,7 @@ TSV_DTYPES = {
     'notes_id': 'Int64',
     'numbering_offset': 'Int64',
     'numeral': str,
+    'octave': 'Int64',
     'pedal': str,
     'playthrough': 'Int64',
     'phraseend': str,
@@ -1874,6 +1879,9 @@ def tsv_column2datatype():
     mapping = {
         'Int64': 'integer',
         str: 'string',
+        'string': 'string',
+        float: 'float',
+        int: 'integer',
         int2bool: 'boolean',
         safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
         safe_int: 'integer',
@@ -1882,6 +1890,7 @@ def tsv_column2datatype():
     column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
     column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
     return column2datatype
+
 
 @lru_cache()
 def tsv_column2description(col: str) -> Optional[str]:
@@ -1894,36 +1903,74 @@ def tsv_column2description(col: str) -> Optional[str]:
     if col in mapping:
         return mapping[col]
 
+
 @lru_cache()
 def tsv_column2schema(col: str) -> dict:
     result = {
         "titles": col,
-        "datatype": tsv_column2datatype(col)
+        "datatype": tsv_column2datatype()[col]
     }
     description = tsv_column2description(col)
     if description is not None:
         result["dc:description"] = description
     return result
 
-def dataframe2csvw(title: str,
-                   columns: Collection[str],
-                   paths: Union[str, Collection[str]]) -> dict:
-    result = {
-        "@context": ["http://www.w3.org/ns/csvw", {"@language": "en "}],
-        "dc:title": title,
-    }
-    result["dc:creator"] = {
 
+def make_csvw_jsonld(title: str,
+                     columns: Collection[str],
+                     urls: Union[str, Collection[str]],
+                     description: Optional[str] = None) -> dict:
+    """W3C's CSV on the Web Primer: https://www.w3.org/TR/tabular-data-primer/"""
+    result = {
+        "@context": ["http://www.w3.org/ns/csvw#", {"@language": "en "}],
+        "dc:title": title,
+        "dialect": {
+            "delimiter": "\t",
+        }
     }
-    if isinstance(path, str):
-        result["url"] = path,
+    if description is not None:
+        result["dc:description"] = description
+    result["dc:created"] = datetime.now().replace(microsecond=0).isoformat()
+    result["dc:creator"] = [{
+        "@context": "https://schema.org/",
+        "@type": "SoftwareApplication",
+        "@id": "https://github.com/johentsch/ms3",
+        "name": "ms3",
+        "author": {"name": "Johannes Hentschel",
+                   "@id": "https://orcid.org/0000-0002-1986-9545",
+                   },
+        "softwareVersion": MS3_VERSION,
+    }]
+    if isinstance(urls, str):
+        result["url"] = urls,
     else:
-        result["tables"] = [{"url": p} for p in path]
+        result["tables"] = [{"url": p} for p in urls]
     result["tableSchema"] = {
         "columns": [tsv_column2schema(col) for col in columns]
     }
-
     return result
+
+def store_csvw_jsonld(folder: str,
+                      facet: str,
+                      columns: Collection[str],
+                      files: Union[str, Collection[str]]) -> str:
+    titles = {
+        "notes": "Note tables"
+    }
+    descriptions = {
+        "notes": "One feature matrix per score, containing one line per note head."
+    }
+    title = titles[facet] if facet in titles else facet
+    description = descriptions[facet] if facet in descriptions else None
+    jsonld = make_csvw_jsonld(title=title,
+                              columns=columns,
+                              urls=files,
+                              description=description
+                              )
+    json_path = os.path.join(folder, 'csv-metadata.json')
+    with open(json_path, 'w') as f:
+        json.dump(jsonld, f)
+    return json_path
 
 
 @function_logger

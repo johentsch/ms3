@@ -84,15 +84,26 @@ class View(LoggedClass):
         return True, ''
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @name.setter
-    def name(self, new_name):
+    def name(self, new_name: str):
         name_valid, msg = self.check_name(new_name)
         if not name_valid:
             raise ValueError(msg)
         self._name = new_name
+
+    @property
+    def is_default(self) -> bool:
+        return (
+                all(len(regex_list) == 0 for regex_list in self.including.values()) and
+                all(len(regex_list) == 0 for regex_list in self.excluding.values()) and
+                len(self.excluded_file_paths) == 0 and
+                self.fnames_in_metadata and
+                self.fnames_not_in_metadata and
+                self.fnames_with_incomplete_facets
+              )
 
     def copy(self, new_name: Optional[str] = None) -> 'View':
         """Returns a copy of this view, i.e., a new View object."""
@@ -480,6 +491,36 @@ class DefaultView(View):
                          exclude_review=exclude_review,
                          **logger_cfg
                          )
+
+    @property
+    def is_default(self) -> bool:
+        default_excluding_lengths = {
+            'corpora': 0,
+            'folders': 1,
+            'fnames': 1,
+            'files': 2,
+            'suffixes': 0,
+            'facets': 0
+        }
+### debugging:
+#         print(f"""no includes: {all(len(regex_list) == 0 for regex_list in self.including.values())}
+# default_excludes: {all(len(regex_list) == default_excluding_lengths[facet] for facet, regex_list in self.excluding.items())}
+# exclude_review: {self.exclude_review}
+# include_convertible: {not self.include_convertible}
+# no paths excluded: {len(self.excluded_file_paths) == 0}
+# fnames in metadata: {self.fnames_in_metadata}
+# not in metadata excluded: {not self.fnames_not_in_metadata}
+# incomplete facets: {self.fnames_with_incomplete_facets}""")
+        return (
+                all(len(regex_list) == 0 for regex_list in self.including.values()) and
+                all(len(regex_list) == default_excluding_lengths[facet] for facet, regex_list in self.excluding.items()) and
+                self.exclude_review and
+                not self.include_convertible and
+                len(self.excluded_file_paths) == 0 and
+                self.fnames_in_metadata and
+                not self.fnames_not_in_metadata and
+                self.fnames_with_incomplete_facets
+        )
 
 
 def create_view_from_parameters(only_metadata_fnames: bool = True,

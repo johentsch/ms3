@@ -24,7 +24,7 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, store_csvw_jsonld
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -2770,6 +2770,11 @@ Continuing with {annotation_key}.""")
         self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         paths = []
         target = len(facets) * n_scores
+        store_tsv_metadata = self.get_view(view_name).is_default
+        if store_tsv_metadata:
+            column_combinations = defaultdict(set)
+            facet2files = defaultdict(list)
+            facet2path = dict()
         if target > 0:
             for piece_name, piece in self.iter_pieces(view_name=view_name):
                 for file, facet2dataframe in piece.iter_extracted_facets(facets,
@@ -2790,7 +2795,30 @@ Continuing with {annotation_key}.""")
                         else:
                             write_tsv(df, file_path, logger=self.logger)
                             self.logger.info(f"Successfully stored the {facet} from {file.rel_path} as {file_path}.")
+                            if store_tsv_metadata:
+                                column_combinations[facet].add(tuple(df.columns))
+                                path_comp, file_comp = os.path.split(file_path)
+                                facet2files[facet].append(file_comp)
+                                facet2path[facet] = path_comp
                         paths.append(file_path)
+        if store_tsv_metadata:
+            for facet, files in facet2files.items():
+                clmn_combinations = column_combinations[facet]
+                if len(clmn_combinations) > 1:
+                    columns = []
+                    for clmns in clmn_combinations:
+                        if len(clmns) > len(columns):
+                            columns = clmns
+                    self.logger.warning(f"The '{facet}' TSVs have varying numbers of columns which means that the 'csv-metadata.json' "
+                                        f"will not apply exactly to all of them. Picked the maximum number of columns, {len(columns)}")
+                else:
+                    columns = next(clmns for clmns in clmn_combinations)
+                json_path = store_csvw_jsonld(facet2path[facet],
+                                              facet,
+                                              columns=columns,
+                                              files=files
+                                              )
+                self.logger.info(f"Created metadata for '{facet}' TSVs: {json_path}")
         if output_metadata:
             if not markdown:
                 metadata_paths = self.update_metadata_from_parsed(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
