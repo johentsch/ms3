@@ -98,7 +98,8 @@ def compare_cmd(args,
     if output:
         corpus2paths = store_scores(p,
                                     root_dir=args.out,
-                                    simulate=args.test)
+                                    simulate=args.test,
+                                    suffix=args.suffix)
         changed = sum(map(len, corpus2paths.values()))
         logger.info(f"Operation resulted in {changed} comparison file{'s' if changed != 1 else ''}.")
     else:
