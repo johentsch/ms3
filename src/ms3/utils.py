@@ -1869,6 +1869,63 @@ def load_tsv(path,
     return df
 
 
+@lru_cache()
+def tsv_column2datatype():
+    mapping = {
+        'Int64': 'integer',
+        str: 'string',
+        int2bool: 'boolean',
+        safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
+        safe_int: 'integer',
+        str2inttuple: {"base": "string", "format": r"\(-?\d+, ?-?\d+\)"},
+    }
+    column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
+    column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
+    return column2datatype
+
+@lru_cache()
+def tsv_column2description(col: str) -> Optional[str]:
+    mapping = {
+        'mc': 'Measure count.',
+        'mn': 'Measure number.',
+        'mc_onset': "An event's distance (fraction of a whole note) from the beginning of the MC.",
+        'mn_onset': "An event's distance (fraction of a whole note) from the beginning of the MN.",
+    }
+    if col in mapping:
+        return mapping[col]
+
+@lru_cache()
+def tsv_column2schema(col: str) -> dict:
+    result = {
+        "titles": col,
+        "datatype": tsv_column2datatype(col)
+    }
+    description = tsv_column2description(col)
+    if description is not None:
+        result["dc:description"] = description
+    return result
+
+def dataframe2csvw(title: str,
+                   columns: Collection[str],
+                   paths: Union[str, Collection[str]]) -> dict:
+    result = {
+        "@context": ["http://www.w3.org/ns/csvw", {"@language": "en "}],
+        "dc:title": title,
+    }
+    result["dc:creator"] = {
+
+    }
+    if isinstance(path, str):
+        result["url"] = path,
+    else:
+        result["tables"] = [{"url": p} for p in path]
+    result["tableSchema"] = {
+        "columns": [tsv_column2schema(col) for col in columns]
+    }
+
+    return result
+
+
 @function_logger
 def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=None):
     """ Takes a measures table and compute each MC's offset from the piece's beginning. Deal with
