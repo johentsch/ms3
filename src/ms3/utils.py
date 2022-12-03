@@ -3068,11 +3068,7 @@ def write_metadata(metadata_df: pd.DataFrame,
         True if the metadata were successfully written, False otherwise.
     """
     metadata_df = metadata_df.astype('string')
-    if 'fname' in metadata_df.columns:
-        metadata_df = metadata_df.set_index('fname')
-    assert not isinstance(metadata_df.index, pd.RangeIndex), "Make sure to pass a metadata DataFrame with an index of unique fnames."
-    if metadata_df.index.name is None:
-        metadata_df.index.rename('fname', inplace=True)
+    metadata_df = enforce_fname_index_for_metadata(metadata_df)
     path = resolve_dir(path)
     if os.path.isdir(path):
         tsv_path = os.path.join(path, 'metadata.tsv')
@@ -3087,8 +3083,7 @@ def write_metadata(metadata_df: pd.DataFrame,
     else:
         # Trying to load an existing 'metadata.tsv' file to update existing rows
         previous = pd.read_csv(tsv_path, sep='\t', dtype='string')
-        previous = enforce_fname_index_for_metadata(metadata_df, previous)
-        previous = previous.set_index('fname')
+        previous = enforce_fname_index_for_metadata(previous)
         for ix, what in zip((previous.index, previous.columns, metadata_df.index, metadata_df.columns),
                             ('index of the existing', 'columns of the existing', 'index of the updated', 'columns of the updated')):
             if not ix.is_unique:
