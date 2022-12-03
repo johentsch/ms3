@@ -1657,7 +1657,7 @@ def join_tsvs(dfs, sort_cols=False):
     return column_order(res, sort=sort_cols).reset_index(drop=True)
 
 
-def str2inttuple(l, strict=True):
+def str2inttuple(l: str, strict: bool = True) -> Tuple[int]:
     l = l.strip('(),')
     if l == '':
         return tuple()
@@ -1671,24 +1671,27 @@ def str2inttuple(l, strict=True):
                 raise
             if s[0] == s[-1] and s[0] in ("\"", "\'"):
                 s = s[1:-1]
-            res.append(s)
+            try:
+                res.append(int(s))
+            except ValueError:
+                res.append(s)
     return tuple(res)
 
 
-def int2bool(s):
+def int2bool(s: str) -> Union[bool, str]:
     try:
         return bool(int(s))
     except Exception:
         return s
 
 
-def safe_frac(s):
+def safe_frac(s: str) -> Union[frac, str]:
     try:
         return frac(s)
     except Exception:
         return s
 
-def safe_int(s):
+def safe_int(s) -> Union[int, str]:
     try:
         return int(float(s))
     except Exception:
@@ -1718,6 +1721,90 @@ def parse_interval_index_column(df, column=None, closed='left'):
     iix = pd.IntervalIndex.from_arrays(values[0], values[1], closed=closed)
     return iix
 
+
+TSV_COLUMN_CONVERTERS = {
+    'added_tones': str2inttuple,
+    'act_dur': safe_frac,
+    'composed_end': safe_int,
+    'composed_start': safe_int,
+    'chord_tones': str2inttuple,
+    'globalkey_is_minor': int2bool,
+    'localkey_is_minor': int2bool,
+    'mc_offset': safe_frac,
+    'mc_onset': safe_frac,
+    'mn_onset': safe_frac,
+    'movementNumber': safe_int,
+    'next': str2inttuple,
+    'nominal_duration': safe_frac,
+    'quarterbeats': safe_frac,
+    'onset': safe_frac,
+    'duration': safe_frac,
+    'scalar': safe_frac, }
+
+TSV_DTYPES = {
+    'absolute_base': 'Int64',
+    'absolute_root': 'Int64',
+    'alt_label': str,
+    'barline': str,
+    'base': 'Int64',
+    'bass_note': 'Int64',
+    'cadence': str,
+    'cadences_id': 'Int64',
+    'changes': str,
+    'chord': str,
+    'chord_id': 'Int64',
+    'chord_type': str,
+    'color_name': str,
+    'color_html': str,
+    'color_r': 'Int64',
+    'color_g': 'Int64',
+    'color_b': 'Int64',
+    'color_a': 'Int64',
+    'dont_count': 'Int64',
+    'expanded_id': 'Int64',
+    'figbass': str,
+    'form': str,
+    'globalkey': str,
+    'gracenote': str,
+    'harmonies_id': 'Int64',
+    'harmony_layer': str,
+    'keysig': 'Int64',
+    'label': str,
+    'label_type': str,
+    'leftParen': str,
+    'localkey': str,
+    'mc': 'Int64',
+    'mc_playthrough': 'Int64',
+    'midi': 'Int64',
+    'mn': str,
+    'offset:x': str,
+    'offset_x': str,
+    'offset:y': str,
+    'offset_y': str,
+    'nashville': 'Int64',
+    'notes_id': 'Int64',
+    'numbering_offset': 'Int64',
+    'numeral': str,
+    'pedal': str,
+    'playthrough': 'Int64',
+    'phraseend': str,
+    'regex_match': str,
+    'relativeroot': str,
+    'repeats': str,
+    'rightParen': str,
+    'root': 'Int64',
+    'rootCase': 'Int64',
+    'slur': str,
+    'special': str,
+    'staff': 'Int64',
+    'tied': 'Int64',
+    'timesig': str,
+    'tpc': 'Int64',
+    'voice': 'Int64',
+    'voices': 'Int64',
+    'volta': 'Int64'
+}
+
 def load_tsv(path,
              index_col=None,
              sep='\t',
@@ -1741,94 +1828,12 @@ def load_tsv(path,
         to be using the new `string` datatype that includes the new null type `pd.NA`.
     """
 
-
-    CONVERTERS = {
-        'added_tones': str2inttuple,
-        'act_dur': safe_frac,
-        'composed_end': safe_int,
-        'composed_start': safe_int,
-        'chord_tones': str2inttuple,
-        'globalkey_is_minor': int2bool,
-        'localkey_is_minor': int2bool,
-        'mc_offset': safe_frac,
-        'mc_onset': safe_frac,
-        'mn_onset': safe_frac,
-        'movementNumber': safe_int,
-        'next': str2inttuple,
-        'nominal_duration': safe_frac,
-        'quarterbeats': safe_frac,
-        'onset': safe_frac,
-        'duration': safe_frac,
-        'scalar': safe_frac, }
-
-    DTYPES = {
-        'absolute_base': 'Int64',
-        'absolute_root': 'Int64',
-        'alt_label': str,
-        'barline': str,
-        'base': 'Int64',
-        'bass_note': 'Int64',
-        'cadence': str,
-        'cadences_id': 'Int64',
-        'changes': str,
-        'chord': str,
-        'chord_id': 'Int64',
-        'chord_type': str,
-        'color_name': str,
-        'color_html': str,
-        'color_r': 'Int64',
-        'color_g': 'Int64',
-        'color_b': 'Int64',
-        'color_a': 'Int64',
-        'dont_count': 'Int64',
-        'expanded_id': 'Int64',
-        'figbass': str,
-        'form': str,
-        'globalkey': str,
-        'gracenote': str,
-        'harmonies_id': 'Int64',
-        'harmony_layer': object,
-        'keysig': 'Int64',
-        'label': str,
-        'label_type': object,
-        'leftParen': str,
-        'localkey': str,
-        'mc': 'Int64',
-        'mc_playthrough': 'Int64',
-        'midi': 'Int64',
-        'mn': str,
-        'offset:x': str,
-        'offset_x': str,
-        'offset:y': str,
-        'offset_y': str,
-        'nashville': 'Int64',
-        'notes_id': 'Int64',
-        'numbering_offset': 'Int64',
-        'numeral': str,
-        'pedal': str,
-        'playthrough': 'Int64',
-        'phraseend': str,
-        'regex_match': object,
-        'relativeroot': str,
-        'repeats': str,
-        'rightParen': str,
-        'root': 'Int64',
-        'rootCase': 'Int64',
-        'slur': str,
-        'special': str,
-        'staff': 'Int64',
-        'tied': 'Int64',
-        'timesig': str,
-        'tpc': 'Int64',
-        'voice': 'Int64',
-        'voices': 'Int64',
-        'volta': 'Int64'
-    }
+    global TSV_COLUMN_CONVERTERS, TSV_DTYPES
 
     if converters is None:
         conv = None
     else:
-        conv = dict(CONVERTERS)
+        conv = dict(TSV_COLUMN_CONVERTERS)
         conv.update(converters)
 
     if dtype is None:
@@ -1836,7 +1841,7 @@ def load_tsv(path,
     elif isinstance(dtype, str):
         types = dtype
     else:
-        types = dict(DTYPES)
+        types = dict(TSV_DTYPES)
         types.update(dtype)
 
     if stringtype:
