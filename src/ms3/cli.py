@@ -339,6 +339,8 @@ def review_cmd(args,
             for file, df in tuples:
                 dataframes.append(df)
                 keys.append((corpus_name, file.rel_path))
+                report_path = os.path.join(file.corpus_path, 'reviewed', file.fname + '_reviewed.tsv')
+                write_tsv(df, report_path)
         report = pd.concat(dataframes, keys=keys)
         warning_selection = report.count_ratio > args.threshold
         if warning_selection.sum() > 0:
