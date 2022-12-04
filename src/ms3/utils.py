@@ -1988,7 +1988,7 @@ def store_csvw_jsonld(corpus: str,
                               )
     json_path = os.path.join(folder, 'csv-metadata.json')
     with open(json_path, 'w') as f:
-        json.dump(jsonld, f)
+        print(json.dumps(jsonld), file=f)
     return json_path
 
 
