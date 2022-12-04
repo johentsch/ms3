@@ -1598,7 +1598,7 @@ def get_first_level_corpora(path: str) -> List[str]:
         return
     subpaths = [os.path.join(path, subdir) for subdir in first_level_subdirs(path) if subdir[0] != '.']
     for subpath in subpaths:
-        if contains_metadata(subpath) or contains_corpus_indicator(subpath):
+        if contains_metadata(subpath) or contains_corpus_indicator(subpath, logger=logger):
             return subpaths
     return []
 

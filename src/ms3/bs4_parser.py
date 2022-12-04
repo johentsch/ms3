@@ -715,7 +715,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         pitch_info = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
         pitch_info.tpc -= 14
         names, octaves = make_note_name_and_octave_columns(pd.concat([pitch_info, self._nl.staff], axis=1),
-                                                           staff2drums=self.staff2drum_map)
+                                                           staff2drums=self.staff2drum_map,
+                                                           logger=self.logger)
         append_cols = [
             pitch_info,
             tied,

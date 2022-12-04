@@ -47,12 +47,12 @@ class Piece(LoggedClass):
         """
         self._views: dict = {}
         if view is None:
-            self._views[None] = DefaultView()
+            self._views[None] = DefaultView(level=self.logger.getEffectiveLevel())
         else:
             self._views[None] = view
             if view.name != 'default':
-                self._views['default'] = DefaultView()
-        self._views['all'] = View('all')
+                self._views['default'] = DefaultView(level=self.logger.getEffectiveLevel())
+        self._views['all'] = View(level=self.logger.getEffectiveLevel())
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
         Path or command of the local MuseScore 3 installation if specified by the user."""

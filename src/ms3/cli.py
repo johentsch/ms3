@@ -12,7 +12,7 @@ import pandas as pd
 from ms3 import Score, Parse
 from ms3.operations import extract, check, compare, update, store_scores
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv, MS3_VERSION
-from ms3.logger import get_logger
+from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
 __copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
@@ -427,6 +427,8 @@ Parse('{args.dir}',
         parse_obj.parse_tsv()
     info_str = parse_obj.info(show_discarded=args.verbose, return_str=True).replace('\n', '\n\t')
     print(f"RESULTING PARSE OBJECT:\n\t{info_str}")
+    if args.verbose:
+        print(inspect_loggers())
     return parse_obj
 
 

@@ -1,4 +1,5 @@
 from functools import lru_cache
+from logging import Logger
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional
 
 import io
@@ -82,8 +83,8 @@ class Corpus(LoggedClass):
         """Folder name of the corpus."""
         if 'name' not in logger_cfg or logger_cfg['name'] is None or logger_cfg['name'] == '':
             logger_cfg['name'] = 'ms3.Corpus.' + self.name.replace('.', '')
-        if 'level' not in logger_cfg or (logger_cfg['level'] is None):
-            logger_cfg['level'] = 'w'
+        # if 'level' not in logger_cfg or (logger_cfg['level'] is None):
+        #     logger_cfg['level'] = 'w'
         super().__init__(subclass='Corpus', logger_cfg=logger_cfg)
 
         self.files: list = []
@@ -101,7 +102,8 @@ class Corpus(LoggedClass):
                                                        paths=paths,
                                                        file_re=file_re,
                                                        folder_re=folder_re,
-                                                       exclude_re=exclude_re)
+                                                       exclude_re=exclude_re,
+                                                       level=self.logger.getEffectiveLevel())
             self._views[None] = initial_view
         else:
             legacy_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re))
@@ -110,9 +112,9 @@ class Corpus(LoggedClass):
                 self.logger.warning(f"If you pass an existing view, other view-related parameters are ignored.")
             self._views[None] = view
         if 'default' not in self.view_names:
-            self._views['default'] = DefaultView()
+            self._views['default'] = DefaultView(level=self.logger.getEffectiveLevel())
         if 'all' not in self.view_names:
-            self._views['all'] = View()
+            self._views['all'] = View(level=self.logger.getEffectiveLevel())
 
         self._ms = get_musescore(ms, logger=self.logger)
         """:obj:`str`
@@ -1485,11 +1487,11 @@ class Corpus(LoggedClass):
 
 
         configs = [dict(
-            name=self.logger_names[ix]
+            name=self.logger_names[ix],
         ) for ix in selected_scores_df.ix]
 
         ### collect argument tuples for calling parse_musescore_file
-        parse_this = [(file, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
+        parse_this = [(file, self.logger, conf, parallel, self.ms) for file, conf in zip(selected_files, configs)]
         try:
             if parallel:
                 pool = mp.Pool(mp.cpu_count())
@@ -1511,8 +1513,8 @@ class Corpus(LoggedClass):
                 self.get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
-                    quantifier = f"The file" if target == 1 else f"All {target} files"
-                    self.logger.info(f"{quantifier} have been parsed successfully.")
+                    quantifier = f"The file has" if target == 1 else f"All {target} files have"
+                    self.logger.info(f"{quantifier} been parsed successfully.")
                 else:
                     self.logger.info(f"Only {successful} of the {target} files have been parsed successfully.")
             else:
@@ -3242,11 +3244,28 @@ Load one of the identically named files with a different key using add_dir(key='
 ########################################################################################################################
 
 
-@function_logger
-def parse_musescore_file(file: File, logger_cfg={}, read_only=False, ms=None) -> Score:
-    """Performs a single parse and returns the resulting Score object or None."""
+def parse_musescore_file(file: File,
+                         logger: Logger,
+                         logger_cfg: dict = {},
+                         read_only: bool = False,
+                         ms: Optional[str]= None) -> Score:
+    """Performs a single parse and returns the resulting Score object or None.
+
+    Args:
+        file: File object with path information of a score that can be opened (or converted) with MuseScore 3.
+        logger: Logger to be used within this function (not for the parsing itself).
+        logger_cfg: Logger config for the new Score object (and therefore for the parsing itself).
+        read_only:
+            Pass True to return smaller objects that do not keep a copy of the original XML structure in memory.
+            In order to make changes to the score after parsing, this needs to be False (default).
+        ms: MuseScore executable in case the file needs to be converted.
+
+    Returns:
+        The parsed score.
+    """
     path = file.full_path
     file = file.file
+
     logger.debug(f"Attempting to parse {file}")
     try:
         score = Score(path, read_only=read_only, ms=ms, **logger_cfg)

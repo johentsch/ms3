@@ -2,6 +2,7 @@ import logging, sys, os
 from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
+from inspect import stack
 from typing import Iterable, Tuple
 
 LEVELS = {
@@ -194,7 +195,7 @@ def function_logger(f):
     """
 
     @wraps(f)
-    def logger(*args, **kwargs):
+    def logged_function_wrapper(*args, **kwargs):
         l = kwargs.pop('logger', None)
         if l is None:
             l = 'ms3'
@@ -212,7 +213,7 @@ def function_logger(f):
             func_globals = saved_values  # Undo changes.
         return result
 
-    return logger
+    return logged_function_wrapper
 
 def resolve_log_path_argument(path, name, logger):
     log_file = None
@@ -236,19 +237,26 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
     is_new_logger = name not in logging.root.manager.loggerDict or isinstance(logging.root.manager.loggerDict[name], logging.PlaceHolder)
     is_top_level = name == 'ms3'
     logger = logging.getLogger(name)
+    if level is not None:
+        level = resolve_level_param(level)
     if is_top_level:
-        logging.basicConfig(level=0)
+        # # uncomment if you want to check for what's described in the log message
+        # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
+        # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated function without passing logger=<logger>:\n{last_8}")
+        set_level = 0 if level is None else level
+        logging.basicConfig(level=set_level)
+        logger.debug(f"set logging.basicConfig(level={set_level})")
     is_head_logger = logger.parent.name == 'ms3'
     adding_file_handler = path is not None
     adding_any_handlers = is_head_logger or adding_file_handler
 
     if level is not None:
-        level = resolve_level_param(level)
         if level > 0:
             logger.setLevel(level)
         elif is_head_logger:
             logger.setLevel(30)
     effective_level = logger.getEffectiveLevel()
+
     if is_head_logger:
         # checking if any loggers exist from previous runs and need to be adapted
         for logger_name, lggr in logging.Logger.manager.loggerDict.items():

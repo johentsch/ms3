@@ -89,17 +89,18 @@ class Parse(LoggedClass):
 
         self._views: dict = {}
         initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
-                                                        include_convertible=include_convertible,
-                                                        include_tsv=include_tsv,
-                                                        exclude_review=exclude_review,
-                                                        paths=paths,
-                                                        file_re=file_re,
-                                                        folder_re=folder_re,
-                                                        exclude_re=exclude_re)
+                                                   include_convertible=include_convertible,
+                                                   include_tsv=include_tsv,
+                                                   exclude_review=exclude_review,
+                                                   paths=paths,
+                                                   file_re=file_re,
+                                                   folder_re=folder_re,
+                                                   exclude_re=exclude_re,
+                                                   level=self.logger.getEffectiveLevel())
         self._views[None] = initial_view
         if initial_view.name != 'default':
-            self._views['default'] = DefaultView()
-        self._views['all'] = View()
+            self._views['default'] = DefaultView(level=self.logger.getEffectiveLevel())
+        self._views['all'] = View(level=self.logger.getEffectiveLevel())
         #
         # self._ignored_warnings = defaultdict(list)
         # """:obj:`collections.defaultdict`

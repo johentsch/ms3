@@ -1,14 +1,9 @@
-import os.path
 from typing import Literal, Optional, Tuple, Dict, List
-
-import pandas as pd
 
 from ms3 import Parse
 from ms3._typing import AnnotationsFacet
-from ms3.score import Score, compare_two_score_objects
-from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, make_file_path, assert_dfs_equal, convert, pretty_dict
+from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
-from ms3.view import create_view_from_parameters
 
 
 def extract(parse_obj: Parse,

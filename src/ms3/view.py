@@ -562,17 +562,19 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                                 file_re=None, 
                                 folder_re=None, 
                                 exclude_re=None,
+                                level=None
                                 ) -> View:
     no_legacy_params = all(param is None for param in (paths, file_re, folder_re, exclude_re)) 
     all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
     if no_legacy_params and all_default:
-        return DefaultView()
+        return DefaultView(level=level)
     ferocious_name = get_ferocious_name()
     view = View(ferocious_name,
                 only_metadata_fnames=only_metadata_fnames,
                 include_convertible=include_convertible,
                 include_tsv=include_tsv,
                 exclude_review=exclude_review,
+                level=level
                 )
     view.update_config(paths=paths,
                        file_re=file_re,
