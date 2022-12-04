@@ -258,7 +258,7 @@ class NextColumnMaker(LoggedClass):
         if fines.any():
             if fines.sum() > 1:
                 self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")
-            elif last_row.repeats != 'end' and pd.isnull(last_row.jump_bwd):
+            elif last_row.repeats != 'end' and df.jump_bwd.isna().all():
                 fine_mc = df.loc[fines, 'mc'].values[0]
                 self.logger.warning(
                     f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.",
@@ -788,7 +788,8 @@ def treat_group(mc, group):
     frst = lengths[0]
     if (lengths != frst).any():
         logger.warning(
-            f"Volta group of MC {mc} contains voltas with different lengths: {lengths.tolist()} Check for correct computation of MNs.",
+            f"Volta group of MC {mc} contains voltas with different lengths: {lengths.tolist()} Check for correct computation of MNs "
+            f"and copy this message into an IGNORED_WARNINGS file to make the warning disappear.",
         extra={"message_id": (4, mc)})
     # check for overlaps and holes
     boundaries = np.append(mcs, mcs[-1] + group[-1, 2])
