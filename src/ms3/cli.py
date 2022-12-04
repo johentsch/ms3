@@ -615,9 +615,9 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     review_parser = subparsers.add_parser('review',
                                           help="Extract facets, check labels, and create _reviewed files.",
                                           parents=[check_args, select_facet_args, compare_args, extract_args, parse_args])
-    review_parser.add_argument('--threshold', default=4/7,
+    review_parser.add_argument('--threshold', default=0.6,
                                   help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
-                                       "will be printed in a warning and will cause the check to fail if the --fail flag is set.")
+                                       "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to 0.6 (3:2).")
     review_parser.set_defaults(func=review_cmd)
 
     transform_parser = subparsers.add_parser('transform',
