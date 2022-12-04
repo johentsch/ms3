@@ -1936,6 +1936,7 @@ def make_csvw_jsonld(title: str,
         "@type": "SoftwareApplication",
         "@id": "https://github.com/johentsch/ms3",
         "name": "ms3",
+        "description": "A parser for MuseScore 3 files.",
         "author": {"name": "Johannes Hentschel",
                    "@id": "https://orcid.org/0000-0002-1986-9545",
                    },
@@ -1950,17 +1951,35 @@ def make_csvw_jsonld(title: str,
     }
     return result
 
-def store_csvw_jsonld(folder: str,
+def store_csvw_jsonld(corpus: str,
+                      folder: str,
                       facet: str,
                       columns: Collection[str],
                       files: Union[str, Collection[str]]) -> str:
     titles = {
-        "notes": "Note tables"
+        "expanded": "DCML harmony annotations",
+        "measures": "Measure tables",
+        "notes": "Note tables",
+
     }
     descriptions = {
-        "notes": "One feature matrix per score, containing one line per note head."
+        "expanded": "One feature matrix per score, containing one line per label. The first columns (until 'label') "
+                    "are the same as in extracted 'labels' tables with the difference that only those harmony labels "
+                    "that match the DCML harmony annotation standard (dcmlab.github.io/standards) are included. Since "
+                    "these follow a specific syntax, they can be split into their components (features) and transformed "
+                    "into scale degrees. For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "measures": "One feature matrix per score, containing one line per stack of <Measure> tags in the score's XML tree. "
+                    "They are counted in the column 'mc' starting from 1, whereas the conventional measure numbers are shown "
+                    "in the column 'mn'. One MN is frequently composed in two (or more) MCs. Furthermore, these tables include "
+                    "special bar lines, repeat signs, first and second endings, irregular measure lengths, as well as the "
+                    "column 'next' which contains follow-up MCs for unfolding a score's repeat structure. For more information, "
+                    "please refer to the docs at https://johentsch.github.io/ms3/columns",
+        "notes": "One feature matrix per score, containing one row per note head. Not every row represents an "
+                 "onset because note heads may be tied together (see column 'tied'). "
+                 "For more information, please refer to the docs at https://johentsch.github.io/ms3/columns",
     }
     title = titles[facet] if facet in titles else facet
+    title += " for " + corpus
     description = descriptions[facet] if facet in descriptions else None
     jsonld = make_csvw_jsonld(title=title,
                               columns=columns,

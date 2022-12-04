@@ -807,7 +807,7 @@ class Corpus(LoggedClass):
             return sorted(str(fname) for fname in metadata_df[fname_col].unique() if not pd.isnull(fname))
         except StopIteration:
             file = self.files[metadata_ix]
-            self.logger.warning(f"The file {file.rel_path} is missing a column called 'fname' or 'fnames':\n{self.metadata_tsv.columns}")
+            self.logger.warning(f"The file {file.rel_path} is missing a column called 'fname' or 'fnames':\n{metadata_df.columns}")
             return []
 
     def fnames_not_in_metadata(self) -> List[str]:
@@ -2770,8 +2770,12 @@ Continuing with {annotation_key}.""")
         self.logger.info(f"Extracting {len(facets)} facets from {n_scores} of the {self.n_parsed_scores} parsed scores.")
         paths = []
         target = len(facets) * n_scores
-        store_tsv_metadata = self.get_view(view_name).is_default
+
+        # if the view is default (no additional filters have been set), write one CSVW metadata file per facet
+        view = self.get_view(view_name)
+        store_tsv_metadata = view.is_default(relax_for_cli=True)
         if store_tsv_metadata:
+            self.logger.debug(f"Found that the view '{view.name}' has default settings. Will create csv-metadata.json file(s).")
             column_combinations = defaultdict(set)
             facet2files = defaultdict(list)
             facet2path = dict()
@@ -2809,15 +2813,12 @@ Continuing with {annotation_key}.""")
                     for clmns in clmn_combinations:
                         if len(clmns) > len(columns):
                             columns = clmns
-                    self.logger.warning(f"The '{facet}' TSVs have varying numbers of columns which means that the 'csv-metadata.json' "
-                                        f"will not apply exactly to all of them. Picked the maximum number of columns, {len(columns)}")
+                    self.logger.info(f"The '{facet}' TSVs have varying numbers of columns which means that the 'csv-metadata.json' "
+                                        f"will not apply exactly to all of them. It describes the maximum number of columns, {len(columns)}")
                 else:
                     columns = next(clmns for clmns in clmn_combinations)
-                json_path = store_csvw_jsonld(facet2path[facet],
-                                              facet,
-                                              columns=columns,
-                                              files=files
-                                              )
+                corpus_name = self.name
+                json_path = store_csvw_jsonld(corpus_name, facet2path[facet], facet, columns=columns, files=files)
                 self.logger.info(f"Created metadata for '{facet}' TSVs: {json_path}")
         if output_metadata:
             if not markdown:

@@ -3,7 +3,7 @@ import random
 import re
 from collections import defaultdict, Counter
 from copy import deepcopy
-from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple, Set
+from typing import Collection, Union, Iterable, List, Dict, Iterator, Optional, Tuple, Set, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -94,16 +94,46 @@ class View(LoggedClass):
             raise ValueError(msg)
         self._name = new_name
 
-    @property
-    def is_default(self) -> bool:
+    def is_default(self,
+                   relax_for_cli: bool = False) -> bool:
+        """Checks includes and excludes that may influence the selection of fnames. Returns True if the settings
+        do not filter out any fnames. Only if ``relax_for_cli`` is set to True, the filters :attr:`include_convertible`
+        and :attr:`exclude_review` are permitted, too."""
+        # define the expected number of filter regexes per category (ignore 'corpora' and 'facets')
+        default_excluding_lengths = {
+            'suffixes': 0,
+            'folders': 0,
+            'fnames': 0,
+            'files': 0
+        }
+        if relax_for_cli:
+            if self.exclude_review:
+                default_excluding_lengths.update({
+                    'folders': 1,
+                    'fnames': 1,
+                    'files': 1
+                })
+            default_excluding_lengths['files'] += not self.include_convertible
+        ## debugging:
+#         print(f"""no includes: {all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys())}
+# default_excludes: {all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items())}
+# exclude_review: {not self.exclude_review or relax_for_cli}
+# include_convertible: {self.include_convertible or relax_for_cli}
+# no paths excluded: {len(self.excluded_file_paths) == 0}
+# fnames in metadata: {self.fnames_in_metadata}
+# not in metadata excluded: {self.fnames_not_in_metadata or relax_for_cli}
+# incomplete facets: {self.fnames_with_incomplete_facets}""")
         return (
-                all(len(regex_list) == 0 for regex_list in self.including.values()) and
-                all(len(regex_list) == 0 for regex_list in self.excluding.values()) and
-                len(self.excluded_file_paths) == 0 and
-                self.fnames_in_metadata and
-                self.fnames_not_in_metadata and
-                self.fnames_with_incomplete_facets
-              )
+            all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys()) and
+            all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items()) and
+            len(self.excluded_file_paths) == 0 and
+            self.fnames_in_metadata and
+            self.fnames_with_incomplete_facets and
+            (relax_for_cli or (
+                    self.include_convertible and
+                    self.fnames_not_in_metadata
+            ))
+          )
 
     def copy(self, new_name: Optional[str] = None) -> 'View':
         """Returns a copy of this view, i.e., a new View object."""
@@ -492,34 +522,35 @@ class DefaultView(View):
                          **logger_cfg
                          )
 
-    @property
-    def is_default(self) -> bool:
+    def is_default(self,
+                   relax_for_cli: bool = False) -> bool:
         default_excluding_lengths = {
-            'corpora': 0,
             'folders': 1,
             'fnames': 1,
             'files': 2,
             'suffixes': 0,
-            'facets': 0
         }
-### debugging:
-#         print(f"""no includes: {all(len(regex_list) == 0 for regex_list in self.including.values())}
-# default_excludes: {all(len(regex_list) == default_excluding_lengths[facet] for facet, regex_list in self.excluding.items())}
+        if relax_for_cli:
+            default_excluding_lengths['files'] -= self.include_convertible
+            ## debugging:
+#         print(f"""no includes: {all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys())}
+# default_excludes: {all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items())}
 # exclude_review: {self.exclude_review}
-# include_convertible: {not self.include_convertible}
+# include_convertible: {not self.include_convertible or relax_for_cli}
 # no paths excluded: {len(self.excluded_file_paths) == 0}
 # fnames in metadata: {self.fnames_in_metadata}
-# not in metadata excluded: {not self.fnames_not_in_metadata}
+# not in metadata excluded: {not self.fnames_not_in_metadata or relax_for_cli}
 # incomplete facets: {self.fnames_with_incomplete_facets}""")
         return (
-                all(len(regex_list) == 0 for regex_list in self.including.values()) and
-                all(len(regex_list) == default_excluding_lengths[facet] for facet, regex_list in self.excluding.items()) and
-                self.exclude_review and
-                not self.include_convertible and
+                all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys()) and
+                all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items()) and
                 len(self.excluded_file_paths) == 0 and
                 self.fnames_in_metadata and
-                not self.fnames_not_in_metadata and
-                self.fnames_with_incomplete_facets
+                self.fnames_with_incomplete_facets and
+                (relax_for_cli or (
+                        not self.include_convertible and
+                        not self.fnames_not_in_metadata
+                ))
         )
 
 
