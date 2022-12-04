@@ -11,7 +11,7 @@ import pandas as pd
 
 from ms3 import Score, Parse
 from ms3.operations import extract, check, compare, update, store_scores
-from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv
+from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv, MS3_VERSION
 from ms3.logger import get_logger
 
 __author__ = "johentsch"
@@ -90,7 +90,7 @@ def compare_cmd(args,
     n_changed, n_unchanged = compare(p,
                                  facet=args.use,
                                  ask=args.ask,
-                                 revision_specifier=args.commit,
+                                 revision_specifier=args.compare,
                                  flip=args.flip,
                                  logger=logger
                                  )
@@ -121,7 +121,7 @@ def convert_cmd(args):
         if argument != default:
             update_logger.info(f"Argument '{argument_name}' is currently being ignored.")
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
-    ms = 'auto' if args.musescore is None else self.musescore
+    ms = 'auto' if args.musescore is None else args.musescore
     for directory in args.dir:
         convert_folder(directory=directory,
                        paths=args.files,
@@ -349,9 +349,19 @@ def review_cmd(args,
             filtered_report = report[warning_selection]
             logger.warning(filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio']),
                            extra={'message_id': (19,)})
-    commit = '' if args.commit is None else f" @{args.commit}"
-    print(f"COMPARING CURRENT LABELS WITH PREVIOUS ONES FROM TSVs{commit}...")
-    compare_cmd(args, p, output=False)
+    if args.compare is not None:
+        revision = None if args.compare == '' else args.compare
+        commit_str = '' if revision is None else f" @ {revision}"
+        expanded = 'EXPANDED ' if args.use == 'expanded' else ''
+        print(f"COMPARING CURRENT {expanded}LABELS WITH PREVIOUS ONES FROM THE TSV FILES{commit_str}...")
+        n_changed, n_unchanged = compare(p,
+                                         facet=args.use,
+                                         ask=args.ask,
+                                         revision_specifier=revision,
+                                         flip=args.flip,
+                                         logger=logger
+                                         )
+        logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
     corpus2paths = store_scores(p,
                                 root_dir=args.out,
                                 simulate=args.test)
@@ -467,8 +477,10 @@ def get_arg_parser():
                                                                 "when there are any mistakes.")
 
     compare_args = argparse.ArgumentParser(add_help=False)
-    compare_args.add_argument('-c', '--commit', metavar='SPECIFIER',
-                                help="If you want to compare labels against a TSV file from a particular git revision, pass its SHA (short or long), tag, branch name, or relative specifier such as 'HEAD~1'.")
+    compare_args.add_argument('-c', '--compare', nargs="?", metavar='GIT_REVISION', const='',
+                                help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
+                                     "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
+                                     "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
     compare_args.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")
@@ -511,7 +523,7 @@ def get_arg_parser():
     select_facet_args.add_argument('--ask', action='store_true',
                               help="If several files are available for the selected facet (default: 'expanded', see --use), I will pick one "
                                    "automatically. Add --ask if you want me to have you select which ones to compare with the scores.")
-    select_facet_args.add_argument('--use', default='expanded', metavar="{labels, expanded}",
+    select_facet_args.add_argument('--use', default='expanded', choices=['expanded', 'labels'],
                               help="Which type of labels you want to compare with the ones in the score. Defaults to 'expanded', "
                                    "i.e., DCML labels. Set --use labels to use other labels available as TSV and set --ask if several "
                                    "sets of labels are available that you want to choose from.")
@@ -524,6 +536,7 @@ def get_arg_parser():
 
 The library offers you the following commands. Add the flag -h to one of them to learn about its parameters. 
 ''')
+    parser.add_argument('--version', action='version', version=MS3_VERSION)
     subparsers = parser.add_subparsers(help='The action that you want to perform.', dest='action')
 
 

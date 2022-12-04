@@ -84,8 +84,23 @@ def check(parse_obj: Parse,
 def compare(parse_obj: Parse,
             facet: AnnotationsFacet,
             ask: bool = False,
-            revision_specifier=None,
+            revision_specifier: Optional[str] = None,
             flip=False) -> Tuple[int, int]:
+    """
+
+    Args:
+        parse_obj:
+        facet:
+        ask:
+        revision_specifier:
+            If None, no comparison is undertaken. Passing an empty string will result in a comparison with the parsed
+            TSV files included in the current view (if any). Specifying a git revision will result in a comparison
+            with the TSV files at that commit.
+        flip:
+
+    Returns:
+
+    """
     parse_obj.parse(parallel=False)
     if parse_obj.n_parsed_scores == 0:
         parse_obj.logger.warning(f"Parse object does not include any scores.")
