@@ -1173,6 +1173,18 @@ def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Tuple[s
 def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
              ms: bool = False,
              minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+    """ Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
+
+    Args:
+        tpc:
+        ms:
+        minor:
+
+    Returns:
+
+    """
+    if isinstance(tpc, pd.Series):
+        return cast2collection(coll=tpc, func=tpc2name, ms=ms, minor=minor)
     try:
         tpc = int(float(tpc))
     except TypeError:
