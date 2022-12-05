@@ -363,17 +363,34 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             firsts = []
             lasts = []
             last_volta = max(group)
-            mc_after_voltas = max(group[last_volta]) + 1
+            last_group = group[last_volta]
+            if len(last_group) == 0:
+                try:
+                    previous_mc = max(mc for volta, mcs in group.items() for mc in mcs if volta < last_volta)
+                    last_volta_mc = previous_mc + 1
+                    group[last_volta] = [last_volta_mc]
+                    mc_after_voltas = last_volta_mc + 1 # wild guess
+                except ValueError:
+                    self.logger.warning(f"Last volta does not indicate any MCs: {group}. Column 'next' will probably be "
+                                        f"invalid and unfolding might fail.")
+                    mc_after_voltas = None
+                    del(group[last_volta])
+            else:
+                mc_after_voltas = max(last_group) + 1
             if mc_after_voltas not in self.next:
                 mc_after_voltas = None
             for volta, mcs in group.items():
+                if len(mcs) == 0:
+                    continue
                 # every volta except the last needs will have the `next` value replaced either by the startRepeat MC or
                 # by the first MC after the last volta
                 if volta < last_volta:
                     lasts.append(mcs[-1])
                 # the bar before the first volta will have first bar of every volta as `next`
                 firsts.append(mcs[0])
-            self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
+            if first_mc > 1:
+                # prepend first MC of each volta to the 'next' tuple of the preceding measure
+                self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
             # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
             # and they are set to True if their value has been changed to something else than the next MC
             backward_jumps = bwd_jumps.mc.to_list()
