@@ -1738,6 +1738,7 @@ TSV_COLUMN_CONVERTERS = {
     'next': str2inttuple,
     'nominal_duration': safe_frac,
     'quarterbeats': safe_frac,
+    'quarterbeats_all_endings': safe_frac,
     'onset': safe_frac,
     'duration': safe_frac,
     'scalar': safe_frac, }
