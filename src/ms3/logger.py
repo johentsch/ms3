@@ -153,7 +153,7 @@ class WarningFilter(logging.Filter):
     def __init__(self, logger, ignored_warnings):
         super().__init__()
         self.logger = logger
-        self.ignored_warnings = ignored_warnings
+        self.ignored_warnings = set(ignored_warnings)
 
     def filter(self, record):
         ignored = record._message_id in self.ignored_warnings
@@ -161,6 +161,13 @@ class WarningFilter(logging.Filter):
             self.logger.debug(CustomFormatter().format(record), #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
                               extra={"message_id": (10,)})
         return not ignored
+
+    def __repr__(self):
+        return f"WarningFilter({self.ignored_warnings})"
+
+    def __str__(self):
+        def __repr__(self):
+            return f"WarningFilter('{self.logger.name}', {self.ignored_warnings})"
 
 def function_logger(f):
     """This decorator ensures that the decorated function can use the variable `logger` for logging and
@@ -266,7 +273,11 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
                     lggr.setLevel(effective_level)
 
     if len(ignored_warnings) > 0:
-        logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
+        try:
+            existing_filter = next(filter for filter in logger.filters if isinstance(filter, WarningFilter))
+            existing_filter.ignored_warnings.update(ID for ID in ignored_warnings if ID not in existing_filter.ignored_warnings)
+        except StopIteration:
+            logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
 
     if not is_new_logger and not adding_any_handlers:
         return logger

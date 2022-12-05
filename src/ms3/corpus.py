@@ -1340,10 +1340,16 @@ class Corpus(LoggedClass):
             directory = self.corpus_path
         default_ignored_warnings_path = os.path.join(directory, 'IGNORED_WARNINGS')
         if os.path.isfile(default_ignored_warnings_path):
-            self.logger.info(f"IGNORED_WARNINGS detected.")
-            self.load_ignored_warnings(default_ignored_warnings_path)
+            loggers, unsuccessful = self.load_ignored_warnings(default_ignored_warnings_path)
+            n_lgrs, n_unscfl = len(loggers), len(unsuccessful)
+            lgrs_plural = f"{n_lgrs} logger has" if n_lgrs == 1 else f"{n_lgrs} loggers have"
+            if n_unscfl == 0:
+                uscfl_plural = ''
+            else:
+                uscfl_plural = f", {n_unscfl} hasn't" if n_unscfl == 1 else f", {n_unscfl} haven't"
+            self.logger.info(f"{lgrs_plural} successfully been configured{uscfl_plural}.")
 
-    def load_ignored_warnings(self, path: str):
+    def load_ignored_warnings(self, path: str) -> Tuple[List[Logger], List[str]]:
         """
         Loads in a text file containing warnings that are to be ignored, i.e., wrapped in DEBUG messages. The purpose
         is to mark certain warnings as OK, warranted by a human, to allow checks to pass regardless.
@@ -1356,15 +1362,21 @@ class Corpus(LoggedClass):
         self.logger.debug(f"Ignored warnings contained in {path}:\n{ignored_warnings}")
         logger_names = set(self.logger_names.values())
         filtered_loggers = []
+        unsuccessful = []
         for name, message_ids in ignored_warnings.items():
             normalized_name = normalize_logger_name(name)
-            for to_be_configured in logger_names:
-                if normalized_name in to_be_configured:
-                    filtered_loggers.append(to_be_configured)
-                    self._ignored_warnings[to_be_configured].extend(message_ids)
-                    configured = get_logger(name, ignored_warnings=message_ids)
-                    configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
-
+            try:
+                to_be_configured = next(logger_name for logger_name in logger_names if normalized_name in logger_name)
+            except StopIteration:
+                self.logger.warning(f"None of the logger names contains '{normalized_name}', which is the normalized name for loggers supposed to ignore "
+                                 f"warnings with message IDs {message_ids}")
+                unsuccessful.append(name)
+                continue
+            filtered_loggers.append(to_be_configured)
+            self._ignored_warnings[to_be_configured].extend(message_ids)
+            configured = get_logger(name, ignored_warnings=message_ids, level=self.logger.getEffectiveLevel())
+            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+        return filtered_loggers, unsuccessful
 
 
     def load_metadata_file(self, file: File, allow_prefixed: bool = False) -> None:
