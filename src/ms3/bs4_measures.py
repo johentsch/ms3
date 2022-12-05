@@ -51,6 +51,7 @@ class MeasureList(LoggedClass):
             'file': PATH_TO_LOGFILE to store all log messages under the given path.
         """
         super().__init__(subclass='MeasureList', logger_cfg=logger_cfg)
+        assert len(df) > 0, "Score contains no measures."
         self.df = df
         self.ml = pd.DataFrame()
         self.sections = sections

@@ -179,6 +179,10 @@ class _MSCX_bs4(LoggedClass):
 Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
         # Check if any of the <Part> tags contains a pitch -> drumset instrument map
+        # all_part_tags = self.soup.find_all('Part')
+        # if len(all_part_tags) == 0:
+        #     self.logger.error(f"Looks like an empty score to me.")
+        part_tag = None
         for part_tag in self.soup.find_all('Part'):
             drum_tags = part_tag.find_all('Drum')
             staff_tag = part_tag.find('Staff')
@@ -200,11 +204,15 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             iterator = self.soup.find_all('Staff')
         else:
             iterator = part_tag.find_next_siblings('Staff')
+        staff = None
         for staff in iterator:
             staff_id = int(staff['id'])
             self.measure_nodes[staff_id] = {}
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
                 self.measure_nodes[staff_id][mc] = measure
+        if staff is None:
+            self.logger.error(f"Looks like an empty score to me.")
+
 
 
     def parse_measures(self):
@@ -357,7 +365,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._events.chord_id = self._events.chord_id.astype('Int64')
         self._notes = column_order(pd.DataFrame(note_list))
         if len(self._events) == 0:
-            self.logger.warning("Empty score?")
+            self.logger.warning("Score does not seem to contain any events.")
         else:
             self.has_annotations = 'Harmony' in self._events.event.values
             if 'StaffText/text' in self._events.columns:
