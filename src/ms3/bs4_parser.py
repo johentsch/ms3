@@ -573,7 +573,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 .shift(fill_value=0)\
                 .reindex(measures.index)
             measures.insert(2, "quarterbeats", quarterbeats_col * 4)
-        elif self.has_voltas:
+        elif not self.has_voltas:
             measures.drop(columns='volta', inplace=True)
         return measures.copy()
 
