@@ -265,14 +265,20 @@ class NextColumnMaker(LoggedClass):
                 extra={"message_id": (20, fine_mc)})
             else:
                 fine_mc = df[fines].iloc[0].mc
-                volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
-                if fine_mc in volta_mcs:
-                    self.next[fine_mc] = [-1]
-                else:
-                    self.next[fine_mc].append(-1)
-                end_mc = fine_mc
-                self.next[last_row.mc] = []
-                self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
+                if -1 not in self.next[fine_mc]:
+                    volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
+                    if fine_mc in volta_mcs:
+                        # voltas can be reached only a single time, hence the name
+                        self.next[fine_mc] = [-1]
+                    else:
+                        self.next[fine_mc].append(-1)
+                    if fine_mc != end_mc:
+                        if -1 in self.next[end_mc]:
+                            self.next[end_mc].remove(-1)
+                        else:
+                            self.logger.warning(f"Which MC has -1 in the 'next' column at the moment I've set it to 'Fine' measure {fine_mc}?")
+                        end_mc = fine_mc
+                    self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
 
         if df.jump_bwd.notna().any():
             #jumps = dict(map(lambda row: (row[0], tuple(row[1:])), df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']].values))
@@ -323,8 +329,10 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             for mc, jumpb, jumpf, until in bwd_jumps.itertuples(name=None, index=False):
                 jump_to_mc, end_of_jump_mc = jump2marker(mc, jumpb, until)
                 if not pd.isnull(jump_to_mc):
+                    previous_value = self.next[mc]
                     self.next[mc] = [jump_to_mc]
-                    self.logger.debug(f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                    #print(self.logger, f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                    self.logger.debug(f"Replacing next value {previous_value} of MC {mc} with the {jumpb} in MC {jump_to_mc}.")
                 else:
                     self.logger.debug(f"Could not include backward jump from MC {mc}.")
                 if not pd.isnull(jumpf):
@@ -367,27 +375,24 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                 firsts.append(mcs[0])
             self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
             # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
-            # and they are set to True if
-            lasts_with_repeat = [l for l in lasts if not pd.isnull(self.repeats[l]) and self.repeats[l] == 'end']
+            # and they are set to True if their value has been changed to something else than the next MC
+            backward_jumps = bwd_jumps.mc.to_list()
+            wasp_nest = [l for l in lasts if not pd.isnull(self.repeats[l]) and self.repeats[l] == 'end' and l not in backward_jumps]
             for l in lasts:
                 has_repeat = not pd.isnull(self.repeats[l])
-                has_backward_jump = l in bwd_jumps.mc.values
-                if has_repeat or has_backward_jump:
+                has_backward_jump = l in backward_jumps
+                if has_backward_jump:
+                    self.check_volta_repeats[l] = True
+                elif has_repeat:
                     if self.repeats[l] == 'end':
                         self.check_volta_repeats[l] = False
-                        self.wasp_nest[l] = lasts_with_repeat
+                        self.wasp_nest[l] = wasp_nest
                         # for voltas with and endRepeat, the wasp_nest makes sure that once the sections' beginning is
                         # determined in end_section(), it becomes their 'next' value
-                    elif has_backward_jump:
-                        # if there is a backward jump, it is already part of the 'next' column
-                        pass
-                        self.logger.debug(
-                            f"MC {l}, which is the last MC of a volta, has no repeat sign but a jump back to '{bwd_jumps.loc[bwd_jumps.mc == l, 'jump_bwd'].values[0]}'")
                     else:
                         self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
                 elif mc_after_voltas is None:
-                    if l not in bwd_jumps.mc.values:
-                        self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
+                    self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
 
@@ -428,17 +433,21 @@ For correction, MC {start} is interpreted as such because it {reason}."""
             start = None
 
         if mc in self.check_volta_repeats:
-            self.check_volta_repeats[mc] = True
-            if mc in self.wasp_nest:
-                if start is None:
-                    self.logger.error(
-                        f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
-                else:
-                    volta_endings = self.wasp_nest[mc]
-                    for e in volta_endings:
-                        self.next[e] = [start]
-                        del (self.wasp_nest[e])
-                    self.start = None
+            if self.check_volta_repeats[mc]:
+                # this one has a backwards_jump and doesn't need amending
+                pass
+            else:
+                self.check_volta_repeats[mc] = True
+                if mc in self.wasp_nest:
+                    if start is None:
+                        self.logger.error(
+                            f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
+                    else:
+                        volta_endings = self.wasp_nest[mc]
+                        for e in volta_endings:
+                            self.next[e] = [start]
+                            del (self.wasp_nest[e])
+                        self.start = None
         elif start is None:
             self.logger.error(f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
         else:
