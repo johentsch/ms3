@@ -74,7 +74,7 @@
 import re, sys, warnings
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple, Dict, overload
+from typing import Literal, Optional, List, Tuple, Dict, overload, Union
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -2209,9 +2209,12 @@ def recurse_node(node, prepend=None, exclude_children=None):
 
 
 
-def bs4_chord_duration(node, duration_multiplier=1):
-
-    durationtype = node.find('durationType').string
+def bs4_chord_duration(node: bs4.Tag,
+                       duration_multiplier: Union[float, int] = 1) -> Tuple[frac, frac]:
+    duration_type_tag = node.find('durationType')
+    if duration_type_tag is None:
+        return frac(0), frac(0)
+    durationtype = duration_type_tag.string
     if durationtype == 'measure' and node.find('duration'):
         nominal_duration = frac(node.find('duration').string)
     else:
