@@ -593,7 +593,7 @@ class Parse(LoggedClass):
                     drop_zero: bool = True,
                     view_name: Optional[str] = None) -> Union[pd.DataFrame, dict]:
         all_counts = {corpus_name: corpus._summed_file_count(types=detected, parsed=parsed, view_name=view_name) for corpus_name, corpus in self.iter_corpora(view_name=view_name)}
-        counts_df = pd.DataFrame.from_dict(all_counts, orient='index')
+        counts_df = pd.DataFrame.from_dict(all_counts, orient='index', dtype='Int64')
         if drop_zero:
             empty_cols = counts_df.columns[counts_df.sum() == 0]
             counts_df = counts_df.drop(columns=empty_cols)
