@@ -74,7 +74,7 @@
 import re, sys, warnings
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple, Dict
+from typing import Literal, Optional, List, Tuple, Dict, overload
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -86,8 +86,8 @@ from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_offset_dict_from_measures, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
-    rgb_tuple2format, sort_note_list, tpc2name
+    get_quarterbeats_length, make_offset_dict_from_measures, make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
+    rgb_tuple2format, sort_note_list, tpc2name, unfold_repeats
 
 NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',
@@ -512,7 +512,15 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         measures = self.ml()
         return measures.volta.notna().any()
 
-    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+    @overload
+    def measures(self, interval_index: bool, unfold: Literal[False]) -> pd.DataFrame:
+        ...
+    @overload
+    def measures(self, interval_index: bool, unfold: Literal[True]) -> Optional[pd.DataFrame]:
+        ...
+    def measures(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
         the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
         |repeats|, |next|
@@ -527,11 +535,22 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         duration_qb = (measures.act_dur * 4).astype(float)
         measures.insert(2, "duration_qb", duration_qb)
         # add quarterbeats column
+        if unfold:
+            playthrough2mc = self.get_playthrough_mcs()
+            if playthrough2mc is None:
+                self.logger.error("Could not unfold measures.",
+                                  extra={'message_id': (25,)})
+                return
+            measures = unfold_repeats(measures, playthrough2mc, logger=self.logger)
+            self.logger.info(f"Measures successfully unfolded.")
         # functionality adapted from utils.make_continuous_offset()
-        qb_column_name = "quarterbeats_all_endings" if self.has_voltas else "quarterbeats"
+        qb_column_name = "quarterbeats_all_endings" if self.has_voltas and not unfold else "quarterbeats"
         quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
-        measures.insert(2, qb_column_name, quarterbeats_col)
-        if self.has_voltas:
+        if unfold:
+            measures.insert(3, qb_column_name, quarterbeats_col)
+        else:
+            measures.insert(2, qb_column_name, quarterbeats_col)
+        if self.has_voltas and not unfold:
             self.logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
                          f"compute quarterbeats for a full playthrough.")
             if 3 in measures.volta.values:
@@ -542,7 +561,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 .shift(fill_value=0)\
                 .reindex(measures.index)
             measures.insert(2, "quarterbeats", quarterbeats_col * 4)
-        else:
+        elif self.has_voltas:
             measures.drop(columns='volta', inplace=True)
         return measures.copy()
 
@@ -888,6 +907,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             additional_cols.extend([c for c in df.columns if feature in c and c not in main_cols])
         return df[main_cols + additional_cols]
 
+    @lru_cache()
+    def get_playthrough_mcs(self) -> Optional[pd.Series]:
+        measures = self.ml()  # measures table without quarterbeats
+        playthrough_mcs = make_playthrough2mc(measures, logger=self.logger)
+        if len(playthrough_mcs) == 0:
+            self.logger.warning(f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n{measures.set_index('mc').next}")
+            playthrough_mcs = None
+        else:
+            self.logger.debug("Repeat structure successfully unfolded.")
+        return playthrough_mcs
 
 
     def get_raw_labels(self):

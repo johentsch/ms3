@@ -566,7 +566,7 @@ class Piece(LoggedClass):
                 self.logger.info(f"No parsed score found for '{self.name}'")
                 continue
             for facet in selected_facets:
-                df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
+                df = getattr(score_obj.mscx, facet)(interval_index=interval_index, unfold=unfold)
                 if df is None:
                     self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 else:
@@ -1119,7 +1119,7 @@ class Piece(LoggedClass):
             if score_obj is None:
                 self.logger.info(f"No parsed score found for '{file.rel_path}'")
                 continue
-            df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
+            df = getattr(score_obj.mscx, facet)(interval_index=interval_index, unfold=unfold)
             if df is None:
                 self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 continue
@@ -1147,7 +1147,7 @@ class Piece(LoggedClass):
                 self.logger.info(f"No parsed score found for '{file.rel_path}'")
                 continue
             for facet in selected_facets:
-                df = getattr(score_obj.mscx, facet)(interval_index=interval_index) # unfold=unfold,
+                df = getattr(score_obj.mscx, facet)(interval_index=interval_index, unfold=unfold)
                 if df is None:
                     self.logger.debug(f"Score({file.rel_path}).{facet}(unfold={unfold}, interval_index={interval_index}) returned None.")
                 facet2dataframe[facet] = df

@@ -78,7 +78,7 @@ from typing import Literal, Optional, Collection, Dict, Tuple
 import pandas as pd
 
 from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler, function_logger
@@ -337,7 +337,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index, logger=self.logger)
         return labels
 
-    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+    def measures(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> pd.DataFrame:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
         the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
         |repeats|, |next|
@@ -348,7 +350,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
-        return self.parsed.measures(interval_index=interval_index)
+        return self.parsed.measures(interval_index=interval_index,
+                                    unfold=unfold)
 
     def offset_dict(self, all_endings: bool = False) -> dict:
         """ {mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
@@ -758,6 +761,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             raise NotImplementedError(f"Only the following parsers are available: {', '.join(implemented_parsers)}")
 
         self._update_annotations()
+
+    def get_playthrough_mcs(self) -> Optional[pd.Series]:
+        return self.parsed.get_playthrough_mcs()
 
     def store_score(self, filepath: str) -> bool:
         """Shortcut for ``MSCX.parsed.store_scores()``.
