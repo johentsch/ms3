@@ -1777,6 +1777,7 @@ TSV_DTYPES = {
     'label_type': str,
     'leftParen': str,
     'localkey': str,
+    'marker': str,
     'mc': 'Int64',
     'mc_playthrough': 'Int64',
     'midi': 'Int64',
@@ -1909,8 +1910,10 @@ def tsv_column2description(col: str) -> Optional[str]:
 def tsv_column2schema(col: str) -> dict:
     result = {
         "titles": col,
-        "datatype": tsv_column2datatype()[col]
     }
+    column2type = tsv_column2datatype()
+    if col in column2type:
+        result["datatype"] = column2type[col]
     description = tsv_column2description(col)
     if description is not None:
         result["dc:description"] = description
