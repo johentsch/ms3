@@ -178,11 +178,13 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    def cadences(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
+    def cadences(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """:obj:`pandas.DataFrame`
         DataFrame representing all cadence annotations in the score.
         """
-        exp = self.expanded(interval_index=interval_index)
+        exp = self.expanded(interval_index=interval_index, unfold=unfold)
         if exp is None or 'cadence' not in exp.columns:
             return None
         cadences = exp[exp.cadence.notna()]
@@ -190,7 +192,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return
         return cadences
 
-    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+    def chords(self,
+               mode: Literal['auto','strict','all'] = 'auto',
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
         (all <note> tags come within one) and attached score information and performance maerks, e.g.
         lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
@@ -213,9 +218,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
         """
-        return self.parsed.chords(mode=mode, interval_index=interval_index)
+        return self.parsed.chords(mode=mode, interval_index=interval_index, unfold=unfold)
 
-    def events(self, interval_index: bool = False) -> pd.DataFrame:
+    def events(self,
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
         contained in it. It is the original tabular representation of the MuseScore file’s source code from which
         all other tables, except ``measures`` are generated.
@@ -226,10 +233,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
-        return self.parsed.events(interval_index=interval_index)
+        return self.parsed.events(interval_index=interval_index, unfold=unfold)
 
 
-    def expanded(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
+    def expanded(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in <Harmony> tags which could
         be matched against one of the registered regular expressions and split into feature columns. Currently this
         method is hard-coded to return expanded DCML harmony labels only but it takes into account the current
@@ -254,11 +263,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 self.logger.warning(f"Annotations are present but expansion failed due to errors.",
                                     extra={"message_id": (17, )})
             return None
+        if unfold:
+            expanded = self.parsed.unfold_facet_df(expanded, 'expanded DCML labels')
+            if expanded is None:
+                return
         has_chord = expanded.chord.notna()
         if not has_chord.all():
             # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
             # cadence labels, which are considered to have duration 0 and not interrupt the prevailing chord
-            offset_dict = self.offset_dict()
+            offset_dict = self.offset_dict(unfold=unfold)
             with_chord = add_quarterbeats_col(expanded[has_chord], offset_dict, logger=self.logger)
             without_chord = add_quarterbeats_col(expanded[~has_chord], offset_dict, logger=self.logger)
             without_chord.duration_qb = 0.0
@@ -266,7 +279,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             if interval_index:
                 expanded = replace_index_by_intervals(expanded, logger=self.logger)
         else:
-            expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+            expanded = add_quarterbeats_col(expanded, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return expanded
 
     @property
@@ -291,7 +304,8 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                     detection_regex: str = None,
                     exclude_harmony_layer: bool = False,
                     interval_index: bool = False,
-                    expand=True) -> Optional[pd.DataFrame]:
+                    expand: bool = True,
+                    unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -313,11 +327,19 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if form is None:
             self.logger.info("The score does not contain any form labels.")
             return
+        if unfold:
+            form = self.parsed.unfold_facet_df(form, 'form labels')
+            if form is None:
+                return
         if expand:
+            if unfold:
+                self.logger.warning(f"Expanding unfolded form labels has not been tested.")
             form = expand_form_labels(form, logger=self.logger)
         return form
 
-    def labels(self, interval_index: bool = False) -> Optional[pd.DataFrame]:
+    def labels(self,
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score, as returned by calling
         :meth:`~.annotations.Annotations.get_labels` on the object at :attr:`._annotations` with the current :attr:`._labels_cfg`.
         Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
@@ -334,12 +356,16 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.info("The score does not contain any annotations.")
             return None
         labels = self._annotations.get_labels(**self.labels_cfg)
-        labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            labels = self.parsed.unfold_facet_df(labels, 'harmony labels')
+            if labels is None:
+                return
+        labels = add_quarterbeats_col(labels, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return labels
 
     def measures(self,
                  interval_index: bool = False,
-                 unfold: bool = False) -> pd.DataFrame:
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
         the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
         |repeats|, |next|
@@ -353,9 +379,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self.parsed.measures(interval_index=interval_index,
                                     unfold=unfold)
 
-    def offset_dict(self, all_endings: bool = False) -> dict:
+    def offset_dict(self,
+                    all_endings: bool = False,
+                    unfold: bool = False,
+                    negative_anacrusis: bool = False) -> dict:
         """ {mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
-        return self.parsed.offset_dict(all_endings=all_endings)
+        return self.parsed.offset_dict(all_endings=all_endings, unfold=unfold, negative_anacrusis=negative_anacrusis)
 
     @property
     def metadata(self):
@@ -364,7 +393,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Metadata from and about the MuseScore file."""
         return self.parsed.metadata
 
-    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+    def notes(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,
         |tpc|, |midi|, |volta|, |chord_id|
@@ -376,9 +407,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
-        return self.parsed.notes(interval_index=interval_index)
+        return self.parsed.notes(interval_index=interval_index, unfold=unfold)
 
-    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def notes_and_rests(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
@@ -389,7 +422,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
-        return self.parsed.notes_and_rests(interval_index=interval_index)
+        return self.parsed.notes_and_rests(interval_index=interval_index, unfold=unfold)
 
     @property
     def parsed(self) -> _MSCX_bs4:
@@ -401,7 +434,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return None
         return self._parsed
 
-    def rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def rests(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |nominal_duration|, |scalar|, |volta|
@@ -412,7 +447,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
-        return self.parsed.rests(interval_index=interval_index)
+        return self.parsed.rests(interval_index=interval_index, unfold=unfold)
 
     @property
     def staff_ids(self):
@@ -1455,7 +1490,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         return {t: self._name2regex[t] for t in self._types_to_infer}
 
-    def get_labels(self, key=None, interval_index: bool = False) -> pd.DataFrame:
+    def get_labels(self,
+                   key: Optional[str] = None,
+                   interval_index: bool = False,
+                   unfold: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags, of the score or another set of annotations.
         Corresponds to calling :meth:`~.annotations.Annotations.get_labels` on the selected object (by default, the one
         representing labels attached to the score) with the current :attr:`._labels_cfg`.
@@ -1483,11 +1521,15 @@ Use one of the existing keys or load a new set with the method load_annotations(
         else:
             assert key in detached_annotations, f"No annotations available for key '{key}': {detached_annotations}"
             labels = self._detached_annotations[key].get_labels(**self.labels_cfg)
+        if unfold:
+            labels = self.mscx.parsed.unfold_facet_df(labels, 'harmony labels')
+            if labels is None:
+                return
         if 'quarterbeats' not in labels.columns:
             if self.mscx is None:
                 self.logger.warning(f"Could not add quarterbeats to the detached labels with key '{key}' because no score has been parsed yet.")
             else:
-                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(), interval_index=interval_index, logger=self.logger)
+                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return labels
 
     def move_labels_to_layer(self,

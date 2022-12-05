@@ -86,7 +86,7 @@ from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_offset_dict_from_measures, make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
+    get_quarterbeats_length, make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
     rgb_tuple2format, sort_note_list, tpc2name, unfold_repeats
 
 NOTE_SYMBOL_MAP = {
@@ -389,7 +389,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+    def chords(self,
+               mode: Literal['auto','strict','all'] = 'auto',
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
         (all <note> tags come within one) and attached score information and performance maerks, e.g.
         lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
@@ -416,7 +419,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             chords = self.cl()
         else:
             chords = self.get_chords(mode=mode)
-        chords = add_quarterbeats_col(chords, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            chords = self.unfold_facet_df(chords, 'chords')
+            if chords is None:
+                return
+        chords = add_quarterbeats_col(chords, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return chords
 
 
@@ -427,7 +434,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._cl.copy()
 
 
-    def events(self, interval_index: bool = False) -> pd.DataFrame:
+    def events(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
         contained in it. It is the original tabular representation of the MuseScore file’s source code from which
         all other tables, except ``measures`` are generated.
@@ -439,11 +448,19 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
         events = column_order(self.add_standard_cols(self._events))
-        events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            events = self.unfold_facet_df(events, 'chords')
+            if events is None:
+                return
+        events = add_quarterbeats_col(events, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return events
 
 
-    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self,
+                    detection_regex: str = None,
+                    exclude_harmony_layer: bool = False,
+                    interval_index: bool = False,
+                    unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -462,7 +479,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         form = self.fl(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer)
         if form is None:
             return
-        form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            form = self.unfold_facet_df(form, 'chords')
+            if form is None:
+                return
+        form = add_quarterbeats_col(form, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return form
 
     def fl(self, detection_regex: str = None, exclude_harmony_layer=False) -> pd.DataFrame:
@@ -512,12 +533,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         measures = self.ml()
         return measures.volta.notna().any()
 
-    @overload
-    def measures(self, interval_index: bool, unfold: Literal[False]) -> pd.DataFrame:
-        ...
-    @overload
-    def measures(self, interval_index: bool, unfold: Literal[True]) -> Optional[pd.DataFrame]:
-        ...
+
     def measures(self,
                  interval_index: bool = False,
                  unfold: bool = False) -> Optional[pd.DataFrame]:
@@ -536,13 +552,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         measures.insert(2, "duration_qb", duration_qb)
         # add quarterbeats column
         if unfold:
-            playthrough2mc = self.get_playthrough_mcs()
-            if playthrough2mc is None:
-                self.logger.error("Could not unfold measures.",
-                                  extra={'message_id': (25,)})
+            measures = self.unfold_facet_df(measures, 'measures')
+            if measures is None:
                 return
-            measures = unfold_repeats(measures, playthrough2mc, logger=self.logger)
-            self.logger.info(f"Measures successfully unfolded.")
         # functionality adapted from utils.make_continuous_offset()
         qb_column_name = "quarterbeats_all_endings" if self.has_voltas and not unfold else "quarterbeats"
         quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
@@ -565,6 +577,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             measures.drop(columns='volta', inplace=True)
         return measures.copy()
 
+    def unfold_facet_df(self, facet_df: pd.DataFrame, facet: str) -> Optional[pd.DataFrame]:
+        playthrough2mc = self.get_playthrough_mcs()
+        if playthrough2mc is None:
+            self.logger.error(f"Could not unfold {facet}.",
+                              extra={'message_id': (25,)})
+            return None
+        facet_df = unfold_repeats(facet_df, playthrough2mc, logger=self.logger)
+        self.logger.debug(f"{facet} successfully unfolded.")
+        return facet_df
+
     @property
     def metatags(self):
         if self._metatags is None:
@@ -583,7 +605,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._ml = self._make_measure_list()
         return self._ml.ml.copy()
 
-    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+    def notes(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,
         |tpc|, |midi|, |volta|, |chord_id|
@@ -596,7 +620,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         notes = self.nl()
-        notes = add_quarterbeats_col(notes, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            notes = self.unfold_facet_df(notes, 'notes')
+            if notes is None:
+                return
+        notes = add_quarterbeats_col(notes, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return notes
 
     def nl(self, recompute: bool = False) -> pd.DataFrame:
@@ -609,7 +637,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.make_standard_notelist()
         return self._nl
 
-    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def notes_and_rests(self,
+                        interval_index: bool = False,
+                        unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
@@ -621,7 +651,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         nrl = self.nrl()
-        nrl = add_quarterbeats_col(nrl, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            nrl = self.unfold_facet_df(nrl, 'notes and rests')
+            if nrl is None:
+                return
+        nrl = add_quarterbeats_col(nrl, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return nrl
 
     def nrl(self, recompute: bool = False) -> pd.DataFrame:
@@ -635,7 +669,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
-    def offset_dict(self, all_endings: bool = False) -> dict:
+    @lru_cache()
+    def offset_dict(self,
+                    all_endings: bool = False,
+                    unfold: bool = False,
+                    negative_anacrusis: bool = False) -> dict:
         """ Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
         Used for computing quarterbeats for other facets.
 
@@ -647,11 +685,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
             values for MCs that are part of a first ending (or third or larger) are NA.
         """
-        measures = self.measures()
-        offset_dict = make_offset_dict_from_measures(measures, all_endings)
+        measures = self.measures(unfold=unfold)
+        if unfold:
+            offset_dict = make_continuous_offset_series(measures, negative_anacrusis=negative_anacrusis).to_dict()
+        else:
+            offset_dict = make_offset_dict_from_measures(measures, all_endings)
         return offset_dict
 
-    def rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def rests(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |nominal_duration|, |scalar|, |volta|
@@ -663,7 +706,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
-        rests = add_quarterbeats_col(rests, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+        if unfold:
+            rests = self.unfold_facet_df(rests, 'rests')
+            if rests is None:
+                return
+        rests = add_quarterbeats_col(rests, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return rests
 
     def rl(self, recompute: bool = False) -> pd.DataFrame:

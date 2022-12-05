@@ -1994,10 +1994,10 @@ def store_csvw_jsonld(corpus: str,
 
 @function_logger
 def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=None):
-    """ Takes a measures table and compute each MC's offset from the piece's beginning. Deal with
-    voltas before passing the table.
+    """ Accepts a measure table without 'quarterbeats' column and computes each MC's offset from the piece's beginning.
+    Deal with voltas before passing the table.
 
-    If you need an offset_dict and the measures already have a 'quarterbeats' column, you can call
+    If you need an offset_dict and the measures already come with a 'quarterbeats' column, you can call
     :func:`make_offset_dict_from_measures`.
 
     Parameters
@@ -2038,6 +2038,32 @@ def make_continuous_offset_series(measures, quarters=True, negative_anacrusis=No
         res -= abs(frac(negative_anacrusis))
     return res
 
+def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = False) -> dict:
+    """ Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
+    to their quarterbeat offset from the piece's beginning, used for computing quarterbeats for other facets.
+
+    This function is used for the default case. If you need more options, e.g. an offset dict from unfolded
+    measures or expressed in whole notes or with negative anacrusis, use
+    :func:`make_continuous_offset_series` instead.
+
+    Args:
+        measures: Measures table containing a 'quarterbeats' column.
+        all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
+            falls back to the default 'quarterbeats'.
+
+    Returns:
+        {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
+        values for MCs that are part of a first ending (or third or larger) are NA.
+    """
+    measures = measures.set_index('mc')
+    if all_endings and 'quarterbeats_all_endings' in measures.columns:
+        col = 'quarterbeats_all_endings'
+    else:
+        col = 'quarterbeats'
+    offset_dict = measures[col].to_dict()
+    last_row = measures.iloc[-1]
+    offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
+    return offset_dict
 
 
 def make_id_tuples(key, n):
@@ -2806,7 +2832,19 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
                   normal_ix.items()]
     df = df.reindex(np.concatenate(sorted_ixs)).reset_index(drop=True)
     if has_nan:
-        df.loc[:, midi_col] = df[midi_col].replace({1000: pd.NA}).astype('Int64')
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, midi_col] = df[midi_col].replace({1000: pd.NA}).astype('Int64')
     return df
 
 
@@ -3573,7 +3611,19 @@ def replace_index_by_intervals(df, position_col='quarterbeats', duration_col='du
     iv_index = make_interval_index_from_durations(df, position_col=position_col, duration_col=duration_col,
                     closed=closed, round=round, name=name, logger=logger)
     if df[duration_col].dtype != float:
-        df.loc[:, duration_col] = pd.to_numeric(df[duration_col])
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            df.loc[:, duration_col] = pd.to_numeric(df[duration_col])
     if iv_index is None:
         logger.warning("Creating IntervalIndex failed.")
         return df
@@ -4155,32 +4205,6 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
     return row
 
 
-def make_offset_dict_from_measures(measures: pd.DataFrame, all_endings: bool = False):
-    """ Turn a measure table that comes with a 'quarterbeats' column into a dictionary that maps MCs (measure counts)
-    to their quarterbeat offset from the piece's beginning, used for computing quarterbeats for other facets.
-
-    This function is used for the default case. If you need more options, e.g. an offset dict from unfolded
-    measures or expressed in whole notes or with negative anacrusis, use
-    :func:`make_continuous_offset_series` instead.
-
-    Args:
-        measures: Measures table containing a 'quarterbeats' column.
-        all_endings: Uses the column 'quarterbeats_all_endings' of the measures table if it has one, otherwise
-            falls back to the default 'quarterbeats'.
-
-    Returns:
-        {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
-        values for MCs that are part of a first ending (or third or larger) are NA.
-    """
-    measures = measures.set_index('mc')
-    if all_endings and 'quarterbeats_all_endings' in measures.columns:
-        col = 'quarterbeats_all_endings'
-    else:
-        col = 'quarterbeats'
-    offset_dict = measures[col].to_dict()
-    last_row = measures.iloc[-1]
-    offset_dict['end'] = last_row[col] + 4 * last_row.act_dur
-    return offset_dict
 
 
 @dataclass
