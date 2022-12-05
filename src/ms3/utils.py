@@ -3080,8 +3080,10 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
     res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
 
-
-def adjacency_groups(S, na_values=None, prevent_merge=False):
+@function_logger
+def adjacency_groups(S: pd.Series,
+                     na_values: str = None,
+                     prevent_merge: bool = False) -> Tuple[pd.Series, Dict[int, Any]]:
     """ Turns a Series into a Series of ascending integers starting from 0 that reflect groups of successive
     equal values. There are several options of how to deal with NA values.
 
@@ -3147,7 +3149,12 @@ def adjacency_groups(S, na_values=None, prevent_merge=False):
     names = dict(enumerate(s[beginnings], 1))
     if reindex_flag:
         groups = groups.reindex(S.index)
-    return groups.astype('Int64'), names
+    try:
+        return pd.to_numeric(groups).astype('Int64'), names
+    except TypeError:
+        logger.warning(f"Erroneous outcome while computing adjacency groups: {groups}")
+        return groups, names
+
 
 
 @function_logger
