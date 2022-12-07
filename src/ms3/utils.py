@@ -4135,7 +4135,9 @@ def parse_ignored_warnings_file(path: str) -> Dict[str, List[Tuple[int, Tuple[in
     return ignored_warnings2dict(messages)
 
 
-def overlapping_chunk_per_interval(df, intervals, truncate=True):
+def overlapping_chunk_per_interval(df: pd.DataFrame,
+                                   intervals: List[pd.Interval],
+                                   truncate: bool = True) -> Dict[pd.Interval, pd.DataFrame]:
     """ For each interval, create a chunk of the given DataFrame based on its IntervalIndex.
     This is an optimized algorithm compared to calling IntervalIndex.overlaps(interval) for each
     given interval, with the additional advantage that it will not discard rows where the

@@ -1033,7 +1033,8 @@ def segment_by_interval_index(df, idx, truncate=True):
     return pd.concat(chunks.values(), keys=idx, levels=idx.levels)
 
 
-def slice_df(df, quarters_per_slice=None):
+def slice_df(df: pd.DataFrame,
+             quarters_per_slice: Optional[float] = None) -> Dict[pd.Interval, pd.DataFrame]:
     """ Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event's
     durations within the slice are shown in the column 'duration_qb'.
     Uses:
