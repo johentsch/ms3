@@ -2450,7 +2450,11 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
         logger.debug(f"Transformed iterables in the columns {cc} to strings.")
     bc = [c for c in bool_cols if c in df.columns]
     if len(bc) > 0:
-        conv = {c: int for c in bc}
+        if df[bc].isna().any().any():
+            # need to convert to nullable boolean first
+            conv = {c: 'boolean' for c in bc}
+            df = df.astype(conv)
+        conv = {c: 'Int64' for c in bc}
         df = df.astype(conv)
     return df
 
