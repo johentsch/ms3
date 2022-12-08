@@ -371,6 +371,7 @@ class Annotations(LoggedClass):
                 self._expanded = exp
             else:
                 df = self.df.copy()
+                key_cols = ['globalkey', 'localkey', 'globalkey_is_minor', 'localkey_is_minor']
                 with warnings.catch_warnings():
                     # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
                     # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
@@ -384,11 +385,12 @@ class Annotations(LoggedClass):
                         ),
                     )
                     df.loc[select_dcml, exp.columns] = exp
+                    df.loc[:, key_cols] = df[key_cols].fillna(method='ffill')
                 self._expanded = df
             drop_cols = [col for col in ('harmony_layer', 'regex_match') if col in df.columns]
             if len(drop_cols) > 0:
                 self._expanded.drop(columns=drop_cols, inplace=True)
-        except:
+        except Exception:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
 
         if drop_empty_cols:
