@@ -1071,7 +1071,22 @@ class Parse(LoggedClass):
                             concat = pd.concat(dfs, keys=ix_level)
                             dataframes.append(concat)
             if len(dataframes) > 0:
-                result = pd.concat(dataframes, keys=keys)
+                try:
+                    result = pd.concat(dataframes, keys=keys)
+                except ValueError:
+                    n_levels = [df.columns.nlevels for df in dataframes]
+                    if len(set(n_levels)) > 1:
+                        # this error might come from various form label dataframes with varying numbers of column levels
+                        adapted_dataframes = []
+                        for df in dataframes:
+                            if df.columns.nlevels == 2:
+                                adapted_dataframes.append(df)
+                            else:
+                                loc = df.columns.get_loc('form_label')
+                                adapted_dataframes.append(pd.concat([df.iloc[:, :loc], df.iloc[:, loc:]], keys=['', 'a'], axis=1))
+                        result = pd.concat(adapted_dataframes, keys=keys)
+                    else:
+                        raise
                 nlevels = result.index.nlevels
                 level_names = ['corpus', 'fname']
                 if not flat:

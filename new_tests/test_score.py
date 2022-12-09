@@ -93,7 +93,7 @@ class TestScore:
         if form is not None:
             for col in ('quarterbeats', 'duration_qb'):
                 print(form)
-                assert col in form
+                assert (col in form) or (('', col) in form)
 
     def test_partially_removing_and_reinserting_labels(self, directory):
         path = os.path.join(directory, 'mixed_files', 'stabat_03_coloured.mscx')
