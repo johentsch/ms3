@@ -1675,6 +1675,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
             if key != 'annotations':
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
+    def output_mscx(*args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`store_score`."""
+        raise AttributeError(f"Method not in use any more. Use Score.store_score() to write the score to an MSCX file.")
+
 
     def store_score(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
