@@ -44,9 +44,8 @@ class TestLogging():
 
     def test_parallel_log_capture(self, directory):
         """Compare log messages emitted when parsing the same thing in parallel or iteratively."""
-        cfg = dict(level='d')
-        a = Parse(directory, logger_cfg=cfg)
-        b = Parse(directory, logger_cfg=cfg)
+        a = Parse(directory, level='d')
+        b = Parse(directory, level='d')
         with capture_parse_logs(a.logger) as captured_msgs:
             a.parse_scores(parallel=False)
             non_parallel_msgs = captured_msgs.content_list
@@ -63,14 +62,14 @@ class TestLogging():
         assert_all_loggers_level(30)
 
     def test_debug(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='d'))
+        p = Parse(directory, level='d')
         p.parse()
         _ = p.get_dataframes(expanded=True)
         assert_all_loggers_level(10)
 
 
     def test_info(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='i'))
+        p = Parse(directory, level='i')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -82,7 +81,7 @@ class TestLogging():
             assert False
 
     def test_warning(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='w'))
+        p = Parse(directory, level='w')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -95,7 +94,7 @@ class TestLogging():
 
 
     def test_error(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='e'))
+        p = Parse(directory, level='e')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -108,7 +107,7 @@ class TestLogging():
 
 
     def test_critical(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='c'))
+        p = Parse(directory, level='c')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -120,7 +119,7 @@ class TestLogging():
 
 
     def test_notset(self, directory):
-        p = Parse(directory, logger_cfg=dict(level=0))
+        p = Parse(directory, level=0)
         p.parse()
         _ = p.get_dataframes(expanded=True)
         assert_all_loggers_level(30)

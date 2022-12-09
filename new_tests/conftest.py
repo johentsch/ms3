@@ -191,7 +191,7 @@ def get_all_warnings_parsed(get_all_warnings):
 @pytest.fixture(scope='session')
 def get_all_supressed_warnings(directory):
     ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-    p = Parse(directory, logger_cfg=dict(level='d'))
+    p = Parse(directory, level='d')
     p.load_ignored_warnings(ignored_warnings_file)
     with capture_parse_logs(p.logger, level='d') as captured_msgs:
         p.parse()
