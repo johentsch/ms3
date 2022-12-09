@@ -650,7 +650,7 @@ class Corpus(LoggedClass):
         n_files_per_disambiguator = df.notna().sum().sort_values(ascending=False)
         df = df.loc[:, n_files_per_disambiguator.index]
         n_choices_groups = df.notna().sum(axis=1).sort_values()
-        gpb: Iterator[Tuple[int, pd.DataFrame]] = df.groupby(n_choices_groups)
+        gpb: Iterator[Tuple[int, pd.DataFrame]] = df.groupby(n_choices_groups) # introduces variable just for type hinting
         for n_choices, chunk in gpb:
             range_str = f"1-{n_choices}"
             chunk = chunk.dropna(axis=1, how='all')
@@ -658,9 +658,9 @@ class Corpus(LoggedClass):
             # question_gpb: Iterator[Tuple[Dict[int, str], pd.DataFrame]] = chunk.groupby(choices_groups)
             question_gpb = chunk.groupby(choices_groups)
             n_questions = question_gpb.ngroups
-            for i, (choices, piece_group) in enumerate(question_gpb):
+            for i, (choices, piece_group) in enumerate(question_gpb, 1):
                 N_current = len(piece_group)
-                choices = dict(enumerate(piece_group.columns, 1))
+                choices = dict(enumerate(choices, 1))
                 piece_group = piece_group.dropna(axis=1, how='all').sort_index(axis=1, key=lambda S: S.str.len())
                 remaining_string = '' if N_current == N_remaining else f" ({N_remaining} remaining)"
                 if N_current == 1:
@@ -1365,17 +1365,17 @@ class Corpus(LoggedClass):
         unsuccessful = []
         for name, message_ids in ignored_warnings.items():
             normalized_name = normalize_logger_name(name)
-            try:
-                to_be_configured = next(logger_name for logger_name in logger_names if normalized_name in logger_name)
-            except StopIteration:
+            to_be_configured = [logger_name for logger_name in logger_names if normalized_name in logger_name]
+            if len(to_be_configured) == 0:
                 self.logger.warning(f"None of the logger names contains '{normalized_name}', which is the normalized name for loggers supposed to ignore "
                                  f"warnings with message IDs {message_ids}")
                 unsuccessful.append(name)
                 continue
-            filtered_loggers.append(to_be_configured)
-            self._ignored_warnings[to_be_configured].extend(message_ids)
-            configured = get_logger(name, ignored_warnings=message_ids, level=self.logger.getEffectiveLevel())
-            configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
+            for name_to_configure in to_be_configured:
+                filtered_loggers.append(name_to_configure)
+                self._ignored_warnings[name_to_configure].extend(message_ids)
+                configured = get_logger(name_to_configure, ignored_warnings=message_ids, level=self.logger.getEffectiveLevel())
+                configured.debug(f"This logger has been configured to set warnings with the following IDs to DEBUG:\n{message_ids}.")
         return filtered_loggers, unsuccessful
 
 
