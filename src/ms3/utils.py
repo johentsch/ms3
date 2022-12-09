@@ -3430,7 +3430,9 @@ def write_tsv(df, file_path, pre_process=True, **kwargs):
 
 
 @function_logger
-def abs2rel_key(absolute, localkey, global_minor=False):
+def abs2rel_key(absolute: str,
+                localkey: str,
+                global_minor: bool = False) -> str:
     """
     Expresses a Roman numeral as scale degree relative to a given localkey.
     The result changes depending on whether Roman numeral and localkey are
@@ -3438,125 +3440,122 @@ def abs2rel_key(absolute, localkey, global_minor=False):
 
     Uses: :py:func:`split_scale_degree`
 
-    Parameters
-    ----------
-    absolute : :obj:`str`
-        Relative key expressed as Roman scale degree of the local key.
-    localkey : :obj:`str`
-        The local key in terms of which `absolute` will be expressed.
-    global_minor : bool, optional
-        Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.
 
-    Examples
-    --------
-    In a minor context, the key of II would appear within the key of vii as #III.
+    Args:
+        absolute: Absolute key expressed as Roman scale degree of the local key.
+        localkey: The local key in terms of which ``absolute`` will be expressed.
+        global_minor: Has to be set to True if `absolute` and `localkey` are scale degrees of a global minor key.
 
-        >>> abs2rel_key('iv', 'VI', global_minor=False)
-        'bvi'       # F minor expressed with respect to A major
-        >>> abs2rel_key('iv', 'vi', global_minor=False)
-        'vi'        # F minor expressed with respect to A minor
-        >>> abs2rel_key('iv', 'VI', global_minor=True)
-        'vi'        # F minor expressed with respect to Ab major
-        >>> abs2rel_key('iv', 'vi', global_minor=True)
-        '#vi'       # F minor expressed with respect to Ab minor
+    Examples:
+        In a minor context, the key of II would appear within the key of vii as #III.
 
-        >>> abs2rel_key('VI', 'IV', global_minor=False)
-        'III'       # A major expressed with respect to F major
-        >>> abs2rel_key('VI', 'iv', global_minor=False)
-        '#III'       # A major expressed with respect to F minor
-        >>> abs2rel_key('VI', 'IV', global_minor=True)
-        'bIII'       # Ab major expressed with respect to F major
-        >>> abs2rel_key('VI', 'iv', global_minor=False)
-        'III'       # Ab major expressed with respect to F minor
+            >>> abs2rel_key('iv', 'VI', global_minor=False)
+            'bvi'       # F minor expressed with respect to A major
+            >>> abs2rel_key('iv', 'vi', global_minor=False)
+            'vi'        # F minor expressed with respect to A minor
+            >>> abs2rel_key('iv', 'VI', global_minor=True)
+            'vi'        # F minor expressed with respect to Ab major
+            >>> abs2rel_key('iv', 'vi', global_minor=True)
+            '#vi'       # F minor expressed with respect to Ab minor
+
+            >>> abs2rel_key('VI', 'IV', global_minor=False)
+            'III'       # A major expressed with respect to F major
+            >>> abs2rel_key('VI', 'iv', global_minor=False)
+            '#III'       # A major expressed with respect to F minor
+            >>> abs2rel_key('VI', 'IV', global_minor=True)
+            'bIII'       # Ab major expressed with respect to F major
+            >>> abs2rel_key('VI', 'iv', global_minor=False)
+            'III'       # Ab major expressed with respect to F minor
     """
-    if pd.isnull(absolute):
-        return pd.NA
+    if pd.isnull(absolute) or pd.isnull(localkey):
+        return absolute
+    absolute = resolve_relative_keys(absolute)
+    localkey = resolve_relative_keys(localkey)
     maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
     min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
-    shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 1, 0, 0, 0, 1],
-                       [0, 1, 1, 0, 0, 1, 1],
-                       [0, 0, 0, -1, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 1],
-                       [0, 0, 1, 0, 0, 1, 1],
-                       [0, 1, 1, 0, 1, 1, 1]])
-    abs_acc, absolute = split_scale_degree(absolute, count=True, logger=logger)
-    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
-    shift = abs_acc - localkey_acc
-    steps = maj_rn if absolute.isupper() else min_rn
-    key_num = maj_rn.index(localkey.upper())
-    abs_num = (steps.index(absolute) - key_num) % 7
-    step = steps[abs_num]
-    if localkey.islower() and abs_num in [2, 5, 6]:
-        shift += 1
+    white_key_major_accidentals = np.array([[0, 0, 0, 0, 0, 0, 0],
+                                            [0, 0, 1, 0, 0, 0, 1],
+                                            [0, 1, 1, 0, 0, 1, 1],
+                                            [0, 0, 0, -1, 0, 0, 0],
+                                            [0, 0, 0, 0, 0, 0, 1],
+                                            [0, 0, 1, 0, 0, 1, 1],
+                                            [0, 1, 1, 0, 1, 1, 1]])
+    abs_accidentals, absolute = split_scale_degree(absolute, count=True, logger=logger)
+    localkey_accidentals, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    resulting_accidentals = abs_accidentals - localkey_accidentals
+    numerals = maj_rn if absolute.isupper() else min_rn
+    localkey_index = maj_rn.index(localkey.upper())
+    result_index = (numerals.index(absolute) - localkey_index) % 7
+    result_numeral = numerals[result_index]
+    if localkey.islower() and result_index in [2, 5, 6]:
+        resulting_accidentals += 1
     if global_minor:
-        key_num = (key_num - 2) % 7
-    shift -= shifts[key_num][abs_num]
-    acc = shift * '#' if shift > 0 else -shift * 'b'
-    return acc + step
+        localkey_index = (localkey_index - 2) % 7
+    resulting_accidentals -= white_key_major_accidentals[localkey_index][result_index]
+    acc = resulting_accidentals * '#' if resulting_accidentals > 0 else -resulting_accidentals * 'b'
+    return acc + result_numeral
 
 
 @function_logger
-def rel2abs_key(rel, localkey, global_minor=False):
-    """
-    Expresses a Roman numeral that is expressed relative to a localkey
+def rel2abs_key(relative: str,
+                localkey: str,
+                global_minor: bool = False):
+    """Expresses a Roman numeral that is expressed relative to a localkey
     as scale degree of the global key. For local keys {III, iii, VI, vi, VII, vii}
     the result changes depending on whether the global key is major or minor.
 
     Uses: :py:func:`split_scale_degree`
 
-    Parameters
-    ----------
-    rel : :obj:`str`
-        Relative key or chord expressed as Roman scale degree of the local key.
-    localkey : :obj:`str`
-        The local key to which `rel` is relative.
-    global_minor : bool, optional
-        Has to be set to True if `localkey` is a scale degree of a global minor key.
 
-    Examples
-    --------
-    If the label viio6/VI appears in the context of the local key VI or vi,
-    the absolute key to which viio6 applies depends on the global key.
-    The comments express the examples in relation to global C major or C minor.
+    Args:
+        relative: Relative key or chord expressed as Roman scale degree of the local key.
+        localkey: The local key to which `rel` is relative.
+        global_minor: Has to be set to True if `localkey` is a scale degree of a global minor key.
 
-        >>> rel2abs_key('vi', 'VI', global_minor=False)
-        '#iv'       # vi of A major = F# minor
-        >>> rel2abs_key('vi', 'vi', global_minor=False)
-        'iv'        # vi of A minor = F minor
-        >>> rel2abs_key('vi', 'VI', global_minor=True)
-        'iv'        # vi of Ab major = F minor
-        >>> rel2abs_key('vi', 'vi', global_minor=True)
-        'biv'       # vi of Ab minor = Fb minor
+    Examples:
+        If the label viio6/VI appears in the context of the local key VI or vi,
+        the absolute key to which viio6 applies depends on the global key.
+        The comments express the examples in relation to global C major or C minor.
 
-    The same examples hold if you're expressing in terms of the global key
-    the root of a VI-chord within the local keys VI or vi.
+            >>> rel2abs_key('vi', 'VI', global_minor=False)
+            '#iv'       # vi of A major = F# minor
+            >>> rel2abs_key('vi', 'vi', global_minor=False)
+            'iv'        # vi of A minor = F minor
+            >>> rel2abs_key('vi', 'VI', global_minor=True)
+            'iv'        # vi of Ab major = F minor
+            >>> rel2abs_key('vi', 'vi', global_minor=True)
+            'biv'       # vi of Ab minor = Fb minor
+
+        The same examples hold if you're expressing in terms of the global key
+        the root of a VI-chord within the local keys VI or vi.
     """
-    if pd.isnull(rel) or pd.isnull(localkey):
-        return rel
+    if pd.isnull(relative) or pd.isnull(localkey):
+        return relative
+    relative = resolve_relative_keys(relative)
+    localkey = resolve_relative_keys(localkey)
     maj_rn = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII']
     min_rn = ['i', 'ii', 'iii', 'iv', 'v', 'vi', 'vii']
-    shifts = np.array([[0, 0, 0, 0, 0, 0, 0],
-                       [0, 0, 1, 0, 0, 0, 1],
-                       [0, 1, 1, 0, 0, 1, 1],
-                       [0, 0, 0, -1, 0, 0, 0],
-                       [0, 0, 0, 0, 0, 0, 1],
-                       [0, 0, 1, 0, 0, 1, 1],
-                       [0, 1, 1, 0, 1, 1, 1]])
-    rel_acc, rel = split_scale_degree(rel, count=True, logger=logger)
-    localkey_acc, localkey = split_scale_degree(localkey, count=True, logger=logger)
-    shift = rel_acc + localkey_acc
-    steps = maj_rn if rel.isupper() else min_rn
-    rel_num = steps.index(rel)
-    key_num = maj_rn.index(localkey.upper())
-    step = steps[(rel_num + key_num) % 7]
+    white_key_major_accidentals = np.array([[0, 0, 0, 0, 0, 0, 0],
+                                             [0, 0, 1, 0, 0, 0, 1],
+                                             [0, 1, 1, 0, 0, 1, 1],
+                                             [0, 0, 0, -1, 0, 0, 0],
+                                             [0, 0, 0, 0, 0, 0, 1],
+                                             [0, 0, 1, 0, 0, 1, 1],
+                                             [0, 1, 1, 0, 1, 1, 1]])
+    relative_accidentals, relative = split_scale_degree(relative, count=True, logger=logger)
+    localkey_accidentals, localkey = split_scale_degree(localkey, count=True, logger=logger)
+    resulting_accidentals = relative_accidentals + localkey_accidentals
+    numerals = maj_rn if relative.isupper() else min_rn
+    rel_num = numerals.index(relative)
+    localkey_index = maj_rn.index(localkey.upper())
+    result_numeral = numerals[(rel_num + localkey_index) % 7]
     if localkey.islower() and rel_num in [2, 5, 6]:
-        shift -= 1
+        resulting_accidentals -= 1
     if global_minor:
-        key_num = (key_num - 2) % 7
-    shift += shifts[rel_num][key_num]
-    acc = shift * '#' if shift > 0 else -shift * 'b'
-    return acc + step
+        localkey_index = (localkey_index - 2) % 7
+    resulting_accidentals += white_key_major_accidentals[rel_num][localkey_index]
+    acc = resulting_accidentals * '#' if resulting_accidentals > 0 else -resulting_accidentals * 'b'
+    return acc + result_numeral
 
 
 @function_logger
