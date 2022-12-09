@@ -77,9 +77,9 @@ class TestEmptyParse():
                    'wagner_overtures': {'.mscx': 2}},
             everything={'mixed_files': {'.mscx': 11, '.mscz': 1, '.musicxml': 1, '.mxl': 1, '.xml': 1},
                         'outputs': {'.mscx': 1},
-                        'ravel_piano': {'.mscx': 5, '.tsv': 13},
-                        'sweelinck_keyboard': {'.mscx': 1, '.tsv': 3},
-                        'wagner_overtures': {'.mscx': 2, '.tsv': 6}},
+                        'ravel_piano': {'.mscx': 8, '.tsv': 16},
+                        'sweelinck_keyboard': {'.mscx': 2, '.tsv': 4},
+                        'wagner_overtures': {'.mscx': 4, '.tsv': 8}},
             # file_re_without_key = {'outputs': {'.mscx': 1, '.tsv': 3},
             #                        'sweelinck_keyboard': {'.mscx': 1, '.tsv': 4}},
             # without_metadata = {'orchestral': {'.mscx': 3}},
@@ -152,7 +152,7 @@ class TestParsedParse():
     def n_parsed_files(self, request):
         expected = {
             "regex": (2, 0),
-            "everything": (21, 22),
+            "everything": (27, 28),
             "chaotic_dirs": (11, 4),
             "file_re_without_key": (2, 7),
             "files_correct_without_metadata": (2, 6),
@@ -217,9 +217,9 @@ class TestParsedParse():
             print("\n\n", typ.upper())
             print(df)
             for col in ('quarterbeats', 'duration_qb'):
-                if col not in df:
+                if col not in df and ('', col) not in df:
                     print(f"{typ} is missing {col}".upper(), df)
-                    raise False
+                    assert False
             if 'volta' in df.columns:
                 if not df.quarterbeats.isna().any():
                     print(typ)

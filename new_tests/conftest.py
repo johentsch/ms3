@@ -9,7 +9,7 @@ from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 
 CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
-TEST_COMMIT = "c70657f" # commit of DCMLab/unittest_metacorpus for which the tests should pass
+TEST_COMMIT = "2e4d4c9" # commit of DCMLab/unittest_metacorpus for which the tests should pass
 MS3_DIR = os.path.abspath(os.path.join(os.path.realpath(__file__), '..', '..'))
 DOCS_DIR = os.path.join(MS3_DIR, 'docs')
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
