@@ -32,7 +32,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.0.0beta'
+MS3_VERSION = '1.0.0'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
@@ -3347,7 +3347,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     md = metadata_df.reset_index(drop=drop_index)[list(rename4markdown.keys())].fillna('')
     md = md.rename(columns=rename4markdown)
     md_table = str(df2md(md))
-    md_table += f"\n\n*Overview table updated using [ms3](https://johentsch.github.io/ms3/) {MS3_VERSION}.*"
+    md_table += f"\n\n*Overview table updated using [ms3](https://johentsch.github.io/ms3/) {MS3_VERSION}.*\n"
 
     if os.path.isfile(file_path):
         msg = 'Updated'
