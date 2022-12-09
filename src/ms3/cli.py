@@ -565,6 +565,10 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     compare_parser = subparsers.add_parser('compare',
         help="For MSCX files for which annotation tables exist, create another MSCX file with a coloured label comparison if differences are found.",
         parents = [select_facet_args, compare_args, parse_args])
+    compare_parser.add_argument('-c', '--compare', metavar='GIT_REVISION', default='',
+                              help="By default, the _reviewed file displays removed labels in red and added labels in green, compared to the version currently "
+                                   "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, "
+                                   "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
     compare_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_compared',
                               help='Suffix of the newly created comparison files. Defaults to _compared')
     compare_parser.set_defaults(func=compare_cmd)
@@ -616,6 +620,10 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     review_parser = subparsers.add_parser('review',
                                           help="Extract facets, check labels, and create _reviewed files.",
                                           parents=[check_args, select_facet_args, compare_args, extract_args, parse_args])
+    review_parser.add_argument('-c', '--compare', nargs="?", metavar='GIT_REVISION', const='',
+                              help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
+                                   "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
+                                   "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
     review_parser.add_argument('--threshold', default=0.6,
                                   help="Harmony segments where the ratio of non-chord tones vs. chord tones lies above this threshold "
                                        "will be printed in a warning and will cause the check to fail if the --fail flag is set. Defaults to 0.6 (3:2).")
