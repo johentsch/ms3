@@ -73,15 +73,15 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import Literal
+from typing import Literal, Optional, Collection, Dict, Tuple
 
 import pandas as pd
 
-from .utils import check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX,\
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals
+from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
-from .logger import LoggedClass, get_log_capture_handler
+from .logger import LoggedClass, get_log_capture_handler, function_logger
 from .transformations import add_quarterbeats_col
 
 
@@ -91,7 +91,7 @@ class MSCX(LoggedClass):
     An object is only created if a score was successfully parsed.
     """
 
-    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, logger_cfg={}, level=None, parent_score=None):
+    def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, parent_score=None, **logger_cfg):
         """ Object for interacting with the XML structure of a MuseScore 3 file.
 
         Parameters
@@ -116,8 +116,6 @@ class MSCX(LoggedClass):
         parent_score : :obj:`Score`, optional
             Store the Score object to which this MSCX object is attached.
         """
-        if level is not None:
-            logger_cfg['level'] = level
         super().__init__(subclass='MSCX', logger_cfg=logger_cfg)
         if os.path.isfile(mscx_src):
             self.mscx_src = mscx_src
@@ -180,17 +178,24 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     # %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
-    @property
-    def cadences(self):
+    def cadences(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """:obj:`pandas.DataFrame`
         DataFrame representing all cadence annotations in the score.
         """
-        exp = self.expanded()
+        exp = self.expanded(interval_index=interval_index, unfold=unfold)
         if exp is None or 'cadence' not in exp.columns:
             return None
-        return exp[exp.cadence.notna()]
+        cadences = exp[exp.cadence.notna()]
+        if len(cadences) == 0:
+            return
+        return cadences
 
-    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+    def chords(self,
+               mode: Literal['auto','strict','all'] = 'auto',
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
         (all <note> tags come within one) and attached score information and performance maerks, e.g.
         lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
@@ -213,9 +218,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file.
         """
-        return self.parsed.chords(mode=mode, interval_index=interval_index)
+        return self.parsed.chords(mode=mode, interval_index=interval_index, unfold=unfold)
 
-    def events(self, interval_index: bool = False) -> pd.DataFrame:
+    def events(self,
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
         contained in it. It is the original tabular representation of the MuseScore file’s source code from which
         all other tables, except ``measures`` are generated.
@@ -226,10 +233,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
-        return self.parsed.events(interval_index=interval_index)
+        return self.parsed.events(interval_index=interval_index, unfold=unfold)
 
 
-    def expanded(self, interval_index: bool = False) -> pd.DataFrame:
+    def expanded(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in <Harmony> tags which could
         be matched against one of the registered regular expressions and split into feature columns. Currently this
         method is hard-coded to return expanded DCML harmony labels only but it takes into account the current
@@ -248,19 +257,29 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self._annotations is None:
             return None
         expanded = self._annotations.expand_dcml(**self.labels_cfg)
+        if expanded is None:
+            labels = self.labels()
+            if 'regex_match' in labels and 'dcml' in labels.regex_match.unique():
+                self.logger.warning(f"Annotations are present but expansion failed due to errors.",
+                                    extra={"message_id": (17, )})
+            return None
+        if unfold:
+            expanded = self.parsed.unfold_facet_df(expanded, 'expanded DCML labels')
+            if expanded is None:
+                return
         has_chord = expanded.chord.notna()
         if not has_chord.all():
             # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
             # cadence labels, which are considered to have duration 0 and not interrupt the prevailing chord
-            offset_dict = self.offset_dict()
+            offset_dict = self.offset_dict(unfold=unfold)
             with_chord = add_quarterbeats_col(expanded[has_chord], offset_dict, logger=self.logger)
             without_chord = add_quarterbeats_col(expanded[~has_chord], offset_dict, logger=self.logger)
-            without_chord.loc[:, 'duration_qb'] = 0.0
+            without_chord.duration_qb = 0.0
             expanded = pd.concat([with_chord, without_chord]).sort_index()
             if interval_index:
                 expanded = replace_index_by_intervals(expanded, logger=self.logger)
         else:
-            expanded = add_quarterbeats_col(expanded, self.offset_dict(), interval_index=interval_index, logger=self.logger)
+            expanded = add_quarterbeats_col(expanded, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return expanded
 
     @property
@@ -281,7 +300,12 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Is True if at least one StaffText seems to constitute a form label."""
         return self.parsed.n_form_labels
 
-    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self,
+                    detection_regex: str = None,
+                    exclude_harmony_layer: bool = False,
+                    interval_index: bool = False,
+                    expand: bool = True,
+                    unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -297,13 +321,25 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame containing all StaffTexts matching the ``detection_regex``
         """
-        form = self.parsed.form_labels(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer, interval_index=interval_index)
+        form = self.parsed.form_labels(detection_regex=detection_regex,
+                                       exclude_harmony_layer=exclude_harmony_layer,
+                                       interval_index=interval_index)
         if form is None:
             self.logger.info("The score does not contain any form labels.")
             return
+        if unfold:
+            form = self.parsed.unfold_facet_df(form, 'form labels')
+            if form is None:
+                return
+        if expand:
+            if unfold:
+                self.logger.warning(f"Expanding unfolded form labels has not been tested.")
+            form = expand_form_labels(form, logger=self.logger)
         return form
 
-    def labels(self, interval_index: bool = False) -> pd.DataFrame:
+    def labels(self,
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score, as returned by calling
         :meth:`~.annotations.Annotations.get_labels` on the object at :attr:`._annotations` with the current :attr:`._labels_cfg`.
         Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
@@ -320,10 +356,16 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.logger.info("The score does not contain any annotations.")
             return None
         labels = self._annotations.get_labels(**self.labels_cfg)
-        labels = add_quarterbeats_col(labels, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            labels = self.parsed.unfold_facet_df(labels, 'harmony labels')
+            if labels is None:
+                return
+        labels = add_quarterbeats_col(labels, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return labels
 
-    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+    def measures(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
         the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
         |repeats|, |next|
@@ -334,11 +376,15 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`measures <measures>` of the MuseScore file (which can be incomplete measures).
         """
-        return self.parsed.measures(interval_index=interval_index)
+        return self.parsed.measures(interval_index=interval_index,
+                                    unfold=unfold)
 
-    def offset_dict(self, all_endings: bool = False) -> dict:
+    def offset_dict(self,
+                    all_endings: bool = False,
+                    unfold: bool = False,
+                    negative_anacrusis: bool = False) -> dict:
         """ {mc -> offset} dictionary measuring each MC's distance from the piece's beginning (0) in quarter notes."""
-        return self.parsed.offset_dict(all_endings=all_endings)
+        return self.parsed.offset_dict(all_endings=all_endings, unfold=unfold, negative_anacrusis=negative_anacrusis)
 
     @property
     def metadata(self):
@@ -347,7 +393,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Metadata from and about the MuseScore file."""
         return self.parsed.metadata
 
-    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+    def notes(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,
         |tpc|, |midi|, |volta|, |chord_id|
@@ -359,9 +407,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
-        return self.parsed.notes(interval_index=interval_index)
+        return self.parsed.notes(interval_index=interval_index, unfold=unfold)
 
-    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def notes_and_rests(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
@@ -372,7 +422,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
-        return self.parsed.notes_and_rests(interval_index=interval_index)
+        return self.parsed.notes_and_rests(interval_index=interval_index, unfold=unfold)
 
     @property
     def parsed(self) -> _MSCX_bs4:
@@ -384,7 +434,9 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             return None
         return self._parsed
 
-    def rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def rests(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |nominal_duration|, |scalar|, |volta|
@@ -395,7 +447,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         Returns:
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
-        return self.parsed.rests(interval_index=interval_index)
+        return self.parsed.rests(interval_index=interval_index, unfold=unfold)
 
     @property
     def staff_ids(self):
@@ -512,28 +564,38 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         updated = update_labels_cfg(labels_cfg, logger=self.logger)
         self.labels_cfg.update(updated)
 
-    def color_non_chord_tones(self, df, color_name='red', chord_tone_cols=['chord_tones', 'added_tones'], color_nan=True):
-        """
+    def color_non_chord_tones(self,
+                              df: pd.DataFrame,
+                              color_name: str = 'red',
+                              chord_tone_cols: Collection[str] = ['chord_tones', 'added_tones'],
+                              color_nan: bool = True) -> pd.DataFrame:
+        """ Iterates backwards through the rows of the given DataFrame, interpreting each row as a score segment,
+        and colors all notes that do not correspond to one of the tonal pitch classes (TPC) indicated in one of the
+        tuples contained in the ``chord_tone_cols``. The columns 'mc' and 'mc_onset' are taken to indicate each score
+        segment's start, which reaches to the subsequent one (the last segment reaching to the end of the score). Only
+        notes whose onsets lie within the respective segment are colored, meaning that those whose durations reach
+        into a segment are not taken into account.
 
-        Parameters
-        ----------
-        df : :obj:`pandas.DataFrame`
-            A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
-        color_name : :obj:`str`, optional
-            Name the color that the non-chord tones should get, defaults to 'red'.
-        chord_tone_cols : :obj:`list`, optional
-            Names of the columns containing tuples of chord tones, expressed as TPC.
-        color_nan : :obj:`bool`, optional
-            By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
-            will be colored. Pass False to add the segment to the previous one instead.
+        Args:
+            df: A DataFrame with the columns ['mc', 'mc_onset'] + ``chord_tone_cols``
+            color_name:
+                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+            chord_tone_cols: Names of the columns containing tuples of chord tones, expressed as TPC.
+            color_nan:
+                By default, if all of the ``chord_tone_cols`` contain a NaN value, all notes in the segment
+                will be colored. Pass False to add the segment to the previous one instead.
 
-        Returns
-        -------
-
+        Returns:
+            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+            segment.
         """
         if self.read_only:
             self.parsed.make_writeable()
-        if len(df) == 0:
+        if df is None or len(df) == 0:
             return df
         for col in chord_tone_cols:
             assert col in df.columns, f"DataFrame does not come with a '{col}' column. Specify the parameter chord_tone_cols."
@@ -571,7 +633,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 expand_segment = False
             else:
                 to_mc, to_mc_onset = mc, mc_onset
-        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'])
+        stats = pd.DataFrame(reversed(results), columns=['n_colored', 'n_untouched', 'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'], index=df.index)
         if (stats.n_colored > 0).any():
             self.parsed.parse_measures()
             self.changed = True
@@ -727,7 +789,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         if self.parser in implemented_parsers:
             try:
                 self._parsed = _MSCX_bs4(self.mscx_src, read_only=self.read_only, logger_cfg=self.logger_cfg)
-            except:
+            except Exception:
                 self.logger.error(f"Failed parsing {self.mscx_src}.")
                 raise
         else:
@@ -735,8 +797,11 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
         self._update_annotations()
 
-    def output_mscx(self, filepath):
-        """Shortcut for ``MSCX.parsed.output_mscx()``.
+    def get_playthrough_mcs(self) -> Optional[pd.Series]:
+        return self.parsed.get_playthrough_mcs()
+
+    def store_score(self, filepath: str) -> bool:
+        """Shortcut for ``MSCX.parsed.store_scores()``.
         Store the current XML structure as uncompressed MuseScore file.
 
         Parameters
@@ -750,88 +815,90 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         :obj:`bool`
             Whether the file was successfully created.
         """
-        return self.parsed.output_mscx(filepath=filepath)
-
-    def store_list(self, what='all', folder=None, suffix=None):
-        """
-        Store one or several several lists as TSV files(s).
-
-        Parameters
-        ----------
-        what : :obj:`str` or :obj:`Collection`, optional
-            Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
-        folder : :obj:`str`, optional
-            Where to store. Defaults to the directory of the parsed MSCX file.
-        suffix : :obj:`str` or :obj:`Collection`, optional
-            Suffix appended to the file name of the parsed MSCX file to create a new file name.
-            Defaults to None, meaning that standard suffixes based on ``what`` are attached.
-            Number of suffixes needs to be equal to the number of ``what``.
-
-        Returns
-        -------
-        None
-
-        """
-        folder = resolve_dir(folder)
-        mscx_path, file = os.path.split(self.mscx_src)
-        fname, _ = os.path.splitext(file)
-        if folder is None:
-            folder = mscx_path
-        if not os.path.isdir(folder):
-            if input(folder + ' does not exist. Create? (y|n)') == "y":
-                os.makedirs(folder)
-            else:
-                return
-        what, suffix = self._treat_storing_params(what, suffix)
-        self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
-        if what is None:
-            self.logger.error("Tell me 'what' to store.")
-            return
-
-        for w, s in zip(what, suffix):
-            df = self.__getattribute__(w)
-            if len(df.index) > 0:
-                new_name = f"{fname}{s}{ext}"
-                full_path = os.path.join(folder, new_name)
-                write_tsv(df, full_path, logger=self.logger)
-            else:
-                self.logger.debug(f"{w} empty, no file written.")
-
-    def _treat_storing_params(self, what, suffix):
-        tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
-        if what == 'all':
-            if suffix is None:
-                return tables, [f"_{t}" for t in tables]
-            elif len(suffix) < len(tables) or isinstance(suffix, str):
-                self.logger.error(
-                    f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
-                return None, None
-            elif len(suffix) > len(tables):
-                suffix = suffix[:len(tables)]
-            return tables, [str(s) for s in suffix]
-
-        if isinstance(what, str):
-            what = [what]
-        if isinstance(suffix, str):
-            suffix = [suffix]
-
-        correct = [(i, w) for i, w in enumerate(what) if w in tables]
-        if suffix is None:
-            suffix = [f"_{w}" for _, w in correct]
-        if len(correct) < len(what):
-            if len(correct) == 0:
-                self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
-                return None, None
-            else:
-                incorrect = [w for w in what if w not in tables]
-                self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
-                suffix = [suffix[i] for i, _ in correct]
-        if len(correct) < len(suffix):
-            self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
-            return None, None
-        elif len(suffix) > len(correct):
-            suffix = suffix[:len(correct)]
-        return what, [str(s) for s in suffix]
+        if self.read_only:
+            self.parsed.make_writeable()
+        return self.parsed.store_score(filepath=filepath)
+    #
+    # def store_list(self, what='all', folder=None, suffix=None):
+    #     """
+    #     Store one or several several lists as TSV files(s).
+    #
+    #     Parameters
+    #     ----------
+    #     what : :obj:`str` or :obj:`Collection`, optional
+    #         Defaults to 'all' but could instead be one or several strings out of {'notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels'}
+    #     folder : :obj:`str`, optional
+    #         Where to store. Defaults to the directory of the parsed MSCX file.
+    #     suffix : :obj:`str` or :obj:`Collection`, optional
+    #         Suffix appended to the file name of the parsed MSCX file to create a new file name.
+    #         Defaults to None, meaning that standard suffixes based on ``what`` are attached.
+    #         Number of suffixes needs to be equal to the number of ``what``.
+    #
+    #     Returns
+    #     -------
+    #     None
+    #
+    #     """
+    #     folder = resolve_dir(folder)
+    #     mscx_path, file = os.path.split(self.mscx_src)
+    #     fname, _ = os.path.splitext(file)
+    #     if folder is None:
+    #         folder = mscx_path
+    #     if not os.path.isdir(folder):
+    #         if input(folder + ' does not exist. Create? (y|n)') == "y":
+    #             os.makedirs(folder)
+    #         else:
+    #             return
+    #     what, suffix = self._treat_storing_params(what, suffix)
+    #     self.logger.debug(f"Parameters normalized to what={what}, suffix={suffix}.")
+    #     if what is None:
+    #         self.logger.error("Tell me 'what' to store.")
+    #         return
+    #
+    #     for w, s in zip(what, suffix):
+    #         df = self.__getattribute__(w)
+    #         if len(df.index) > 0:
+    #             new_name = f"{fname}{s}{ext}"
+    #             full_path = os.path.join(folder, new_name)
+    #             write_tsv(df, full_path, logger=self.logger)
+    #         else:
+    #             self.logger.debug(f"{w} empty, no file written.")
+    #
+    # def _treat_storing_params(self, what, suffix):
+    #     tables = ['notes', 'rests', 'notes_and_rests', 'measures', 'events', 'labels', 'chords', 'expanded', 'form_labels']
+    #     if what == 'all':
+    #         if suffix is None:
+    #             return tables, [f"_{t}" for t in tables]
+    #         elif len(suffix) < len(tables) or isinstance(suffix, str):
+    #             self.logger.error(
+    #                 f"If what='all', suffix needs to be None or include one suffix each for {tables}.\nInstead, {suffix} was passed.")
+    #             return None, None
+    #         elif len(suffix) > len(tables):
+    #             suffix = suffix[:len(tables)]
+    #         return tables, [str(s) for s in suffix]
+    #
+    #     if isinstance(what, str):
+    #         what = [what]
+    #     if isinstance(suffix, str):
+    #         suffix = [suffix]
+    #
+    #     correct = [(i, w) for i, w in enumerate(what) if w in tables]
+    #     if suffix is None:
+    #         suffix = [f"_{w}" for _, w in correct]
+    #     if len(correct) < len(what):
+    #         if len(correct) == 0:
+    #             self.logger.error(f"The value for what can only be out of {['all'] + tables}, not {what}.")
+    #             return None, None
+    #         else:
+    #             incorrect = [w for w in what if w not in tables]
+    #             self.logger.warning(f"The following values are not accepted as parameters for 'what': {incorrect}")
+    #             suffix = [suffix[i] for i, _ in correct]
+    #     if len(correct) < len(suffix):
+    #         self.logger.error(f"Only {len(suffix)} suffixes were passed for storing {len(correct)} tables.")
+    #         return None, None
+    #     elif len(suffix) > len(correct):
+    #         suffix = suffix[:len(correct)]
+    #     return what, [str(s) for s in suffix]
 
     def _update_annotations(self, infer_types={}):
         if len(infer_types) == 0 and self._annotations is not None:
@@ -841,7 +908,7 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             logger_cfg = self.logger_cfg.copy()
             # logger_cfg['name'] += '.annotations'
             self._annotations = Annotations(df=self.get_raw_labels(), read_only=True, mscx_obj=self, infer_types=infer_types,
-                                            logger_cfg=logger_cfg)
+                                            **logger_cfg)
         else:
             self._annotations = None
 
@@ -890,8 +957,9 @@ class Score(LoggedClass):
     Formats that ms3 can parse.
     """
 
-    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, logger_cfg={},
-                 parser='bs4', ms=None):
+    dataframe_types = ('measures', 'notes', 'rests', 'notes_and_rests', 'labels', 'expanded', 'form_labels', 'cadences', 'events', 'chords')
+
+    def __init__(self, musescore_file=None, match_regex=['dcml', 'form_labels'], read_only=False, labels_cfg={}, parser='bs4', ms=None, **logger_cfg):
         """
 
         Parameters
@@ -1156,7 +1224,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.mscx.logger.error(f"No labels from '{key}' have been attached due to aforementioned errors.")
             return reached, goal
 
-        prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict)
+        prepared_annotations = Annotations(df=df, cols=annotations.cols, infer_types=annotations.regex_dict, **self.logger_cfg)
         reached = self.mscx.add_labels(prepared_annotations)
         if remove_detached:
             if reached == goal:
@@ -1241,58 +1309,73 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return checks[0]
 
 
-    def color_non_chord_tones(self, color_name='red'):
-        """ Goes through the attached labels, tries to interpret them as DCML harmony labels,
-        colors the notes in the parsed score, and stores a report under :py:attr:`review_report`.
+    def color_non_chord_tones(self, color_name: str = 'red') -> Optional[pd.DataFrame]:
+        """ Iterates through the attached labels, tries to interpret them as DCML harmony labels,
+        colors the notes in the parsed score that are not expressed by the respective label for a score segment,
+        and stores a report under :py:attr:`review_report`.
 
-        Returns
-        -------
+        Args:
+            color_name:
+                Name the color that the non-chord tones should get, defaults to 'red'. Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
 
+        Returns:
+            A coloring report which is the original ``df`` with the appended columns 'n_colored', 'n_untouched',
+            'count_ratio', 'dur_colored', 'dur_untouched', 'dur_ratio'. They contain the counts and durations of the
+            colored vs. untouched notes as well the ratio of each pair. Note that the report does not take into account
+            notes that reach into a segment, nor does it correct the duration of notes that reach into the subsequent
+            segment.
         """
         if not self.mscx.has_annotations:
-            self.mscx.logger.debug("Score contains no Annotations.")
+            self.mscx.logger.debug("Score contains no harmony labels.")
             return
         expanded = self.annotations.expand_dcml(drop_others=False, absolute=True)
-        self.review_report = self.mscx.color_non_chord_tones(expanded, color_name=color_name)
+        if expanded is None:
+            self.mscx.logger.debug("Score contains no DCML harmony labels.")
+            return
+        self.review_report = self.mscx.color_non_chord_tones(expanded[expanded.chord.notna()], color_name=color_name)
         return self.review_report
 
 
 
 
-    def compare_labels(self, detached_key, new_color='ms3_darkgreen', old_color='ms3_darkred', detached_is_newer=False, add_to_rna=True):
-        """ Compare detached labels ``key`` to the ones attached to the Score.
-        By default, the attached labels are considered as the reviewed version and changes are colored in green;
-        Changes with respect to the detached labels are attached to the Score in red.
+    def compare_labels(self,
+                       key: str = 'detached',
+                       new_color: str = 'ms3_darkgreen',
+                       old_color: str = 'ms3_darkred',
+                       detached_is_newer: bool = False,
+                       add_to_rna: bool = True) -> Tuple[int, int]:
+        """ Compare detached labels ``key`` to the ones attached to the Score to create a diff.
+        By default, the attached labels are considered as the reviewed version and labels that have changed or been added
+        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are
+        attached to the Score in red, just like any deleted label.
 
-        Parameters
-        ----------
-        detached_key : :obj:`str`
-            Key of the detached labels you want to compare to the ones in the score.
-        new_color, old_color : :obj:`str` or :obj:`tuple`, optional
-            The colors by which new and old labels are differentiated. Identical labels remain unchanged.
-        detached_is_newer : :obj:`bool`, optional
-            Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
-            will turn ``old_color``, as opposed to the default.
-        add_to_rna : :obj:`bool`, optional
-            By default, new labels are attached to the Roman Numeral layer. Pass false to attach them to the chord layer instead.
+        Args:
+            key: Key of the detached labels you want to compare to the ones in the score.
+            new_color, old_color:
+                The colors by which new and old labels are differentiated. Identical labels remain unchanged. Colors can be
+                CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
+            detached_is_newer:
+                Pass True if the detached labels are to be added with ``new_color`` whereas the attached changed labels
+                will turn ``old_color``, as opposed to the default.
+            add_to_rna:
+                By default, new labels are attached to the Roman Numeral layer.
+                Pass False to attach them to the chord layer instead.
 
-        Returns
-        -------
-        :obj:`int`
+        Returns:
             Number of attached labels that were not present in the old version and whose color has been changed.
-        :obj:`int`
             Number of added labels that are not present in the current version any more and which have been added as a consequence.
         """
-        assert detached_key != 'annotations', "Pass a key of detached labels, not 'annotations'."
+        assert key != 'annotations', "Pass a key of detached labels, not 'annotations'."
         if not self.mscx.has_annotations:
             self.logger.info(f"This score has no annotations attached.")
             return (0, 0)
-        if detached_key not in self._detached_annotations:
-            self.logger.info(f"""Key '{detached_key}' doesn't correspond to a detached set of annotations.
+        if key not in self._detached_annotations:
+            self.logger.info(f"""Key '{key}' doesn't correspond to a detached set of annotations.
 Use one of the existing keys or load a new set with the method load_annotations().\nExisting keys: {list(self._detached_annotations.keys())}""")
             return (0, 0)
 
-        old_obj = self._detached_annotations[detached_key]
+        old_obj = self._detached_annotations[key]
         new_obj = self.mscx._annotations
         compare_cols = ['mc', 'mc_onset', 'staff', 'voice', 'label']
         old_cols = [old_obj.cols[c] for c in compare_cols]
@@ -1332,11 +1415,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
             old_df[k] = v
         if add_to_rna:
             old_df['harmony_layer'] = 1
-            anno = Annotations(df=old_df)
+            anno = Annotations(df=old_df, **self.logger_cfg)
             anno.remove_initial_dots()
         else:
             old_df['harmony_layer'] = 0
-            anno = Annotations(df=old_df)
+            anno = Annotations(df=old_df, **self.logger_cfg)
             anno.add_initial_dots()
         added_changes = self.mscx.add_labels(anno)
         if added_changes > 0 or color_changes > 0:
@@ -1351,10 +1434,11 @@ Use one of the existing keys or load a new set with the method load_annotations(
 
 
 
-    def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True):
-        """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them.
+    def detach_labels(self, key, staff=None, voice=None, harmony_layer=None, delete=True, inverse=False, regex=None):
+        """ Detach all annotations labels from this score's :obj:`MSCX` object or just a selection of them, without taking
+        labels_cfg into account (don't decode the labels).
         The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.
-        By default, ``delete`` is set to True, meaning that if you call :py:meth:`output_mscx` afterwards,
+        By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_scores` afterwards,
         the created MuseScore file will not contain the detached labels.
 
         Parameters
@@ -1383,16 +1467,15 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if not key.isidentifier():
             self.logger.warning(
                 f"'{key}' cannot be used as an identifier. The extracted labels need to be accessed via self._detached_annotations['{key}']")
-        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, drop=delete)
+        df = self.annotations.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, positioning=True, decode=False, drop=delete, inverse=inverse, regex=regex)
         if len(df) == 0:
             self.mscx.logger.info(f"No labels found for staff {staff}, voice {voice}, harmony_layer {harmony_layer}.")
             return
         logger_cfg = self.logger_cfg.copy()
         logger_cfg['name'] = f"{self.logger.name}.{key}"
-        self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self._mscx,
-                                                      logger_cfg=logger_cfg)
+        self._detached_annotations[key] = Annotations(df=df, infer_types=self.get_infer_regex(), mscx_obj=self.mscx, **logger_cfg)
         if delete:
-            self._mscx.delete_labels(df)
+            self.mscx.delete_labels(df)
         return
 
 
@@ -1407,6 +1490,90 @@ Use one of the existing keys or load a new set with the method load_annotations(
         """
         return {t: self._name2regex[t] for t in self._types_to_infer}
 
+    def get_labels(self,
+                   key: Optional[str] = None,
+                   interval_index: bool = False,
+                   unfold: bool = False) -> Optional[pd.DataFrame]:
+        """DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags, of the score or another set of annotations.
+        Corresponds to calling :meth:`~.annotations.Annotations.get_labels` on the selected object (by default, the one
+        representing labels attached to the score) with the current :attr:`._labels_cfg`.
+        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,
+        |offset_x|, |offset_y|, |regex_match|
+
+
+        Args:
+            key:
+            interval_index: Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
+
+        Returns:
+            DataFrame representing all :ref:`labels`, i.e., all <Harmony> tags in the score.
+        """
+        detached_annotations = list(self._detached_annotations.keys())
+        if key is None:
+            if self.mscx._annotations is None:
+                msg = "The score does not contain any annotations."
+                if len(detached_annotations) > 0:
+                    msg += f" Available set of labels: {detached_annotations}"
+                self.logger.info(msg)
+                return None
+            else:
+                labels = self.mscx._annotations.get_labels(**self.labels_cfg)
+        else:
+            assert key in detached_annotations, f"No annotations available for key '{key}': {detached_annotations}"
+            labels = self._detached_annotations[key].get_labels(**self.labels_cfg)
+        if unfold:
+            labels = self.mscx.parsed.unfold_facet_df(labels, 'harmony labels')
+            if labels is None:
+                return
+        if 'quarterbeats' not in labels.columns:
+            if self.mscx is None:
+                self.logger.warning(f"Could not add quarterbeats to the detached labels with key '{key}' because no score has been parsed yet.")
+            else:
+                labels = add_quarterbeats_col(labels, self.mscx.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
+        return labels
+
+    def move_labels_to_layer(self,
+                             staff: Optional[int] = None,
+                             voice: Optional[Literal[1, 2, 3, 4]] = None,
+                             harmony_layer: Optional[Literal[0, 1, 2, 3]] = None,
+                             above: bool = False,
+                             safe: bool = True) -> bool:
+        if not self.mscx.has_annotations:
+            self.logger.debug(f"File has no labels to update.")
+            return False
+        before = self.annotations
+        labels_before = self.annotations.df
+        if len(labels_before) == 0:
+            self.logger.info(f"Annotation object does not contain any labels.")
+            return False
+        if staff < 1:
+            staff = self.mscx.staff_ids[staff]
+        need_moving = before.get_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, regex=r"^[^\.]", inverse=True)
+        labels_need_moving = len(need_moving) > 0
+        if self.mscx.style['romanNumeralPlacement'] is None:
+            if above:
+                self.mscx.style['romanNumeralPlacement'] = 0
+                self.mscx.changed = True
+        else:
+            above_target = 0 if above else 1
+            if int(self.mscx.style['romanNumeralPlacement']) != above_target:
+                self.mscx.style['romanNumeralPlacement'] = above_target
+                self.mscx.changed = True
+        if labels_need_moving:
+            self.logger.info(f"Moving {len(need_moving)} labels to staff={staff}, voice={voice}, harmony_layer={harmony_layer}, above={above}.")
+            self.detach_labels('old', staff=staff, voice=voice, harmony_layer=harmony_layer, regex=r"^[^\.]", inverse=True)
+            self.old.remove_initial_dots()
+            self.attach_labels('old', staff=int(staff), voice=voice, harmony_layer=int(harmony_layer))
+            if safe:
+                labels_after = self.annotations.df
+                try:
+                    assert_dfs_equal(labels_before, labels_after, exclude=['staff', 'voice', 'label', 'harmony_layer'])
+                except AssertionError as e:
+                    self.logger.error(f"Labels were not moved because of the following error:\n{e}")
+                    return False
+        else:
+            self.logger.info(f"No labels needed moving.")
+        return self.mscx.changed
 
     def new_type(self, name, regex, description='', infer=True):
         """ Declare a custom label type. A type consists of a name, a regular expression and,
@@ -1433,42 +1600,49 @@ Use one of the existing keys or load a new set with the method load_annotations(
             for key in self:
                 self[key].infer_types(self.get_infer_regex())
 
-    def load_annotations(self, tsv_path=None, anno_obj=None, key='tsv', cols={}, infer=True):
+    def load_annotations(self,
+                         tsv_path: Optional[str] = None,
+                         anno_obj: Optional[Annotations] = None,
+                         df: Optional[pd.DataFrame] = None,
+                         key: str = 'detached',
+                         infer: bool = True,
+                         **cols) -> None:
         """ Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.
         It can be an existing object or one newly created from the TSV file ``tsv_path``.
 
-        Parameters
-        ----------
-        tsv_path : :obj:`str`
-            If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
-        anno_obj : :py:class:`~.annotations.Annotations`
-            Instead, you can pass an existing object.
-        key : :obj:`str`, defaults to 'tsv'
-            Specify a new key for accessing the set of annotations. The string needs to be usable
-            as an identifier, e.g. not start with a number, not contain special characters etc. In return you
-            may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
-            ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
-        cols : :obj:`dict`, optional
-            If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
-            pass a {standard name: custom name} dictionary.
-        infer : :obj:`bool`, optional
-            By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
-            Pass False to not add and not change any label types.
+        Args:
+            tsv_path: If you want to create a new :py:class:`~.annotations.Annotations` object from a TSV file, pass its path.
+            anno_obj: Instead, you can pass an existing object.
+            df: Or you can automatically create one from a given DataFrame.
+            key:
+                Specify a new key for accessing the set of annotations. The string needs to be usable
+                as an identifier, e.g. not start with a number, not contain special characters etc. In return you
+                may use it as a property: For example, passing ``'chords'`` lets you access the :py:class:`~.annotations.Annotations` as
+                ``Score.chords``. The key 'annotations' is reserved for all annotations attached to the score.
+            infer:
+                By default, the label types are inferred in the currently configured order (see :py:attr:`name2regex`).
+                Pass False to not add and not change any label types.
+            **cols:
+                If the columns in the specified TSV file diverge from the :ref:`standard column names<column_names>`,
+                pass them as standard_name='custom name' keywords.
         """
         assert key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
         assert key is not None, "Key cannot be None."
-        assert sum(True for arg in [tsv_path, anno_obj] if arg is not None) == 1, "Pass either tsv_path or anno_obj."
+        assert key.isidentifier(), f"Key '{key}' is not a valid identifier."
+        assert sum(arg is not None for arg in (tsv_path, anno_obj, df)) == 1, "Pass either tsv_path or anno_obj or df."
         inf_dict = self.get_infer_regex() if infer else {}
         mscx = None if self._mscx is None else self._mscx
         if tsv_path is not None:
             key = self._handle_path(tsv_path, key)
             logger_cfg = self.logger_cfg.copy()
             logger_cfg['name'] = f"{self.logger_names[key]}"
-            self._detached_annotations[key] = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
-                                                          logger_cfg=logger_cfg)
+            anno_obj = Annotations(tsv_path=tsv_path, infer_types=inf_dict, cols=cols, mscx_obj=mscx,
+                                                          **logger_cfg)
+        elif df is not None:
+            anno_obj = Annotations(df=df, infer_types=inf_dict, cols=cols, mscx_obj=mscx, **self.logger_cfg)
         else:
             anno_obj.mscx_obj = mscx
-            self._detached_annotations[key] = anno_obj
+        self._detached_annotations[key] = anno_obj
 
     def store_annotations(self, key='annotations', tsv_path=None, **kwargs):
         """ Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method
@@ -1501,10 +1675,14 @@ Use one of the existing keys or load a new set with the method load_annotations(
             if key != 'annotations':
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
+    def output_mscx(*args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`store_score`."""
+        raise AttributeError(f"Method not in use any more. Use Score.store_score() to write the score to an MSCX file.")
 
-    def output_mscx(self, filepath):
+
+    def store_score(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
-        Just a shortcut for ``Score.mscx.output_mscx()``.
+        Just a shortcut for ``Score.mscx.store_scores()``.
 
         Parameters
         ----------
@@ -1512,7 +1690,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             Path of the newly created MuseScore file, including the file name ending on '.mscx'.
             Uncompressed files ('.mscz') are not supported.
         """
-        return self.mscx.output_mscx(filepath)
+        return self.mscx.store_score(filepath)
 
     def _handle_path(self, path, key=None):
         """ Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.
@@ -1537,7 +1715,10 @@ Use one of the existing keys or load a new set with the method load_annotations(
             self.files[key] = file
             self.fnames[key] = file_name
             self.fexts[key] = file_ext
-            self.logger_names[key] = f"{self.logger.name}.{key}"  # logger
+            logger_name = self.logger.name
+            if logger_name == 'ms3.Score':
+                logger_name += '.' + file_name.replace('.', '') + file_ext
+            self.logger_names[key] = logger_name  # logger
             return key
         else:
             raise ValueError(f"Path not found: {path}.")
@@ -1545,7 +1726,7 @@ Use one of the existing keys or load a new set with the method load_annotations(
             return None
 
     @staticmethod
-    def _make_extension_regex(native=True, convertible=True, tsv=False):
+    def make_extension_regex(native=True, convertible=True, tsv=False):
         assert sum((native, convertible)) > 0, "Select at least one type of extensions."
         exts = []
         if native:
@@ -1598,21 +1779,19 @@ Use one of the existing keys or load a new set with the method load_annotations(
         if ext.lower() not in permitted_extensions:
             raise ValueError(f"The extension of a score should be one of {permitted_extensions} not {ext}.")
         if ext.lower() in self.convertible_formats and self.ms is None:
-            raise ValueError(f"To open a {ext} file, use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
+            raise ValueError(f"To parse a {ext} file, use 'ms3 convert' command or set the attribute 'ms' for temporal on-the-fly conversion.")
         extension = self._handle_path(self.musescore_file)
-        logger_cfg = self.logger_cfg.copy()
+        logger_cfg = dict(self.logger_cfg)
+        logger_cfg['name'] = self.logger_names[extension]
         musescore_file = resolve_dir(self.musescore_file)
-
         if extension in self.convertible_formats +  ('mscz', ):
             ctxt_mgr = unpack_mscz if extension == 'mscz' else self._tmp_convert
             with ctxt_mgr(musescore_file) as tmp_mscx:
                 self.logger.debug(f"Using temporary file {os.path.basename(tmp_mscx)} in order to parse {musescore_file}.")
-                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
-                                  logger_cfg=logger_cfg, parent_score=self)
+                self._mscx = MSCX(tmp_mscx, read_only=self.read_only, parser=self.parser, labels_cfg=self.labels_cfg, parent_score=self, **logger_cfg)
                 self.mscx.mscx_src = (musescore_file)
         else:
-            self._mscx = MSCX(musescore_file, read_only=self.read_only, labels_cfg=self.labels_cfg, parser=self.parser,
-                              logger_cfg=logger_cfg, parent_score=self)
+            self._mscx = MSCX(musescore_file, read_only=self.read_only, parser=self.parser, labels_cfg=self.labels_cfg, parent_score=self, **logger_cfg)
         if self.mscx.has_annotations:
             self.mscx._annotations.infer_types(self.get_infer_regex())
 
@@ -1716,7 +1895,23 @@ Use one of the existing keys or load a new set with the method load_annotations(
 ########################################################################################################################
 
 
-
-
-
-
+@function_logger
+def compare_two_score_objects(old_score: Score, new_score: Score) -> None:
+    old_path = old_score.mscx.mscx_src
+    new_path = new_score.mscx.mscx_src
+    dataframe_pairs = {
+        'events': (old_score.mscx.events(), new_score.mscx.events()),
+        'measures': (old_score.mscx.measures(), new_score.mscx.measures()),
+        'labels': (old_score.mscx.labels(), new_score.mscx.labels())
+    }
+    for facet, (old_df, new_df) in dataframe_pairs.items():
+        n_none = (old_df is None) + (new_df is None)
+        if n_none == 2:
+            continue
+        if n_none == 1:
+            logger.warning(f"{facet} BEFORE:\n{old_df}\n{facet} AFTER:\n{new_df}")
+            continue
+        try:
+            assert_dfs_equal(old_df, new_df)
+        except AssertionError as e:
+            logger.warning(f"The {facet} extracted from '{old_path}' and from the updated '{new_path}' do not match:\n{e}")

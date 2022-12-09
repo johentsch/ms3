@@ -9,7 +9,7 @@ from ms3.utils import scan_directory, capture_parse_logs, ignored_warnings2dict
 
 
 CORPUS_DIR = "~"        # Directory holding your clone of DCMLab/unittest_metacorpus
-TEST_COMMIT = "ba7889c" # commit of DCMLab/unittest_metacorpus for which the tests should pass
+TEST_COMMIT = "2e4d4c9" # commit of DCMLab/unittest_metacorpus for which the tests should pass
 MS3_DIR = os.path.abspath(os.path.join(os.path.realpath(__file__), '..', '..'))
 DOCS_DIR = os.path.join(MS3_DIR, 'docs')
 DOCS_EXAMPLES_DIR = os.path.join(DOCS_DIR, 'examples')
@@ -26,34 +26,34 @@ def directory():
     commit = repo.commit('HEAD')
     sha = commit.hexsha[:len(TEST_COMMIT)]
     assert sha == TEST_COMMIT
+    assert repo.git.diff() == ''
     return path
 
 @pytest.fixture(
     scope="session",
     params=[
-        "regular_dirs_at_once",
+        "regex",
         "everything",
-        "file_re_with_key",
-        "file_re_without_key",
-        "without_metadata",
-        "redundant",
-        "regular_dirs",
-        "chaotic_dirs",
-        "hidden_dirs",
-        "files_without_key",
-        "files_with_inferred_key",
-        "files_with_wrong_key",
-        "files_correct_without_metadata",
-        "files_with_correct_key",
+        # "regular_dirs_at_once",
+        # "file_re_without_key",
+        # "without_metadata",
+        # "redundant",
+        # "regular_dirs",
+        # "chaotic_dirs",
+        # "hidden_dirs",
+        # "files_without_key",
+        # "files_with_inferred_key",
+        # "files_with_wrong_key",
+        # "files_correct_without_metadata",
+        # "files_with_correct_key",
     ]
 )
-def parse_obj(directory, request):
+def parse_obj(directory, request) -> Parse:
     logger = get_logger('ms3.tests')
+    if request.param == 'regex':
+        return Parse(directory=directory, file_re='WWV', folder_re='MS3')
     if request.param == 'everything':
-        return Parse(directory=directory)
-    if request.param == 'file_re_with_key':
-        p = Parse(directory=directory, key = 'sweelinck', file_re="SwWV", logger_cfg=dict(level='d'))
-        return p
+        return Parse(directory=directory).all
     if request.param == 'file_re_without_key':
         p = Parse(directory=directory, file_re="SwWV")
         return p
@@ -94,13 +94,13 @@ def parse_obj(directory, request):
             p.add_files(files_without_inferrable_metadata)
         if request.param == "files_correct_without_metadata":
             key = "frankenstein"
-            p.add_files(files_with_inferrable_metadata, key=key)
+            p.add_files(files_with_inferrable_metadata, corpus_name=key)
             for path in scan_directory(os.path.join(directory, 'outputs'), logger=logger):
-                p.add_files(path, key=key)
+                p.add_files(path, corpus_name=key)
         if request.param == "files_with_correct_key":
-            p.add_dir(os.path.join(directory, 'outputs'), key="sweelinck_keyboard")
+            p.add_dir(os.path.join(directory, 'outputs'))
             for path in files:
-                p.add_files(path, key='sweelinck_keyboard')
+                p.add_files(path, corpus_name='sweelinck_keyboard')
 
     return p
 
@@ -113,16 +113,16 @@ def parse_obj(directory, request):
     ],
     ids=[
         "parsed_tsv",
-        "parsed_mscx",
+        "parse_scores",
         "parsed_all",
     ],
 )
-def parsed_parse_obj(parse_obj, request):
+def parsed_parse_obj(parse_obj, request) -> Parse:
     p = deepcopy(parse_obj)
     if request.param == 0:
         p.parse_tsv()
     elif request.param == 1:
-        p.parse_mscx()
+        p.parse_scores()
     elif request.param == 2:
         p.parse()
     else:
@@ -130,7 +130,7 @@ def parsed_parse_obj(parse_obj, request):
     return p
 
 @pytest.fixture(scope="class")
-def parse_objects(parse_obj, request):
+def parse_objects(parse_obj: Parse, request):
     request.cls.parse_obj = parse_obj
 
 @pytest.fixture(scope="class")
@@ -160,10 +160,10 @@ def parsed_parse_objects(parsed_parse_obj, request):
           ],
     ids = [
         'monty[tremolo]',
-        'pergolesi',
+        'pergolesi[form]',
         'berlioz[tremolo]',
         'sarti[endings]',
-        'caldara',
+        'caldara[form]',
         'bach[endings]',
         'frescobaldi',
         'schubert[endings][tremolo]',
@@ -180,7 +180,7 @@ def get_all_warnings(directory):
     p = Parse(directory)
     with capture_parse_logs(p.logger) as captured_warnings:
         p.parse()
-        _ = p.get_dataframes(expanded=True)
+        _ = p.extract_facets('expanded')
     return captured_warnings.content_list
 
 
@@ -191,7 +191,7 @@ def get_all_warnings_parsed(get_all_warnings):
 @pytest.fixture(scope='session')
 def get_all_supressed_warnings(directory):
     ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-    p = Parse(directory, logger_cfg=dict(level='d'))
+    p = Parse(directory, level='d')
     p.load_ignored_warnings(ignored_warnings_file)
     with capture_parse_logs(p.logger, level='d') as captured_msgs:
         p.parse()

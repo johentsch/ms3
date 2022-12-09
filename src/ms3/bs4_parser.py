@@ -71,21 +71,30 @@
 .. |voice| replace:: :ref:`voice <voice>`
 """
 
-import re, sys
+import re, sys, warnings
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal
+from typing import Literal, Optional, List, Tuple, Dict, overload, Union
+from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
 import pandas as pd
+from bs4 import NavigableString
 
 from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
-from .transformations import add_quarterbeats_col
+from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
 from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_offset_dict_from_measures, ordinal_suffix, resolve_dir, rgba2attrs, rgb_tuple2format, sort_note_list
+    get_quarterbeats_length, make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
+    rgb_tuple2format, sort_note_list, tpc2name, unfold_repeats
 
+NOTE_SYMBOL_MAP = {
+    'metNoteHalfUp': '𝅗𝅥',
+    'metNoteQuarterUp': '𝅘𝅥',
+    'metNote8thUp': '𝅘𝅥𝅮',
+    'metAugmentationDot': '.'
+}
 
 
 class _MSCX_bs4(LoggedClass):
@@ -147,12 +156,16 @@ class _MSCX_bs4(LoggedClass):
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
         self._style = None
-
+        self.staff2drum_map: Dict[int, pd.DataFrame] = {}
+        """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
+        note and instrument features. The columns typically include ['head', 'line', 'voice', 'name', 'stem', 'shortcut']. 
+        When creating note tables, the 'name' column will be populated with the names here rather than note names.
+        """
         self.parse_measures()
 
 
 
-    def parse_mscx(self):
+    def parse_mscx(self) -> None:
         """ Load the XML structure from the score in self.mscx_src and store references to staves and measures.
         """
         assert self.mscx_src is not None, "No MSCX file specified." \
@@ -165,14 +178,41 @@ class _MSCX_bs4(LoggedClass):
             raise ValueError(f"""Cannot parse MuseScore {self.version} file.
 Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
 
+        # Check if any of the <Part> tags contains a pitch -> drumset instrument map
+        # all_part_tags = self.soup.find_all('Part')
+        # if len(all_part_tags) == 0:
+        #     self.logger.error(f"Looks like an empty score to me.")
+        part_tag = None
+        for part_tag in self.soup.find_all('Part'):
+            drum_tags = part_tag.find_all('Drum')
+            staff_tag = part_tag.find('Staff')
+            if len(drum_tags) == 0 or staff_tag is None:
+                continue
+            staff = int(staff_tag['id'])
+            drum_map = {}
+            for tag in drum_tags:
+                pitch = int(tag['pitch'])
+                features = {t.name: str(t.string) for t in tag.find_all()}
+                drum_map[pitch] = features
+            df = pd.DataFrame.from_dict(drum_map, orient='index')
+            df.index.rename('pitch', inplace=True)
+            self.staff2drum_map[staff] = df
+
         # Populate measure_nodes with one {mc: <Measure>} dictionary per staff.
         # The <Staff> nodes containing the music are siblings of <Part>
-        # <Part> contains <Staff> nodes with staff information which is being ignored for now
-        for staff in self.soup.find('Part').find_next_siblings('Staff'):
+        if part_tag is None:
+            iterator = self.soup.find_all('Staff')
+        else:
+            iterator = part_tag.find_next_siblings('Staff')
+        staff = None
+        for staff in iterator:
             staff_id = int(staff['id'])
             self.measure_nodes[staff_id] = {}
             for mc, measure in enumerate(staff.find_all('Measure'), start=self.first_mc):
                 self.measure_nodes[staff_id][mc] = measure
+        if staff is None:
+            self.logger.error(f"Looks like an empty score to me.")
+
 
 
     def parse_measures(self):
@@ -259,7 +299,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                                     completing_duration_node = event_node.find('duration')
                                     if completing_duration_node:
                                         duration_to_complete_tremolo = completing_duration_node.string
-                                        assert duration_to_complete_tremolo == tremolo_duration, "Two components of tremolo have non-matching <duration>"
+                                        if duration_to_complete_tremolo != tremolo_duration:
+                                            self.logger.warning("Two components of tremolo have non-matching <duration>")
                                     tremolo_component = 0
 
                             for chord_child in event_node.find_all(recursive=False):
@@ -324,7 +365,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._events.chord_id = self._events.chord_id.astype('Int64')
         self._notes = column_order(pd.DataFrame(note_list))
         if len(self._events) == 0:
-            self.logger.warning("Empty score?")
+            self.logger.warning("Score does not seem to contain any events.")
         else:
             self.has_annotations = 'Harmony' in self._events.event.values
             if 'StaffText/text' in self._events.columns:
@@ -336,11 +377,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def output_mscx(self, filepath):
+    def store_score(self, filepath: str) -> bool:
         try:
             mscx_string = bs4_to_mscx(self.soup)
-        except:
-            self.logger.error(f"Couldn't output MSCX because of the following error:\n{sys.exc_info()[1]}")
+        except Exception as e:
+            self.logger.error(f"Couldn't output MSCX because of the following error:\n{e}")
             return False
         with open(resolve_dir(filepath), 'w', encoding='utf-8') as file:
             file.write(mscx_string)
@@ -357,7 +398,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
 
-    def chords(self, mode: Literal['auto','strict','all'] = 'auto', interval_index: bool = False) -> pd.DataFrame:
+    def chords(self,
+               mode: Literal['auto','strict','all'] = 'auto',
+               interval_index: bool = False,
+               unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
         (all <note> tags come within one) and attached score information and performance maerks, e.g.
         lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).
@@ -384,7 +428,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             chords = self.cl()
         else:
             chords = self.get_chords(mode=mode)
-        chords = add_quarterbeats_col(chords, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            chords = self.unfold_facet_df(chords, 'chords')
+            if chords is None:
+                return
+        chords = add_quarterbeats_col(chords, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return chords
 
 
@@ -395,7 +443,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         return self._cl.copy()
 
 
-    def events(self, interval_index: bool = False) -> pd.DataFrame:
+    def events(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing a raw skeleton of the score's XML structure and contains all :ref:`events`
         contained in it. It is the original tabular representation of the MuseScore file’s source code from which
         all other tables, except ``measures`` are generated.
@@ -407,11 +457,19 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame containing the original tabular representation of all :ref:`events` encoded in the MuseScore file.
         """
         events = column_order(self.add_standard_cols(self._events))
-        events = add_quarterbeats_col(events, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            events = self.unfold_facet_df(events, 'chords')
+            if events is None:
+                return
+        events = add_quarterbeats_col(events, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return events
 
 
-    def form_labels(self, detection_regex: str = None, exclude_harmony_layer: bool = False, interval_index: bool = False) -> pd.DataFrame:
+    def form_labels(self,
+                    detection_regex: str = None,
+                    exclude_harmony_layer: bool = False,
+                    interval_index: bool = False,
+                    unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing :ref:`form labels <form_labels>` (or other) that have been encoded as <StaffText>s rather than in the <Harmony> layer.
         This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.
 
@@ -430,7 +488,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         form = self.fl(detection_regex=detection_regex, exclude_harmony_layer=exclude_harmony_layer)
         if form is None:
             return
-        form = add_quarterbeats_col(form, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            form = self.unfold_facet_df(form, 'chords')
+            if form is None:
+                return
+        form = add_quarterbeats_col(form, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return form
 
     def fl(self, detection_regex: str = None, exclude_harmony_layer=False) -> pd.DataFrame:
@@ -466,12 +528,24 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 return
             events_with_form = pd.concat([self._events, form_label_column], axis=1)
             form_labels = events_with_form[detected_form_labels]
-            cols = ['mc', 'mc_onset', 'mn', 'mn_onset', 'staff', 'voice', 'timesig', 'volta', 'form_label']
+            cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'staff', 'voice', 'timesig', 'form_label']
+            if self.has_voltas:
+                cols.insert(2, 'volta')
             self._fl = self.add_standard_cols(form_labels)[cols].sort_values(['mc', 'mc_onset'])
             return self._fl
         return
 
-    def measures(self, interval_index: bool = False) -> pd.DataFrame:
+    @property
+    @lru_cache
+    def has_voltas(self) -> bool:
+        """Return True if the score includes first and second endings. Otherwise, no 'volta' columns will be added to facets."""
+        measures = self.ml()
+        return measures.volta.notna().any()
+
+
+    def measures(self,
+                 interval_index: bool = False,
+                 unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with
         the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,
         |repeats|, |next|
@@ -486,25 +560,41 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         duration_qb = (measures.act_dur * 4).astype(float)
         measures.insert(2, "duration_qb", duration_qb)
         # add quarterbeats column
+        if unfold:
+            measures = self.unfold_facet_df(measures, 'measures')
+            if measures is None:
+                return
         # functionality adapted from utils.make_continuous_offset()
-        filter_voltas = measures.volta.notna().any()
-        qb_column_name = "quarterbeats_all_endings" if filter_voltas else "quarterbeats"
+        qb_column_name = "quarterbeats_all_endings" if self.has_voltas and not unfold else "quarterbeats"
         quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
-        measures.insert(2, qb_column_name, quarterbeats_col)
-        if filter_voltas:
+        if unfold:
+            measures.insert(3, qb_column_name, quarterbeats_col)
+        else:
+            measures.insert(2, qb_column_name, quarterbeats_col)
+        if self.has_voltas and not unfold:
             self.logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
                          f"compute quarterbeats for a full playthrough.")
             if 3 in measures.volta.values:
                 self.logger.info(
-                    f"Piece contains third endings, note that only second endings are taken into account.")
+                    f"Piece contains third endings; please note that only second endings are taken into account for quarterbeats.")
             quarterbeats_col = measures.loc[measures.volta.fillna(2) == 2, 'act_dur']\
                 .cumsum()\
                 .shift(fill_value=0)\
                 .reindex(measures.index)
             measures.insert(2, "quarterbeats", quarterbeats_col * 4)
-        else:
+        elif not self.has_voltas:
             measures.drop(columns='volta', inplace=True)
         return measures.copy()
+
+    def unfold_facet_df(self, facet_df: pd.DataFrame, facet: str) -> Optional[pd.DataFrame]:
+        playthrough2mc = self.get_playthrough_mcs()
+        if playthrough2mc is None:
+            self.logger.error(f"Could not unfold {facet}.",
+                              extra={'message_id': (25,)})
+            return None
+        facet_df = unfold_repeats(facet_df, playthrough2mc, logger=self.logger)
+        self.logger.debug(f"{facet} successfully unfolded.")
+        return facet_df
 
     @property
     def metatags(self):
@@ -524,7 +614,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._ml = self._make_measure_list()
         return self._ml.ml.copy()
 
-    def notes(self, interval_index: bool = False) -> pd.DataFrame:
+    def notes(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,
         |tpc|, |midi|, |volta|, |chord_id|
@@ -537,7 +629,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes` of the MuseScore file.
         """
         notes = self.nl()
-        notes = add_quarterbeats_col(notes, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            notes = self.unfold_facet_df(notes, 'notes')
+            if notes is None:
+                return
+        notes = add_quarterbeats_col(notes, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return notes
 
     def nl(self, recompute: bool = False) -> pd.DataFrame:
@@ -550,7 +646,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self.make_standard_notelist()
         return self._nl
 
-    def notes_and_rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def notes_and_rests(self,
+                        interval_index: bool = False,
+                        unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|
@@ -562,7 +660,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`notes_and_rests` of the MuseScore file.
         """
         nrl = self.nrl()
-        nrl = add_quarterbeats_col(nrl, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            nrl = self.unfold_facet_df(nrl, 'notes and rests')
+            if nrl is None:
+                return
+        nrl = add_quarterbeats_col(nrl, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return nrl
 
     def nrl(self, recompute: bool = False) -> pd.DataFrame:
@@ -576,7 +678,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             self._nrl = sort_note_list(nr.reset_index(drop=True))
         return self._nrl
 
-    def offset_dict(self, all_endings: bool = False) -> dict:
+    @lru_cache()
+    def offset_dict(self,
+                    all_endings: bool = False,
+                    unfold: bool = False,
+                    negative_anacrusis: bool = False) -> dict:
         """ Dictionary mapping MCs (measure counts) to their quarterbeat offset from the piece's beginning.
         Used for computing quarterbeats for other facets.
 
@@ -588,11 +694,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             {MC -> quarterbeat_offset}. Offsets are Fractions. If ``all_endings`` is not set to ``True``,
             values for MCs that are part of a first ending (or third or larger) are NA.
         """
-        measures = self.measures()
-        offset_dict = make_offset_dict_from_measures(measures, all_endings)
+        measures = self.measures(unfold=unfold)
+        if unfold:
+            offset_dict = make_continuous_offset_series(measures, negative_anacrusis=negative_anacrusis).to_dict()
+        else:
+            offset_dict = make_offset_dict_from_measures(measures, all_endings)
         return offset_dict
 
-    def rests(self, interval_index : bool = False) -> pd.DataFrame:
+    def rests(self,
+              interval_index: bool = False,
+              unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns
         |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,
         |nominal_duration|, |scalar|, |volta|
@@ -604,7 +715,11 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             DataFrame representing the :ref:`rests` of the MuseScore file.
         """
         rests = self.rl()
-        rests = add_quarterbeats_col(rests, self.offset_dict(), interval_index=interval_index)
+        if unfold:
+            rests = self.unfold_facet_df(rests, 'rests')
+            if rests is None:
+                return
+        rests = add_quarterbeats_col(rests, self.offset_dict(unfold=unfold), interval_index=interval_index, logger=self.logger)
         return rests
 
     def rl(self, recompute: bool = False) -> pd.DataFrame:
@@ -648,7 +763,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
              return
         self._rl = self._rl.rename(columns={'Rest/durationType': 'nominal_duration'})
         self._rl.loc[:, 'nominal_duration'] = self._rl.nominal_duration.map(self.durations)  # replace string values by fractions
-        cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar', 'volta']
+        cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'nominal_duration', 'scalar']
+        if self.has_voltas:
+            cols.insert(2, 'volta')
         self._rl = self._rl[cols].reset_index(drop=True)
 
 
@@ -657,7 +774,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'tpc': 'Note/tpc',
                 }
         nl_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote', 'nominal_duration',
-                   'scalar', 'tied', 'tpc', 'midi', 'volta', 'chord_id']
+                   'scalar', 'tied', 'tpc', 'midi', 'name', 'octave', 'chord_id']
+        if self.has_voltas:
+            nl_cols.insert(2, 'volta')
         if len(self._notes.index) == 0:
             self._nl = pd.DataFrame(columns=nl_cols)
             return
@@ -665,12 +784,21 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             nl_cols.insert(9, 'tremolo')
         self._nl = self.add_standard_cols(self._notes)
         self._nl.rename(columns={v: k for k, v in cols.items()}, inplace=True)
-        self._nl.loc[:, ['midi', 'tpc']] = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
-        self._nl.tpc -= 14
         self._nl = self._nl.merge(self.cl()[['chord_id', 'nominal_duration', 'scalar']], on='chord_id')
         tie_cols = ['Note/Spanner:type', 'Note/Spanner/next/location', 'Note/Spanner/prev/location']
-        self._nl['tied'] = make_tied_col(self._notes, *tie_cols)
-
+        tied = make_tied_col(self._notes, *tie_cols)
+        pitch_info = self._nl[['midi', 'tpc']].apply(pd.to_numeric).astype('Int64')
+        pitch_info.tpc -= 14
+        names, octaves = make_note_name_and_octave_columns(pd.concat([pitch_info, self._nl.staff], axis=1),
+                                                           staff2drums=self.staff2drum_map,
+                                                           logger=self.logger)
+        append_cols = [
+            pitch_info,
+            tied,
+            names,
+            octaves
+        ]
+        self._nl = pd.concat([self._nl.drop(columns=['midi', 'tpc'])] + append_cols, axis=1)
         final_cols = [col for col in nl_cols if col in self._nl.columns]
         self._nl = sort_note_list(self._nl[final_cols])
 
@@ -725,7 +853,9 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 'system_text': 'SystemText/text',
                 'tremolo': 'Chord/Tremolo/subtype'}
         main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
-                     'tremolo', 'nominal_duration', 'scalar', 'volta', 'chord_id']
+                     'tremolo', 'nominal_duration', 'scalar', 'chord_id']
+        if self.has_voltas:
+            main_cols.insert(2, 'volta')
         sel = self._events.event == 'Chord'
         aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners']
         if mode == 'all':
@@ -786,7 +916,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             main_cols.extend(lyr_cols)
             if 'syllabic' in df.columns:
                 # turn the 'syllabic' column into the typical dashs
-                empty = pd.Series(index=df.index)
+                empty = pd.Series(index=df.index, dtype='string')
                 for col in columns:
                     syl_start, syl_mid, syl_end = [empty.where(col.isna() | (df.syllabic != which), '-').fillna('')
                                                    for which in ['begin', 'middle', 'end']]
@@ -811,10 +941,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
             if 'Tempo/text/sym' in df.columns:
                 replace_symbols = defaultdict(lambda: '')
-                replace_symbols.update({'metNoteHalfUp': '𝅗𝅥',
-                                        'metNoteQuarterUp': '𝅘𝅥',
-                                        'metNote8thUp': '𝅘𝅥𝅮',
-                                        'metAugmentationDot': '.'})
+                replace_symbols.update(NOTE_SYMBOL_MAP)
                 symbols = df['Tempo/text/sym'].str.split(expand=True)\
                                               .apply(lambda S: S.str.strip()\
                                               .map(replace_symbols))\
@@ -836,6 +963,16 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             additional_cols.extend([c for c in df.columns if feature in c and c not in main_cols])
         return df[main_cols + additional_cols]
 
+    @lru_cache()
+    def get_playthrough_mcs(self) -> Optional[pd.Series]:
+        measures = self.ml()  # measures table without quarterbeats
+        playthrough_mcs = make_playthrough2mc(measures, logger=self.logger)
+        if len(playthrough_mcs) == 0:
+            self.logger.warning(f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n{measures.set_index('mc').next}")
+            playthrough_mcs = None
+        else:
+            self.logger.debug("Repeat structure successfully unfolded.")
+        return playthrough_mcs
 
 
     def get_raw_labels(self):
@@ -932,6 +1069,29 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             self.logger.warning(f"The onset {mn_onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
         return mc, mc_onset
 
+    def get_texts(self) -> Dict[str, str]:
+        """Process <Text> nodes (normally attached to <Staff id="1">)."""
+        texts = defaultdict(set)
+        tags = self.soup.find_all('Text')
+        for t in tags:
+            txt, style = tag2text(t)
+            if style == 'Title':
+                style = 'title_text'
+            elif style == 'Subtitle':
+                style = 'subtitle_text'
+            elif style == 'Composer':
+                style = 'composer_text'
+            elif style == 'Lyricist':
+                style = 'lyricist_text'
+            elif style == 'Instrument Name (Part)':
+                style = 'part_name_text'
+            else:
+                style = 'text'
+            texts[style].add(txt)
+        return {st: '; '.join(txt) for st, txt in texts.items()}
+
+
+
     def _get_metadata(self):
         """
 
@@ -943,6 +1103,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         assert self.soup is not None, "The file's XML needs to be loaded. Get metadata from the 'metadata' property or use the method make_writeable()"
         nav_str2str = lambda s: '' if s is None else str(s)
         data = {tag['name']: nav_str2str(tag.string) for tag in self.soup.find_all('metaTag')}
+        data.update(self.get_texts())
         if 'reviewer' in data:
             if 'reviewers' in data:
                 self.logger.warning("Score properties contain a superfluous key called 'reviewer'. "
@@ -987,7 +1148,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         data['TimeSig'] = timesigs
         ks_groups, _ = adjacency_groups(measures.keysig)
         mc_ks = measures.groupby(ks_groups)[['mc', 'keysig']].head(1)
-        keysigs = dict(mc_ks.values)
+        keysigs = {int(k): int(v) for k, v in mc_ks.values}
         data['KeySig']  = keysigs
         annotated_key = None
         for harmony_tag in self.soup.find_all('Harmony'):
@@ -1006,13 +1167,13 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             return data
         data['all_notes_qb'] = round((notes.duration * 4.).sum(), 2)
         not_tied = ~notes.tied.isin((0, -1))
-        data['n_onsets'] = sum(not_tied)
+        data['n_onsets'] = int(sum(not_tied))
         data['n_onset_positions'] = notes[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
         staff_groups = notes.groupby('staff').midi
-        ambitus = {t.staff: {'min_midi': t.midi, 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
+        ambitus = {t.staff: {'min_midi': int(t.midi), 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
                         for t in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
         for t in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
-            ambitus[t.staff]['max_midi'] = t.midi
+            ambitus[t.staff]['max_midi'] = int(t.midi)
             ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
         for part, part_dict in data['parts'].items():
@@ -1034,8 +1195,11 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         return str(self.soup.find('programVersion').string)
 
     def add_standard_cols(self, df):
-        """Ensures that the DataFrame's first columns are ['mc', 'mn', 'timesig', 'mc_offset', 'volta']"""
-        add_cols = ['mc'] + [c for c in ['mn', 'timesig', 'mc_offset', 'volta'] if c not in df.columns]
+        """Ensures that the DataFrame's first columns are ['mc', 'mn', ('volta'), 'timesig', 'mc_offset']"""
+        ml_columns = ['mn', 'timesig', 'mc_offset']
+        if self.has_voltas:
+            ml_columns.insert(1, 'volta')
+        add_cols = ['mc'] + [c for c in ml_columns if c not in df.columns]
         df =  df.merge(self.ml()[add_cols], on='mc', how='left')
         df['mn_onset'] =  df.mc_onset + df.mc_offset
         return df[[col for col in df.columns if not col == 'mc_offset']]
@@ -1309,7 +1473,11 @@ where there is no Chord or Rest, just: {elements}.""")
                     else:
                         ix = l
                     after = elements[ix-1]['tag']
-                remember = self.insert_label(label=label, after=after, **kwargs)
+                try:
+                    remember = self.insert_label(label=label, after=after, **kwargs)
+                except Exception as e:
+                    self.logger.warning(f"Inserting label '{label}' at mc {mc}, onset {mc_onset} failed with '{e}'")
+                    return False
             measure[mc_onset].insert(ix, remember[0])
             old_names = list(names)
             names.insert(ix, 'Harmony')
@@ -1601,50 +1769,47 @@ and {loc_after} before the subsequent {nxt_name}.""")
         return tag
 
 
-    def color_notes(self, from_mc, from_mc_onset, to_mc=None, to_mc_onset=None,
-                    midi=[], tpc=[], inverse=False,
-                    color_name=None, color_html=None, color_r=None, color_g=None, color_b=None, color_a=None,
-                    ):
+    def color_notes(self,
+                    from_mc: int,
+                    from_mc_onset: frac,
+                    to_mc: Optional[int] = None,
+                    to_mc_onset: Optional[frac] = None,
+                    midi: List[int] = [],
+                    tpc: List[int] = [],
+                    inverse: bool = False,
+                    color_name: Optional[str] = None,
+                    color_html: Optional[str] = None,
+                    color_r: Optional[int] = None,
+                    color_g: Optional[int] = None,
+                    color_b: Optional[int] = None,
+                    color_a: Optional[int] = None,
+                    ) -> Tuple[List[frac], List[frac]]:
         """ Colors all notes occurring in a particular score segment in one particular color, or
         only those (not) pertaining to a collection of MIDI pitches or Tonal Pitch Classes (TPC).
 
-        Parameters
-        ----------
-        from_mc : :obj:`int`
-            MC in which the score segment starts.
-        from_mc_onset : :obj:`fractions.Fraction`
-            mc_onset where the score segment starts.
-        to_mc : :obj:`int`, optional
-            MC in which the score segment ends. If not specified, the segment ends at the end of the score.
-        to_mc_onset : :obj:`fractions.Fraction`, optional
-            If ``to_mc`` is defined, the mc_onset where the score segment ends.
-        midi : :obj:`Collection[int]`, optional
-            Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
-        tpc : :obj:`Collection[int]`, optional
-            Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
-        inverse : :obj:`bool`, optional
-            By default, only notes where all specified filters (midi and/or tpc) apply are colored.
-            Set to True to color only those notes where none of the specified filters match.
-        color_name : :obj:`str`, optional
-            Specify the color either as a name, or as HTML color, or as RGB(A). As a name you can
-            use CSS colors or MuseScore colors (see :py:attr:`utils.MS3_COLORS`).
-        color_html : :obj:`str`, optional
-            Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
-            needs to be string of length 6.
-        color_r : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_g and color_b.
-        color_g : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_r and color_b.
-        color_b : :obj:`int`, optional
-            If you specify the color as RGB(A), you also need to specify color_r and color_g.
-        color_a : :obj:`int`, optional
-            If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
+        Args:
+            from_mc: MC in which the score segment starts.
+            from_mc_onset: mc_onset where the score segment starts.
+            to_mc: MC in which the score segment ends. If not specified, the segment ends at the end of the score.
+            to_mc_onset: If ``to_mc`` is defined, the mc_onset where the score segment ends.
+            midi: Collection of MIDI numbers to use as a filter or an inverse filter (depending on ``inverse``).
+            tpc: Collection of Tonal Pitch Classes (C=0, G=1, F=-1 etc.) to use as a filter or an inverse filter (depending on ``inverse``).
+            inverse:
+                By default, only notes where all specified filters (midi and/or tpc) apply are colored.
+                Set to True to color only those notes where none of the specified filters match.
+            color_name:
+                Specify the color either as a name, or as HTML color, or as RGB(A). Name can be a CSS color or
+                a MuseScore color (see :py:attr:`utils.MS3_COLORS`).
+            color_html:
+                Specify the color either as a name, or as HTML color, or as RGB(A). An HTML color
+                needs to be string of length 6.
+            color_r: If you specify the color as RGB(A), you also need to specify color_g and color_b.
+            color_g: If you specify the color as RGB(A), you also need to specify color_r and color_b.
+            color_b: If you specify the color as RGB(A), you also need to specify color_r and color_g.
+            color_a: If you have specified an RGB color, the alpha value defaults to 255 unless specified otherwise.
 
-        Returns
-        -------
-        :obj:`list`
+        Returns:
             List of durations (in fractions) of all notes that have been colored.
-        :obj:`list`
             List of durations (in fractions) of all notes that have not been colored.
         """
         if len(self.tags) == 0:
@@ -1895,8 +2060,20 @@ def make_spanner_cols(df, spanner_types=None):
             sel &= df[subtype_col] == subtype
         features = pd.DataFrame(index=df.index, columns=f_cols)
         features.loc[sel, existing] = df.loc[sel, existing]
-        features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-        features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
+            features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
         features = pd.concat([df[['mc', 'mc_onset', 'staff']], features], axis=1)
 
         current_id = -1
@@ -2040,9 +2217,12 @@ def recurse_node(node, prepend=None, exclude_children=None):
 
 
 
-def bs4_chord_duration(node, duration_multiplier=1):
-
-    durationtype = node.find('durationType').string
+def bs4_chord_duration(node: bs4.Tag,
+                       duration_multiplier: Union[float, int] = 1) -> Tuple[frac, frac]:
+    duration_type_tag = node.find('durationType')
+    if duration_type_tag is None:
+        return frac(0), frac(0)
+    durationtype = duration_type_tag.string
     if durationtype == 'measure' and node.find('duration'):
         nominal_duration = frac(node.find('duration').string)
     else:
@@ -2140,3 +2320,19 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
+    sty_tag = tag.find('style')
+    txt_tag = tag.find('text')
+    style = sty_tag.string if sty_tag is not None else ''
+    txt = ''
+    if txt_tag is not None:
+        components = []
+        for c in txt_tag.contents:
+            if isinstance(c, NavigableString):
+                components.append(c)
+            elif c.name == 'sym':
+                sym = c.string
+                if sym in NOTE_SYMBOL_MAP:
+                    components.append(NOTE_SYMBOL_MAP[sym])
+        txt = ''.join(components)
+    return txt, style

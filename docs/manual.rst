@@ -754,20 +754,15 @@ Parsing multiple scores
     In this example, we assigned the key ``'ms3'``. Note that the same MSCX files that were distributed over several keys
     in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
     selected files. For example, we could add MSCX files from another folder using the method
-    :py:meth:`~.parse.Parse.add_dir` and the key ``'other'``:
+    :py:meth:`~.parse.Parse.add_dir`:
 
     .. code-block:: python
 
-        >>> p.add_dir('~/other_folder', file_re='mscx$', key='other')
+        >>> p.add_dir('~/other_folder', file_re='mscx$')
         >>> p
 
     .. program-output:: python examples/parse_other_directory.py
 
-    .. caution::
-
-      The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
-
-    Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation on a particular group of files.
 
 4. Parse the scores.
 

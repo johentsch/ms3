@@ -1,8 +1,9 @@
 import logging, sys, os
 from contextlib import contextmanager
 from functools import wraps
-from enum import Enum
-
+from enum import Enum, unique
+from inspect import stack
+from typing import Iterable, Tuple
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -19,6 +20,7 @@ LEVELS = {
     'N': logging.NOTSET
 }
 
+@unique
 class MessageType(Enum):
     """Enumerated constants of message types."""
     NO_TYPE = 0  # 0 is reserved as no type message
@@ -28,16 +30,26 @@ class MessageType(Enum):
     VOLTAS_WITH_DIFFERING_LENGTHS_WARNING = 4
     MISSING_END_REPEAT_WARNING = 5
     DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
-    OVERLOOKED_MSCX_FILES_WARNING = 7
-    DCML_HARMONY_KEY_NOT_SPECIFIED_ERROR = 8
+    not_in_use = 7
+    DCML_HARMONY_KEY_NOT_SPECIFIED_WARNING = 8
     COMPETING_MEASURE_INFO_WARNING = 9
     IGNORED = 10
     MISSING_FACET_INFO = 11
-    DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_ERROR = 12
-    DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_ERROR = 13
+    DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_WARNING = 12
+    DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_WARNING = 13
     LOGGER_NOT_IN_USE_WARNING = 14
     DCML_HARMONY_SYNTAX_WARNING = 15
     DCML_PHRASE_INCONGRUENCY_WARNING = 16
+    DCML_EXPANSION_FAILED_WARNING = 17
+    DCML_SEVENTH_CORD_WITH_ALTERED_SEVENTH_WARNING = 18
+    DCML_NON_CHORD_TONES_ABOVE_THRESHOLD_WARNING = 19
+    UNUSED_FINE_MARKER_WARNING = 20
+    PLAY_UNTIL_IS_MISSING_LABEL_WARNING = 21
+    JUMP_TO_IS_MISSING_LABEL_WARNING = 22
+    MISSING_TIME_SIGNATURE_WARNING = 23 # no timesig through the piece
+    BEGINNING_WITHOUT_TIME_SIGNATURE_WARNING = 24 # no timesig in more than only the first measure (which could be an incipit)
+    INVALID_REPEAT_STRUCTURE = 25
+
 
 
 class CustomFormatter(logging.Formatter):
@@ -71,9 +83,9 @@ class LoggedClass():
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
             logger_cfg['name'] = name
-        self.logger_cfg = logger_cfg
-        self.logger_names = {}
-        self.logger = get_logger(**self.logger_cfg)
+        self.logger_cfg: dict = logger_cfg
+        self.logger_names: dict = {}
+        self.logger: logging.Logger = get_logger(**self.logger_cfg)
         self.logger_names['class'] = self.logger.name
 
     def change_logger_cfg(self, level):
@@ -97,7 +109,7 @@ class LoggedClass():
 
 
 
-def get_logger(name=None, level=None, path=None, ignored_warnings=[]):
+def get_logger(name=None, level=None, path=None, ignored_warnings=[]) -> logging.Logger:
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
     #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
     # if isinstance(name, logging.LoggerAdapter):
@@ -141,7 +153,7 @@ class WarningFilter(logging.Filter):
     def __init__(self, logger, ignored_warnings):
         super().__init__()
         self.logger = logger
-        self.ignored_warnings = ignored_warnings
+        self.ignored_warnings = set(ignored_warnings)
 
     def filter(self, record):
         ignored = record._message_id in self.ignored_warnings
@@ -149,6 +161,13 @@ class WarningFilter(logging.Filter):
             self.logger.debug(CustomFormatter().format(record), #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
                               extra={"message_id": (10,)})
         return not ignored
+
+    def __repr__(self):
+        return f"WarningFilter({self.ignored_warnings})"
+
+    def __str__(self):
+        def __repr__(self):
+            return f"WarningFilter('{self.logger.name}', {self.ignored_warnings})"
 
 def function_logger(f):
     """This decorator ensures that the decorated function can use the variable `logger` for logging and
@@ -184,7 +203,7 @@ def function_logger(f):
     """
 
     @wraps(f)
-    def logger(*args, **kwargs):
+    def logged_function_wrapper(*args, **kwargs):
         l = kwargs.pop('logger', None)
         if l is None:
             l = 'ms3'
@@ -202,7 +221,7 @@ def function_logger(f):
             func_globals = saved_values  # Undo changes.
         return result
 
-    return logger
+    return logged_function_wrapper
 
 def resolve_log_path_argument(path, name, logger):
     log_file = None
@@ -226,19 +245,26 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
     is_new_logger = name not in logging.root.manager.loggerDict or isinstance(logging.root.manager.loggerDict[name], logging.PlaceHolder)
     is_top_level = name == 'ms3'
     logger = logging.getLogger(name)
+    if level is not None:
+        level = resolve_level_param(level)
     if is_top_level:
-        logging.basicConfig(level=0)
+        # # uncomment if you want to check for what's described in the log message
+        # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
+        # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated function without passing logger=<logger>:\n{last_8}")
+        set_level = 0 if level is None else level
+        logging.basicConfig(level=set_level)
+        logger.debug(f"set logging.basicConfig(level={set_level})")
     is_head_logger = logger.parent.name == 'ms3'
     adding_file_handler = path is not None
     adding_any_handlers = is_head_logger or adding_file_handler
 
     if level is not None:
-        level = resolve_level_param(level)
         if level > 0:
             logger.setLevel(level)
         elif is_head_logger:
             logger.setLevel(30)
     effective_level = logger.getEffectiveLevel()
+
     if is_head_logger:
         # checking if any loggers exist from previous runs and need to be adapted
         for logger_name, lggr in logging.Logger.manager.loggerDict.items():
@@ -247,7 +273,11 @@ def config_logger(name, level=None, path=None, ignored_warnings=[]):
                     lggr.setLevel(effective_level)
 
     if len(ignored_warnings) > 0:
-        logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
+        try:
+            existing_filter = next(filter for filter in logger.filters if isinstance(filter, WarningFilter))
+            existing_filter.ignored_warnings.update(ID for ID in ignored_warnings if ID not in existing_filter.ignored_warnings)
+        except StopIteration:
+            logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
 
     if not is_new_logger and not adding_any_handlers:
         return logger
@@ -326,14 +356,11 @@ def resolve_dir(d):
     return os.path.abspath(d)
 
 
-@function_logger
-def update_cfg(cfg_dict, admitted_keys):
+
+def update_cfg(cfg_dict: dict, admitted_keys: Iterable) -> Tuple[dict, dict]:
     correct = {k: v for k, v in cfg_dict.items() if k in admitted_keys}
     incorrect = {k: v for k, v in cfg_dict.items() if k not in admitted_keys}
-    if len(incorrect) > 0:
-        corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
-        logger.warning(f"Unknown config options: {incorrect}{corr}")
-    return correct
+    return correct, incorrect
 
 
 class LogCaptureHandler(logging.Handler):
@@ -378,8 +405,22 @@ def inspect_loggers(exclude_placeholders=False) -> dict:
     return dict(iter_ms3_loggers(exclude_placeholders=exclude_placeholders))
 
 @contextmanager
-def temporarily_suppress_warnings(parse_obj):
-    prev_level = parse_obj.logger.level
-    parse_obj.change_logger_cfg(level='c')
-    yield parse_obj
-    parse_obj.change_logger_cfg(level=prev_level)
+def temporarily_suppress_warnings(logged_object: LoggedClass):
+    prev_level = logged_object.logger.level
+    logged_object.change_logger_cfg(level='c')
+    yield logged_object
+    logged_object.change_logger_cfg(level=prev_level)
+
+def normalize_logger_name(name: str) -> str:
+    """Shorten a logger name to Corpus.Piece so that it can be used to configure all associated loggers, no matter what."""
+    components = name.split('.')
+    for remove in ('ms3', 'Corpus', 'Parse'):
+        try:
+            components.remove(remove)
+        except ValueError:
+            pass
+    for extension in ('tsv', 'mscx', 'mscz', 'cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml'):
+        if components[-1] == extension:
+            components = components[:-1]
+            break
+    return '.'.join(components)

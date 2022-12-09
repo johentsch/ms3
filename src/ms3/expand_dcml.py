@@ -354,7 +354,7 @@ def replace_special(df, regex, merge=False, inplace=False, cols={}, special_map=
 
     logger.debug(f"Moving special symbols from {cols['numeral']} to {cols['special']}...")
     if not cols['special'] in df.columns:
-        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], np.nan)
+        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], pd.NA)
     df.loc[select_all_special, cols['special']] = df.loc[select_all_special, cols['numeral']]
 
     def repl_spec(frame, special, instead):
@@ -555,8 +555,10 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
             globalkeys = df.loc[section, cols['globalkey']].unique()
             assert len(globalkeys) == 1, "Several globalkeys appearing within the same organ point."
             global_minor = globalkeys[0].islower()
+            # if the localkey changes during the pedal point, the reference changes and the Roman numeral indicating
+            # the pedal note needs to be adapted
             key2pedal = {
-                key: ped if key == first_localkey else abs2rel_key(rel2abs_key(ped, first_localkey, global_minor), key,
+                key: ped if key == first_localkey else abs2rel_key(rel2abs_key(ped, first_localkey, global_minor, logger=logger), key,
                                                                    global_minor) for key in localkeys.unique()}
             logger.debug(
                 f"Pedal note {ped} has been transposed relative to other local keys within a global {'minor' if global_minor else 'major'} context: {key2pedal}")
