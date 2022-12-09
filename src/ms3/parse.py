@@ -922,6 +922,15 @@ class Parse(LoggedClass):
                                                                 **cols)
         return result
 
+    def load_ignored_warnings(self, path: str) -> None:
+        """ Adds a filters to all loggers included in a IGNORED_WARNINGS file.
+
+        Args:
+            path: Path of the IGNORED_WARNINGS file.
+        """
+        for _, corpus in self:
+            _ = corpus.load_ignored_warnings(path)
+
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
         if active is not None:
