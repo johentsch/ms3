@@ -154,7 +154,7 @@ def empty(args):
 
 def extract_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
-        p = make_parse_obj(args)
+        p = make_parse_obj(args, parse_scores=True)
     else:
         p = parse_obj
     params = gather_extract_params(args)
@@ -264,7 +264,7 @@ def transform(args):
 
 def update_cmd(args, parse_obj: Optional[Parse] = None):
     if parse_obj is None:
-        p = make_parse_obj(args)
+        p = make_parse_obj(args, parse_scores=True)
     else:
         p = parse_obj
     changed_paths = update(p,
@@ -311,14 +311,6 @@ def review_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
-    p.parse(parallel=False)
-    if p.n_parsed_scores == 0:
-        msg = "NO SCORES PARSED, NOTHING TO DO."
-        if not args.all:
-            msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
-                   "Add -a if you want me to include all scores."
-        print(msg)
-        return
     if args.ignore_scores + args.ignore_labels < 2:
         what = '' if args.ignore_scores else 'SCORES'
         if args.ignore_labels:
@@ -327,7 +319,18 @@ def review_cmd(args,
         test_passes = check(p,
               ignore_labels=args.ignore_labels,
               ignore_scores=args.ignore_scores,
-              assertion=False)
+              assertion=False,
+              parallel=False)
+        p.parse_tsv()
+    else:
+        p.parse(parallel=False)
+    if p.n_parsed_scores == 0:
+        msg = "NO SCORES PARSED, NOTHING TO DO."
+        if not args.all:
+            msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
+                   "Add -a if you want me to include all scores."
+        print(msg)
+        return
     params = gather_extract_params(args)
     if len(params) > 0:
         print("EXTRACTING FACETS...")
@@ -379,7 +382,7 @@ def review_cmd(args,
 
 
 
-def make_parse_obj(args, parse_scores=True, parse_tsv=False):
+def make_parse_obj(args, parse_scores=False, parse_tsv=False):
     labels_cfg = {}
     if hasattr(args, 'positioning'):
         labels_cfg['positioning'] = args.positioning
@@ -479,10 +482,6 @@ def get_arg_parser():
                                                                 "when there are any mistakes.")
 
     compare_args = argparse.ArgumentParser(add_help=False)
-    compare_args.add_argument('-c', '--compare', nargs="?", metavar='GIT_REVISION', const='',
-                                help="Pass -c if you want the _reviewed file to display removed labels in red and added labels in green, compared to the version currently "
-                                     "represented in the present TSV files, if any. If instead you want a comparison with the TSV files from another Git commit, additionally "
-                                     "pass its specifier, e.g. 'HEAD~3', <branch-name>, <commit SHA> etc.")
     compare_args.add_argument('--flip', action='store_true',
                                 help="Pass this flag to treat the annotation tables as if updating the scores instead of the other way around, "
                                      "effectively resulting in a swap of the colors in the output files.")

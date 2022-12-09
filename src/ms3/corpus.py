@@ -1567,6 +1567,7 @@ class Corpus(LoggedClass):
         **kwargs:
             Arguments for :py:meth:`pandas.DataFrame.to_csv`. Defaults to ``{'sep': '\t', 'index': False}``. In particular,
             you might want to update the default dictionaries for ``dtypes`` and ``converters`` used in :py:func:`load_tsv`.
+            Passing kwargs prevents ms3 from parsing TSVs in parallel, so it will be a bit slower.
 
         Returns
         -------
