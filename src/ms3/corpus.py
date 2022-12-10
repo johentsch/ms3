@@ -1665,28 +1665,33 @@ class Corpus(LoggedClass):
         """Returns metadata.tsv but only for fnames included in the current or indicated view. If no TSV file is present,
         get metadata from the current scores.
         """
-        view = self.get_view(view_name)
-        tsv_metadata, score_metadata = None, None
-        if view.fnames_in_metadata:
-            tsv_fnames = [fname for fname in self.fnames_in_metadata(self.metadata_ix) if view.check_token('fnames', fname)]
-            tsv_metadata = enforce_fname_index_for_metadata(self.metadata_tsv)
-            tsv_metadata = tsv_metadata.loc[tsv_fnames]
-        if view.fnames_not_in_metadata:
-            score_fnames = [fname for fname in self.fnames_not_in_metadata() if view.check_token('fnames', fname)]
-            rows = [self.get_piece(fname).score_metadata(view_name=view_name, choose=choose)
-                    for fname in score_fnames]
-            if len(rows) > 0:
-                score_metadata = pd.DataFrame(rows).set_index('fname')
-        n_dataframes = (tsv_metadata is not None) + (score_metadata is not None)
-        if n_dataframes == 0:
-            return pd.DataFrame()
-        if n_dataframes == 1:
-            if tsv_metadata is None:
-                return column_order(score_metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
-            else:
-                return column_order(tsv_metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
-        result = pd.concat([tsv_metadata, score_metadata])
-        return column_order(result, METADATA_COLUMN_ORDER, sort=False).sort_index()
+        rows = [piece.metadata() for fname, piece in self.iter_pieces(view_name)]
+        metadata = pd.DataFrame(rows)
+        metadata = enforce_fname_index_for_metadata(metadata)
+        return column_order(metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
+        # tsv_metadata, score_metadata = None, None
+        # if view.fnames_in_metadata:
+        #     tsv_fnames = [fname for fname in self.fnames_in_metadata(self.metadata_ix) if view.check_token('fnames', fname)]
+        #     tsv_metadata = enforce_fname_index_for_metadata(self.metadata_tsv)
+        #     tsv_metadata = tsv_metadata.loc[tsv_fnames]
+        #     print(f"tsv_fnames: {tsv_fnames}")
+        # if view.fnames_not_in_metadata:
+        #     score_fnames = [fname for fname in self.fnames_not_in_metadata() if view.check_token('fnames', fname)]
+        #     rows = [self.get_piece(fname).score_metadata(view_name=view_name, choose=choose)
+        #             for fname in score_fnames]
+        #     if len(rows) > 0:
+        #         score_metadata = pd.DataFrame(rows).set_index('fname')
+        #     print(f"score_fnames: {score_fnames}")
+        # n_dataframes = (tsv_metadata is not None) + (score_metadata is not None)
+        # if n_dataframes == 0:
+        #     return pd.DataFrame()
+        # if n_dataframes == 1:
+        #     if tsv_metadata is None:
+        #         return column_order(score_metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
+        #     else:
+        #         return column_order(tsv_metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
+        # result = pd.concat([tsv_metadata, score_metadata])
+        # return column_order(result, METADATA_COLUMN_ORDER, sort=False).sort_index()
 
     def score_metadata(self,
                        view_name: Optional[str] = None,

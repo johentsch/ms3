@@ -142,13 +142,12 @@ class Piece(LoggedClass):
     def score_metadata(self,
                        view_name: Optional[str] = None,
                        choose: Literal['auto', 'ask'] = 'auto',
-                       as_dict: bool = False) -> Union[pd.Series, dict]:
+                       as_dict: bool = False) -> Union[pd.Series, dict, Literal[None]]:
         """
 
         Args:
             choose:
-            force: Make sure you retrieve metadata, even if a score has to be automatically
-            selected and parsed for that (default).
+            as_dict: Set to True to change the return type from :obj:`pandas.Series` to :obj:`dict`.
 
         Returns:
 
@@ -165,8 +164,17 @@ class Piece(LoggedClass):
         return metadata2series(meta_dict)
 
     @property
-    def tsv_metadata(self):
+    def tsv_metadata(self) -> Optional[Dict[str, str]]:
+        """If the :class:`~.corpus.Corpus` has :attr:`~.corpus.Corpus.metadata_tsv`, this field will contain the
+        {column: value} pairs of the row pertaining to this piece.
+        """
         return self._tsv_metadata
+
+    def metadata(self, view_name : Optional[str] = None) -> Optional[pd.Series]:
+        """If a row of 'metadata.tsv' has been stored, return that, otherwise extract from a (force-)parsed score."""
+        if self.tsv_metadata is not None:
+            return self.tsv_metadata
+        return self.score_metadata(view_name)
 
     def set_view(self, active: View = None, **views: View):
         """Register one or several view_name=View pairs."""
