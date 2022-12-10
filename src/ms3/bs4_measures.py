@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import Dict, List
 
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
 from fractions import Fraction as frac
 
 from .logger import get_logger, function_logger, LoggedClass
@@ -503,13 +505,21 @@ For correction, MC {start} is interpreted as such because it {reason}."""
 
 
 @function_logger
-def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dict:
-    """
-        Uses: treat_group()
+def get_volta_structure(measures, mc, volta_start, volta_length, frac_col=None) -> Dict[int, Dict[int, List[int]]]:
+    """ Extract volta structure from measures table.
+
+    Uses: :func:`treat_group`
+
+    Args:
+        measures: Measures table containing the columns indicated in the other arguments.
+        mc, volta_start, volta_length, frac_col: column names
+
+    Returns:
+        {first_mc -> {volta_number -> [MC] } }
     """
     cols = [mc, volta_start, volta_length]
-    sel = df[volta_start].notna()
-    voltas = (df.loc[sel, cols])
+    sel = measures[volta_start].notna()
+    voltas = (measures.loc[sel, cols])
     if voltas[volta_length].isna().sum() > 0:
         rows = voltas[voltas[volta_length].isna()]
         logger.debug(f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed.")
@@ -522,7 +532,7 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dic
     if len(voltas) == 0:
         return {}
     if frac_col is not None:
-        voltas[volta_length] += df.loc[sel, frac_col].notna()
+        voltas[volta_length] += measures.loc[sel, frac_col].notna()
     voltas.loc[voltas[volta_start] == 1, 'group'] = 1
     voltas.group = voltas.group.fillna(0).astype(int).cumsum()
     groups = {v[mc].iloc[0]: v[cols].to_numpy() for _, v in voltas.groupby('group')}
@@ -800,10 +810,19 @@ def make_volta_col(df, volta_structure, mc='mc', name='volta'):
 
 
 @function_logger
-def treat_group(mc, group):
-    """ Helper function for make_volta_col()
-        Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
-        where columns are (MC, volta number, volta length).
+def treat_group(mc: int,
+                group: NDArray) -> Dict[int, List[int]]:
+    """  Helper function for make_volta_col()
+
+
+    Args:
+        mc: MC of the first bar of the first measure.
+        group:
+            Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
+            where columns are (MC, volta number, volta length).
+
+    Returns:
+
     """
     n = group.shape[0]
     mcs, numbers, lengths = group.T
