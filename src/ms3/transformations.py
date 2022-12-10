@@ -10,7 +10,7 @@ import pandas as pd
 
 from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
-    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, midi2octave, name2fifths, nan_eq, rel2abs_key, \
+    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough_info, midi2octave, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
     roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, tpc2name, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
@@ -45,7 +45,7 @@ def make_note_name_and_octave_columns(notes: pd.DataFrame,
 @function_logger
 def add_quarterbeats_col(df, offset_dict, interval_index=False):
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
-        the column corresponds to the ``insert_after`` column's measure counts.
+        the column corresponds to the values given in the offset_dict..
 
     Parameters
     ----------
@@ -137,8 +137,12 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
                 logger.warning(
                     f"Error while creating durations from quarterbeats column. Error:\n{e}")
     if len(new_cols) > 0:
-        df = pd.concat(list(new_cols.values()) + [df], axis=1)
-        logger.debug(f"Prepended the columns {list(new_cols.keys())}.")
+        insert_after = next(col for col in ('mn_playthrough', 'mc_playthrough', 'mn', 'mc') if col in df.columns)
+        logger.debug(f"Inserting {list(new_cols.keys())} after '{insert_after}'")
+        insert_position = df.columns.get_loc(insert_after) + 1
+        left, right = df.iloc[:, :insert_position], df.iloc[:, insert_position:]
+        df = pd.concat([left] + list(new_cols.values()) + [right], axis=1)
+        logger.debug(f"Inserted the columns {list(new_cols.keys())}.")
     else:
         logger.debug("No columns were added.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
@@ -307,21 +311,18 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 
 @function_logger
-def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True) -> List[pd.DataFrame]:
+def dfs2quarterbeats(dfs: Union[pd.DataFrame, List[pd.DataFrame]],
+                     measures: pd.DataFrame, unfold=False, quarterbeats=True, interval_index=True) -> List[pd.DataFrame]:
     """ Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.
 
-    Parameters
-    ----------
-    dfs : (:obj:`list` of) :obj:`pandas.DataFrame`
-        DataFrame(s) that are to be unfolded and/or receive quarterbeats.
-    measures : :obj:`pandas.DataFrame`
-    unfold : :obj:`bool`, optional
-    quarterbeats : :obj:`bool`, optional
-    interval_index : :obj:`bool`, optional
+    Args:
+        dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.
+        measures:
+        unfold:
+        quarterbeats:
+        interval_index:
 
-    Returns
-    -------
-    :obj:`list` of :obj:`pandas.DataFrame`
+    Returns:
         Altered copies of `dfs`.
     """
     assert sum((unfold, quarterbeats, interval_index)) >= 1, "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
@@ -331,14 +332,14 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
     if interval_index:
         quarterbeats = True
     if unfold:
-        playthrough2mc = make_playthrough2mc(measures, logger=logger)
-        if len(playthrough2mc) == 0:
+        playthrough_info = make_playthrough_info(measures, logger=logger)
+        if playthrough_info is None or len(playthrough_info) == 0:
             logger.warning("Unfolding not possible because of incorrect repeat structure.")
             return []
     if unfold:
-        dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
+        dfs = [unfold_repeats(df, playthrough_info, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
-            unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
+            unfolded_measures = unfold_repeats(measures, playthrough_info, logger=logger)
             continuous_offset = make_continuous_offset_series(unfolded_measures, logger=logger)
             dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                    if df is not None else df for df in dfs]

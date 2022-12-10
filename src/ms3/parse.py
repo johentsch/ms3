@@ -1,25 +1,17 @@
 import re
 from typing import Literal, Collection, Generator, Tuple, Union, Dict, Optional, List, Iterator
 
-import io
 import sys, os
-import traceback
 from collections import Counter, defaultdict
 
 import pandas as pd
-import numpy as np
-from git import Repo, InvalidGitRepositoryError
-from gitdb.exc import BadName
 
 from .corpus import Corpus
-from .annotations import Annotations
-from .logger import LoggedClass, get_logger
+from .logger import LoggedClass
 from .piece import Piece
-from .score import Score
-from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FileDataframeTupleMaybe, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet
-from .utils import column_order, get_musescore, group_id_tuples, iter_selection, get_first_level_corpora, join_tsvs, load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, metadata2series, parse_ignored_warnings_file, pretty_dict, resolve_dir, \
-    update_labels_cfg, write_tsv, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet
+from .utils import get_musescore,  get_first_level_corpora, pretty_dict, resolve_dir, \
+    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata
 from .view import View, create_view_from_parameters, DefaultView
 
 

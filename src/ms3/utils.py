@@ -574,16 +574,63 @@ def commonprefix(paths, sep='/'):
     return sep.join(x[0] for x in takewhile(allnamesequal, bydirectorylevels))
 
 
-def compute_mn(df):
-    """ Compute measure numbers from a measure list with columns ['dont_count', 'numbering_offset']
+def compute_mn(measures: pd.DataFrame) -> pd.Series:
+    """ Compute measure number integers from a measures table.
+
+
+    Args:
+        measures: Measures table with columns ['mc', 'dont_count', 'numbering_offset'].
+
+    Returns:
+
     """
-    excluded = df['dont_count'].fillna(0).astype(bool)
-    offset = df['numbering_offset']
+    excluded = measures['dont_count'].fillna(0).astype(bool)
+    offset = measures['numbering_offset']
     mn = (~excluded).cumsum()
     if offset.notna().any():
         offset = offset.fillna(0).astype(int).cumsum()
         mn += offset
     return mn.rename('mn')
+
+@function_logger
+def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
+    """ Compute measure number strings from an unfolded measures table, such that the first occurrence of a measure
+    number ends on 'a', the second one on 'b' etc.
+
+    The function requires the column 'dont_count' in order to correctly number the return of a completing MC after an
+    incomplete MC with "endrepeat" sign. For example, if a repeated section begins with an upbeat that at first
+    completes MN 16 it will have mn_playthrough '16a' the first time and '32a' the second time (assuming it completes
+    the incomplete MN 32).
+
+    Args:
+        measures: Measures table with columns ['mc', 'mn', 'dont_count']
+
+    Returns:
+        'mn_playthrough' Series of disambiguated measure number strings. If no measure repeats, the result will be
+        equivalent to converting column 'mn' to strings and appending 'a' to all of them.
+    """
+    previous_occurrences = defaultdict(lambda: 0)
+
+    def get_mn_playthrough(mn):
+        repeat_char = chr(previous_occurrences[mn] + 96)
+        return f"{mn}{repeat_char}"
+
+    mn_playthrough_column = []
+    previous_mc, previous_mn = 0, -1
+    for mc, mn, dont_count in measures[['mc', 'mn', 'dont_count']].itertuples(name=None, index=False):
+        if mn != previous_mn:
+            previous_occurrences[mn] += 1
+        if mc < previous_mc and not pd.isnull(dont_count):
+            # an earlier MC completes a later one after a repeat
+            mn_playthrough = get_mn_playthrough(previous_mn)
+            logger.debug(f"MN {mn} < previous MN {previous_mn}; but since MC {mc} is excluded from barcount, "
+                         f"the repetition has mn_playthrough {mn_playthrough}.")
+        else:
+            mn_playthrough = get_mn_playthrough(mn)
+        mn_playthrough_column.append(mn_playthrough)
+        previous_mn = mn
+        previous_mc = mc
+    return pd.Series(mn_playthrough_column, index=measures.index, name='mn_playthrough')
 
 
 
@@ -1388,29 +1435,29 @@ def get_path_component(path, after):
     return os.path.join(higher_levels, base1)
 
 
-def get_quarterbeats_length(measures: pd.DataFrame, decimals: int = 2) -> Tuple[float, Optional[float]]:
-    """ Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.
-
-    Parameters
-    ----------
-    measures : :obj:`pandas.DataFrame`
-
-    Returns
-    -------
-    float, float
-        Length and unfolded length, both measuresd in quarter notes.
-    """
-    mc_durations = measures.set_index('mc').act_dur * 4.
-    length_qb = round(mc_durations.sum(), decimals)
-    try:
-        playthrough2mc = make_playthrough2mc(measures, logger=logger)
-        if len(playthrough2mc) == 0:
-            length_qb_unfolded = None
-        else:
-            length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
-    except Exception:
-        length_qb_unfolded = None
-    return length_qb, length_qb_unfolded
+# def get_quarterbeats_length(measures: pd.DataFrame, decimals: int = 2) -> Tuple[float, Optional[float]]:
+#     """ Returns the symbolic length and unfolded symbolic length of a piece in quarter notes.
+#
+#     Parameters
+#     ----------
+#     measures : :obj:`pandas.DataFrame`
+#
+#     Returns
+#     -------
+#     float, float
+#         Length and unfolded length, both measuresd in quarter notes.
+#     """
+#     mc_durations = measures.set_index('mc').act_dur * 4.
+#     length_qb = round(mc_durations.sum(), decimals)
+#     try:
+#         playthrough2mc = make_playthrough2mc(measures, logger=logger)
+#         if len(playthrough2mc) == 0:
+#             length_qb_unfolded = None
+#         else:
+#             length_qb_unfolded = round(mc_durations.loc[playthrough2mc.values].sum(), decimals)
+#     except Exception:
+#         length_qb_unfolded = None
+#     return length_qb, length_qb_unfolded
 
 
 def group_id_tuples(l):
@@ -2145,15 +2192,17 @@ def make_name_columns(df):
 
 
 @function_logger
-def make_playthrough2mc(measures):
+def make_playthrough2mc(measures: pd.DataFrame) -> Optional[pd.Series]:
+    """Turns the column 'next' into a mapping of playthrough_mc -> mc."""
     ml = measures.set_index('mc')
     try:
         seq = next2sequence(ml.next, logger=logger)
+        if seq is None:
+            return
     except Exception as e:
         logger.warning(f"Computing unfolded sequence of MCs failed with:\n'{e}'",
                        extra={'message_id': (26, )})
-    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
-    # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
+        return
     mc_playthrough = pd.Series(seq, name='mc_playthrough', dtype='Int64')
     if len(mc_playthrough) == 0:
         pass
@@ -2162,6 +2211,21 @@ def make_playthrough2mc(measures):
     else:
         assert seq[0] == 0, f"The first mc should be 0 or 1, not {seq[0]}"
     return mc_playthrough
+
+@function_logger
+def make_playthrough_info(measures: pd.DataFrame) -> Optional[Union[pd.DataFrame, pd.Series]]:
+    """Turns a measures table into a DataFrame or Series that can be passed as argument to :func:`unfold_repeats`.
+    The return type is DataFrame if the unfolded measures table contains an 'mn_playthrough' column, otherwise it
+    is equal to the result of :func:`make_playthrough2mc`. Hence, the purpose of the function is to add an
+    'mn_playthrough' column to unfolded facets whenever possible.
+    """
+    unfolded_measures = unfold_measures_table(measures, logger=logger)
+    if unfolded_measures is None:
+        return
+    unfolded_measures = unfolded_measures.set_index('mc_playthrough')
+    if 'mn_playthrough' in unfolded_measures.columns:
+        return unfolded_measures[['mc', 'mn_playthrough']]
+    return unfolded_measures.mc
 
 
 def map2elements(e, f, *args, **kwargs):
@@ -2406,7 +2470,7 @@ def nan_eq(a, b):
 
 
 @function_logger
-def next2sequence(next_col):
+def next2sequence(next_col: pd.Series) -> Optional[List[int]]:
     """ Turns a 'next' column into the correct sequence of MCs corresponding to unfolded repetitions.
     Requires that the Series' index be the MCs as in ``measures.set_index('mc').next``.
     """
@@ -2417,6 +2481,10 @@ def next2sequence(next_col):
     result = []
     nxt = next_col.to_dict()
     while mc != -1 and i < max_iter:
+        if mc not in nxt:
+            logger.error(f"Column 'next' contains MC {mc} which the pieces does not have.",
+                       extra={'message_id': (26, )})
+            return
         result.append(mc)
         new_mc, *rest = nxt[mc]
         if len(rest) > 0:
@@ -2431,13 +2499,13 @@ def next2sequence(next_col):
 @function_logger
 def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     """
-    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones'] from tuples and the columns
+    Cleans the DataFrame columns ['next', 'chord_tones', 'added_tones', 'volta_mcs] from tuples and the columns
     ['globalkey_is_minor', 'localkey_is_minor'] from booleans, converting them all to integers
 
     """
     if df is None:
         return df
-    collection_cols = ['next', 'chord_tones', 'added_tones']
+    collection_cols = ['next', 'chord_tones', 'added_tones', 'volta_mcs']
     bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
     if coll_columns is not None:
         collection_cols += list(coll_columns)
@@ -3175,28 +3243,72 @@ def adjacency_groups(S: pd.Series,
         logger.warning(f"Erroneous outcome while computing adjacency groups: {groups}")
         return groups, names
 
+@function_logger
+def unfold_measures_table(measures: pd.DataFrame) -> Optional[pd.DataFrame]:
+    """ Returns a copy of a measures table that corresponds through a succession of MCs when playing all repeats.
+    To distinguish between repeated MCs and MNs, it adds the continues column 'mc_playthrough' (starting at 1) and
+    'mn_playthrough' which contains the values of 'mn' as string with letters {'a', 'b', ...} appended.
+
+    Args:
+        measures: Measures table with columns ['mc', 'next', 'dont_count']
+
+    Returns:
+
+    """
+    if 'mc_playthrough' in measures:
+        logger.info(f"Received a dataframe with the column 'mc_playthrough' that is already unfolded. Returning as is.")
+        return measures
+    playthrough2mc = make_playthrough2mc(measures, logger=logger)
+    if playthrough2mc is None or len(playthrough2mc) == 0:
+        logger.warning(f"Error in the repeat structure: Did not reach the stopping value -1 in measures.next:\n{measures.set_index('mc').next}")
+        return None
+    else:
+        logger.debug("Repeat structure successfully unfolded.")
+    unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
+    try:
+        mn_playthrough_col = compute_mn_playthrough(unfolded_measures)
+        insert_position = unfolded_measures.columns.get_loc('mc_playthrough') + 1
+        unfolded_measures.insert(insert_position, 'mn_playthrough', mn_playthrough_col)
+    except Exception as e:
+        logger.warning(f"Adding the column 'mn_playthrough' to the unfolded measures table failed with:\n'{e}'")
+    logger.debug(f"Measures successfully unfolded.")
+    return unfolded_measures
 
 
 @function_logger
-def unfold_repeats(df, playthrough2mc):
+def unfold_repeats(df: pd.DataFrame,
+                   playthrough_info: Union[pd.Series, pd.DataFrame]) -> pd.DataFrame:
     """ Use a succesion of MCs to bring a DataFrame in this succession. MCs may repeat.
 
-    Parameters
-    ----------
-    df : :obj:`pandas.DataFrame`
-        DataFrame needs to have the columns 'mc' and 'mn'.
-    playthrough2mc : :obj:`pandas.Series`
-        A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
-        to continuous MC
+    Args:
+        df: DataFrame needs to have the columns 'mc'. If 'mn' is present, the column 'mn' will be added, too.
+        playthrough2mc:
+            A Series of the format ``{mc_playthrough: mc}`` where ``mc_playthrough`` corresponds
+            to continuous MC
+
+    Returns:
+        A copy of the dataframe with the columns 'mc_playthrough' and 'mn_playthrough' (if 'mn' is present) inserted.
     """
-    ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
-    vc = df.mc.value_counts()
-    res = df.set_index('mc')
-    seq = playthrough2mc[playthrough2mc.isin(res.index)]
-    playthrough_col = sum([[playthrough] * vc[mc] for playthrough, mc in seq.items()], [])
-    res = res.loc[seq.values].reset_index()
-    res.insert(res.columns.get_loc('mc') + 1, 'mc_playthrough', playthrough_col)
-    return res
+    n_occurrences = df.mc.value_counts()
+    result_df = df.set_index('mc')
+    if isinstance(playthrough_info, pd.DataFrame):
+        playthrough2mc = playthrough_info['mc']
+        playthrough2mn = playthrough_info['mn_playthrough'].to_dict()
+    else:
+        playthrough2mc = playthrough_info
+        playthrough2mn = None
+    playthrough2mc = playthrough2mc[playthrough2mc.isin(result_df.index)]
+    mc_playthrough_col = pd.Series(sum([[playthrough] * n_occurrences[mc] for playthrough, mc in playthrough2mc.items()], []))
+    result_df = result_df.loc[playthrough2mc.values].reset_index()
+    if 'mn' in result_df.columns:
+        column_position = result_df.columns.get_loc('mn') + 1
+        if playthrough2mn is not None:
+            mn_playthrough_col = mc_playthrough_col.map(playthrough2mn)
+            result_df.insert(column_position, 'mn_playthrough', mn_playthrough_col)
+    else:
+        column_position = result_df.columns.get_loc('mc') + 1
+    result_df.insert(column_position, 'mc_playthrough', mc_playthrough_col)
+    return result_df
 
 
 @contextmanager

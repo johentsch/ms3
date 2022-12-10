@@ -978,6 +978,7 @@ class Piece(LoggedClass):
                 plural = 'files' if n_unparsed > 1 else 'file'
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
             parsed_files = [(file, self._get_transformed_facet_at_ix(ix=file.ix, unfold=unfold, interval_index=interval_index)) for file in files if file.ix in self.ix2parsed]
+            parsed_files = [(file, df) for file, df in parsed_files if df is not None]
             n_parsed = len(parsed_files)
             if n_parsed == 0 and not include_empty:
                 continue
@@ -1004,7 +1005,10 @@ class Piece(LoggedClass):
                 if measures is None:
                     self.logger.warning(f"Piece.get_facet('measures') did not return the required measures table.")
                     return None
-                df = dfs2quarterbeats(df, measures=measures, unfold=unfold, interval_index=interval_index, logger=self.logger)[0]
+                transformed = dfs2quarterbeats(df, measures=measures, unfold=unfold, interval_index=interval_index, logger=self.logger)
+                if len(transformed) == 0:
+                    return
+                df = transformed[0]
             else:
                 df = replace_index_by_intervals(df, logger=self.logger)
         return df
