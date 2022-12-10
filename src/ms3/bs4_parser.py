@@ -85,9 +85,11 @@ from .annotations import Annotations
 from .bs4_measures import MeasureList
 from .logger import function_logger, LoggedClass, temporarily_suppress_warnings
 from .transformations import add_quarterbeats_col, make_note_name_and_octave_columns
-from .utils import adjacency_groups, color_params2rgba, column_order, fifths2name, FORM_DETECTION_REGEX, \
-    get_quarterbeats_length, make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough2mc, midi2octave, ordinal_suffix, resolve_dir, rgba2attrs, \
-    rgb_tuple2format, sort_note_list, tpc2name, unfold_repeats
+from .utils import adjacency_groups, color_params2rgba, column_order, compute_mn_playthrough, decode_harmonies, fifths2name, \
+    DCML_DOUBLE_REGEX, FORM_DETECTION_REGEX, \
+    make_continuous_offset_series, make_offset_dict_from_measures, make_playthrough_info, \
+    make_playthrough2mc, midi2octave, MS3_VERSION, ordinal_suffix, resolve_dir, rgba2attrs, \
+    rgb_tuple2format, sort_note_list, tpc2name, unfold_measures_table, unfold_repeats
 
 NOTE_SYMBOL_MAP = {
     'metNoteHalfUp': '𝅗𝅥',
@@ -567,10 +569,10 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
         # functionality adapted from utils.make_continuous_offset()
         qb_column_name = "quarterbeats_all_endings" if self.has_voltas and not unfold else "quarterbeats"
         quarterbeats_col = (measures.act_dur.cumsum() * 4).shift(fill_value=0)
-        if unfold:
-            measures.insert(3, qb_column_name, quarterbeats_col)
-        else:
-            measures.insert(2, qb_column_name, quarterbeats_col)
+        insert_after = next(col for col in ('mn_playthrough', 'mc_playthrough', 'mn', 'mc') if col in measures.columns)
+        self.logger.debug(f"Inserting {qb_column_name} after '{insert_after}'")
+        insert_position = measures.columns.get_loc(insert_after) + 1
+        measures.insert(insert_position, qb_column_name, quarterbeats_col)
         if self.has_voltas and not unfold:
             self.logger.debug(f"No quarterbeats are assigned to first endings. Pass unfold=True to "
                          f"compute quarterbeats for a full playthrough.")
@@ -581,20 +583,23 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 .cumsum()\
                 .shift(fill_value=0)\
                 .reindex(measures.index)
-            measures.insert(2, "quarterbeats", quarterbeats_col * 4)
+            measures.insert(insert_position, "quarterbeats", quarterbeats_col * 4)
+            self.logger.debug(f"Inserting 'quarterbeats' after '{insert_after}'")
         elif not self.has_voltas:
             measures.drop(columns='volta', inplace=True)
         return measures.copy()
 
     def unfold_facet_df(self, facet_df: pd.DataFrame, facet: str) -> Optional[pd.DataFrame]:
-        playthrough2mc = self.get_playthrough_mcs()
-        if playthrough2mc is None:
-            self.logger.error(f"Could not unfold {facet}.",
-                              extra={'message_id': (25,)})
-            return None
-        facet_df = unfold_repeats(facet_df, playthrough2mc, logger=self.logger)
+        if facet == 'measures':
+            return unfold_measures_table(facet_df, logger=self.logger)
+        playthrough_info = make_playthrough_info(self.ml())
+        if playthrough_info is None:
+            self.logger.warning(f"Unfolding '{facet}' unsuccessful. Check warnings concerning repeat structure and fix.")
+            return
+        facet_df = unfold_repeats(facet_df, playthrough_info, logger=self.logger)
         self.logger.debug(f"{facet} successfully unfolded.")
         return facet_df
+
 
     @property
     def metatags(self):
@@ -746,7 +751,8 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
 
 
     @property
-    def volta_structure(self):
+    def volta_structure(self) -> Dict[int, Dict[int, List[int]]]:
+        """{first_mc -> {volta_number -> [MC] } }"""
         if self._ml is not None:
             return self._ml.volta_structure
 
@@ -1133,23 +1139,55 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 data[name_lwr] = value
                 del(data[name])
                 self.logger.warning(f"Wrongly spelled metadata field {name} read as {name_lwr}.")
-        data['musescore'] = self.version
-        measures = self.ml()
-        last_measure = measures.iloc[-1]
-        data['last_mc'] = int(last_measure.mc)
-        data['last_mn'] = int(last_measure.mn)
-        lqb, lqbu = get_quarterbeats_length(measures)
-        data['length_qb'] = lqb
-        data['length_qb_unfolded'] = lqbu
-        data['label_count'] = len(self.get_raw_labels())
+        # measures properties
+        measures = self.measures()
+        ## time signatures
         ts_groups, _ = adjacency_groups(measures.timesig)
         mc_ts = measures.groupby(ts_groups)[['mc', 'timesig']].head(1)
         timesigs = dict(mc_ts.values)
         data['TimeSig'] = timesigs
+        ## key signatures
         ks_groups, _ = adjacency_groups(measures.keysig)
         mc_ks = measures.groupby(ks_groups)[['mc', 'keysig']].head(1)
         keysigs = {int(k): int(v) for k, v in mc_ks.values}
         data['KeySig']  = keysigs
+        ## last measure counts & numbers, total duration in quarters
+        last_measure = measures.iloc[-1]
+        data['last_mc'] = int(last_measure.mc)
+        data['last_mn'] = int(last_measure.mn)
+        data['length_qb'] = round(measures.duration_qb.sum(), 2)
+        ## the same unfolded
+        unfolded_measures = self.measures(unfold=True)
+        if unfolded_measures is None:
+            for aspect in ('last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded', ):
+                data[aspect] = None
+        else:
+            data['last_mc_unfolded'] = int(max(unfolded_measures.mc_playthrough))
+            if 'mn_playthrough' in unfolded_measures.columns:
+                unfolded_mn = unfolded_measures.mn_playthrough.nunique()
+                if measures.iloc[0].mn == 0:
+                    unfolded_mn -= 1
+                data['last_mn_unfolded'] = unfolded_mn
+            else:
+                data['last_mn_unfolded'] = None
+            data['length_qb_unfolded'] = round(unfolded_measures.duration_qb.sum(), 2)
+        if self.has_voltas:
+            data['volta_mcs'] = tuple(tuple(tuple(mcs) for mcs in group.values()) for group in self.volta_structure.values())
+        else:
+            data['volta_mcs'] = None
+
+        # labels
+        all_labels = self.get_raw_labels()
+        if len(all_labels) > 0:
+            decoded_labels = decode_harmonies(all_labels, return_series=True, logger=self.logger)
+            matches_dcml = decoded_labels[decoded_labels.notna()].str.match(DCML_DOUBLE_REGEX)
+            n_dcml = int(matches_dcml.sum())
+            data['guitar_chord_count'] = len(all_labels) - n_dcml
+            data['label_count'] = n_dcml
+        else:
+            data['guitar_chord_count'] = 0
+            data['label_count'] = 0
+        data['form_label_count'] = self.n_form_labels
         annotated_key = None
         for harmony_tag in self.soup.find_all('Harmony'):
             label = harmony_tag.find('name')
@@ -1160,21 +1198,34 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                     break
         if annotated_key is not None:
             data['annotated_key'] = annotated_key
+
+        data['musescore'] = self.version
+        data['ms3_version'] = MS3_VERSION
+
+        # notes
         notes = self.nl()
         if len(notes.index) == 0:
             data['all_notes_qb'] = 0.
             data['n_onsets'] = 0
             return data
+        has_drumset = len(self.staff2drum_map) > 0
+        data['has_drumset'] = has_drumset
         data['all_notes_qb'] = round((notes.duration * 4.).sum(), 2)
         not_tied = ~notes.tied.isin((0, -1))
         data['n_onsets'] = int(sum(not_tied))
         data['n_onset_positions'] = notes[not_tied].groupby(['mc', 'mc_onset']).size().shape[0]
         staff_groups = notes.groupby('staff').midi
-        ambitus = {t.staff: {'min_midi': int(t.midi), 'min_name': fifths2name(t.tpc, t.midi, logger=self.logger)}
-                        for t in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(index=False)}
-        for t in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(index=False):
-            ambitus[t.staff]['max_midi'] = int(t.midi)
-            ambitus[t.staff]['max_name'] = fifths2name(t.tpc, t.midi, logger=self.logger)
+        ambitus = {}
+        for staff, min_tpc, min_midi in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
+            if staff in self.staff2drum_map:
+                continue
+            ambitus[staff] = {'min_midi': int(min_midi),
+                              'min_name': fifths2name(min_tpc, min_midi, logger=self.logger)}
+        for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
+            if staff in self.staff2drum_map:
+                continue
+            ambitus[staff]['max_midi'] = int(max_midi)
+            ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
         data['parts'] = {f"part_{i}": get_part_info(part) for i, part in enumerate(self.soup.find_all('Part'), 1)}
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:

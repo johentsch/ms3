@@ -36,19 +36,20 @@ MS3_VERSION = '1.0.0'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
-                         'last_mc', 'last_mn', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets',
-                         'n_onset_positions', 'TimeSig', 'KeySig', 'label_count', 'harmony_version', 'annotated_key',
+                         'TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
+                         'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
+                         'guitar_chord_count', 'form_label_count', 'label_count', 'harmony_version', 'annotated_key',
                          # metadata from the files metadata fields
                          ## custom fields
                          'annotators', 'reviewers', 'score_integrity', 'composed_start', 'composed_end',
                          ## default fields
                          'composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                         'mscVersion', 'platform', 'source', 'translator', 'musescore',
+                         'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ms3_version',
                          ## default text fields
                          'title_text', 'subtitle_text', 'lyricist_text', 'composer_text', 'part_name_text',
-                         # ambitus and all the rest
-                         'ambitus']
+                         # ambitus, instrument, and then all the rest
+                         'has_drumset', 'ambitus']
 
 STANDARD_COLUMN_ORDER = [
     'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',
