@@ -5,6 +5,8 @@ Changelog
 Version 1.0.1
 =============
 
+**ms3 requires Python 3.10**
+
 ms3 has gotten a makeover and does not quite like it did before. The major changes are:
 
 * The library is now optimized for one particular folder structure, namely ``[meta-corpus ->] corpus -> piece``.
