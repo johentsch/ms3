@@ -253,7 +253,7 @@ class NextColumnMaker(LoggedClass):
             self.logger.warning(f"MC column contains NaN which will lead to an incorrect 'next' column.")
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
         last_row = df.iloc[-1]
-        end_mc = last_row.mc
+        self.last_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
         fines = df.markers.fillna('').str.contains('fine')
         if fines.any():
@@ -273,12 +273,12 @@ class NextColumnMaker(LoggedClass):
                         self.next[fine_mc] = [-1]
                     else:
                         self.next[fine_mc].append(-1)
-                    if fine_mc != end_mc:
-                        if -1 in self.next[end_mc]:
-                            self.next[end_mc].remove(-1)
+                    if fine_mc != self.last_mc:
+                        if -1 in self.next[self.last_mc]:
+                            self.next[self.last_mc].remove(-1)
                         else:
                             self.logger.warning(f"Which MC has -1 in the 'next' column at the moment I've set it to 'Fine' measure {fine_mc}?")
-                        end_mc = fine_mc
+                        self.last_mc = fine_mc
                     self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
 
         if df.jump_bwd.notna().any():
@@ -315,7 +315,7 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                 if pd.isnull(untill):
                     end_of_jump_mc = None
                 elif untill == 'end':
-                    end_of_jump_mc = end_mc
+                    end_of_jump_mc = self.last_mc
                 elif untill in markers:
                     end_of_jump_mc = get_marker_mc(untill, True)
                 else:
@@ -481,7 +481,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
             self.start = None
 
     def treat_input(self, mc, repeat, section_break=False) -> None:
-        if not pd.isnull(section_break) and section_break:
+        if not pd.isnull(section_break) and section_break and mc != self.last_mc:
             self.potential_ending = (mc, 'precedes a section break')
             self.potential_start = (mc + 1, 'follows a section break')
         if pd.isnull(repeat):
