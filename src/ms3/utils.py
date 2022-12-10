@@ -2147,7 +2147,11 @@ def make_name_columns(df):
 @function_logger
 def make_playthrough2mc(measures):
     ml = measures.set_index('mc')
-    seq = next2sequence(ml.next, logger=logger)
+    try:
+        seq = next2sequence(ml.next, logger=logger)
+    except Exception as e:
+        logger.warning(f"Computing unfolded sequence of MCs failed with:\n'{e}'",
+                       extra={'message_id': (26, )})
     ############## < v0.5: playthrough <=> mn; >= v0.5: playthrough <=> mc
     # playthrough = compute_mn(ml[['dont_count', 'numbering_offset']].loc[seq]).rename('playthrough')
     mc_playthrough = pd.Series(seq, name='mc_playthrough', dtype='Int64')

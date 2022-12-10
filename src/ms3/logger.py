@@ -49,6 +49,7 @@ class MessageType(Enum):
     MISSING_TIME_SIGNATURE_WARNING = 23 # no timesig through the piece
     BEGINNING_WITHOUT_TIME_SIGNATURE_WARNING = 24 # no timesig in more than only the first measure (which could be an incipit)
     INVALID_REPEAT_STRUCTURE = 25
+    UNFOLDING_REPEATS_FAILED_WARNING = 26
 
 
 
