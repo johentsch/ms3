@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import Dict, List
 
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
 from fractions import Fraction as frac
 
 from .logger import get_logger, function_logger, LoggedClass
@@ -253,7 +255,7 @@ class NextColumnMaker(LoggedClass):
             self.logger.warning(f"MC column contains NaN which will lead to an incorrect 'next' column.")
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
         last_row = df.iloc[-1]
-        end_mc = last_row.mc
+        self.last_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
         fines = df.markers.fillna('').str.contains('fine')
         if fines.any():
@@ -273,12 +275,12 @@ class NextColumnMaker(LoggedClass):
                         self.next[fine_mc] = [-1]
                     else:
                         self.next[fine_mc].append(-1)
-                    if fine_mc != end_mc:
-                        if -1 in self.next[end_mc]:
-                            self.next[end_mc].remove(-1)
+                    if fine_mc != self.last_mc:
+                        if -1 in self.next[self.last_mc]:
+                            self.next[self.last_mc].remove(-1)
                         else:
                             self.logger.warning(f"Which MC has -1 in the 'next' column at the moment I've set it to 'Fine' measure {fine_mc}?")
-                        end_mc = fine_mc
+                        self.last_mc = fine_mc
                     self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
 
         if df.jump_bwd.notna().any():
@@ -315,7 +317,7 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                 if pd.isnull(untill):
                     end_of_jump_mc = None
                 elif untill == 'end':
-                    end_of_jump_mc = end_mc
+                    end_of_jump_mc = self.last_mc
                 elif untill in markers:
                     end_of_jump_mc = get_marker_mc(untill, True)
                 else:
@@ -481,7 +483,7 @@ For correction, MC {start} is interpreted as such because it {reason}."""
             self.start = None
 
     def treat_input(self, mc, repeat, section_break=False) -> None:
-        if not pd.isnull(section_break) and section_break:
+        if not pd.isnull(section_break) and section_break and mc != self.last_mc:
             self.potential_ending = (mc, 'precedes a section break')
             self.potential_start = (mc + 1, 'follows a section break')
         if pd.isnull(repeat):
@@ -503,13 +505,21 @@ For correction, MC {start} is interpreted as such because it {reason}."""
 
 
 @function_logger
-def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dict:
-    """
-        Uses: treat_group()
+def get_volta_structure(measures, mc, volta_start, volta_length, frac_col=None) -> Dict[int, Dict[int, List[int]]]:
+    """ Extract volta structure from measures table.
+
+    Uses: :func:`treat_group`
+
+    Args:
+        measures: Measures table containing the columns indicated in the other arguments.
+        mc, volta_start, volta_length, frac_col: column names
+
+    Returns:
+        {first_mc -> {volta_number -> [MC] } }
     """
     cols = [mc, volta_start, volta_length]
-    sel = df[volta_start].notna()
-    voltas = (df.loc[sel, cols])
+    sel = measures[volta_start].notna()
+    voltas = (measures.loc[sel, cols])
     if voltas[volta_length].isna().sum() > 0:
         rows = voltas[voltas[volta_length].isna()]
         logger.debug(f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed.")
@@ -522,7 +532,7 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dic
     if len(voltas) == 0:
         return {}
     if frac_col is not None:
-        voltas[volta_length] += df.loc[sel, frac_col].notna()
+        voltas[volta_length] += measures.loc[sel, frac_col].notna()
     voltas.loc[voltas[volta_start] == 1, 'group'] = 1
     voltas.group = voltas.group.fillna(0).astype(int).cumsum()
     groups = {v[mc].iloc[0]: v[cols].to_numpy() for _, v in voltas.groupby('group')}
@@ -800,10 +810,19 @@ def make_volta_col(df, volta_structure, mc='mc', name='volta'):
 
 
 @function_logger
-def treat_group(mc, group):
-    """ Helper function for make_volta_col()
-        Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
-        where columns are (MC, volta number, volta length).
+def treat_group(mc: int,
+                group: NDArray) -> Dict[int, List[int]]:
+    """  Helper function for make_volta_col()
+
+
+    Args:
+        mc: MC of the first bar of the first measure.
+        group:
+            Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
+            where columns are (MC, volta number, volta length).
+
+    Returns:
+
     """
     n = group.shape[0]
     mcs, numbers, lengths = group.T

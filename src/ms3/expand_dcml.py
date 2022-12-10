@@ -5,9 +5,9 @@ import sys, re
 from collections import defaultdict
 
 import pandas as pd
-import numpy as np
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, series_is_minor, split_alternatives, transform
+from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
+    series_is_minor, split_alternatives, transform
 from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
 
@@ -121,7 +121,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         if k > 0:
             if k / len(not_nan.index) > 0.1:
                 logger.warning(
-                    "DataFrame has many direct repetitions of labels. This function is written for lists of labels only which should have no immediate repetitions.")
+                    "DataFrame has many direct repetitions of labels.")
             else:
                 logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
@@ -132,16 +132,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     df['chord_type'] = transform(df, features2type, [rename[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
     df = replace_special(df, regex=regex, merge=True, cols=rename, logger=logger)
 
-    if not skip_checks:
-        ### Check phrase annotations
-        p_col = df[rename['phraseend']]
-        opening = p_col.fillna('').str.count('{')
-        closing = p_col.fillna('').str.count('}')
-        if opening.sum() != closing.sum():
-            o = df.loc[(opening > 0), ['mc', rename['phraseend']]]
-            c = df.loc[(closing > 0), ['mc', rename['phraseend']]]
-            compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-            logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
 
     key_cols = {col: rename[col] for col in ['localkey', 'globalkey']}
     if propagate:
@@ -174,6 +164,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.index = ix
 
     return df
+
 
 @function_logger
 def extract_features_from_labels(S, regex=None):

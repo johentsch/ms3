@@ -21,7 +21,7 @@ from ._typing import FileDict, FileList, ParsedFile, FileParsedTuple, ScoreFacet
     Facet, ScoreFacet, FileScoreTuple, FileDataframeTuple, AnnotationsFacet
 from .utils import File, column_order, get_musescore, get_path_component, group_id_tuples, iter_selection, join_tsvs, \
     load_tsv, make_continuous_offset_series, \
-    make_id_tuples, make_playthrough2mc, METADATA_COLUMN_ORDER, path2type, \
+    make_id_tuples, make_playthrough_info, METADATA_COLUMN_ORDER, path2type, \
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
@@ -2515,14 +2515,14 @@ Continuing with {annotation_key}.""")
         _ = self.match_files(ids=ids)
         res = {}
         for id in ids:
-            unf_mcs = self._get_playthrough2mc(id)
+            unf_mcs = self._get_playthrough_info(id)
             if unf_mcs is not None:
                 res[id] = unf_mcs
             # else:
             #     self.id_logger(id).(f"Unable to unfold.")
         return res
 
-    def _get_measure_list(self, id, unfold=False):
+    def _get_measures_table(self, id, unfold=False):
         """ Tries to retrieve the corresponding measure list, e.g. for unfolding repeats. Preference is given to
         parsed MSCX files, then checks for parsed TSVs.
 
@@ -2548,23 +2548,24 @@ Continuing with {annotation_key}.""")
 
 
 
-    def _get_playthrough2mc(self, id):
+    def _get_playthrough_info(self,
+                              id: int) -> Optional[Union[pd.DataFrame, pd.Series]]:
+        """Returns the result of calling :func:`utils.make_playthrough_info` on the measures table."""
         logger = self.ix_logger(id)
         if id in self._playthrough2mc:
             return self._playthrough2mc[id]
-        ml = self._get_measure_list(id)
+        ml = self._get_measures_table(id)
         if ml is None:
             logger.warning("No measures table available.")
             self._playthrough2mc[id] = None
             return
-        mc_playthrough = make_playthrough2mc(ml, logger=logger)
-        if len(mc_playthrough) == 0:
-            logger.warning(f"Error in the repeat structure for ID {id}: Did not reach the stopping value -1 in measures.next:\n{ml.set_index('mc').next}")
-            mc_playthrough = None
+        playthrough_info = make_playthrough_info(ml, logger=logger)
+        if playthrough_info is None or len(playthrough_info) == 0:
+            playthrough_info = None
         else:
             logger.debug("Measures successfully unfolded.")
-        self._playthrough2mc[id] = mc_playthrough
-        return mc_playthrough
+        self._playthrough2mc[id] = playthrough_info
+        return playthrough_info
 
     def get_continuous_offsets(self, id, unfold):
         """ Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,
@@ -2584,7 +2585,7 @@ Continuing with {annotation_key}.""")
         logger = self.ix_logger(id)
         if id in self._quarter_offsets[unfold]:
             return self._quarter_offsets[unfold][id]
-        ml = self._get_measure_list(id, unfold=unfold)
+        ml = self._get_measures_table(id, unfold=unfold)
         if ml is None:
             logger.warning(f"Could not find measure list for id {id}.")
             return None

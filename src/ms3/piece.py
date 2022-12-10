@@ -733,6 +733,7 @@ class Piece(LoggedClass):
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.get_facets(facets=facet,
                                   view_name=view_name,
+                                  force=True,
                                   choose=choose,
                                   unfold=unfold,
                                   interval_index=interval_index,
@@ -920,8 +921,6 @@ class Piece(LoggedClass):
                        interval_index: bool = False,
                        ) -> Union[Dict[Facet, List[FileParsedTuple]], List[FileParsedTuple]]:
         """Return multiple parsed files."""
-        if unfold:
-            raise NotImplementedError(f"Unfolding index currently only available for extracted facets.")
         selected_facets = resolve_facets_param(facets, logger=self.logger)
         if selected_facets is None:
             return [] if flat else {}
@@ -979,6 +978,7 @@ class Piece(LoggedClass):
                 plural = 'files' if n_unparsed > 1 else 'file'
                 self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
             parsed_files = [(file, self._get_transformed_facet_at_ix(ix=file.ix, unfold=unfold, interval_index=interval_index)) for file in files if file.ix in self.ix2parsed]
+            parsed_files = [(file, df) for file, df in parsed_files if df is not None]
             n_parsed = len(parsed_files)
             if n_parsed == 0 and not include_empty:
                 continue
@@ -991,16 +991,24 @@ class Piece(LoggedClass):
     def _get_transformed_facet_at_ix(self,
                                      ix: int,
                                      unfold: bool = False,
-                                     interval_index: bool = False) -> ParsedFile:
+                                     interval_index: bool = False) -> Optional[ParsedFile]:
+        """Retrieves a parsed TSV file, adds quarterbeats if missing and, if requested, unfolds repeats or adds a :obj:`pandas.IntervalIndex`."""
         if ix not in self.ix2parsed:
             return None
         if ix not in self.ix2parsed_tsv:
             return self.ix2parsed[ix]
         df = self.ix2parsed_tsv[ix]
-        if interval_index:
-            if any(c not in df.columns for c in ('quarterbeats', 'duration_qb')):
+        qb_missing = any(c not in df.columns for c in ('quarterbeats', 'duration_qb'))
+        if interval_index or unfold or qb_missing:
+            if unfold or qb_missing:
                 _, measures = self.get_facet('measures')
-                df = dfs2quarterbeats(df, measures=measures, interval_index=True, logger=self.logger)[0]
+                if measures is None:
+                    self.logger.warning(f"Piece.get_facet('measures') did not return the required measures table.")
+                    return None
+                transformed = dfs2quarterbeats(df, measures=measures, unfold=unfold, interval_index=interval_index, logger=self.logger)
+                if len(transformed) == 0:
+                    return
+                df = transformed[0]
             else:
                 df = replace_index_by_intervals(df, logger=self.logger)
         return df
