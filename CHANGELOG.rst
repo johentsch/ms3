@@ -2,17 +2,18 @@
 Changelog
 =========
 
-Version 1.0.0
+Version 1.0.1
 =============
 
 ms3 has gotten a makeover and does not quite like it did before. The major changes are:
 
-* The library is now optimized for one particular folder structure, namely ``meta-corpus -> corpus -> piece``.
-* ms3 now comes with a full-fledged "views" feature which lets one subselect files in manifold ways.
+* The library is now optimized for one particular folder structure, namely ``[meta-corpus ->] corpus -> piece``.
+* ms3 now comes with a full-fledged "views" feature which lets you subselect files in manifold ways.
 * The TSV outputs have gained additional columns. In particular, all TSV files now come with the column ``quarterbeats``
   reflecting each event's offset from the piece's beginning.
 * Warnings concerning irregularities, e.g. wrong measure numbering due to a cadenza, can now be sanctioned by copying
   them into an IGNORED_WARNINGS file.
+
 
 New features
 ------------
@@ -21,15 +22,16 @@ New features
   and "all". The "default" view disregards review files, scores in convertible formats, and scores that are not listed
   in the top-level ``metadata.tsv`` file.
 * ``metadata.tsv`` files, by the virtue of their first column ``fname``, now serve as authority on what is
-  included in the corpus and what belongs together. This column is always unique and is supposed to be used as index.
-* Suffixed ``metadata_<suffix>.tsv`` files are loaded as available views on the included file names.
+  included in the corpus and what belongs together. This column is always unique and supposed to be used as index.
+* Suffixed ``metadata_<suffix>.tsv`` files are loaded as available views based on the column ``fname`` (other columns
+  are disregarded).
 * The Parse object now detects if the passed directory contains individual corpora or if it is a corpus itself.
 * Parse objects perform operations by iterating over Corpus objects.
 * Corpus objects perform operations by iterating over Piece objects.
 * Corpus objects reflect exactly one folder, the ``corpus_path``, and always discover all present files (which can be
   filtered before the actual parsing). Default output paths are derived from it.
-* Piece objects unite the various files pertaining to the same ``fname`` and is able to keep multiple versions of the
-  same type (e.g., scores or annotation files) apart from each other and pick one automatically, if necessary, or asks for
+* Piece objects unite the various files pertaining to the same ``fname`` and are able to keep multiple versions of the
+  same type apart (e.g., scores or annotation files) and pick one automatically, if necessary, or ask for
   user input.
 * The command ``ms3 review`` combines the functionalities of ``ms3 check``, ``ms3 extract``, and ``ms3 compare``, and is
   now the only command used in the new ``dcml_corpus_workflow`` action. For each score that has DCML harmony labels,
@@ -49,10 +51,8 @@ Changes to the interface
 
   * Methods previously beginning with ``output_`` were renamed to ``store_``.
   * Parse.parse_mscx() => Parse.parse_scores()
-  * Parse.parsed_mscx => Parse.n_parsed_scores
-  * Parse.parsed_tsv => Parse.n_parsed_tsvs
 
-* The properties for retrieving DataFrames from ``Score`` objects
+* The properties for retrieving DataFrames from ``Score`` objects:
 
   * are now methods and accept the parameters ``unfold`` and ``interval_index``.
   * return None when a facet is not available.
@@ -68,13 +68,18 @@ Changes to the interface
 Changes to the outputs
 ----------------------
 
-* The column ``label_type`` has been replaced and disambiguated into ``harmony_layer`` (0-3) and ``regex_match`` (which regEx matched first).
+* **(1.0.1)** When unfolding repeats, add the column ``mn_playthrough`` with disambiguated measure Numbers ('1a', '12b', etc.).
+* The column ``label_type`` has been replaced and disambiguated into ``harmony_layer`` (0-3, text, Roman numeral, Nashville,
+  guitar chord) and ``regex_match`` (containing the name of the regular expression that matched first).
 * Notes tables now come with the two additional columns ``name`` (e.g. "E#4") and ``octave``. For unpitched instruments,
   such as drumset, the column ``name`` displays the designated instrument name (which the user can modify in MuseScore),
   and have no value in the ``octave`` columns.
 * For pieces that don't have first and second endings, the TSVs come without a ``volta`` column.
 * Extracted metadata
 
+  * **(1.0.1)** come with the new columns last_mc_unfolded, last_mn_unfolded, volta_mcs, guitar_chord_count,
+    form_label_count, ms3_version, has_drumset
+  * uses the column ``fname`` as index
   * comes with a modified column order
   * renames the previous column ``rel_paths`` to subdir, whereas the new column ``rel_path`` contains
   * include the text fields included in a score. Columns are ``composer_text``, ``title_text``,
@@ -87,9 +92,15 @@ Changes to the outputs
 Other changes
 -------------
 
+* **(1.0.1)** Checks integrity of DCML phrase annotations after unfolding repeats to correctly deal with voltas.
 * Most functions and methods now come with type hints.
 * New unittest suite that makes use of the DCMLab/unittest_metacorpus repo and enforces it to be at the correct commit.
 * The parser is now more robust against user-induced strangeness in MuseScore files.
+
+Version 1.0.0
+=============
+
+See above, version 1.0.1
 
 
 Version 0.5.3
