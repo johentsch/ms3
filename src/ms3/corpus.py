@@ -551,7 +551,7 @@ class Corpus(LoggedClass):
     def create_pieces(self, fnames: Union[Collection[str], str] = None) -> None:
         """Creates and stores one :obj:`Piece` object per fname."""
         if fnames is None:
-            fnames = self.get_fnames()
+            fnames = self.get_all_fnames()
         elif isinstance(fnames, str):
             fnames = [fnames]
         for fname in fnames:
@@ -1026,18 +1026,18 @@ class Corpus(LoggedClass):
             result[piece.name] = facet2parsed
         return result
 
-    def get_fnames(self,
-                   fnames_in_metadata: bool = True,
-                   fnames_not_in_metadata: bool = True) -> List[str]:
+    def get_all_fnames(self,
+                       fnames_in_metadata: bool = True,
+                       fnames_not_in_metadata: bool = True) -> List[str]:
         """ fnames (file names without extension and suffix) serve as IDs for pieces. Use
-        this function to retrieve them.
+        this function to retrieve the comprehensive list, ignoring views.
 
         Args:
-            fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus
+            fnames_in_metadata: fnames that are listed in the 'metadata.tsv' file for this corpus, if present
             fnames_not_in_metadata: fnames that are not listed in the 'metadata.tsv' file for this corpus
 
         Returns:
-
+            The file names included in 'metadata.tsv' and/or those of all other scores.
         """
         result = []
         if fnames_in_metadata:
@@ -1045,6 +1045,11 @@ class Corpus(LoggedClass):
         if fnames_not_in_metadata:
             result.extend(self.fnames_not_in_metadata())
         return sorted(result)
+
+    def get_fnames(self, view_name: Optional[str] = None) -> List[str]:
+        """Retrieve fnames included in the current or selected view."""
+        return [fname for fname, _ in self.iter_pieces(view_name)]
+
 
     def get_present_facets(self, view_name: Optional[str] = None):
         view = self.get_view(view_name)
@@ -1244,7 +1249,7 @@ class Corpus(LoggedClass):
 
 
     def iter_pieces(self, view_name: Optional[str] = None) -> Iterator[Tuple[str, Piece]]:
-        """Iterate through corpora under the current or specified view."""
+        """Iterate through (name, corpus) tuples under the current or specified view."""
         view = self.get_view(view_name)
         view.reset_filtering_data(categories='fnames')
         param_sum = view.fnames_in_metadata + view.fnames_not_in_metadata
@@ -1254,7 +1259,7 @@ class Corpus(LoggedClass):
             discarded_items, *_ = list(zip(*view.filter_by_token('fnames', self)))
             view._discarded_items[key].update(discarded_items)
             filtering_counts = view._last_filtering_counts[key]
-            filtering_counts[[0,1]] = filtering_counts[[1, 0]]
+            filtering_counts[[0,1]] = filtering_counts[[1, 0]] # swapping counts for included & discarded in the array
             yield from []
         else:
             n_kept, n_discarded = 0, 0
@@ -1615,7 +1620,7 @@ class Corpus(LoggedClass):
 
     def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
         if fnames is None:
-            fnames = self.get_fnames()
+            fnames = self.get_all_fnames()
         elif isinstance(fnames, str):
             fnames = [fnames]
         fnames = sorted(fnames, key=len, reverse=True)
