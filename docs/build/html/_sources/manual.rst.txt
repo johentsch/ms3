@@ -45,31 +45,43 @@ When loading corpora, ms3 looks for the standard folder names (and suffixes) to 
 assign them keys automatically (e.g. in the example above, 'corpus1' and 'corpus2').
 Using the default names will therefore facilitate the use of the library considerably.
 
+.. _keys_and_ids:
+
+Keys and IDs
+------------
+
+ms3 uses keys for grouping files. The way how these keys are being used is transitioning in the 0.5.x versions:
+
+* **< 0.5** keys were arbitrary and used by some methods to bring groups of files together. For example, ``Parse.attach_labels()``
+  would take a key with a group of scores and, as the parameter ``annotation_key``, the key with a group of annotations and
+  then use ``Parse.match_files()`` to match the files from the given keys.
+* **>= 0.6.x** keys are used to address sub-corpora that are assumed to have a particular :ref:`corpus_structure`.
+  The method ``Parse.attach_labels()`` then takes only one key and uses the key's :py:class:`~.parse.View` object
+  for matching files. The parameter ``annotation_key`` is replaced by ``use`` that can be used in the case that the View
+  object has detected several annotation files for one or several pieces.
+* **0.5x** transitioning from the old to the new behaviour.
+
+IDs
+^^^
+
+IDs are ``(key, i)`` pairs that identify one particular file (not piece) found by a Parse object. They are used as
+dictionary keys except for storing the information on file paths such as :py:attr:`~.parse.full_paths` or
+:py:attr:`~.parse.fnames` which are dictionaries containing lists where only keys are dictionary keys, whereas ``i``
+is simply the list index of the respective file.
+
 
 .. _label_types:
 
 Label types
 -----------
 
-ms3 recognizes different types of labels, depending on how they are encoded in MuseScore:
+ms3 recognizes and disambiguates different types of labels, depending on how they are encoded in MuseScore, see |harmony_layer|.
 
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| label_type | explanation                                                                                                                            |
-+============+========================================================================================================================================+
-| 0          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
-|            | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 1          | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 2          | Nashville number (Add->Text->Nashville Number).                                                                                        |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
-| 3          | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
-|            | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
-+------------+----------------------------------------------------------------------------------------------------------------------------------------+
+Independent of the type, ms3 will also try to infer whether a label conforms to the DCML syntax and/or other regular expressions registered
+via :meth:`ms3.Score.new_type`. The column |regex_match| contains for each label the name of the first regEx that matched.
+information will appear with a subtype, e.g. ``0 (dcml)``.
 
-Independent of the type, ms3 will also try to infer whether the label conforms to the DCML syntax, in which case the type
-information will appear with a subtype, e.g. ``0 (dcml)``. If instead or additionally you want other subtypes to be
-recognized, specify the :py:attr:`~.score.Score.infer_label_types` attribute.
+See also :attr:`~.score.Score.infer_label_types`.
 
 
 .. _mc_vs_mn:
@@ -179,6 +191,7 @@ Tables with score information
 =============================
 
 .. |act_dur| replace:: :ref:`act_dur <act_dur>`
+.. |alt_label| replace:: :ref:`alt_label <alt_label>`
 .. |added_tones| replace:: :ref:`added_tones <chord_tones>`
 .. |articulation| replace:: :ref:`articulation <articulation>`
 .. |bass_note| replace:: :ref:`bass_note <bass_note>`
@@ -194,14 +207,16 @@ Tables with score information
 .. |crescendo_line| replace:: :ref:`crescendo_line <cresc_lines>`
 .. |decrescendo_hairpin| replace:: :ref:`decrescendo_hairpin <hairpins>`
 .. |diminuendo_line| replace:: :ref:`diminuendo_line <cresc_lines>`
+.. |dont_count| replace:: :ref:`dont_count <dont_count>`
+.. |duration| replace:: :ref:`duration <duration>`
+.. |duration_qb| replace:: :ref:`duration_qb <duration_qb>`
 .. |dynamics| replace:: :ref:`dynamics <dynamics>`
 .. |figbass| replace:: :ref:`figbass <figbass>`
 .. |form| replace:: :ref:`form <form>`
 .. |globalkey| replace:: :ref:`globalkey <globalkey>`
 .. |globalkey_is_minor| replace:: :ref:`globalkey_is_minor <globalkey_is_minor>`
-.. |dont_count| replace:: :ref:`dont_count <dont_count>`
-.. |duration| replace:: :ref:`duration <duration>`
 .. |gracenote| replace:: :ref:`gracenote <gracenote>`
+.. |harmony_layer| replace:: :ref:`harmony_layer <harmony_layer>`
 .. |keysig| replace:: :ref:`keysig <keysig>`
 .. |label| replace:: :ref:`label <label>`
 .. |label_type| replace:: :ref:`label_type <label_type>`
@@ -218,12 +233,18 @@ Tables with score information
 .. |nominal_duration| replace:: :ref:`nominal_duration <nominal_duration>`
 .. |numbering_offset| replace:: :ref:`numbering_offset <numbering_offset>`
 .. |numeral| replace:: :ref:`numeral <numeral>`
+.. |offset_x| replace:: :ref:`offset_x <offset>`
+.. |offset_y| replace:: :ref:`offset_y <offset>`
 .. |Ottava:15mb| replace:: :ref:`Ottava:15mb <ottava>`
 .. |Ottava:8va| replace:: :ref:`Ottava:8va <ottava>`
+.. |Ottava:8vb| replace:: :ref:`Ottava:8vb <ottava>`
 .. |pedal| replace:: :ref:`pedal <pedal>`
 .. |phraseend| replace:: :ref:`phraseend <phraseend>`
 .. |qpm| replace:: :ref:`qpm <qpm>`
+.. |quarterbeats| replace:: :ref:`quarterbeats <quarterbeats>`
+.. |quarterbeats_all_endings| replace:: :ref:`quarterbeats_all_endings <quarterbeats_all_endings>`
 .. |relativeroot| replace:: :ref:`relativeroot <relativeroot>`
+.. |regex_match| replace:: :ref:`regex_match <regex_match>`
 .. |repeats| replace:: :ref:`repeats <repeats>`
 .. |root| replace:: :ref:`root <root>`
 .. |scalar| replace:: :ref:`scalar <scalar>`
@@ -232,32 +253,13 @@ Tables with score information
 .. |staff_text| replace:: :ref:`staff_text <staff_text>`
 .. |system_text| replace:: :ref:`system_text <system_text>`
 .. |tempo| replace:: :ref:`tempo <tempo>`
+.. |TextLine| replace:: :ref:`TextLine <textline>`
 .. |tied| replace:: :ref:`tied <tied>`
 .. |timesig| replace:: :ref:`timesig <timesig>`
 .. |tpc| replace:: :ref:`tpc <tpc>`
+.. |tremolo| replace:: :ref:`tremolo <tremolo>`
 .. |volta| replace:: :ref:`volta <volta>`
 .. |voice| replace:: :ref:`voice <voice>`
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 This section gives an overview of the various tables that ms3 exposes after parsing a MuseScore file. Their names, e.g.
@@ -266,21 +268,18 @@ with which they can be retrieved. They come as :obj:`pandas.DataFrame` objects. 
 
 All score information, except the metadata, is contained in the following two tables:
 
-* :ref:`measures <measures>`: A list of all measures contained in the score together with their respective features.
-* :ref:`notes <notes>`: A list of all notes contained in the score together with their respective features.
-* :ref:`rests <rests>`: A list of all rests contained in the score together with their respective features.
-* :ref:`notes_and_rests <notes_and_rests>`: A combination of the two above.
+* :ref:`measures <measures>`
+* :ref:`notes <notes>`
+* :ref:`rests <rests>`
+* :ref:`notes_and_rests <notes_and_rests>`
 * :ref:`chords <chords>`: **Not to be confounded with labels or chord annotations**, a chord is a notational unit in which all included
   notes are part of the same notational layer and have the same onset and duration. Every chord has a ``chord_id`` and every note
   is part of a chord. These tables are used to convey score information that is not attached to a particular note,
   such as lyrics, staff text, dynamics and other markup.
-* :ref:`labels <labels>`: The annotation labels contained in the score. The output can be controlled by changing
-  the ``labels_cfg`` configuration.
-* :ref:`expanded <expanded>`: If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__,
-  return them after being split into the encoded features.
-* :ref:`cadences <cadences>`: If DCML harmony labels include cadence labels, return only those (simply a filter on ``expanded``).
-* :ref:`events <events>`: A raw version of the score where the XML tags of all events have been transformed to column
-  names. Cumbersome to work with and only needed in special cases.
+* :ref:`labels <labels>`
+* :ref:`expanded <expanded>`
+* :ref:`cadences <cadences>`
+* :ref:`events <events>`
 
 For each of the available tables you will see an example and you can click on the columns to learn about their meanings.
 
@@ -289,9 +288,12 @@ For each of the available tables you will see an example and you can click on th
 Measures
 --------
 
+DataFrame representing the measures in the MuseScore file (which can be incomplete measures, see :ref:`mc_vs_mn`)
+together with their respective features. Required for unfolding repeats.
+
 .. code-block:: python
 
-    >>> s.mscx.measures   # access through a Score object
+    >>> s.mscx.measures()   # access through a Score object
     >>> p.measures()      # access through a Parse object
 
 
@@ -310,9 +312,11 @@ Measures
 Notes
 -----
 
+DataFrame representing the notes in the MuseScore file.
+
 .. code-block:: python
 
-    >>> s.mscx.notes   # access through a Score object
+    >>> s.mscx.notes() # access through a Score object
     >>> p.notes()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
@@ -329,9 +333,11 @@ Notes
 Rests
 -----
 
+DataFrame representing the rests in the MuseScore file.
+
 .. code-block:: python
 
-    >>> s.mscx.rests   # access through a Score object
+    >>> s.mscx.rests() # access through a Score object
     >>> p.rests()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+------------------+--------+-------+
@@ -348,9 +354,11 @@ Rests
 Notes and Rests
 ---------------
 
+DataFrame combining :ref:`notes` and :ref:`rests`.
+
 .. code-block:: python
 
-    >>> s.mscx.notes_and_rests   # access through a Score object
+    >>> s.mscx.notes_and_rests() # access through a Score object
     >>> p.notes_and_rests()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+----------+-----------+------------------+--------+------+-----+------+-------+----------+
@@ -370,6 +378,11 @@ Notes and Rests
 
 Chords
 ------
+
+.. note::
+
+   The use of the word chords, here, is very specific because its meaning stems entirely from the MuseScore XML source code.
+   If you are interested in chord labels, please refer to :ref:`labels` or :ref:`expanded`.
 
 In a MuseScore file, every note is enclosed by a <Chord> tag. One <Chord> tag can enclose several notes, as long
 as they occur in the same |staff| and |voice| (notational layer). As a consequence, notes
@@ -414,7 +427,7 @@ for demonstration purposes:
 
 .. code-block:: python
 
-    >>> s.mscx.chords   # access through a Score object
+    >>> s.mscx.chords()   # access through a Score object
     >>> p.chords()      # access through a Parse object
 
 +----------+--------------+------------------+------------+---------------+-----+------+---------------------+-----------------+-------------------+----------------+-------------+------------+-------+-------------+
@@ -482,9 +495,12 @@ for demonstration purposes:
 Labels
 ------
 
+DataFrame representing the annotation labels contained in the score. The output can be controlled by changing
+the ``labels_cfg`` configuration.
+
 .. code-block:: python
 
-    >>> s.mscx.labels   # access through a Score object
+    >>> s.mscx.labels()   # access through a Score object
     >>> p.labels()      # access through a Parse object
 
 
@@ -502,9 +518,13 @@ Labels
 Expanded
 --------
 
+If the score contains `DCML harmony labels <https://github.com/DCMLab/standards>`__,
+this DataFrames represents them after splitting them into the encoded features and translating
+them into scale degrees.
+
 .. code-block:: python
 
-    >>> s.mscx.expanded   # access through a Score object
+    >>> s.mscx.expanded()   # access through a Score object
     >>> p.expanded()      # access through a Parse object
 
 +----+----+----------+----------+---------+-------+-------+-------+-------+-----------+----------+-------+-------+---------+------+---------+---------+--------------+---------+-----------+------------+--------------------+-------------------+-------------+-------------+------+-----------+
@@ -521,6 +541,7 @@ Expanded
 Cadences
 --------
 
+If DCML harmony labels include cadence labels, return only those.
 This table is simply a filter on :ref:`expanded <expanded>`. The table has the same columns and contains only rows
 that include a cadence label. Just for convenience...
 
@@ -530,12 +551,23 @@ that include a cadence label. Just for convenience...
     >>> p.cadences()      # access through a Parse object
 
 
+.. _form_labels:
+
+Form labels
+-----------
+
+.. code-block:: python
+
+    >>> s.mscx.form_labels()  # access through a Score object
+    >>> p.form_labels()       # access through a Parse object
+
+
 .. _events:
 
 Events
 ------
 
-This table is the original tabular representation of the MuseScore file's source code from which all other tables,
+This DataFrame is the original tabular representation of the MuseScore file's source code from which all other tables,
 except ``measures`` are generated. The nested XML tags are transformed into column names.
 
 The value ``'∅'`` is used for empty tags. For example, in the column ``Chord/Spanner/Slur`` it would correspond to
@@ -707,6 +739,10 @@ Parsing multiple scores
     in the object (``$`` stands for the end of the filename, without it, files including the string 'mscx' anywhere
     in their names would be selected, too):
 
+    .. caution::
+
+      The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
+
     .. code-block:: python
 
         >>> from ms3 import Parse
@@ -718,16 +754,15 @@ Parsing multiple scores
     In this example, we assigned the key ``'ms3'``. Note that the same MSCX files that were distributed over several keys
     in the previous example are now grouped together. Keys allow operations to be performed on a particular group of
     selected files. For example, we could add MSCX files from another folder using the method
-    :py:meth:`~.parse.Parse.add_dir` and the key ``'other'``:
+    :py:meth:`~.parse.Parse.add_dir`:
 
     .. code-block:: python
 
-        >>> p.add_dir('~/other_folder', file_re='mscx$', key='other')
+        >>> p.add_dir('~/other_folder', file_re='mscx$')
         >>> p
 
     .. program-output:: python examples/parse_other_directory.py
 
-    Most methods of the :py:class:`~.parse.Parse` object have a ``keys`` parameter to perform an operation on a particular group of files.
 
 4. Parse the scores.
 
@@ -1129,6 +1164,10 @@ you can simply use the ``simulate=True`` argument which lets you view the paths
 without actually creating any files. In this variant, all aspects are stored each
 in individual folders but with identical filenames:
 
+.. caution::
+
+  The parameter ``key`` will be deprecated from version 0.6.0 onwards. See :ref:`keys_and_ids`.
+
 .. code-block:: python
 
     >>> p = Parse('~/ms3/docs', key='pergo')
@@ -1209,6 +1248,15 @@ Duration of an event expressed in fractions of a whole note. Note that in note l
 into account if notes are :ref:`tied <tied>` together; in other words, the column expresses no durations that
 surpass the final bar line.
 
+.. _duration_qb:
+
+**duration_qb**
+^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+Duration expressed in quarter notes. If the column |duration| is present it corresponds to that column times four.
+Otherwise (e.g. for labels) it is computed from an :obj:`~pandas.IntervalIndex` created from the |quarterbeats| column.
 
 .. _keysig:
 
@@ -1278,9 +1326,16 @@ please refer to :ref:`onsets`.
 
 This column expresses positions, otherwise accessible only as a tuple ``(mc, mc_onset)``, as a running count of
 quarter notes from the piece's beginning (quarterbeat = 0). If second endings are present in the score, only the
-last ending is counted in order to give authentic values to such a score, as if played without repetitions. If
-repetitions are unfolded, i.e. the table corresponds to a full play-through of the score, all endings are taken into
-account correctly.
+second ending is counted in order to give authentic values to such a score, as if played without repetitions
+(third endings and more are also ignored). If repetitions are unfolded, i.e. the table corresponds to a
+full play-through of the score, all endings are taken into account correctly.
+
+For the specific case you need continuous quarterbeats including all endings, please refer to |quarterbeats_all_endings|.
+
+Computation of quarterbeats requires an offset_dict that is computed from the column |act_dur| contained in every
+:ref:`measures` table. Quarterbeats are based on the cumulative sum of that column, meaning that they take
+the length of irregular measures into account.
+
 
 
 .. _staff:
@@ -1427,7 +1482,22 @@ Scores which include several pieces (e.g. in variations or a suite),
 sometimes, instead of using section :ref:`breaks <breaks>`, use ``numbering_offset`` to simulate a restart for counting
 :ref:`MNs <mn>` at every new section. This leads to ambiguous MNs.
 
+.. _quarterbeats_all_endings:
 
+**quarterbeats_all_endings**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`fractions.Fraction`
+
+Since the computation of |quarterbeats| for pieces including alternative endings (:ref:`voltas <volta>`) excludes all
+but the second endings, the measures of such pieces get this additional column, allowing to create an offset_dict
+for users who need continuous quarterbeats including all endings. In that case one would call
+
+.. code-block:: python
+
+  from ms3 import add_quarterbeats_col
+  offset_dict = measures.quarterbeats_all_endings.to_dict()
+  df_with_gapless_quarterbeats = add_quarterbeats_col(df, offset_dict)
 
 .. _repeats:
 
@@ -1543,8 +1613,25 @@ Encodes note names by their position on the line of fifth with ``0`` = C, ``1`` 
 ``-2`` = Bb etc. The octave is defined by :ref:`midi <midi>` DIV 12 - 1
 
 
+.. _tremolo:
 
+**tremolo**
+^^^^^^^^^^^
 
+:obj:`str`
+
+The syntax for this column is ``<dur>_<type>_<component>`` where ``<dur>`` is half the duration of the tremolo,
+``<type>`` is the tremolo type, e.g. ``c32`` for 3 beams or ``c64`` for 4 (values taken from the source code), and
+``<component>`` is 1 for notes in the first and 2 for notes in the second <Chord>.
+
+Explanation: MuseScore 3 encodes the two components of a tremolo as two separate <Chord> tags with half the duration of the tremolo.
+This column serves to keep the information of the two components although onsets and durations in the :ref:`notes`
+are corrected to represent the fact that all notes are sounding through the duration of the tremolo.
+
+For example, an octave tremolo with duration of a dotted half note and tremolo frequency of 32nd notes will appear
+in the score as a dotted half on beat 1 and another dotted half 3 eights later. In the note list, however, both notes
+have ``mc_onset`` 0 and ``duration`` 3/4. The column ``tremolo`` has the value ``3/8_c32_1`` for the first note and
+``3/8_c32_1`` for the second.
 
 
 Chords
@@ -1704,9 +1791,19 @@ always pertain to an entire |staff|
 Pedal line :ref:`spanners <spanners>` always pertain to an entire |staff|.
 
 
+.. _textline:
+
+**TextLine**
+^^^^^^^^^^^^
+
+:obj:`str` (-> :obj:`tuple`)
+
+Custom staff text with a line that can be prolonged at will.
+
 .. _trill:
 
 **Trill**
+^^^^^^^^^
 
 :obj:`str`
 
@@ -1719,6 +1816,30 @@ They always pertain to a particular |voice|.
 Labels
 ------
 
+.. _harmony_layer:
+
+**harmony_layer**
+^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+This column indicates the harmony layer, or label type, in/as which a label has been stored.
+It is an integer within [0, 3] that indicates how it is encoded in MuseScore.
+
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| harmony_layer | explanation                                                                                                                            |
++===============+========================================================================================================================================+
+| 0             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does not start with a note name, i.e. MuseScore did  |
+|               | not recognize it as an absolute chord and encoded it as plain text (compare type 3).                                                   |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 1             | Roman Numeral (Add->Text->Roman Numeral Analysis).                                                                                     |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 2             | Nashville number (Add->Text->Nashville Number).                                                                                        |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+| 3             | Label encoded in MuseScore's chord layer (Add->Text->Chord Symbol, or [C]+K) that does start with a note name, i.e. MuseScore did      |
+|               | recognize it as an absolute chord and encoded its root (and bass note) as numerical values.                                            |
++---------------+----------------------------------------------------------------------------------------------------------------------------------------+
+
 .. _label:
 
 **label**
@@ -1729,22 +1850,50 @@ Labels
 Annotation labels from MuseScores <Harmony> tags. Depending on the |label_type| the column can include complete
 strings (decoded) or partial strings (encoded).
 
+.. _regex_match:
+
+**regex_match**
+^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+Name of the first regular expression that matched a label, e.g. 'dcml'.
+
 
 .. _label_type:
 
 **label_type**
+^^^^^^^^^^^^^^
+
+.. warning::
+
+   Deprecated since 0.6.0 where this column has been split and replaced by |harmony_layer| and |regex_match|
 
 :obj:`str`
 
 See :ref:`label types <label_types>` above.
 
 
+.. _offset:
 
+**offset_x** and **offset_y**
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+Offset positions for labels whose position has been manually altered. Of importance mainly for re-inserting labels into a score at
+the exact same position.
 
 
 
 Expanded
 --------
+
+.. _alt_label:
+
+:obj:`str`
+
+Alternative reading to the |label|. Generally considered "second choice" compared to the "main label" that has been expanded.
 
 .. _bass_note:
 

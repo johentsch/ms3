@@ -1,3 +1,5 @@
 from ms3 import Score
-s = Score('~/ms3/docs/stabat.mscx')
-print(s.mscx.labels)
+import os
+stabat_path = os.path.join("..", "docs", "stabat.mscx")
+s = Score(stabat_path)
+print(s.mscx.labels())

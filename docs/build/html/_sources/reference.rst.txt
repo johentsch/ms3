@@ -23,6 +23,31 @@ Since :py:class:`~ms3.score.MSCX` and :py:class:`~ms3.annotations.Annotations`
 objects are always attached to a :py:class:`~ms3.score.Score`, the documentation
 starts with this central class.
 
+The Parse class
+================
+
+.. automodule:: ms3.parse
+    :members:
+    :special-members:
+
+The Corpus class
+================
+
+.. automodule:: ms3.corpus
+    :members:
+
+The Piece class
+===============
+
+.. automodule:: ms3.piece
+    :members:
+
+The View class
+==============
+
+.. automodule:: ms3.view
+    :members:
+
 
 The Score class
 ===============
@@ -47,12 +72,6 @@ The Annotations class
 .. automodule:: ms3.annotations
     :members:
 
-The Parse class
-================
-
-.. automodule:: ms3.parse
-    :members:
-
 .. _bs4_parser:
 
 The BeautifulSoup parser
@@ -72,6 +91,12 @@ Utils
 =====
 
 .. automodule:: ms3.utils
+    :members:
+
+Transformations
+===============
+
+.. automodule:: ms3.transformations
     :members:
 
 .. _cli_doc:

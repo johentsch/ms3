@@ -21,8 +21,8 @@ def test_json_parse():
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     directory = 'test_results'
     goal = 72
-    p = Parse(directory=directory, paths=paths, key='tests', logger_cfg=dict(level='d'))
-    assert len(p.files['tests']) >= goal, f"Failed to parse list of paths that included several JSON files containing paths: Loaded only {len(p.files['tests'])} instead of {goal} or more."
+    p = Parse(directory=directory, paths=paths, key='old_tests', logger_cfg=dict(level='d'))
+    assert len(p.files['old_tests']) >= goal, f"Failed to parse list of paths that included several JSON files containing paths: Loaded only {len(p.files['old_tests'])} instead of {goal} or more."
 
 
 
@@ -42,9 +42,8 @@ class TestParse:
 
     def test_extract(self, parsed_mscx):
         target = self.test_results
-        path_dict = parsed_mscx.store_lists(measures_folder=target, measures_suffix="_measures",
-                                notes_folder=target, notes_suffix='_notes',
-                                labels_folder=target, labels_suffix='_labels')
+        path_dict = parsed_mscx.store_extracted_facets(notes_folder=target, notes_suffix='_notes', measures_folder=target, measures_suffix="_measures", labels_folder=target,
+                                                       labels_suffix='_labels')
         # for path, what in path_dict.items():
         #     original_path = os.path.join(test_folder, what, )
 
