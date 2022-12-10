@@ -4896,10 +4896,14 @@ def check_phrase_annotations(df: pd.DataFrame,
     p_col = df[column]
     opening = p_col.fillna('').str.count('{')
     closing = p_col.fillna('').str.count('}')
+    position_col = 'mn_playthrough' if 'mn_playthrough' else 'mn'
+    columns = [position_col, column]
     if opening.sum() != closing.sum():
-        o = df.loc[(opening > 0), ['mc', column]]
-        c = df.loc[(closing > 0), ['mc', column]]
-        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-        logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16,)})
+        o = df.loc[(opening > 0), columns]
+        c = df.loc[(closing > 0), columns]
+        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1)
+        if 'mn' in compare:
+            compare = compare.astype({'mn9': 'Int64'})
+        logger.warning(f"Phrase beginning and endings don't match:\n{compare.to_string(index=False)}", extra={"message_id": (16,)})
         return False
     return True

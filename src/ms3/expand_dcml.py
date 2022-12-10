@@ -6,7 +6,7 @@ from collections import defaultdict
 
 import pandas as pd
 
-from .utils import abs2rel_key, changes2list, check_phrase_annotations, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
+from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
     series_is_minor, split_alternatives, transform
 from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
@@ -121,7 +121,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         if k > 0:
             if k / len(not_nan.index) > 0.1:
                 logger.warning(
-                    "DataFrame has many direct repetitions of labels. This function is written for lists of labels only which should have no immediate repetitions.")
+                    "DataFrame has many direct repetitions of labels.")
             else:
                 logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
@@ -132,9 +132,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     df['chord_type'] = transform(df, features2type, [rename[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
     df = replace_special(df, regex=regex, merge=True, cols=rename, logger=logger)
 
-    if not skip_checks:
-        ### Check phrase annotations
-        check_phrase_annotations(df, rename['phraseend'], logger=logger)
 
     key_cols = {col: rename[col] for col in ['localkey', 'globalkey']}
     if propagate:

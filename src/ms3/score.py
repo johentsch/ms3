@@ -78,7 +78,8 @@ from typing import Literal, Optional, Collection, Dict, Tuple
 import pandas as pd
 
 from .utils import assert_dfs_equal, check_labels, color2rgba, convert, DCML_DOUBLE_REGEX, decode_harmonies, FORM_DETECTION_REGEX, \
-    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc
+    get_ms_version, get_musescore, resolve_dir, rgba2params, unpack_mscz, update_labels_cfg, write_tsv, replace_index_by_intervals, expand_form_labels, make_playthrough2mc, \
+    check_phrase_annotations
 from .bs4_parser import _MSCX_bs4
 from .annotations import Annotations
 from .logger import LoggedClass, get_log_capture_handler, function_logger
@@ -263,10 +264,20 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
                 self.logger.warning(f"Annotations are present but expansion failed due to errors.",
                                     extra={"message_id": (17, )})
             return None
-        if unfold:
-            expanded = self.parsed.unfold_facet_df(expanded, 'expanded DCML labels')
-            if expanded is None:
-                return
+
+        unfolded_expanded = self.parsed.unfold_facet_df(expanded, 'expanded DCML labels')
+        if unfolded_expanded is not None:
+            check_phrase_annotations(unfolded_expanded, 'phraseend', logger=self.logger)
+        else:
+            self.logger.debug(f"Since unfolding failed, I'll check the phrase annotations as is.")
+            if 'volta' in expanded:
+                check_phrase_annotations(expanded[expanded.volta.fillna(2) == 2], 'phraseend', logger=self.logger)
+            else:
+                check_phrase_annotations(expanded, 'phraseend', logger=self.logger)
+
+        if unfold and (unfolded_expanded is None):
+            return
+
         has_chord = expanded.chord.notna()
         if not has_chord.all():
             # Compute duration_qb for chord spans without interruption by other labels, such as phrase and
