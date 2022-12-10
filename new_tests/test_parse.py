@@ -143,12 +143,11 @@ class TestLogging():
 
     def test_seeing_ignored_warnings(self, directory, get_all_warnings_parsed):
         ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-        p = Parse(directory)
+        p = Parse(directory, level='d')
         p.load_ignored_warnings(ignored_warnings_file)
-        p.change_logger_cfg(level='d')
         with capture_parse_logs(p.logger, level='d') as captured_msgs:
             p.parse()
-            _ = p.get_dataframes(expanded=True)
+            _ = p.extract_facets("expanded")
             all_msgs = captured_msgs.content_list
         ignored = ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
         try:
