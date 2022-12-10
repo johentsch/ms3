@@ -4770,3 +4770,19 @@ def parse_tsv_file_at_git_revision(file: File,
         return None, None
     new_file = dataclasses.replace(file, commit_sha=commit_sha)
     return new_file, parsed
+
+
+@function_logger
+def check_phrase_annotations(df: pd.DataFrame,
+                             column: str) -> bool:
+    """"""
+    p_col = df[column]
+    opening = p_col.fillna('').str.count('{')
+    closing = p_col.fillna('').str.count('}')
+    if opening.sum() != closing.sum():
+        o = df.loc[(opening > 0), ['mc', column]]
+        c = df.loc[(closing > 0), ['mc', column]]
+        compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
+        logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16,)})
+        return False
+    return True

@@ -5,9 +5,9 @@ import sys, re
 from collections import defaultdict
 
 import pandas as pd
-import numpy as np
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, series_is_minor, split_alternatives, transform
+from .utils import abs2rel_key, changes2list, check_phrase_annotations, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
+    series_is_minor, split_alternatives, transform
 from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
 
@@ -134,14 +134,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
 
     if not skip_checks:
         ### Check phrase annotations
-        p_col = df[rename['phraseend']]
-        opening = p_col.fillna('').str.count('{')
-        closing = p_col.fillna('').str.count('}')
-        if opening.sum() != closing.sum():
-            o = df.loc[(opening > 0), ['mc', rename['phraseend']]]
-            c = df.loc[(closing > 0), ['mc', rename['phraseend']]]
-            compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-            logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
+        check_phrase_annotations(df, rename['phraseend'], logger=logger)
 
     key_cols = {col: rename[col] for col in ['localkey', 'globalkey']}
     if propagate:
@@ -174,6 +167,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.index = ix
 
     return df
+
 
 @function_logger
 def extract_features_from_labels(S, regex=None):
