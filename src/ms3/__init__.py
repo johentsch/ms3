@@ -5,7 +5,7 @@ All functionality of the library is available through creating a ``ms3.Score`` o
 """
 # -*- coding: utf-8 -*-
 from pkg_resources import get_distribution, DistributionNotFound
-import os
+import os, logging
 os.environ["NUMEXPR_MAX_THREADS"] = "64"
 
 try:
@@ -20,5 +20,11 @@ finally:
 from .score import Score
 from .annotations import Annotations
 from .parse import Parse
+from .piece import Piece
+from .corpus import Corpus
 from .utils import *
 from .transformations import *
+from .logger import config_logger
+
+_ = config_logger("ms3", level='w')
+logging.getLogger('git').setLevel(20)

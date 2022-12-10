@@ -1,6 +1,9 @@
 import logging, sys, os
+from contextlib import contextmanager
 from functools import wraps
-
+from enum import Enum, unique
+from inspect import stack
+from typing import Iterable, Tuple
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -8,30 +11,64 @@ LEVELS = {
     'WARNING': logging.WARNING,
     'ERROR': logging.ERROR,
     'CRITICAL': logging.CRITICAL,
+    'NOTSET': logging.NOTSET,
     'D': logging.DEBUG,
     'I': logging.INFO,
     'W': logging.WARNING,
     'E': logging.ERROR,
     'C': logging.CRITICAL,
+    'N': logging.NOTSET
 }
 
-CURRENT_LEVEL = logging.INFO
+@unique
+class MessageType(Enum):
+    """Enumerated constants of message types."""
+    NO_TYPE = 0  # 0 is reserved as no type message
+    MCS_NOT_EXCLUDED_FROM_BARCOUNT_WARNING = 1
+    INCORRECT_VOLTA_MN_WARNING = 2
+    INCOMPLETE_MC_WRONGLY_COMPLETED_WARNING = 3
+    VOLTAS_WITH_DIFFERING_LENGTHS_WARNING = 4
+    MISSING_END_REPEAT_WARNING = 5
+    DCML_HARMONY_SUPERFLUOUS_TONE_REPLACEMENT_WARNING = 6
+    not_in_use = 7
+    DCML_HARMONY_KEY_NOT_SPECIFIED_WARNING = 8
+    COMPETING_MEASURE_INFO_WARNING = 9
+    IGNORED = 10
+    MISSING_FACET_INFO = 11
+    DCML_HARMONY_INCOMPLETE_LOCALKEY_COLUMN_WARNING = 12
+    DCML_HARMONY_INCOMPLETE_PEDAL_COLUMN_WARNING = 13
+    LOGGER_NOT_IN_USE_WARNING = 14
+    DCML_HARMONY_SYNTAX_WARNING = 15
+    DCML_PHRASE_INCONGRUENCY_WARNING = 16
+    DCML_EXPANSION_FAILED_WARNING = 17
+    DCML_SEVENTH_CORD_WITH_ALTERED_SEVENTH_WARNING = 18
+    DCML_NON_CHORD_TONES_ABOVE_THRESHOLD_WARNING = 19
+    UNUSED_FINE_MARKER_WARNING = 20
+    PLAY_UNTIL_IS_MISSING_LABEL_WARNING = 21
+    JUMP_TO_IS_MISSING_LABEL_WARNING = 22
+    MISSING_TIME_SIGNATURE_WARNING = 23 # no timesig through the piece
+    BEGINNING_WITHOUT_TIME_SIGNATURE_WARNING = 24 # no timesig in more than only the first measure (which could be an incipit)
+    INVALID_REPEAT_STRUCTURE = 25
 
-class ContextAdapter(logging.LoggerAdapter):
-    """ This LoggerAdapter is designed to include the module and function that called the logger."""
-    def process(self, msg, overwrite={}, stack_info=False, **kwargs):
-        # my_context = kwargs.pop('my_context', self.extra['my_context'])
-        fn, l, f, s = self.logger.findCaller(stack_info=stack_info)
-        fname = os.path.basename(overwrite.pop('fname', fn))
-        line = overwrite.pop('line', l)
-        func = overwrite.pop('func', f)
-        stack = overwrite.pop('stack', s)
-        msg = msg.replace('\n', '\n\t')
-        message = f"{fname} (line {line}) {func}():\n\t{msg}" if stack is None else f"{fname} line {line}, {func}():\n\t{msg}\n{stack}"
-        return message, kwargs
 
 
-class LoggedClass:
+class CustomFormatter(logging.Formatter):
+    """Formats message depending on whether there is a specified message type"""
+    def format(self, record):
+        if not hasattr(record, "_message_type"):
+            raise ValueError(f"Logger {record.name} has not been correctly defined and is missing the default _message_type field.")
+        msg = record.msg.replace('\n', '\n\t')
+        if record._message_type == 0:  # if there is no message type
+            record.msg = '%-8s %s -- %s (line %s) %s():\n\t%s' % (record.levelname, record.name, record.pathname, record.lineno, record.funcName, msg)
+        elif record._message_type == 10:
+            record.msg = 'IGNORED  %s -- %s (line %s) %s():\n\t%s' % (record.name, record.pathname, record.lineno, record.funcName, msg)
+        else:
+            record.msg = '%s %s %s -- %s (line %s) %s():\n\t%s' % (record._message_type_full, record._message_id, record.name, record.pathname, record.lineno, record.funcName, msg)
+        return super(CustomFormatter, self).format(record)
+
+
+
+class LoggedClass():
     """
 
     logger : :obj:`logging.Logger` or :obj:`logging.LoggerAdapter`
@@ -41,28 +78,23 @@ class LoggedClass:
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
-    def __init__(self, subclass='ms3', logger_cfg={}):
-        self.logger_cfg = {'name': subclass}
+    def __init__(self, subclass, logger_cfg={}):
+        logger_cfg = dict(logger_cfg)
         if 'name' not in logger_cfg or logger_cfg['name'] is None:
-            logger_cfg['name'] = 'ms3.' + subclass
-        self.logger_names = {'ms3': subclass}
-        self.update_logger_cfg(logger_cfg=logger_cfg)
+            name = subclass if subclass == 'ms3' else 'ms3.' + subclass
+            logger_cfg['name'] = name
+        self.logger_cfg: dict = logger_cfg
+        self.logger_names: dict = {}
+        self.logger: logging.Logger = get_logger(**self.logger_cfg)
+        self.logger_names['class'] = self.logger.name
 
-    def update_logger_cfg(self, name=None, level=None, path=None, file=None, logger_cfg={}):
-        if name is not None and not isinstance(name, str):
-            raise ValueError(f"name needs to be a string, not a {name.__class__}")
-        config_options = ['name', 'level', 'path', 'file']
-        params = locals()
-        for param in config_options:
-            if params[param] is not None:
-                logger_cfg[param] = params[param]
-        tested_cfg = update_cfg(logger_cfg, config_options)
-        for o in config_options:
-            if o not in tested_cfg and o not in self.logger_cfg:
-                tested_cfg[o] = None
-        self.logger_cfg.update(tested_cfg)
-        self.logger = get_logger(logger_cfg=self.logger_cfg)
-        self.logger_names['ms3'] = self.logger.name
+    def change_logger_cfg(self, level):
+        level = resolve_level_param(level)
+        self.logger.setLevel(level)
+        self.logger_cfg['level'] = level
+        for h in self.logger.handlers:
+            if not isinstance(h, LogCaptureHandler):
+                h.setLevel(level)
 
     def __getstate__(self):
         """ Loggers pose problems when pickling: Remove the reference."""
@@ -72,95 +104,70 @@ class LoggedClass:
     def __setstate__(self, state):
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
-        self.logger = get_logger(self.logger_names['ms3'])
+        self.logger = get_logger(**self.logger_cfg)
 
 
 
-def get_logger(name=None, level=None, path=None, file=None, logger_cfg={}, adapter=ContextAdapter):
+
+def get_logger(name=None, level=None, path=None, ignored_warnings=[]) -> logging.Logger:
     """The function gets or creates the logger `name` and returns it, by default through the given LoggerAdapter class."""
-    global CURRENT_LEVEL
-    params = locals()
-    for param in ['name', 'level', 'path', 'file']:
-        if param in logger_cfg:
-            params[param] = logger_cfg[param]
-
-    if isinstance(params['name'], logging.LoggerAdapter):
-        params['name'] = params['name'].logger
-    if isinstance(params['name'], logging.Logger):
-        if params['level'] is None:
-            params['level'] = params['name'].level
-        params['name'] = params['name'].name
-    if params['level'] is None:
-        params['level'] = CURRENT_LEVEL
-    else:
-        CURRENT_LEVEL = LEVELS[params['level'].upper()] if params['level'].__class__ == str else params['level']
-    try:
-        if params['name'] not in logging.root.manager.loggerDict:
-            config_logger(params['name'], level=params['level'], path=params['path'],
-            file=params['file'])
-    except Exception:
-        print(f"params: {params}")
-        raise
-    logger = logging.getLogger(params['name'])
-    logger.setLevel(CURRENT_LEVEL)
-    # for h in logger.handlers:
-    #     if h.__class__ != logging.FileHandler:
-    #         h.setLevel(CURRENT_LEVEL)
-
-    if adapter is not None:
-        logger = adapter(logger, {})
-    if params['name'] is None:
+    #assert name != 'ms3', "logged function called without passing logger (or logger name)" # TODO: comment out before release
+    # if isinstance(name, logging.LoggerAdapter):
+    #     name = name.logger
+    if isinstance(name, logging.Logger):
+        name = name.name
+    logger = config_logger(name, level=level, path=path, ignored_warnings=ignored_warnings)
+    if name is None:
         logging.critical("The root logger has been altered.")
     return logger
 
+def resolve_level_param(level):
+    if isinstance(level, str):
+        level = LEVELS[level.upper()]
+    assert isinstance(level, int), f"Logging level needs to be an integer, not {level.__class__}"
+    return level
 
 
-def config_logger(name, level=None, path=None, file=None):
-    """Configs the logger with name `name`. Overwrites existing config."""
-    assert name is not None, "I don't want to change the root logger."
-    logger = logging.getLogger(name)
-    logger.propagate = False
-    format = '%(levelname)-8s %(name)s -- %(message)s'
-    formatter = logging.Formatter(format)
-    if level is not None:
-        if level.__class__ == str:
-            level = LEVELS[level.upper()]
-        logger.setLevel(level)
-    existing_handlers = [h for h in logger.handlers]
-    stream_handlers = sum(True for h in existing_handlers if h.__class__ == logging.StreamHandler)
-    if stream_handlers == 0:
-        streamHandler = logging.StreamHandler(sys.stdout)
-        streamHandler.setFormatter(formatter)
-        logger.addHandler(streamHandler)
-    elif stream_handlers > 1:
-        logger.info(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
+def get_parent_level(logger):
+    if logger.parent is None:
+        return None
+    parent = logger.parent
+    if parent.level == 0:
+        return get_parent_level(parent)
+    return parent
 
-    log_file = None
-    if file is not None:
-        file = os.path.expanduser(file)
-        if os.path.isabs(file):
-            log_file = os.path.abspath(file)
-        elif path is None:
-            logger.warning(f"""Log file output cannot be configured for '{name}' because 'file' is relative ({file})
-but no 'path' has been configured.""")
-    if log_file is None and path is not None:
-        path = os.path.expanduser(path)
-        log_file = os.path.abspath(os.path.join(path, f"{name}.log"))
 
-    if log_file is not None and not any(True for h in existing_handlers if h.__class__ == logging.FileHandler and h.baseFilename == log_file):
-        log_dir, _ = os.path.split(log_file)
-        if not os.path.isdir(log_dir):
-            os.makedirs(log_dir, exist_ok=True)
-        logger.debug(f"Storing logs as {log_file}")
-        fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
-        fileHandler.setLevel(LEVELS['W'])
-        file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
-        fileHandler.setFormatter(file_formatter)
-        logger.addHandler(fileHandler)
-        logger.file_handler = fileHandler
-    else:
-        logger.file_handler = None
+def get_log_capture_handler(logger):
+    name = logger.name
+    if not name.startswith('ms3') or name == 'ms3':
+        return
+    head = '.'.join(name.split('.')[:2])
+    head_logger = get_logger(head)
+    try:
+        return next(h for h in head_logger.handlers if isinstance(h, LogCaptureHandler))
+    except StopIteration:
+        return
 
+class WarningFilter(logging.Filter):
+    """Filters messages. If message is in ignored_warnings, its level is changed to debug."""
+    def __init__(self, logger, ignored_warnings):
+        super().__init__()
+        self.logger = logger
+        self.ignored_warnings = set(ignored_warnings)
+
+    def filter(self, record):
+        ignored = record._message_id in self.ignored_warnings
+        if ignored:
+            self.logger.debug(CustomFormatter().format(record), #f"The following warning has been ignored in an IGNORED_WARNINGS file:\n{CustomFormatter().format(record)}",
+                              extra={"message_id": (10,)})
+        return not ignored
+
+    def __repr__(self):
+        return f"WarningFilter({self.ignored_warnings})"
+
+    def __str__(self):
+        def __repr__(self):
+            return f"WarningFilter('{self.logger.name}', {self.ignored_warnings})"
 
 def function_logger(f):
     """This decorator ensures that the decorated function can use the variable `logger` for logging and
@@ -196,7 +203,7 @@ def function_logger(f):
     """
 
     @wraps(f)
-    def logger(*args, **kwargs):
+    def logged_function_wrapper(*args, **kwargs):
         l = kwargs.pop('logger', None)
         if l is None:
             l = 'ms3'
@@ -214,8 +221,130 @@ def function_logger(f):
             func_globals = saved_values  # Undo changes.
         return result
 
-    return logger
+    return logged_function_wrapper
 
+def resolve_log_path_argument(path, name, logger):
+    log_file = None
+    if path is not None:
+        path = resolve_dir(path)
+        if os.path.isdir(path):
+            fname = name + ".log"
+            log_file = os.path.join(path, fname)
+        else:
+            path_component, fname = os.path.split(path)
+            if os.path.isdir(path_component):
+                log_file = path
+            else:
+                logger.error(f"Log file output cannot be configured for '{name}' because '{path_component}' is "
+                             f"not an existing directory.")
+    return log_file
+
+def config_logger(name, level=None, path=None, ignored_warnings=[]):
+    """Configs the logger with name `name`. Overwrites existing config."""
+    assert name is not None, "I don't want to change the root logger."
+    is_new_logger = name not in logging.root.manager.loggerDict or isinstance(logging.root.manager.loggerDict[name], logging.PlaceHolder)
+    is_top_level = name == 'ms3'
+    logger = logging.getLogger(name)
+    if level is not None:
+        level = resolve_level_param(level)
+    if is_top_level:
+        # # uncomment if you want to check for what's described in the log message
+        # last_8 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 9))
+        # logger.log(logger.getEffectiveLevel(), f"One of these functions calls a '@function_logger'-decorated function without passing logger=<logger>:\n{last_8}")
+        set_level = 0 if level is None else level
+        logging.basicConfig(level=set_level)
+        logger.debug(f"set logging.basicConfig(level={set_level})")
+    is_head_logger = logger.parent.name == 'ms3'
+    adding_file_handler = path is not None
+    adding_any_handlers = is_head_logger or adding_file_handler
+
+    if level is not None:
+        if level > 0:
+            logger.setLevel(level)
+        elif is_head_logger:
+            logger.setLevel(30)
+    effective_level = logger.getEffectiveLevel()
+
+    if is_head_logger:
+        # checking if any loggers exist from previous runs and need to be adapted
+        for logger_name, lggr in logging.Logger.manager.loggerDict.items():
+            if logger_name.startswith(name) and logger_name != name and isinstance(lggr, logging.Logger):
+                if lggr.getEffectiveLevel() not in (0, effective_level):
+                    lggr.setLevel(effective_level)
+
+    if len(ignored_warnings) > 0:
+        try:
+            existing_filter = next(filter for filter in logger.filters if isinstance(filter, WarningFilter))
+            existing_filter.ignored_warnings.update(ID for ID in ignored_warnings if ID not in existing_filter.ignored_warnings)
+        except StopIteration:
+            logger.addFilter(WarningFilter(logger, ignored_warnings=ignored_warnings))
+
+    if not is_new_logger and not adding_any_handlers:
+        return logger
+
+    if is_new_logger:
+        logger.propagate = not (is_top_level or is_head_logger)
+        original_makeRecord = logger.makeRecord
+
+        def make_record_with_extra(name, level, fn, lno, msg, args, exc_info, func, extra, sinfo):
+            """
+            Rewrites the method of record logging to pass extra parameter.
+            Returns
+            -------
+                record with fields: _info - label of message
+                                    _message_type - index of message type accordingly to enum class MessageType
+                                    _message_type_full - name of message type accordingly to enum class MessageType
+            """
+            record = original_makeRecord(name, level, fn, lno, msg, args, exc_info, func, extra=extra, sinfo=sinfo)
+            if extra is None:
+                record._message_id = ()
+                record._message_type = 0
+            else:
+                record._message_id = extra["message_id"]
+                record._message_type = record._message_id[0]
+            record._message_type_full = MessageType(record._message_type).name
+            return record
+
+        logger.makeRecord = make_record_with_extra
+
+    if adding_any_handlers:
+        if level is not None:
+            if effective_level != level:
+                if level == 0 and (is_head_logger or is_top_level):
+                    logger.info(f"Cannot unset (i.e., set to 0) logging level of top-level logger. Use > 0 instead. Left level at {effective_level}")
+                else:
+                    logger.warning(f"The call to .setLevel() did not result in changing the level from {effective_level} to {level}")
+        level = effective_level
+        formatter = CustomFormatter()
+        diverging_level = [h for h in logger.handlers if h.level != level and not isinstance(h, LogCaptureHandler)]
+        for h in diverging_level:
+            h.setLevel(level)
+
+        if is_head_logger:
+            stream_handlers = [h for h in logger.handlers if h.__class__ == logging.StreamHandler]
+            n_stream_handlers = len(stream_handlers)
+            if n_stream_handlers == 0:
+                streamHandler = logging.StreamHandler(sys.stdout)
+                streamHandler.setFormatter(formatter)
+                streamHandler.setLevel(level)
+                logger.addHandler(streamHandler)
+            elif n_stream_handlers > 1:
+                    logger.warning(f"The logger {name} has been setup with {stream_handlers} StreamHandlers and is probably sending every message twice.")
+
+        log_file = resolve_log_path_argument(path, name, logger)
+        if log_file is not None:
+            file_handlers = [h for h in logger.handlers if h.__class__ == logging.FileHandler]
+            n_file_handlers = len(file_handlers)
+            if n_file_handlers > 0:
+                logger.error(f"Logger '{name}' already has {n_file_handlers} FileHandlers attached.")
+            else:
+                logger.debug(f"Storing logs as {log_file}")
+                fileHandler = logging.FileHandler(log_file, mode='a', delay=True)
+                fileHandler.setLevel(level)
+                #file_formatter = logging.Formatter("%(asctime)s "+format, datefmt='%Y-%m-%d %H:%M:%S')
+                fileHandler.setFormatter(formatter)
+                logger.addHandler(fileHandler)
+    return logger
 
 def resolve_dir(d):
     """ Resolves '~' to HOME directory and turns ``dir`` into an absolute path.
@@ -227,11 +356,71 @@ def resolve_dir(d):
     return os.path.abspath(d)
 
 
-@function_logger
-def update_cfg(cfg_dict, admitted_keys):
+
+def update_cfg(cfg_dict: dict, admitted_keys: Iterable) -> Tuple[dict, dict]:
     correct = {k: v for k, v in cfg_dict.items() if k in admitted_keys}
     incorrect = {k: v for k, v in cfg_dict.items() if k not in admitted_keys}
-    if len(incorrect) > 0:
-        corr = '' if len(correct) == 0 else f"\nRecognized options: {correct}"
-        logger.warning(f"Unknown config options: {incorrect}{corr}")
-    return correct
+    return correct, incorrect
+
+
+class LogCaptureHandler(logging.Handler):
+
+    def __init__(self, log_queue):
+        logging.Handler.__init__(self)
+        self.log_queue = log_queue
+
+    def emit(self, record):
+        self.log_queue.append(self.format(record).strip("\n\t "))
+
+
+class LogCapturer(object):
+    """Adapted from https://stackoverflow.com/a/37967421"""
+    def __init__(self, level="W"):
+        self._log_queue = list() # original example was using collections.deque() to set maxlength
+        self._log_handler = LogCaptureHandler(self._log_queue)
+        #self._log_handler.setFormatter(CustomFormatter())
+        self._log_handler.setLevel(resolve_level_param(level))
+
+    @property
+    def content_string(self):
+        return '\n'.join(self._log_queue)
+
+    @property
+    def content_list(self):
+        return self._log_queue
+
+    @property
+    def log_handler(self):
+        return self._log_handler
+
+
+def iter_ms3_loggers(exclude_placeholders=True) -> tuple:
+    for name in logging.Logger.manager.loggerDict:
+        if name.startswith('ms3'):
+            logger = logging.getLogger(name)
+            if not exclude_placeholders or isinstance(logger, logging.Logger):
+                yield name, logger
+
+def inspect_loggers(exclude_placeholders=False) -> dict:
+    return dict(iter_ms3_loggers(exclude_placeholders=exclude_placeholders))
+
+@contextmanager
+def temporarily_suppress_warnings(logged_object: LoggedClass):
+    prev_level = logged_object.logger.level
+    logged_object.change_logger_cfg(level='c')
+    yield logged_object
+    logged_object.change_logger_cfg(level=prev_level)
+
+def normalize_logger_name(name: str) -> str:
+    """Shorten a logger name to Corpus.Piece so that it can be used to configure all associated loggers, no matter what."""
+    components = name.split('.')
+    for remove in ('ms3', 'Corpus', 'Parse'):
+        try:
+            components.remove(remove)
+        except ValueError:
+            pass
+    for extension in ('tsv', 'mscx', 'mscz', 'cap', 'capx', 'midi', 'mid', 'musicxml', 'mxl', 'xml'):
+        if components[-1] == extension:
+            components = components[:-1]
+            break
+    return '.'.join(components)

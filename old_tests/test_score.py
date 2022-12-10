@@ -73,14 +73,14 @@ class TestScore:
             old_path = os.path.join(fpath, 'harmonies', fname + '.tsv')
             new_expanded = load_tsv(new_path)
             old_expanded = load_tsv(old_path)
-            assert_dfs_equal(old_expanded, decode_harmonies(new_expanded))
+            assert_dfs_equal(old_expanded, decode_harmonies(new_expanded, logger='old_test'))
 
     def test_parse_to_measurelist(self, score_object):
         fname = score_object.fnames['mscx']
         fpath = os.path.join(score_object.paths['mscx'], '..')
         old_path = os.path.join(fpath, 'measures', fname + '.tsv')
         old_measurelist = load_tsv(old_path, index_col=None)
-        new_measurelist = score_object.mscx.measures
+        new_measurelist = score_object.mscx.measures()
         # Exclude 'repeat' column because the old parser used startRepeat, endRepeat and newSection
         # Exclude 'offset' and 'next' because the new parser does them more correctly
         excl = ['repeats', 'offset', 'next']

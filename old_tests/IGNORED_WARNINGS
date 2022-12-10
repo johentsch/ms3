@@ -1,0 +1,5 @@
+DCML_HARMONY_SYNTAX_WARNING (15,) ms3.Parse.old_tests.stabat_03_coloured -- /home/hentsche/PycharmProjects/ms3/src/ms3/annotations.py (line 358) expand_dcml():
+	Score contains 2 labels that don't (and 83 that do) match the DCML standard:
+	   mc  mn label harmony_layer
+	1   1   1    1m             2
+	2   1   1   B/F             3

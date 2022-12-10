@@ -1,0 +1,731 @@
+
+
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ms3.view &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
+    
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+
+    
+    
+     
+        <script src="../../_static/jquery.cookie.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.base.js"></script>
+    
+
+    
+     
+        <script src="../../_static/cloud.js"></script>
+    
+
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+  </head><body>
+    <div class="relbar-top">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.view</a></li> 
+      </ul>
+    </div>
+    </div>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ms3.view</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span>
+<span class="kn">from</span> <span class="nn">copy</span> <span class="kn">import</span> <span class="n">deepcopy</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Literal</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">numpy.typing</span> <span class="k">as</span> <span class="nn">npt</span>
+
+<span class="kn">from</span> <span class="nn">.score</span> <span class="kn">import</span> <span class="n">Score</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileList</span><span class="p">,</span> <span class="n">Category</span><span class="p">,</span> <span class="n">Categories</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">unpack_json_paths</span><span class="p">,</span> <span class="n">resolve_paths_argument</span>
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">LoggedClass</span>
+
+
+<div class="viewcode-block" id="empty_counts"><a class="viewcode-back" href="../../reference.html#ms3.view.empty_counts">[docs]</a><span class="k">def</span> <span class="nf">empty_counts</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Array for counting kept items, discarded items, and their sum.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="View"><a class="viewcode-back" href="../../reference.html#ms3.view.View">[docs]</a><span class="k">class</span> <span class="nc">View</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Object storing regular expressions and filter lists, storing and keeping track of things filtered out.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">review_regex</span> <span class="o">=</span> <span class="s2">&quot;review&quot;</span>
+    <span class="n">categories</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;corpora&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;folders&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;fnames&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;files&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;suffixes&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;facets&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">available_facets</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;scores&#39;</span><span class="p">,)</span> <span class="o">+</span> <span class="n">Score</span><span class="o">.</span><span class="n">dataframe_types</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;unknown&#39;</span><span class="p">,)</span>
+    <span class="n">singular2category</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Category</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">((</span><span class="s1">&#39;corpus&#39;</span><span class="p">,</span> <span class="s1">&#39;folder&#39;</span><span class="p">,</span> <span class="s1">&#39;fname&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">,</span> <span class="s1">&#39;facet&#39;</span><span class="p">),</span>
+                                   <span class="n">categories</span><span class="p">))</span>
+    <span class="n">tsv_regex</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\.tsv$&quot;</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+    <span class="n">convertible_regex</span> <span class="o">=</span> <span class="n">Score</span><span class="o">.</span><span class="n">make_extension_regex</span><span class="p">(</span><span class="n">native</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">convertible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tsv</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">registered_regexes</span> <span class="o">=</span> <span class="p">(</span><span class="n">convertible_regex</span><span class="p">,</span> <span class="n">review_regex</span><span class="p">,</span> <span class="n">tsv_regex</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                 <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">include_convertible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">exclude_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">logger_cfg</span>
+                 <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;View&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
+        <span class="c1"># fields</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="c1"># the two main dicts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">c</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_facets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_facets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">empty_counts</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].</span>
+<span class="sd">        Keys are &quot;category&quot; for :meth:`filter_by_token` and &#39;files&#39; or &#39;parsed&#39; for :meth:`filtered_file_list`.</span>
+<span class="sd">        To inspect, you can use the method :meth:`filtering_report`</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;subdir&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">],</span> <span class="n">Counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">Counter</span><span class="p">)</span>
+        <span class="sd">&quot;&quot;&quot;{criterion -&gt; {excluded_name -&gt; n_excluded}} dict for keeping track of which file was discarded based on which criterion.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># booleans</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">only_metadata_fnames</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># properties</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">view_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span> <span class="o">=</span> <span class="n">include_convertible</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_tsv</span> <span class="o">=</span> <span class="n">include_tsv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">exclude_review</span> <span class="o">=</span> <span class="n">exclude_review</span>
+        <span class="c1"># %%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
+        <span class="c1"># %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">check_name</span><span class="p">(</span><span class="n">view_name</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">view_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Name of the view should be a string, not &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">view_name</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">view_name</span><span class="o">.</span><span class="n">isidentifier</span><span class="p">():</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;The string &#39;</span><span class="si">{</span><span class="n">view_name</span><span class="si">}</span><span class="s2">&#39; cannot be used as attribute name.&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span>
+
+    <span class="nd">@name</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">name_valid</span><span class="p">,</span> <span class="n">msg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="p">(</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name_valid</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">new_name</span>
+
+<div class="viewcode-block" id="View.is_default"><a class="viewcode-back" href="../../reference.html#ms3.view.View.is_default">[docs]</a>    <span class="k">def</span> <span class="nf">is_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">relax_for_cli</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Checks includes and excludes that may influence the selection of fnames. Returns True if the settings</span>
+<span class="sd">        do not filter out any fnames. Only if ``relax_for_cli`` is set to True, the filters :attr:`include_convertible`</span>
+<span class="sd">        and :attr:`exclude_review` are permitted, too.&quot;&quot;&quot;</span>
+        <span class="c1"># define the expected number of filter regexes per category (ignore &#39;corpora&#39; and &#39;facets&#39;)</span>
+        <span class="n">default_excluding_lengths</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;suffixes&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;folders&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;fnames&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="mi">0</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">relax_for_cli</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude_review</span><span class="p">:</span>
+                <span class="n">default_excluding_lengths</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                    <span class="s1">&#39;folders&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s1">&#39;fnames&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                    <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="mi">1</span>
+                <span class="p">})</span>
+            <span class="n">default_excluding_lengths</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span>
+        <span class="c1">## debugging:</span>
+<span class="c1">#         print(f&quot;&quot;&quot;no includes: {all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys())}</span>
+<span class="c1"># default_excludes: {all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items())}</span>
+<span class="c1"># exclude_review: {not self.exclude_review or relax_for_cli}</span>
+<span class="c1"># include_convertible: {self.include_convertible or relax_for_cli}</span>
+<span class="c1"># no paths excluded: {len(self.excluded_file_paths) == 0}</span>
+<span class="c1"># fnames in metadata: {self.fnames_in_metadata}</span>
+<span class="c1"># not in metadata excluded: {self.fnames_not_in_metadata or relax_for_cli}</span>
+<span class="c1"># incomplete facets: {self.fnames_with_incomplete_facets}&quot;&quot;&quot;)</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">default_excluding_lengths</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span>
+            <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="n">expected</span> <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">expected</span> <span class="ow">in</span> <span class="n">default_excluding_lengths</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="ow">and</span>
+            <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span> <span class="ow">and</span>
+            <span class="p">(</span><span class="n">relax_for_cli</span> <span class="ow">or</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span> <span class="ow">and</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span>
+            <span class="p">))</span>
+          <span class="p">)</span></div>
+
+<div class="viewcode-block" id="View.copy"><a class="viewcode-back" href="../../reference.html#ms3.view.View.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;View&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns a copy of this view, i.e., a new View object.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">new_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">new_name</span> <span class="o">=</span> <span class="n">get_ferocious_name</span><span class="p">()</span>
+        <span class="n">new_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">new_name</span><span class="p">)</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">including</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">)</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">excluding</span> <span class="o">=</span> <span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">)</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">update_facet_selection</span><span class="p">()</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">excluded_file_paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">fnames_in_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span>
+        <span class="n">new_view</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span>
+        <span class="k">return</span> <span class="n">new_view</span></div>
+
+    <span class="k">def</span> <span class="nf">update_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">only_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">include_convertible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">exclude_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">folder_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">exclude_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">((</span><span class="s1">&#39;view_name&#39;</span><span class="p">,</span> <span class="s1">&#39;only_metadata&#39;</span><span class="p">,</span> <span class="s1">&#39;include_convertible&#39;</span><span class="p">,</span> <span class="s1">&#39;include_tsv&#39;</span><span class="p">,</span> <span class="s1">&#39;exclude_review&#39;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="n">view_name</span><span class="p">,</span> <span class="n">only_metadata</span><span class="p">,</span> <span class="n">include_convertible</span><span class="p">,</span> <span class="n">include_tsv</span><span class="p">,</span> <span class="n">exclude_review</span><span class="p">)</span>
+                                <span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">old_value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="n">old_value</span><span class="p">:</span>
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set &#39;</span><span class="si">{</span><span class="n">param</span><span class="si">}</span><span class="s2">&#39; (previously </span><span class="si">{</span><span class="n">old_value</span><span class="si">}</span><span class="s2">) to </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">file_re</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">file_re</span> <span class="o">!=</span> <span class="s1">&#39;.*&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="n">file_re</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">folder_re</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">folder_re</span> <span class="o">!=</span> <span class="s1">&#39;.*&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;folders&#39;</span><span class="p">,</span> <span class="n">folder_re</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">exclude_re</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">((</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">),</span> <span class="n">exclude_re</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">paths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">resolved_paths</span> <span class="o">=</span> <span class="n">resolve_paths_argument</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_paths</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">unpack_json_paths</span><span class="p">(</span><span class="n">resolved_paths</span><span class="p">)</span>
+                <span class="n">regexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">escape</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">include</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">regexes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">logger_cfg</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">change_logger_cfg</span><span class="p">(</span><span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">include_convertible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertible_regex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span>
+
+    <span class="nd">@include_convertible</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">include_convertible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">yes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unexclude</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertible_regex</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">convertible_regex</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">include_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsv_regex</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span>
+
+    <span class="nd">@include_tsv</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">include_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">yes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unexclude</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsv_regex</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tsv_regex</span><span class="p">)</span>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">exclude_review</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">review_regex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">what_to_exclude</span><span class="p">]</span>
+                   <span class="k">for</span> <span class="n">what_to_exclude</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">))</span>
+
+    <span class="nd">@exclude_review</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">exclude_review</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">yes</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">yes</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">exclude</span><span class="p">((</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">review_regex</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">unexclude</span><span class="p">((</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">review_regex</span><span class="p">)</span>
+
+<div class="viewcode-block" id="View.check_token"><a class="viewcode-back" href="../../reference.html#ms3.view.View.check_token">[docs]</a>    <span class="k">def</span> <span class="nf">check_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Checks if a string pertaining to a certain category should be included in the view or not.&quot;&quot;&quot;</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_category</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rgx</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">category</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rgx</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="View.check_file"><a class="viewcode-back" href="../../reference.html#ms3.view.View.check_file">[docs]</a>    <span class="k">def</span> <span class="nf">check_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">File</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot; Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file:</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            False if file is to be discarded from this view.</span>
+<span class="sd">            The criterion based on which the file is being excluded.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">full_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span>
+        <span class="n">category2file_component</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(((</span><span class="s1">&#39;folders&#39;</span><span class="p">,</span> <span class="s1">&#39;subdir&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;suffixes&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">)),</span>
+                                           <span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">subdir</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">file</span><span class="p">,</span> <span class="n">file</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span>
+                                           <span class="p">))</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="n">criterion</span><span class="p">),</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">category2file_component</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rgx</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">category</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">criterion</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="n">criterion</span><span class="p">),</span> <span class="n">component</span> <span class="ow">in</span> <span class="n">category2file_component</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rgx</span><span class="p">,</span> <span class="n">component</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">]):</span>
+                <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="n">criterion</span>
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;files&#39;</span></div>
+
+    <span class="k">def</span> <span class="nf">reset_filtering_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">categories</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># reset everything</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">empty_counts</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">Counter</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_categories</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">ctgr</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ctgr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">:</span>
+                    <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">[</span><span class="n">ctgr</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">ctgr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">:</span>
+                    <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">ctgr</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;files&#39;</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">Counter</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">update_facet_selection</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">reset_view</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="View.filter_by_token"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filter_by_token">[docs]</a>    <span class="k">def</span> <span class="nf">filter_by_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">tuples</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Filters out those tuples where the token (first element) does not pass _.check_token(category, token).&quot;&quot;&quot;</span>
+        <span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_category</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
+        <span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="n">discarded_items</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">tuples</span><span class="p">:</span>
+            <span class="n">N</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">token</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">tup</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_token</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="n">token</span><span class="o">=</span><span class="n">token</span><span class="p">):</span>
+                <span class="n">n_kept</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">yield</span> <span class="n">tup</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_discarded</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">discarded_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">category</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">discarded_items</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="View.filtered_tokens"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filtered_tokens">[docs]</a>    <span class="k">def</span> <span class="nf">filtered_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Applies :meth:`filter_by_token` to a collection of tokens.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">token</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_by_token</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="p">((</span><span class="n">t</span><span class="p">,)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))]</span></div>
+
+
+<div class="viewcode-block" id="View.filtered_file_list"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filtered_file_list">[docs]</a>    <span class="k">def</span> <span class="nf">filtered_file_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">File</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileList</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot; Keep only the files that pass _.check_file().</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            files: :obj:`File` objects to be filtered.</span>
+<span class="sd">            key: Aggregate results from several filter runs under this dictionary key.</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+        <span class="n">result</span><span class="p">,</span> <span class="n">discarded_items</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">accept</span><span class="p">,</span> <span class="n">criterion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_file</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">accept</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">discarded_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="o">.</span><span class="n">rel_path</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="c1"># do not track discarding criteria for special keys such as &#39;parsed&#39;, used by View.iter_facet2parsed</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span><span class="p">[</span><span class="n">criterion</span><span class="p">][</span><span class="nb">getattr</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">criterion</span><span class="p">)]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">discarded_items</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;files&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;int&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">discarded_items</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    <span class="k">def</span> <span class="nf">filtering_report</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drop_zero</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">show_discarded</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">return_str</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="n">aggregated_counts</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">empty_counts</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">counts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">aggregated_counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">counts</span>
+        <span class="k">if</span> <span class="n">show_discarded</span><span class="p">:</span>
+            <span class="n">discarded</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">discarded</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span><span class="p">)</span> <span class="ow">in</span> <span class="n">aggregated_counts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">drop_zero</span> <span class="ow">or</span> <span class="n">n_discarded</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_discarded</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">N</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2"> are excluded from this view&quot;</span>
+                <span class="k">if</span> <span class="n">show_discarded</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">discarded</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;:</span><span class="se">\n</span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">discarded</span><span class="p">[</span><span class="n">key</span><span class="p">])</span><span class="si">}</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;, but unfortunately I don&#39;t know which ones.</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+            <span class="k">for</span> <span class="n">criterion</span><span class="p">,</span> <span class="n">cntr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">crit</span> <span class="o">=</span> <span class="s1">&#39;file name&#39;</span> <span class="k">if</span> <span class="n">criterion</span> <span class="o">==</span> <span class="s1">&#39;file&#39;</span> <span class="k">else</span> <span class="n">criterion</span>
+                <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">cntr</span><span class="o">.</span><span class="n">values</span><span class="p">())</span><span class="si">}</span><span class="s2"> files have been excluded based on their </span><span class="si">{</span><span class="n">crit</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">show_discarded</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;:</span><span class="se">\n</span><span class="s1">&#39;</span>
+                    <span class="k">for</span> <span class="n">excluded_name</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">cntr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\t</span><span class="s2">- &#39;</span><span class="si">{</span><span class="n">excluded_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39;.</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="k">if</span> <span class="n">return_str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msg</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_str</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="n">msg_components</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;This view is called &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;. It excludes everything because both its attributes &quot;</span> \
+                   <span class="sa">f</span><span class="s2">&quot;fnames_in_metadata and fnames_not_in_metadata are set to False.&quot;</span>
+            <span class="k">if</span> <span class="n">return_str</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">msg</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;excludes fnames that are contained in the metadata&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;excludes fnames that are not contained in the metadata&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;excludes pieces that do not have at least one file per selected facet&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;filters out file extensions requiring conversion (such as .xml)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_tsv</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;disregards all TSV files&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">exclude_review</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;excludes review files and folders&quot;</span><span class="p">)</span>
+        <span class="n">included_re</span> <span class="o">=</span> <span class="p">{</span><span class="n">what_to_include</span><span class="p">:</span> <span class="p">[</span><span class="n">rgx</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regexes</span> <span class="k">if</span> <span class="n">rgx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_regexes</span><span class="p">]</span>
+                       <span class="k">for</span> <span class="n">what_to_include</span><span class="p">,</span> <span class="n">regexes</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">excluded_re</span> <span class="o">=</span> <span class="p">{</span><span class="n">what_to_exclude</span><span class="p">:</span> <span class="p">[</span><span class="n">rgx</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regexes</span> <span class="k">if</span> <span class="n">rgx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">registered_regexes</span><span class="p">]</span>
+                       <span class="k">for</span> <span class="n">what_to_exclude</span><span class="p">,</span> <span class="n">regexes</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="k">for</span> <span class="n">what_to_exclude</span><span class="p">,</span> <span class="n">re_strings</span> <span class="ow">in</span> <span class="n">included_re</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">n_included</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">n_included</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">n_included</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">included</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">re_strings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="k">elif</span> <span class="n">n_included</span> <span class="o">&lt;</span> <span class="mi">11</span><span class="p">:</span>
+                <span class="n">included</span> <span class="o">=</span> <span class="s1">&#39;one of &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">included</span> <span class="o">=</span> <span class="s1">&#39;one of [&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">regex</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="n">re_strings</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;... &#39;</span>
+                <span class="n">included</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_included</span> <span class="o">-</span> <span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report()))&quot;</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;includes only </span><span class="si">{</span><span class="n">what_to_exclude</span><span class="si">}</span><span class="s2"> containing </span><span class="si">{</span><span class="n">included</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">what_to_exclude</span><span class="p">,</span> <span class="n">re_strings</span> <span class="ow">in</span> <span class="n">excluded_re</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">n_excluded</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">n_excluded</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="n">n_excluded</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">excluded</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">re_strings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+            <span class="k">elif</span> <span class="n">n_excluded</span> <span class="o">&lt;</span> <span class="mi">11</span><span class="p">:</span>
+                <span class="n">excluded</span> <span class="o">=</span> <span class="s1">&#39;one of &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">excluded</span> <span class="o">=</span> <span class="s1">&#39;one of [&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">regex</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="n">re_strings</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;... &#39;</span>
+                <span class="n">excluded</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_excluded</span> <span class="o">-</span> <span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report())&quot;</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;excludes any </span><span class="si">{</span><span class="n">what_to_exclude</span><span class="si">}</span><span class="s2"> containing </span><span class="si">{</span><span class="n">excluded</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;excludes </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> files based on user input&quot;</span><span class="p">)</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;This view is called &#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;. It &quot;</span>
+        <span class="n">n_components</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">msg_components</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_components</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="s2">&quot;selects everything.&quot;</span>
+        <span class="k">elif</span> <span class="n">n_components</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="n">msg_components</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">separator</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n\t</span><span class="s1">- &#39;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="n">separator</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;,&#39;</span> <span class="o">+</span> <span class="n">separator</span><span class="p">)</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">msg_components</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, and</span><span class="si">{</span><span class="n">separator</span><span class="si">}{</span><span class="n">msg_components</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="k">if</span> <span class="n">return_str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">msg</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resolve_category</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Category</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">category</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">category</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">singular2category</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">singular2category</span><span class="p">[</span><span class="n">category</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">category</span><span class="si">}</span><span class="s2">&#39; is not one of the known categories </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">category</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Pass a single category string ∈ </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="si">}</span><span class="s2">, not a &#39;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">category</span><span class="p">)</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">resolve_categories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">categories</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">categories</span> <span class="o">=</span> <span class="p">[</span><span class="n">categories</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">resolve_category</span><span class="p">(</span><span class="n">categ</span><span class="p">)</span> <span class="k">for</span> <span class="n">categ</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">update_facet_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">selected</span><span class="p">,</span> <span class="n">discarded</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">facet</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_facets</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_token</span><span class="p">(</span><span class="s1">&#39;facet&#39;</span><span class="p">,</span> <span class="n">facet</span><span class="p">):</span>
+                <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">facet</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">discarded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">facet</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selected_facets</span> <span class="o">=</span> <span class="n">selected</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;facets&#39;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">discarded</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">:</span>
+                <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">:</span>
+                <span class="k">del</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+            <span class="k">return</span>
+        <span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">selected</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">discarded</span><span class="p">)</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">n_kept</span><span class="o">+</span><span class="n">n_discarded</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">counts</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">discarded</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">include</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span><span class="p">,</span> <span class="o">*</span><span class="n">regex</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]):</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_categories</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">what_to_include</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regex</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">rgx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">what_to_include</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">what_to_include</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rgx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">what_to_include</span> <span class="o">==</span> <span class="s1">&#39;facets&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_facet_selection</span><span class="p">()</span>
+
+
+    <span class="k">def</span> <span class="nf">exclude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span><span class="p">,</span> <span class="o">*</span><span class="n">regex</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]):</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_categories</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">what_to_exclude</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regex</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">rgx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">what_to_exclude</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">what_to_exclude</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rgx</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">what_to_exclude</span> <span class="o">==</span> <span class="s1">&#39;facets&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">update_facet_selection</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">uninclude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span><span class="p">,</span> <span class="o">*</span><span class="n">regex</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]):</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_categories</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">what_to_uninclude</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regex</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">what_to_uninclude</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">rgx</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+
+    <span class="k">def</span> <span class="nf">unexclude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">categories</span><span class="p">:</span> <span class="n">Categories</span><span class="p">,</span> <span class="o">*</span><span class="n">regex</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]):</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_categories</span><span class="p">(</span><span class="n">categories</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">what_to_unexclude</span> <span class="ow">in</span> <span class="n">categories</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="n">regex</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">what_to_unexclude</span><span class="p">]</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">rgx</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DefaultView"><a class="viewcode-back" href="../../reference.html#ms3.view.DefaultView">[docs]</a><span class="k">class</span> <span class="nc">DefaultView</span><span class="p">(</span><span class="n">View</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span><span class="p">,</span>
+                 <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">include_convertible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                 <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">exclude_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="o">**</span><span class="n">logger_cfg</span>
+                 <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                         <span class="n">only_metadata_fnames</span><span class="o">=</span><span class="n">only_metadata_fnames</span><span class="p">,</span>
+                         <span class="n">include_convertible</span><span class="o">=</span><span class="n">include_convertible</span><span class="p">,</span>
+                         <span class="n">include_tsv</span><span class="o">=</span><span class="n">include_tsv</span><span class="p">,</span>
+                         <span class="n">exclude_review</span><span class="o">=</span><span class="n">exclude_review</span><span class="p">,</span>
+                         <span class="o">**</span><span class="n">logger_cfg</span>
+                         <span class="p">)</span>
+
+<div class="viewcode-block" id="DefaultView.is_default"><a class="viewcode-back" href="../../reference.html#ms3.view.DefaultView.is_default">[docs]</a>    <span class="k">def</span> <span class="nf">is_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">relax_for_cli</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+        <span class="n">default_excluding_lengths</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;folders&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;fnames&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="s1">&#39;files&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="s1">&#39;suffixes&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">relax_for_cli</span><span class="p">:</span>
+            <span class="n">default_excluding_lengths</span><span class="p">[</span><span class="s1">&#39;files&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span>
+            <span class="c1">## debugging:</span>
+<span class="c1">#         print(f&quot;&quot;&quot;no includes: {all(len(self.including[category]) == 0 for category in default_excluding_lengths.keys())}</span>
+<span class="c1"># default_excludes: {all(len(self.excluding[category]) == expected for category, expected in default_excluding_lengths.items())}</span>
+<span class="c1"># exclude_review: {self.exclude_review}</span>
+<span class="c1"># include_convertible: {not self.include_convertible or relax_for_cli}</span>
+<span class="c1"># no paths excluded: {len(self.excluded_file_paths) == 0}</span>
+<span class="c1"># fnames in metadata: {self.fnames_in_metadata}</span>
+<span class="c1"># not in metadata excluded: {not self.fnames_not_in_metadata or relax_for_cli}</span>
+<span class="c1"># incomplete facets: {self.fnames_with_incomplete_facets}&quot;&quot;&quot;)</span>
+        <span class="k">return</span> <span class="p">(</span>
+                <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">including</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="n">default_excluding_lengths</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="ow">and</span>
+                <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">category</span><span class="p">])</span> <span class="o">==</span> <span class="n">expected</span> <span class="k">for</span> <span class="n">category</span><span class="p">,</span> <span class="n">expected</span> <span class="ow">in</span> <span class="n">default_excluding_lengths</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="ow">and</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span> <span class="ow">and</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">fnames_with_incomplete_facets</span> <span class="ow">and</span>
+                <span class="p">(</span><span class="n">relax_for_cli</span> <span class="ow">or</span> <span class="p">(</span>
+                        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_convertible</span> <span class="ow">and</span>
+                        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">fnames_not_in_metadata</span>
+                <span class="p">))</span>
+        <span class="p">)</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">create_view_from_parameters</span><span class="p">(</span><span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                <span class="n">include_convertible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                <span class="n">exclude_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                                <span class="n">paths</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                                <span class="n">file_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                                <span class="n">folder_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                                <span class="n">exclude_re</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">level</span><span class="o">=</span><span class="kc">None</span>
+                                <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">View</span><span class="p">:</span>
+    <span class="n">no_legacy_params</span> <span class="o">=</span> <span class="nb">all</span><span class="p">(</span><span class="n">param</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">file_re</span><span class="p">,</span> <span class="n">folder_re</span><span class="p">,</span> <span class="n">exclude_re</span><span class="p">))</span> 
+    <span class="n">all_default</span> <span class="o">=</span> <span class="n">only_metadata_fnames</span> <span class="ow">and</span> <span class="n">include_tsv</span> <span class="ow">and</span> <span class="n">exclude_review</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">include_convertible</span>
+    <span class="k">if</span> <span class="n">no_legacy_params</span> <span class="ow">and</span> <span class="n">all_default</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">DefaultView</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">)</span>
+    <span class="n">ferocious_name</span> <span class="o">=</span> <span class="n">get_ferocious_name</span><span class="p">()</span>
+    <span class="n">view</span> <span class="o">=</span> <span class="n">View</span><span class="p">(</span><span class="n">ferocious_name</span><span class="p">,</span>
+                <span class="n">only_metadata_fnames</span><span class="o">=</span><span class="n">only_metadata_fnames</span><span class="p">,</span>
+                <span class="n">include_convertible</span><span class="o">=</span><span class="n">include_convertible</span><span class="p">,</span>
+                <span class="n">include_tsv</span><span class="o">=</span><span class="n">include_tsv</span><span class="p">,</span>
+                <span class="n">exclude_review</span><span class="o">=</span><span class="n">exclude_review</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="n">level</span>
+                <span class="p">)</span>
+    <span class="n">view</span><span class="o">.</span><span class="n">update_config</span><span class="p">(</span><span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                       <span class="n">file_re</span><span class="o">=</span><span class="n">file_re</span><span class="p">,</span>
+                       <span class="n">folder_re</span><span class="o">=</span><span class="n">folder_re</span><span class="p">,</span>
+                       <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">view</span>
+
+
+<span class="k">def</span> <span class="nf">get_ferocious_name</span><span class="p">():</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s1">&#39;ferocious_names.txt&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">readlines</span><span class="p">())</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div class="sphinx-toc sphinxglobaltoc">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+    
+    
+        <div class="sidebar-toggle-group no-js">
+            
+            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
+                 «
+                <span class="show-for-small">hide menu</span>
+                
+            </button>
+            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
+                
+                <span class="show-for-small">menu</span>
+                <span class="hide-for-small">sidebar</span>
+                 »
+            </button>
+        </div>
+    
+      <div class="clearer"></div>
+    </div>
+    <div class="relbar-bottom">
+        
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> &nbsp; &nbsp;</li>
+    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">ms3.view</a></li> 
+      </ul>
+    </div>
+    </div>
+
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2020, johentsch.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+    </div>
+    <!-- cloud_sptheme 1.4 -->
+  </body>
+</html>
