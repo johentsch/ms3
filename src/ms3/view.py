@@ -171,6 +171,7 @@ class View(LoggedClass):
                 self.logger.debug(f"Set '{param}' (previously {old_value}) to {value}.")
         if file_re is not None and file_re != '.*':
             self.include('files', file_re)
+            self.include('fnames', file_re)
         if folder_re is not None and folder_re != '.*':
             self.include('folders', folder_re)
         if exclude_re is not None:
