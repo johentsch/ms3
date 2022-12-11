@@ -64,7 +64,7 @@ def add_cmd(args,
                                 simulate=args.test,
                                 suffix=args.suffix)
     changed = sum(map(len, corpus2paths.values()))
-    logger.info(f"Operation resulted in {changed} comparison file{'s' if changed != 1 else ''}.")
+    logger.info(f"Operation resulted in {changed} annotated score{'s' if changed != 1 else ''}.")
 
 def check_cmd(args,
               parse_obj: Optional[Parse] = None) -> Parse:

@@ -43,7 +43,9 @@ def make_note_name_and_octave_columns(notes: pd.DataFrame,
     return result, octaves
 
 @function_logger
-def add_quarterbeats_col(df, offset_dict, interval_index=False):
+def add_quarterbeats_col(df: pd.DataFrame,
+                         offset_dict: Union[pd.Series, dict],
+                         interval_index: bool = False) -> pd.DataFrame:
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
         the column corresponds to the values given in the offset_dict..
 
@@ -113,7 +115,7 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
             selected_qb = quarterbeats[present_qb].astype(float)
             qb_are_sorted = (selected_qb.sort_values().index == selected_qb.index).all()
             if not qb_are_sorted:
-                unordered_index_pairs = [[ix_a, ix_b] for (ix_a, a), (ix_b, b) in zip(selected_qb.items(), selected_qb[1:].items()) if b < a]
+                unordered_index_pairs = [[ix_a, ix_b] for (ix_a, a), (ix_b, b) in zip(selected_qb.items(), selected_qb.iloc[1:].items()) if b < a]
                 n_problems = len(unordered_index_pairs)
                 if n_problems > 0:
                     fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
