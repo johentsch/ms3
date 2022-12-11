@@ -10,7 +10,7 @@ from typing import Optional
 import pandas as pd
 
 from ms3 import Score, Parse
-from ms3.operations import extract, check, compare, update, store_scores
+from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
 from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv, MS3_VERSION
 from ms3.logger import get_logger, inspect_loggers
 
@@ -45,24 +45,26 @@ def make_suffixes(args):
     return suffixes
 
 
-def add(args):
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
-    p.parse(parallel=False)
-    if args.replace:
-        p.detach_labels()
-        p.logger.info(
-            f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
-    p.add_labels(use=args.use)
-    ids = [id for id, score in p._parsed_mscx.items() if score.mscx.changed]
-    if args.out is not None:
-        p.store_scores(ids=ids, root_dir=args.out, overwrite=True)
+def add_cmd(args,
+            parse_obj: Optional[Parse] = None) -> Parse:
+    logger = get_logger('ms3.add')
+    if parse_obj is None:
+        p = make_parse_obj(args)
     else:
-        p.store_scores(ids=ids, overwrite=True)
+        p = parse_obj
 
+    insert_labels_into_score(p,
+                             facet=args.use,
+                             ask_for_input=args.ask,
+                             replace=args.replace,
+                             )
+    corpus2paths = store_scores(p,
+                                root_dir=args.out,
+                                folder='.',
+                                simulate=args.test,
+                                suffix=args.suffix)
+    changed = sum(map(len, corpus2paths.values()))
+    logger.info(f"Operation resulted in {changed} comparison file{'s' if changed != 1 else ''}.")
 
 def check_cmd(args,
               parse_obj: Optional[Parse] = None) -> Parse:
@@ -550,9 +552,11 @@ The library offers you the following commands. Add the flag -h to one of them to
     #                            help="Remove labels from selected staves only. 1=upper staff; -1=lowest staff (default)")
     # add_parser.add_argument('--type', default=1,
     #                            help="Only remove particular types of harmony labels.")
+    add_parser.add_argument('-s', '--suffix', metavar='SUFFIX', default='_annotated',
+                                help='Suffix of the new scores with inserted labels. Defaults to _annotated.')
     add_parser.add_argument('--replace', action='store_true',
                                help="Remove existing labels from the scores prior to adding. Like calling ms3 empty first.")
-    add_parser.set_defaults(func=add)
+    add_parser.set_defaults(func=add_cmd)
 
 
 

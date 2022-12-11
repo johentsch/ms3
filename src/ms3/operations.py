@@ -2,9 +2,30 @@ from typing import Literal, Optional, Tuple, Dict, List
 
 from ms3 import Parse
 from ms3._typing import AnnotationsFacet
-from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict
+from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict, check_argument_against_literal_type
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
 
+def insert_labels_into_score(parse_obj: Parse,
+                             facet: AnnotationsFacet,
+                             ask_for_input: bool = True,
+                             replace: bool = True,
+                             ) -> None:
+    logger = get_logger('ms3.add')
+    facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=logger)
+    parse_obj.view.include('facets', 'scores', facet)
+    parse_obj.disambiguate_facet(facet, ask_for_input=ask_for_input)
+    parse_obj.disambiguate_facet('scores', ask_for_input=ask_for_input)
+    parse_obj.view.fnames_with_incomplete_facets = False
+    print("PARSING...")
+    parse_obj.parse(parallel=False)
+    if replace:
+        print("REMOVING LABELS FROM PARSED SCORES...")
+        parse_obj.detach_labels()
+    print("INSERTING LABELS INTO SCORES...")
+    parse_obj.load_facet_into_scores(facet)
+    parse_obj.insert_detached_labels()
+    print(f"PARSE OBJECT AFTER THE OPERATION:")
+    parse_obj.info()
 
 def extract(parse_obj: Parse,
             root_dir: Optional[str] = None,

@@ -4446,8 +4446,8 @@ def automatically_choose_from_disambiguated_files(disambiguated_choices: Dict[st
         sorted_disamb_series = disamb_series.sort_index()
         disamb = sorted_disamb_series.index[0]
         selected_file = sorted_disamb_series.iloc[0]
-        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with fname '{fname}', I selected '{selected_file.rel_path}' "
-                            f"because it's disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
+        logger.warning(f"Unable to automatically choose from the {choice_between_n} '{file_type}' with fname '{fname}'. I'm picking '{selected_file.rel_path}' "
+                            f"because its disambiguation string '{disamb}' is the lexicographically first among {sorted_disamb_series.index.to_list()}")
         return selected_file
     only_shortest_disamb_str = disamb_series[shortest_length_selector].to_dict()
     logger.info(f"After the first unsuccessful attempt to choose from {choice_between_n} '{file_type}' with fname '{fname}', trying again "

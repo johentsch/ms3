@@ -9,7 +9,7 @@ import pandas as pd
 from .corpus import Corpus
 from .logger import LoggedClass
 from .piece import Piece
-from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet
+from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet, Facet
 from .utils import get_musescore,  get_first_level_corpora, pretty_dict, resolve_dir, \
     update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata
 from .view import View, create_view_from_parameters, DefaultView
@@ -614,6 +614,16 @@ class Parse(LoggedClass):
             if corpus.metadata_tsv is None:
                 path = corpus.create_metadata_tsv()
 
+    def disambiguate_facet(self,
+                           facet: Facet,
+                           view_name: Optional[str] = None,
+                           ask_for_input=True) -> None:
+        """Calls the method on every selected corpus."""
+        for name, corpus in self.iter_corpora(view_name):
+            corpus.disambiguate_facet(facet=facet,
+                                      view_name=view_name,
+                                      ask_for_input=ask_for_input)
+
 
     def extract_facets(self,
                        facets: ScoreFacets = None,
@@ -876,6 +886,57 @@ class Parse(LoggedClass):
         # if return_str:
         #     return info
         # print(info)
+
+    def insert_detached_labels(self,
+                               view_name: Optional[str] = None,
+                               key: str = 'detached',
+                               staff: int = None,
+                               voice: Literal[1,2,3,4] = None,
+                               harmony_layer: Literal[0,1,2] = None,
+                               check_for_clashes: bool = True):
+        """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their
+        respective :py:attr:`~.score.Score`, altering the XML in memory. Calling :py:meth:`.store_scores` will output
+        MuseScore files where the annotations show in the score.
+
+        Parameters
+        ----------
+        key :
+            Key under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the
+            :py:attr:`~.score.Score` objects. Defaults to 'detached'.
+        staff : :obj:`int`, optional
+            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
+            By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
+            will be used.
+        voice : {1, 2, 3, 4}, optional
+            If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),
+            the labels will be attached to that one.
+            By default, the notational layers indicated in the 'voice' column of
+            :obj:`ms3.annotations.Annotations.df` will be used.
+        harmony_layer : :obj:`int`, optional
+            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
+            | Pass an integer to select a particular layer:
+            | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
+            | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
+            | * 2 to have MuseScore interpret them as Nashville Numbers
+        check_for_clashes : :obj:`bool`, optional
+            By default, warnings are thrown when there already exists a label at a position (and in a notational
+            layer) where a new one is attached. Pass False to deactivate these warnings.
+        """
+        reached, goal = 0, 0
+        for i, (name, corpus) in enumerate(self.iter_corpora(view_name), 1):
+            r, g = corpus.insert_detached_labels(view_name=view_name,
+                                          key=key,
+                                          staff=staff,
+                                          voice=voice,
+                                          harmony_layer=harmony_layer,
+                                          check_for_clashes=check_for_clashes
+                                          )
+            reached += r
+            goal += g
+        if i > 1:
+            self.logger.info(f"{reached}/{goal} labels successfully added.")
+
 
     def iter_corpora(self, view_name: Optional[str] = None) -> Generator[Tuple[str, Corpus], None, None]:
         """Iterate through corpora under the current or specified view."""
@@ -1248,20 +1309,24 @@ class Parse(LoggedClass):
 #         return dict(sum(res_dict.values(), Counter()))
 #
 
-    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, harmony_layer=None, delete=True):
-        """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
-        """
-        assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
-        ids = list(self._iterids(keys, only_attached_annotations=True))
-        if len(ids) == 0:
-            self.logger.info(f"Selection did not contain scores with labels: keys = '{keys}'")
-        for id in ids:
-            score = self._parsed_mscx[id]
-            try:
-                score.detach_labels(key=annotation_key, staff=staff, voice=voice, harmony_layer=harmony_layer, delete=delete)
-            except:
-                score.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
-        self._collect_annotations_objects_references(ids=ids)
+    def detach_labels(self,
+                      view_name: Optional[str] = None,
+                      force: bool = False,
+                      choose: Literal['auto', 'ask'] = 'auto',
+                      key: str = 'removed',
+                      staff: int = None,
+                      voice: Literal[1, 2, 3, 4] = None,
+                      harmony_layer: Literal[0, 1, 2, 3] = None,
+                      delete: bool = True):
+        for name, corpus in self.iter_corpora(view_name):
+            corpus.detach_labels(view_name=view_name,
+                                 force=force,
+                                 choose=choose,
+                                 key=key,
+                                 staff=staff,
+                                 voice=voice,
+                                 harmony_layer=harmony_layer,
+                                 delete=delete)
 
 
 

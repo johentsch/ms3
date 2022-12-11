@@ -609,7 +609,10 @@ class Corpus(LoggedClass):
                 self.files.append(F)
 
 
-    def disambiguate_facet(self, facet: Facet, view_name: Optional[str] = None, ask_for_input=True) -> None:
+    def disambiguate_facet(self,
+                           facet: Facet,
+                           view_name: Optional[str] = None,
+                           ask_for_input=True) -> None:
         """ Make sure that, for a given facet, the current view includes only one or zero files. If at least one piece
         has more than one file, the user will be asked which ones to use. The others will be excluded from the view.
 
@@ -1530,12 +1533,12 @@ class Corpus(LoggedClass):
                 self.get_piece(self.ix2fname[ix]).add_parsed_score(ix, score)
             if successful > 0:
                 if successful == target:
-                    quantifier = f"The file has" if target == 1 else f"All {target} files have"
+                    quantifier = f"The score has" if target == 1 else f"All {target} scores have"
                     self.logger.info(f"{quantifier} been parsed successfully.")
                 else:
-                    self.logger.info(f"Only {successful} of the {target} files have been parsed successfully.")
+                    self.logger.info(f"Only {successful} of the {target} scores have been parsed successfully.")
             else:
-                self.logger.info(f"None of the {target} files have been parsed successfully.")
+                self.logger.info(f"None of the {target} scores have been parsed successfully.")
         except KeyboardInterrupt:
             self.logger.info("Parsing interrupted by user.")
             raise
@@ -1610,12 +1613,12 @@ class Corpus(LoggedClass):
             self.get_piece(self.ix2fname[ix]).add_parsed_tsv(ix, df)
         if successful > 0:
             if successful == target:
-                quantifier = f"The file" if target == 1 else f"All {target} files"
-                self.logger.info(f"{quantifier} files have been parsed successfully.")
+                quantifier = f"The TSV file" if target == 1 else f"All {target} TSV files"
+                self.logger.info(f"{quantifier} have been parsed successfully.")
             else:
-                self.logger.info(f"Only {successful} of the {target} files have been parsed successfully.")
+                self.logger.info(f"Only {successful} of the {target} TSV files have been parsed successfully.")
         else:
-            self.logger.info(f"None of the {target} files have been parsed successfully.")
+            self.logger.info(f"None of the {target} TSV files have been parsed successfully.")
 
 
     def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
@@ -2004,70 +2007,22 @@ class Corpus(LoggedClass):
 
 
 
-    def add_detached_annotations(self, keys=None, use=None, tsv_key=None, new_key='old', revision_specifier=None):
-        """ Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`
-        objects to which they are being matched based on their filenames or on ``match_dict``.
-
-        Parameters
-        ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which score files are stored. By default, all keys are selected.
-        use : :obj:`str`, optional
-            By default, if several sets of annotation files are found, the user is asked to input
-            in which order to pick them. Instead, they can specify the name of a column of
-            _.pieces(), especially 'expanded' or 'labels' to be using only these.
-        new_key : :obj:`str`, optional
-            The key under which the :py:attr:`~.annotations.Annotations` objects will be available after attaching
-            them to the :py:attr:`~.score.Score` objects (``Corpusd.parsed_mscx[ID].new_key``).
-        tsv_key : :obj:`str`, optional
-            A key under which parsed TSV files are stored of which the type has been inferred as 'labels'.
-            Note that passing ``tsv_key`` results in the deprecated use of Corpus.match_files(). The preferred way
-            is to parse the labels to be attached under the same key as the scores and use
-            View.add_detached_labels().
-        revision_specifier : :obj:`str`, optional
-            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for
-            using compare_labels()), pass the commit's SHA.
-        """
-        keys = self._treat_key_param(keys)
-        if tsv_key is None:
-            for key in keys:
-                view = self._get_view(key)
-                view.add_detached_annotations(use=use, new_key=new_key, revision_specifier=revision_specifier)
-            return
-        matches = self.match_files(keys=keys + [tsv_key])
-        matches = matches[matches.labels.notna() | matches.expanded.notna()]
-        matches.labels.fillna(matches.expanded, inplace=True)
-        list_of_pairs = list(matches[['scores', 'labels']].itertuples(name=None, index=False))
-        if len(list_of_pairs) == 0:
-            self.logger.error(f"No files could be matched based on file names, probably a bug due to the deprecated use of the tsv_key parameter."
-                    f"The preferred way of adding labels is parsing them under the same key as the scores and use Corpus[key].add_detached_annotations()")
-            return
-        self._add_detached_annotations_by_ids(list_of_pairs, new_key=new_key)
-
-
-
-
-
-
-    def annotation_objects(self):
-        """Iterator through all annotation objects."""
-        yield from self._annotations.items()
-
-
-
-
-    def attach_labels(self, keys=None, annotation_key=None, staff=None, voice=None, harmony_layer=None, check_for_clashes=True):
-        """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their
-        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_scores` will output
+    def insert_detached_labels(self,
+                               view_name: Optional[str] = None,
+                               key: str = 'detached',
+                               staff: int = None,
+                               voice: Literal[1,2,3,4] = None,
+                               harmony_layer: Literal[0,1,2] = None,
+                               check_for_clashes: bool = True) -> Tuple[int, int]:
+        """ Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their
+        respective :py:attr:`~.score.Score`, altering the XML in memory. Calling :py:meth:`.store_scores` will output
         MuseScore files where the annotations show in the score.
 
         Parameters
         ----------
-        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-            Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.
-        annotation_key : :obj:`str` or :obj:`list` or :obj:`tuple`, optional
-            Key(s) under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the
-            :py:attr:`~.score.Score` objects. By default, all keys are selected.
+        key :
+            Key under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the
+            :py:attr:`~.score.Score` objects. Defaults to 'detached'.
         staff : :obj:`int`, optional
             If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
             By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
@@ -2077,43 +2032,25 @@ class Corpus(LoggedClass):
             the labels will be attached to that one.
             By default, the notational layers indicated in the 'voice' column of
             :obj:`ms3.annotations.Annotations.df` will be used.
+        harmony_layer : :obj:`int`, optional
+            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
+            | Pass an integer to select a particular layer:
+            | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
+            | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
+            | * 2 to have MuseScore interpret them as Nashville Numbers
         check_for_clashes : :obj:`bool`, optional
             By default, warnings are thrown when there already exists a label at a position (and in a notational
             layer) where a new one is attached. Pass False to deactivate these warnings.
         """
-        layers = self.count_annotation_layers(keys, which='detached', per_key=True)
-        if len(layers) == 0:
-            ks = '' if keys is None else ' under the key(s) ' + keys
-            self.logger.warning(f"No detached annotations found{ks}.")
-            return
-        if annotation_key is None:
-            annotation_key = list(layers.keys())
-        elif isinstance(annotation_key, str):
-            annotation_key = [annotation_key]
-        if any(True for k in annotation_key if k not in layers):
-            wrong = [k for k in annotation_key if k not in layers]
-            annotation_key = [k for k in annotation_key if k in layers]
-            if len(annotation_key) == 0:
-                self.logger.error(
-f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
-Currently available annotation keys are {list(layers.keys())}""")
-                return
-            else:
-                self.logger.warning(
-f"""'{wrong}' are currently not keys for sets of detached labels that have been added to parsed scores.
-Continuing with {annotation_key}.""")
-
-        ids = list(self._iterids(keys, only_detached_annotations=True))
         reached, goal = 0, 0
-        for id in ids:
-            for anno_key in annotation_key:
-                if anno_key in self._parsed_mscx[id]:
-                    r, g = self._parsed_mscx[id].attach_labels(anno_key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
-                    self.logger.info(f"{r}/{g} labels successfully added to {self.files[id[0]][id[1]]}")
-                    reached += r
-                    goal += g
-        self.logger.info(f"{reached}/{goal} labels successfully added to {len(ids)} files.")
-        self._collect_annotations_objects_references(ids=ids)
+        for i, (file, score) in enumerate(self.iter_parsed('scores', view_name=view_name), 1):
+            r, g = score.attach_labels(key, staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
+            self.logger.debug(f"{r}/{g} labels successfully added to {file}")
+            reached += r
+            goal += g
+        self.logger.info(f"{reached}/{goal} labels successfully added to {i} files.")
+        return reached, goal
 
 
     def change_labels_cfg(self, labels_cfg={}, staff=None, voice=None, harmony_layer=None, positioning=None, decode=None, column_name=None, color_format=None):
@@ -2387,20 +2324,24 @@ Continuing with {annotation_key}.""")
 
 
 
-    def detach_labels(self, keys=None, annotation_key='detached', staff=None, voice=None, harmony_layer=None, delete=True):
-        """ Calls :py:meth:`Score.detach_labels<ms3.score.Score.detach_labels` on every parsed score with key ``key``.
+    def detach_labels(self,
+                      view_name: Optional[str] = None,
+                      force: bool = False,
+                      choose: Literal['auto', 'ask'] = 'auto',
+                      key: str = 'removed',
+                      staff: int = None,
+                      voice: Literal[1,2,3,4] = None,
+                      harmony_layer: Literal[0,1,2,3] = None,
+                      delete: bool = True):
+        """ Calls :py:meth:`Score.detach_labels <ms3.score.Score.detach_labels` on every parsed score under the
+        current or selected view.
         """
-        assert annotation_key != 'annotations', "The key 'annotations' is reserved, please choose a different one."
-        ids = list(self._iterids(keys, only_attached_annotations=True))
-        if len(ids) == 0:
-            self.logger.info(f"Selection did not contain scores with labels: keys = '{keys}'")
-        for id in ids:
-            score = self._parsed_mscx[id]
+
+        for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
             try:
-                score.detach_labels(key=annotation_key, staff=staff, voice=voice, harmony_layer=harmony_layer, delete=delete)
-            except:
-                score.logger.error(f"Detaching labels failed with the following error:\n{sys.exc_info()[1]}")
-        self._collect_annotations_objects_references(ids=ids)
+                score.detach_labels(key=key, staff=staff, voice=voice, harmony_layer=harmony_layer, delete=delete)
+            except Exception as e:
+                score.logger.error(f"Detaching labels failed with the following error:\n'{e}'")
 
 
     def get_labels(self, keys=None, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, column_name=None,
