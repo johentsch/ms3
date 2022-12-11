@@ -9,26 +9,26 @@ from typing import Optional
 
 import pandas as pd
 
-from ms3 import Score, Parse
+from ms3 import Parse
 from ms3.operations import extract, check, compare, update, store_scores, insert_labels_into_score
-from ms3.utils import assert_dfs_equal, convert, convert_folder, get_musescore, resolve_dir, scan_directory, write_tsv, MS3_VERSION
+from ms3.utils import convert_folder, resolve_dir, write_tsv, MS3_VERSION
 from ms3.logger import get_logger, inspect_loggers
 
 __author__ = "johentsch"
-__copyright__ = "Êcole Polytechnique Fédérale de Lausanne"
+__copyright__ = "École Polytechnique Fédérale de Lausanne"
 __license__ = "gpl3"
 
 def gather_extract_params(args):
     params = [name for name, arg in zip(
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords', 'metadata'),
-        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata, args.form_labels))
-              if arg is not None]
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords, args.metadata))
+              if arg]
     return params
 
 
 
 
-def make_suffixes(args):
+def make_suffixes(args, include_metadata: bool = False):
     params = gather_extract_params(args)
     if args.suffix is None:
         suffixes = {}
@@ -40,14 +40,14 @@ def make_suffixes(args):
             suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
         else:
             suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
-    if "metadata_suffix" in suffixes:
+    if not include_metadata and "metadata_suffix" in suffixes:
         del (suffixes["metadata_suffix"])
     return suffixes
 
 
 def add_cmd(args,
             parse_obj: Optional[Parse] = None) -> Parse:
-    logger = get_logger('ms3.add')
+    logger = get_logger('ms3.add', level=args.level)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
@@ -83,8 +83,6 @@ def compare_cmd(args,
                 parse_obj=None,
                 output: bool = True,
                 logger = None) -> None:
-    if logger is None:
-        logger = get_logger("ms3.compare", level=args.level)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
@@ -94,7 +92,7 @@ def compare_cmd(args,
                                  ask=args.ask,
                                  revision_specifier=args.compare,
                                  flip=args.flip,
-                                 logger=logger
+                                 logger=p.logger
                                  )
     logger.debug(f"{n_changed} files changed labels during comparison, {n_unchanged} didn't.")
     if output:
@@ -161,7 +159,7 @@ def extract_cmd(args, parse_obj: Optional[Parse] = None):
         p = parse_obj
     params = gather_extract_params(args)
     if len(params) == 0:
-        print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata) -F (form_labels)")
+        print("In order to extract DataFrames, pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
     suffixes = make_suffixes(args)
     silence_label_warnings = args.silence_label_warnings if hasattr(args, 'silence_label_warnings') else False
@@ -220,46 +218,34 @@ def repair(args):
     print(args.dir)
 
 
-def transform(args):
-    if args.out is None:
-        args.out = os.getcwd()
-    params = [name for name, arg in zip(
-        ('measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata'),
-        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.events, args.chords, args.metadata))
-              if arg]
+def transform(args, parse_obj: Optional[Parse] = None):
+    suffixes = make_suffixes(args, include_metadata=True)
+    if parse_obj is None:
+        p = make_parse_obj(args, parse_tsv=True)
+    else:
+        p = parse_obj
+    params = gather_extract_params(args)
+    print(params)
     if len(params) == 0:
         print(
-            "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -E (events), -C (chords), -D (metadata)")
+            "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
-    if args.suffix is None:
-        suffixes = {f"{p}_suffix": '' for p in params}
-    else:
-        l_suff = len(args.suffix)
-        if l_suff == 0:
-            suffixes = {f"{p}_suffix": f"_{p}" for p in params}
-        elif l_suff == 1:
-            suffixes = {f"{p}_suffix": args.suffix[0] for p in params}
-        else:
-            suffixes = {f"{p}_suffix": args.suffix[i] if i < l_suff else f"_{p}" for i, p in enumerate(params)}
 
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
-    p.parse_tsv()
     for param in params:
-        if param == 'metadata':
-            continue
-        sfx = suffixes[f"{param}_suffix"]
+        sfx = suffixes.get(f"{param}_suffix", '')
         tsv_name = f"concatenated_{param}{sfx}.tsv"
-        path = os.path.join(args.out, tsv_name)
+        if args.out is None:
+            path = tsv_name
+        else:
+            path = os.path.join(args.out, tsv_name)
+        if param == 'metadata':
+            df = p.metadata()
+        else:
+            df = p.get_facets(param, flat=True, interval_index=args.interval_index, unfold=args.unfold)
+        df = df.reset_index(drop=False)
         if args.test:
             p.logger.info(f"Would have written {path}.")
         else:
-            df = p.__getattribute__(param)(interval_index=args.interval_index, unfold=args.unfold)
-            df = df.reset_index(drop=False)
             write_tsv(df, path)
             p.logger.info(f"{path} written.")
 
@@ -308,7 +294,7 @@ def review_cmd(args,
                parse_obj: Optional[Parse] = None,
                ) -> None:
     """This command combines the functionalities check-extract-compare and additionally colors non-chord tones."""
-    logger = get_logger('ms3.review')
+    logger = get_logger('ms3.review', level=args.level)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:
@@ -634,29 +620,32 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     review_parser.set_defaults(func=review_cmd)
 
     transform_parser = subparsers.add_parser('transform',
-                                          help="Concatenate and transform TSV data from one or several corpora.",
+                                          help="Concatenate and transform TSV data from one or several corpora. "
+                                               "Available transformations are unfolding repeats and adding an interval index.",
                                           parents=[parse_args])
     transform_parser.add_argument('-M', '--measures', action='store_true',
-                                help="Folder where to store TSV files with measure information needed for tasks such as unfolding repetitions.")
+                                help="Concatenate measures TSVs for all selected pieces.")
     transform_parser.add_argument('-N', '--notes', action='store_true',
-                                help="Folder where to store TSV files with information on all notes.")
+                                help="Concatenate notes TSVs for all selected pieces.")
     transform_parser.add_argument('-R', '--rests', action='store_true',
-                                help="Folder where to store TSV files with information on all rests.")
+                                help="Concatenate rests TSVs for all selected pieces (use ms3 extract -R to create those).")
     transform_parser.add_argument('-L', '--labels', action='store_true',
-                                help="Folder where to store TSV files with information on all annotation labels.")
+                                help="Concatenate raw harmony label TSVs for all selected pieces (use ms3 extract -L to create those).")
     transform_parser.add_argument('-X', '--expanded', action='store_true',
-                                help="Folder where to store TSV files with expanded DCML labels.")
+                                help="Concatenate expanded DCML label TSVs for all selected pieces.")
+    transform_parser.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
+                              help="Concatenate form label TSVs for all selected pieces.")
     transform_parser.add_argument('-E', '--events', action='store_true',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+                                help="Concatenate events TSVs (notes, rests, articulation, etc.) for all selected pieces (use ms3 extract -E to create those).")
     transform_parser.add_argument('-C', '--chords', action='store_true',
-                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+                                help="Concatenate harmony chords TSVs (lyrics, slurs, and other markup) for all selected pieces (use ms3 extract -C to create those).")
     transform_parser.add_argument('-D', '--metadata', action='store_true',
-                                help="Directory or full path for storing one TSV file with metadata. If no filename is included in the path, it is called metadata.tsv")
+                                help="Output 'concatenated_metadata.tsv' with one row per selected piece.")
     transform_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',
                                 help="Pass -s to use standard suffixes or -s SUFFIX to choose your own. In the latter case they will be assigned to the extracted aspects in the order "
                                      "in which they are listed above (capital letter arguments).")
     transform_parser.add_argument('-u', '--unfold', action='store_true',
-                                help="Unfold the repeats for all stored DataFrames.")
+                                help="Unfold the repeats for all concatenated DataFrames.")
     transform_parser.add_argument('--interval_index', action='store_true',
                               help="Prepend a column with [start, end) intervals to the TSV files.")
     transform_parser.set_defaults(func=transform)

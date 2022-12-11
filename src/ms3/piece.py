@@ -996,15 +996,27 @@ class Piece(LoggedClass):
         if ix not in self.ix2parsed:
             return None
         if ix not in self.ix2parsed_tsv:
+            # this is a score and will not be transformed in any way
             return self.ix2parsed[ix]
         df = self.ix2parsed_tsv[ix]
         qb_missing = any(c not in df.columns for c in ('quarterbeats', 'duration_qb'))
         if interval_index or unfold or qb_missing:
+            file = self.ix2file[ix]
             if unfold or qb_missing:
-                _, measures = self.get_facet('measures')
+                if file.type != 'measures':
+                    _, measures = self.get_facet('measures')
+                else:
+                    measures = df
                 if measures is None:
-                    self.logger.warning(f"Piece.get_facet('measures') did not return the required measures table.")
-                    return None
+                    if unfold:
+                        self.logger.warning(f"Piece.get_facet('measures') did not return a measures table, which is required for unfolding repeats. "
+                                            f"Make sure that the view includes a TSV file or a score for '{self.name}' so I can get it. Returning None for now.")
+                        return None
+                    # else: qb_missing
+                    self.logger.warning(f"Piece.get_facet('measures') did not return a measures table, which is required for adding the "
+                                        f"missing columns 'quarterbeats' and 'duration_qb'. Make sure that the view includes a TSV file or a score "
+                                        f"for '{self.name}' so I can get it. Returning a DataFrame without these columns for now.")
+                    return df
                 transformed = dfs2quarterbeats(df, measures=measures, unfold=unfold, interval_index=interval_index, logger=self.logger)
                 if len(transformed) == 0:
                     return
