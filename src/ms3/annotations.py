@@ -107,13 +107,13 @@ class Annotations(LoggedClass):
             df[staff_col] = staff
         else:
             if staff is None:
-                self.logger.info(
-                    "Some labels don't have staff information. Using the default -1 (lowest staff) for those.")
-                staff = -1
+                if df[staff_col].isna().any():
+                    staff = -1
+                    self.logger.info(f"Some labels don't have staff information. Assigned staff {staff}.")
+                    df[staff_col].fillna(staff, inplace=True)
             else:
                 df[staff_col] = staff
-        if df[staff_col].isna().any():
-            df[staff_col].fillna(staff)
+
 
         voice_col = self.cols['voice']
         if voice_col not in cols:
@@ -121,12 +121,29 @@ class Annotations(LoggedClass):
                 self.logger.info("Annotations don't have voice information. Attaching to the default, voice 1.")
                 voice = 1
             df[voice_col] = voice
-        if df[voice_col].isna().any():
+        else:
             if voice is None:
-                self.logger.info("Some labels don't have voice information. Attaching to the default, voice 1.")
+                if df[voice_col].isna().any():
+                    voice = 1
+                    self.logger.info("Some labels don't have voice information. Attaching to the default, voice 1.")
+                    df[voice_col].fillna(voice, inplace=True)
+            else:
+                df[voice_col] = voice
 
-        if harmony_layer is not None:
-            df[self.cols['harmony_layer']] = harmony_layer
+        layer_col = self.cols['harmony_layer']
+        if layer_col not in cols:
+            if harmony_layer is None:
+                self.logger.info("Annotations don't have harmony_layer information. Using the default, 1 (Roman numerals).")
+                harmony_layer = 1
+            df[layer_col] = harmony_layer
+        else:
+            if harmony_layer is None:
+                if df[layer_col].isna().any():
+                    harmony_layer = 1
+                    self.logger.info("Some labels don't have harmony_layer information. Using the default, 1 (Roman numerals).")
+                    df[layer_col].fillna(harmony_layer, inplace=True)
+            else:
+                df[layer_col] = harmony_layer
 
         error = False
         if self.cols['mc'] not in cols:
