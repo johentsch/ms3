@@ -59,7 +59,8 @@ def check(parse_obj: Parse,
           ignore_labels: bool = False,
           ignore_scores: bool = False,
           assertion: bool = False,
-          parallel: bool = True) -> bool:
+          parallel: bool = True,
+          warnings_file: Optional[str] = None) -> bool:
     assert ignore_labels + ignore_scores < 2, "Activate either ignore_labels or ignore_scores, not both."
     all_warnings = []
     check_logger = get_logger("ms3.check", level=parse_obj.logger.getEffectiveLevel())
@@ -78,13 +79,17 @@ def check(parse_obj: Parse,
             expanded = parse_obj.get_dataframes(expanded=True)
             warnings = captured_warnings.content_list
         if len(expanded) == 0:
-            parse_obj.logger.info(f"No DCML labels could be detected.")
+            parse_obj.logger.info(f"No DCML labels to check.")
         elif len(warnings) > 0:
             all_warnings.extend(warnings)
             check_logger.warning("Warnings detected while checking DCML labels (see above).")
+    if warnings_file is not None and len(all_warnings) > 0:
+        with open(warnings_file, 'a', encoding='utf-8') as f:
+            f.writelines(all_warnings)
+        parse_obj.logger.info(f"Added captured warnings to {warnings_file}")
     if assertion:
         assert len(all_warnings) == 0, "Encountered warnings, check failed."
-    if len(warnings) == 0:
+    if len(all_warnings) == 0:
         if ignore_labels:
             msg = 'All checked scores alright.'
         elif ignore_scores:

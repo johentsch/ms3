@@ -5,6 +5,7 @@ Command line interface for ms3.
 """
 
 import argparse, os
+from datetime import datetime
 from typing import Optional
 
 import pandas as pd
@@ -299,16 +300,28 @@ def review_cmd(args,
         p = make_parse_obj(args)
     else:
         p = parse_obj
+
+    # create file for warnings
+    out_dir = '.' if args.out is None else args.out
+    warnings_file = os.path.join(out_dir, 'warnings.log')
+    header = f"Warnings encountered during the last execution of ms3 review"
+    header = f"{header}\n{'=' * len(header)}\n\n"
+    header += f"Performed on {datetime.now().replace(microsecond=0).isoformat()} with ms3 {MS3_VERSION}\n\n"
+    with open(warnings_file, 'w', encoding='utf-8') as f:
+        f.write(header)
+
+    # call ms3 check
     if args.ignore_scores + args.ignore_labels < 2:
         what = '' if args.ignore_scores else 'SCORES'
         if args.ignore_labels:
             what += 'LABELS' if what == '' else 'AND LABELS'
         print(f"CHECKING {what}...")
         test_passes = check(p,
-              ignore_labels=args.ignore_labels,
-              ignore_scores=args.ignore_scores,
-              assertion=False,
-              parallel=False)
+                            ignore_labels=args.ignore_labels,
+                            ignore_scores=args.ignore_scores,
+                            assertion=False,
+                            parallel=False,
+                            warnings_file=warnings_file)
         p.parse_tsv()
     else:
         p.parse(parallel=False)
@@ -319,11 +332,15 @@ def review_cmd(args,
                    "Add -a if you want me to include all scores."
         print(msg)
         return
+
+    # call ms3 extract
     params = gather_extract_params(args)
     if len(params) > 0:
         print("EXTRACTING FACETS...")
         extract_cmd(args, p)
-    print("COLORING NON-CHORD TONES...")
+
+    # color out-of-label tones
+    print("COLORING OUT-OF-LABEL TONES...")
     review_reports = p.color_non_chord_tones()
     if len(review_reports) > 0:
         dataframes, keys = [], []
@@ -338,8 +355,15 @@ def review_cmd(args,
         if warning_selection.sum() > 0:
             test_passes = False
             filtered_report = report[warning_selection]
-            logger.warning(filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio']),
+            pretty_report = filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio'])
+            logger.warning(pretty_report,
                            extra={'message_id': (19,)})
+            with open(warnings_file, 'a', encoding='utf-8') as f:
+                f.write(f"Chord labels where the ratio of colored notes vs. all notes in a segment lies above {args.threshold}:\n")
+                f.write(pretty_report)
+            logger.info(f"Added the {warning_selection.sum()} labels to {warnings_file}.")
+
+    # call ms3 compare
     if args.compare is not None:
         revision = None if args.compare == '' else args.compare
         commit_str = '' if revision is None else f" @ {revision}"
@@ -359,9 +383,10 @@ def review_cmd(args,
     changed = sum(map(len, corpus2paths.values()))
     logger.info(f"Operation resulted in {changed} review file{'s' if changed != 1 else ''}.")
     if test_passes:
-        logger.info(f"Parsed scores passed all tests.")
+        logger.info(f"Parsed scores passed all tests. Removed {warnings_file}")
+        os.remove(warnings_file)
     else:
-        msg = "Not all tests have passed."
+        msg = f"Not all tests have passed. Please check the relevant warnings in {warnings_file}"
         if args.fail:
             assert test_passes, msg
         else:
