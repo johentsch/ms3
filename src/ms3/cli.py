@@ -304,9 +304,8 @@ def review_cmd(args,
     # create file for warnings
     out_dir = '.' if args.out is None else args.out
     warnings_file = os.path.join(out_dir, 'warnings.log')
-    header = f"Warnings encountered during the last execution of ms3 review"
+    header = f"Warnings encountered during the last execution of ms3 review (v{MS3_VERSION})"
     header = f"{header}\n{'=' * len(header)}\n\n"
-    header += f"Performed on {datetime.now().replace(microsecond=0).isoformat()} with ms3 {MS3_VERSION}\n\n"
     with open(warnings_file, 'w', encoding='utf-8') as f:
         f.write(header)
 
