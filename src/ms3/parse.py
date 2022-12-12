@@ -161,6 +161,11 @@ class Parse(LoggedClass):
         return sum(corpus.n_parsed_tsvs for _, corpus in self)
 
     @property
+    def n_pieces(self) -> int:
+        """Number of all available pieces ('fnames'), independent of the view."""
+        return sum(corpus.n_pieces for _, corpus in self)
+
+    @property
     def n_unparsed_scores(self) -> int:
         """Number of all detected but not yet parsed scores, aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files."""
         return sum(corpus.n_unparsed_scores for _, corpus in self)

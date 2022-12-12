@@ -250,6 +250,11 @@ class Corpus(LoggedClass):
         return len(self.ix2parsed_tsv)
 
     @property
+    def n_pieces(self) -> int:
+        """Number of all available pieces ('fnames'), independent of the view."""
+        return len(self._pieces)
+
+    @property
     def n_unparsed_tsvs(self):
         return sum(file.type != 'scores' and file.ix not in self.ix2parsed_tsv and file.ix not in self.ix2orphan_file and file.ix not in self.ix2metadata_file for file in self.files)
 

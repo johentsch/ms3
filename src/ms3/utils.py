@@ -2507,7 +2507,7 @@ def no_collections_no_booleans(df, coll_columns=None, bool_columns=None):
     if df is None:
         return df
     collection_cols = ['next', 'chord_tones', 'added_tones', 'volta_mcs']
-    bool_cols = ['globalkey_is_minor', 'localkey_is_minor']
+    bool_cols = ['globalkey_is_minor', 'localkey_is_minor', 'has_drumset']
     if coll_columns is not None:
         collection_cols += list(coll_columns)
     if bool_columns is not None:
