@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 1.0.1
+Version 1.0.2
 =============
 
 **ms3 requires Python 3.10**
@@ -36,10 +36,14 @@ New features
   same type apart (e.g., scores or annotation files) and pick one automatically, if necessary, or ask for
   user input.
 * The command ``ms3 review`` combines the functionalities of ``ms3 check``, ``ms3 extract``, and ``ms3 compare``, and is
-  now the only command used in the new ``dcml_corpus_workflow`` action. For each score that has DCML harmony labels,
-  it stores another score and TSV file with the suffix ``_reviewed``. The score has all out-of-label tones colored in
-  red and the TSV file contains a report on this coloring procedure. Both files are stored in the folder
-  ``reviewed`` on the top level of the corpus.
+  now the only command used in the new ``dcml_corpus_workflow`` action. For each score that has DCML harmony labels, 
+  it stores another score and TSV file with the suffix ``_reviewed``, in the folder ``reviewed``.
+
+  * The score has all out-of-label tones colored in red and 
+  * the TSV file contains a report on this coloring procedure. Both files are stored in the folder
+    ``reviewed`` on the top level of the corpus.
+  * **(1.0.2)** In addition, if any warnings pop up, they are stored in the top-level ``warnings.log`` file.
+
 * Inserting labels into scores is accomplished using the new method ``load_facet_into_scores()`` which comes with the
   optional parameter ``git_revision`` which allows loading TSVs from a specific commit.
 * Therefore, ``ms3 compare`` (and hence, ``ms3 review``) is now able to compare the labels in a score with those in a TSV file
@@ -99,10 +103,16 @@ Other changes
 * New unittest suite that makes use of the DCMLab/unittest_metacorpus repo and enforces it to be at the correct commit.
 * The parser is now more robust against user-induced strangeness in MuseScore files.
 
+Version 1.0.1
+=============
+
+See above, version 1.0.2
+
+
 Version 1.0.0
 =============
 
-See above, version 1.0.1
+See above, version 1.0.2
 
 
 Version 0.5.3
