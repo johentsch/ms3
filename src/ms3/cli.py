@@ -331,6 +331,7 @@ def review_cmd(args,
             msg += "\nI was disregarding all files whose file names are not listed in the column 'fname' of a 'metadata.tsv' file. " \
                    "Add -a if you want me to include all scores."
         print(msg)
+        os.remove(warnings_file)
         return
 
     # call ms3 extract
