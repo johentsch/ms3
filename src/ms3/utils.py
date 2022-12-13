@@ -3267,7 +3267,7 @@ def unfold_measures_table(measures: pd.DataFrame) -> Optional[pd.DataFrame]:
         logger.debug("Repeat structure successfully unfolded.")
     unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
     try:
-        mn_playthrough_col = compute_mn_playthrough(unfolded_measures)
+        mn_playthrough_col = compute_mn_playthrough(unfolded_measures, logger=logger)
         insert_position = unfolded_measures.columns.get_loc('mc_playthrough') + 1
         unfolded_measures.insert(insert_position, 'mn_playthrough', mn_playthrough_col)
     except Exception as e:
@@ -4896,14 +4896,18 @@ def check_phrase_annotations(df: pd.DataFrame,
     p_col = df[column]
     opening = p_col.fillna('').str.count('{')
     closing = p_col.fillna('').str.count('}')
-    position_col = 'mn_playthrough' if 'mn_playthrough' else 'mn'
+    if 'mn_playthrough' in df.columns:
+        position_col = 'mn_playthrough'
+    else:
+        logger.info(f"Column 'mn_playthrough' is missing, so my assessment of the phrase annotations might be wrong.")
+        position_col = 'mn'
     columns = [position_col, column]
     if opening.sum() != closing.sum():
         o = df.loc[(opening > 0), columns]
         c = df.loc[(closing > 0), columns]
         compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1)
         if 'mn' in compare:
-            compare = compare.astype({'mn9': 'Int64'})
+            compare = compare.astype({'mn': 'Int64'})
         logger.warning(f"Phrase beginning and endings don't match:\n{compare.to_string(index=False)}", extra={"message_id": (16,)})
         return False
     return True

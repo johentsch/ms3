@@ -592,7 +592,7 @@ Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
     def unfold_facet_df(self, facet_df: pd.DataFrame, facet: str) -> Optional[pd.DataFrame]:
         if facet == 'measures':
             return unfold_measures_table(facet_df, logger=self.logger)
-        playthrough_info = make_playthrough_info(self.ml())
+        playthrough_info = make_playthrough_info(self.ml(), logger=self.logger)
         if playthrough_info is None:
             self.logger.warning(f"Unfolding '{facet}' unsuccessful. Check warnings concerning repeat structure and fix.")
             return

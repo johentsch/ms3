@@ -275,8 +275,10 @@ use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.
             else:
                 check_phrase_annotations(expanded, 'phraseend', logger=self.logger)
 
-        if unfold and (unfolded_expanded is None):
-            return
+        if unfold:
+            if unfolded_expanded is None:
+                return
+            expanded = unfolded_expanded
 
         has_chord = expanded.chord.notna()
         if not has_chord.all():
