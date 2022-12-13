@@ -85,7 +85,7 @@ def check(parse_obj: Parse,
             check_logger.warning("Warnings detected while checking DCML labels (see above).")
     if warnings_file is not None and len(all_warnings) > 0:
         with open(warnings_file, 'a', encoding='utf-8') as f:
-            f.write(w + '\n' for w in all_warnings)
+            f.writelines(w + '\n' for w in all_warnings)
         parse_obj.logger.info(f"Added captured warnings to {warnings_file}")
     if assertion:
         assert len(all_warnings) == 0, "Encountered warnings, check failed."
