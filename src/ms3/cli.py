@@ -360,7 +360,7 @@ def review_cmd(args,
                            extra={'message_id': (19,)})
             with open(warnings_file, 'a', encoding='utf-8') as f:
                 f.write(f"Chord labels where the ratio of colored notes vs. all notes in a segment lies above {args.threshold}:\n")
-                f.write(pretty_report)
+                f.write(pretty_report + "\n")
             logger.info(f"Added the {warning_selection.sum()} labels to {warnings_file}.")
 
     # call ms3 compare
