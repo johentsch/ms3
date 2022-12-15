@@ -4127,7 +4127,7 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
         if chord_tone != []:
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
-                logger.warning(f"{MC}{label} results in a chord tone {tone_function_names[tf]}} AND its replacement(s) (TPC {replacing_tones}). "
+                logger.warning(f"{MC}{label} results in a chord tone {tone_function_names[tf]} AND its replacement(s) (TPC {replacing_tones}). "
                                f"You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.",
                                extra={"message_id": (6, mc, label)})
         chord_tones.extend(replacing_tones)
