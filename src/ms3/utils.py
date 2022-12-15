@@ -4114,14 +4114,21 @@ def features2tpcs(numeral, form=None, figbass=None, changes=None, relativeroot=N
     }
     bass = figbass2bass[figbass]
     chord_tones = []
+    tone_function_names = {
+        0: 'root',
+        2: '3rd',
+        4: '5th',
+        6: '7th',
+    }
     for tf in tone_functions[bass:] + tone_functions[:bass]:
         chord_tone, replacing_tones = root_position[tf], replacements[tf]
         if chord_tone == replacing_tones == []:
-            logger.debug(f"{MC}{label} results in a chord without {tf + 1}.")
+            logger.debug(f"{MC}{label} results in a chord without {tone_function_names[tf]}.")
         if chord_tone != []:
             chord_tones.append(chord_tone[0])
             if replacing_tones != []:
-                logger.warning(f"{MC}{label} results in a chord tone {tf + 1} AND its replacement(s) {replacing_tones}.",
+                logger.warning(f"{MC}{label} results in a chord tone {tone_function_names[tf]} AND its replacement(s) (TPC {replacing_tones}). "
+                               f"You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.",
                                extra={"message_id": (6, mc, label)})
         chord_tones.extend(replacing_tones)
 
