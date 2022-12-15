@@ -123,19 +123,18 @@ def convert_cmd(args):
             update_logger.info(f"Argument '{argument_name}' is currently being ignored.")
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
     ms = 'auto' if args.musescore is None else args.musescore
-    for directory in args.dir:
-        convert_folder(directory=directory,
-                       paths=args.files,
-                       target_dir=out_dir,
-                       extensions=args.extensions,
-                       target_extension=args.format,
-                       regex=args.include,
-                       suffix=args.suffix,
-                       recursive=not args.nonrecursive,
-                       ms=ms,
-                       overwrite=args.safe,
-                       parallel=not args.iterative,
-                       logger=update_logger)
+    convert_folder(directory=args.dir,
+                   paths=args.files,
+                   target_dir=out_dir,
+                   extensions=args.extensions,
+                   target_extension=args.format,
+                   regex=args.include,
+                   suffix=args.suffix,
+                   recursive=not args.nonrecursive,
+                   ms=ms,
+                   overwrite=args.safe,
+                   parallel=not args.iterative,
+                   logger=update_logger)
 
 def empty(args):
     logger_cfg = {
@@ -453,7 +452,7 @@ Parse('{args.dir}',
 def get_arg_parser():
     # reusable argument sets
     parse_args = argparse.ArgumentParser(add_help=False)
-    parse_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', default=os.getcwd(), type=check_dir,
+    parse_args.add_argument('-d', '--dir', metavar='DIR', default=os.getcwd(), type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
     parse_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
                                 help='Output directory.')
