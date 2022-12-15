@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.parse &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <title>ms3.parse &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
@@ -67,25 +67,17 @@
 <span></span><span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Iterator</span>
 
-<span class="kn">import</span> <span class="nn">io</span>
 <span class="kn">import</span> <span class="nn">sys</span><span class="o">,</span> <span class="nn">os</span>
-<span class="kn">import</span> <span class="nn">traceback</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">Counter</span><span class="p">,</span> <span class="n">defaultdict</span>
 
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">git</span> <span class="kn">import</span> <span class="n">Repo</span><span class="p">,</span> <span class="n">InvalidGitRepositoryError</span>
-<span class="kn">from</span> <span class="nn">gitdb.exc</span> <span class="kn">import</span> <span class="n">BadName</span>
 
 <span class="kn">from</span> <span class="nn">.corpus</span> <span class="kn">import</span> <span class="n">Corpus</span>
-<span class="kn">from</span> <span class="nn">.annotations</span> <span class="kn">import</span> <span class="n">Annotations</span>
-<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">LoggedClass</span><span class="p">,</span> <span class="n">get_logger</span>
+<span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">LoggedClass</span>
 <span class="kn">from</span> <span class="nn">.piece</span> <span class="kn">import</span> <span class="n">Piece</span>
-<span class="kn">from</span> <span class="nn">.score</span> <span class="kn">import</span> <span class="n">Score</span>
-<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileDict</span><span class="p">,</span> <span class="n">FileList</span><span class="p">,</span> <span class="n">CorpusFnameTuple</span><span class="p">,</span> <span class="n">ScoreFacets</span><span class="p">,</span> <span class="n">FileDataframeTupleMaybe</span><span class="p">,</span> <span class="n">FacetArguments</span><span class="p">,</span> <span class="n">FileParsedTuple</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">AnnotationsFacet</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">column_order</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">group_id_tuples</span><span class="p">,</span> <span class="n">iter_selection</span><span class="p">,</span> <span class="n">get_first_level_corpora</span><span class="p">,</span> <span class="n">join_tsvs</span><span class="p">,</span> <span class="n">load_tsv</span><span class="p">,</span> <span class="n">make_continuous_offset_series</span><span class="p">,</span> \
-    <span class="n">make_id_tuples</span><span class="p">,</span> <span class="n">make_playthrough2mc</span><span class="p">,</span> <span class="n">METADATA_COLUMN_ORDER</span><span class="p">,</span> <span class="n">metadata2series</span><span class="p">,</span> <span class="n">parse_ignored_warnings_file</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> \
-    <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">write_tsv</span><span class="p">,</span> <span class="n">available_views2str</span><span class="p">,</span> <span class="n">path2parent_corpus</span><span class="p">,</span> <span class="n">resolve_paths_argument</span><span class="p">,</span> <span class="n">enforce_fname_index_for_metadata</span>
+<span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileDict</span><span class="p">,</span> <span class="n">FileList</span><span class="p">,</span> <span class="n">CorpusFnameTuple</span><span class="p">,</span> <span class="n">ScoreFacets</span><span class="p">,</span> <span class="n">FacetArguments</span><span class="p">,</span> <span class="n">FileParsedTuple</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">AnnotationsFacet</span><span class="p">,</span> <span class="n">Facet</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">get_musescore</span><span class="p">,</span>  <span class="n">get_first_level_corpora</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> \
+    <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">available_views2str</span><span class="p">,</span> <span class="n">path2parent_corpus</span><span class="p">,</span> <span class="n">resolve_paths_argument</span><span class="p">,</span> <span class="n">enforce_fname_index_for_metadata</span>
 <span class="kn">from</span> <span class="nn">.view</span> <span class="kn">import</span> <span class="n">View</span><span class="p">,</span> <span class="n">create_view_from_parameters</span><span class="p">,</span> <span class="n">DefaultView</span>
 
 
@@ -233,6 +225,11 @@
     <span class="k">def</span> <span class="nf">n_parsed_tsvs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot;Number of parsed TSV files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_parsed_tsvs</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Number of all available pieces (&#39;fnames&#39;), independent of the view.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_pieces</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_unparsed_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -688,6 +685,16 @@
             <span class="k">if</span> <span class="n">corpus</span><span class="o">.</span><span class="n">metadata_tsv</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">path</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">create_metadata_tsv</span><span class="p">()</span>
 
+<div class="viewcode-block" id="Parse.disambiguate_facet"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.disambiguate_facet">[docs]</a>    <span class="k">def</span> <span class="nf">disambiguate_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">facet</span><span class="p">:</span> <span class="n">Facet</span><span class="p">,</span>
+                           <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">ask_for_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Calls the method on every selected corpus.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
+            <span class="n">corpus</span><span class="o">.</span><span class="n">disambiguate_facet</span><span class="p">(</span><span class="n">facet</span><span class="o">=</span><span class="n">facet</span><span class="p">,</span>
+                                      <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                                      <span class="n">ask_for_input</span><span class="o">=</span><span class="n">ask_for_input</span><span class="p">)</span></div>
+
 
     <span class="k">def</span> <span class="nf">extract_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">facets</span><span class="p">:</span> <span class="n">ScoreFacets</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -950,6 +957,57 @@
         <span class="c1"># if return_str:</span>
         <span class="c1">#     return info</span>
         <span class="c1"># print(info)</span>
+
+<div class="viewcode-block" id="Parse.insert_detached_labels"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.insert_detached_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_detached_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;detached&#39;</span><span class="p">,</span>
+                               <span class="n">staff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">voice</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">harmony_layer</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">check_for_clashes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their</span>
+<span class="sd">        respective :py:attr:`~.score.Score`, altering the XML in memory. Calling :py:meth:`.store_scores` will output</span>
+<span class="sd">        MuseScore files where the annotations show in the score.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        key :</span>
+<span class="sd">            Key under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the</span>
+<span class="sd">            :py:attr:`~.score.Score` objects. Defaults to &#39;detached&#39;.</span>
+<span class="sd">        staff : :obj:`int`, optional</span>
+<span class="sd">            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.</span>
+<span class="sd">            By default, the staves indicated in the &#39;staff&#39; column of :obj:`ms3.annotations.Annotations.df`</span>
+<span class="sd">            will be used.</span>
+<span class="sd">        voice : {1, 2, 3, 4}, optional</span>
+<span class="sd">            If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),</span>
+<span class="sd">            the labels will be attached to that one.</span>
+<span class="sd">            By default, the notational layers indicated in the &#39;voice&#39; column of</span>
+<span class="sd">            :obj:`ms3.annotations.Annotations.df` will be used.</span>
+<span class="sd">        harmony_layer : :obj:`int`, optional</span>
+<span class="sd">            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.</span>
+<span class="sd">            | Pass an integer to select a particular layer:</span>
+<span class="sd">            | * 0 to attach them as absolute (&#39;guitar&#39;) chords, meaning that when opened next time,</span>
+<span class="sd">            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).</span>
+<span class="sd">            | * 1 the labels are written into the staff&#39;s layer for Roman Numeral Analysis.</span>
+<span class="sd">            | * 2 to have MuseScore interpret them as Nashville Numbers</span>
+<span class="sd">        check_for_clashes : :obj:`bool`, optional</span>
+<span class="sd">            By default, warnings are thrown when there already exists a label at a position (and in a notational</span>
+<span class="sd">            layer) where a new one is attached. Pass False to deactivate these warnings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">reached</span><span class="p">,</span> <span class="n">goal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">corpus</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">insert_detached_labels</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                                          <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                                          <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span>
+                                          <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span>
+                                          <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span>
+                                          <span class="n">check_for_clashes</span><span class="o">=</span><span class="n">check_for_clashes</span>
+                                          <span class="p">)</span>
+            <span class="n">reached</span> <span class="o">+=</span> <span class="n">r</span>
+            <span class="n">goal</span> <span class="o">+=</span> <span class="n">g</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reached</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">goal</span><span class="si">}</span><span class="s2"> labels successfully added.&quot;</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Parse.iter_corpora"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.iter_corpora">[docs]</a>    <span class="k">def</span> <span class="nf">iter_corpora</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Corpus</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Iterate through corpora under the current or specified view.&quot;&quot;&quot;</span>
@@ -1322,20 +1380,24 @@
 <span class="c1">#         return dict(sum(res_dict.values(), Counter()))</span>
 <span class="c1">#</span>
 
-<div class="viewcode-block" id="Parse.detach_labels"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.detach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotation_key</span><span class="o">=</span><span class="s1">&#39;detached&#39;</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Calls :py:meth:`Score.detach_labels&lt;ms3.score.Score.detach_labels` on every parsed score with key ``key``.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">annotation_key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">,</span> <span class="s2">&quot;The key &#39;annotations&#39; is reserved, please choose a different one.&quot;</span>
-        <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">only_attached_annotations</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selection did not contain scores with labels: keys = &#39;</span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
-            <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
-            <span class="k">try</span><span class="p">:</span>
-                <span class="n">score</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">annotation_key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
-                <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detaching labels failed with the following error:</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_annotations_objects_references</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                      <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                      <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;removed&#39;</span><span class="p">,</span>
+                      <span class="n">staff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">voice</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">harmony_layer</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
+            <span class="n">corpus</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                                 <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">,</span>
+                                 <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">,</span>
+                                 <span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span>
+                                 <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span>
+                                 <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span>
+                                 <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span>
+                                 <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">)</span>
 
 
 
@@ -2289,7 +2351,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 

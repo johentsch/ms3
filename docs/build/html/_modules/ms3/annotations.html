@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.annotations &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <title>ms3.annotations &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 
@@ -173,13 +173,13 @@
             <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">staff</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">staff</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                    <span class="s2">&quot;Some labels don&#39;t have staff information. Using the default -1 (lowest staff) for those.&quot;</span><span class="p">)</span>
-                <span class="n">staff</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">staff</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Some labels don&#39;t have staff information. Assigned staff </span><span class="si">{</span><span class="n">staff</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">staff</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">staff</span>
-        <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="n">df</span><span class="p">[</span><span class="n">staff_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">staff</span><span class="p">)</span>
+
 
         <span class="n">voice_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;voice&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">voice_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
@@ -187,12 +187,29 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Annotations don&#39;t have voice information. Attaching to the default, voice 1.&quot;</span><span class="p">)</span>
                 <span class="n">voice</span> <span class="o">=</span> <span class="mi">1</span>
             <span class="n">df</span><span class="p">[</span><span class="n">voice_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">voice</span>
-        <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">voice_col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+        <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">voice</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Some labels don&#39;t have voice information. Attaching to the default, voice 1.&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">voice_col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">voice</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Some labels don&#39;t have voice information. Attaching to the default, voice 1.&quot;</span><span class="p">)</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">voice_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">voice</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">voice_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">voice</span>
 
-        <span class="k">if</span> <span class="n">harmony_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">df</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;harmony_layer&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">harmony_layer</span>
+        <span class="n">layer_col</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;harmony_layer&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">layer_col</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">harmony_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Annotations don&#39;t have harmony_layer information. Using the default, 1 (Roman numerals).&quot;</span><span class="p">)</span>
+                <span class="n">harmony_layer</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">df</span><span class="p">[</span><span class="n">layer_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">harmony_layer</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">harmony_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">df</span><span class="p">[</span><span class="n">layer_col</span><span class="p">]</span><span class="o">.</span><span class="n">isna</span><span class="p">()</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                    <span class="n">harmony_layer</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Some labels don&#39;t have harmony_layer information. Using the default, 1 (Roman numerals).&quot;</span><span class="p">)</span>
+                    <span class="n">df</span><span class="p">[</span><span class="n">layer_col</span><span class="p">]</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">df</span><span class="p">[</span><span class="n">layer_col</span><span class="p">]</span> <span class="o">=</span> <span class="n">harmony_layer</span>
 
         <span class="n">error</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cols</span><span class="p">[</span><span class="s1">&#39;mc&#39;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">:</span>
@@ -606,7 +623,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 

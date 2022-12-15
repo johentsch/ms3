@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Changelog &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <title>Changelog &#8212; ms3 1.0.2+ge926d22.dirty documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -54,7 +54,7 @@
         <li class="right" >
           <a href="authors.html" title="Contributors"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
@@ -69,12 +69,13 @@
             
   <section id="changelog">
 <span id="changes"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this heading">¶</a></h1>
-<section id="version-1-0-0">
-<h2>Version 1.0.0<a class="headerlink" href="#version-1-0-0" title="Permalink to this heading">¶</a></h2>
+<section id="version-1-0-2">
+<h2>Version 1.0.2<a class="headerlink" href="#version-1-0-2" title="Permalink to this heading">¶</a></h2>
+<p><strong>ms3 requires Python 3.10</strong></p>
 <p>ms3 has gotten a makeover and does not quite like it did before. The major changes are:</p>
 <ul class="simple">
-<li><p>The library is now optimized for one particular folder structure, namely <code class="docutils literal notranslate"><span class="pre">meta-corpus</span> <span class="pre">-&gt;</span> <span class="pre">corpus</span> <span class="pre">-&gt;</span> <span class="pre">piece</span></code>.</p></li>
-<li><p>ms3 now comes with a full-fledged “views” feature which lets one subselect files in manifold ways.</p></li>
+<li><p>The library is now optimized for one particular folder structure, namely <code class="docutils literal notranslate"><span class="pre">[meta-corpus</span> <span class="pre">-&gt;]</span> <span class="pre">corpus</span> <span class="pre">-&gt;</span> <span class="pre">piece</span></code>.</p></li>
+<li><p>ms3 now comes with a full-fledged “views” feature which lets you subselect files in manifold ways.</p></li>
 <li><p>The TSV outputs have gained additional columns. In particular, all TSV files now come with the column <code class="docutils literal notranslate"><span class="pre">quarterbeats</span></code>
 reflecting each event’s offset from the piece’s beginning.</p></li>
 <li><p>Warnings concerning irregularities, e.g. wrong measure numbering due to a cadenza, can now be sanctioned by copying
@@ -87,21 +88,27 @@ them into an IGNORED_WARNINGS file.</p></li>
 and “all”. The “default” view disregards review files, scores in convertible formats, and scores that are not listed
 in the top-level <code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> file.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">metadata.tsv</span></code> files, by the virtue of their first column <code class="docutils literal notranslate"><span class="pre">fname</span></code>, now serve as authority on what is
-included in the corpus and what belongs together. This column is always unique and is supposed to be used as index.</p></li>
-<li><p>Suffixed <code class="docutils literal notranslate"><span class="pre">metadata_&lt;suffix&gt;.tsv</span></code> files are loaded as available views on the included file names.</p></li>
+included in the corpus and what belongs together. This column is always unique and supposed to be used as index.</p></li>
+<li><p>Suffixed <code class="docutils literal notranslate"><span class="pre">metadata_&lt;suffix&gt;.tsv</span></code> files are loaded as available views based on the column <code class="docutils literal notranslate"><span class="pre">fname</span></code> (other columns
+are disregarded).</p></li>
 <li><p>The Parse object now detects if the passed directory contains individual corpora or if it is a corpus itself.</p></li>
 <li><p>Parse objects perform operations by iterating over Corpus objects.</p></li>
 <li><p>Corpus objects perform operations by iterating over Piece objects.</p></li>
 <li><p>Corpus objects reflect exactly one folder, the <code class="docutils literal notranslate"><span class="pre">corpus_path</span></code>, and always discover all present files (which can be
 filtered before the actual parsing). Default output paths are derived from it.</p></li>
-<li><p>Piece objects unite the various files pertaining to the same <code class="docutils literal notranslate"><span class="pre">fname</span></code> and is able to keep multiple versions of the
-same type (e.g., scores or annotation files) apart from each other and pick one automatically, if necessary, or asks for
+<li><p>Piece objects unite the various files pertaining to the same <code class="docutils literal notranslate"><span class="pre">fname</span></code> and are able to keep multiple versions of the
+same type apart (e.g., scores or annotation files) and pick one automatically, if necessary, or ask for
 user input.</p></li>
 <li><p>The command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">review</span></code> combines the functionalities of <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">check</span></code>, <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">extract</span></code>, and <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">compare</span></code>, and is
 now the only command used in the new <code class="docutils literal notranslate"><span class="pre">dcml_corpus_workflow</span></code> action. For each score that has DCML harmony labels,
-it stores another score and TSV file with the suffix <code class="docutils literal notranslate"><span class="pre">_reviewed</span></code>. The score has all out-of-label tones colored in
-red and the TSV file contains a report on this coloring procedure. Both files are stored in the folder
+it stores another score and TSV file with the suffix <code class="docutils literal notranslate"><span class="pre">_reviewed</span></code>, in the folder <code class="docutils literal notranslate"><span class="pre">reviewed</span></code>.</p>
+<ul>
+<li><p>The score has all out-of-label tones colored in red and</p></li>
+<li><p>the TSV file contains a report on this coloring procedure. Both files are stored in the folder
 <code class="docutils literal notranslate"><span class="pre">reviewed</span></code> on the top level of the corpus.</p></li>
+<li><p><strong>(1.0.2)</strong> In addition, if any warnings pop up, they are stored in the top-level <code class="docutils literal notranslate"><span class="pre">warnings.log</span></code> file.</p></li>
+</ul>
+</li>
 <li><p>Inserting labels into scores is accomplished using the new method <code class="docutils literal notranslate"><span class="pre">load_facet_into_scores()</span></code> which comes with the
 optional parameter <code class="docutils literal notranslate"><span class="pre">git_revision</span></code> which allows loading TSVs from a specific commit.</p></li>
 <li><p>Therefore, <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">compare</span></code> (and hence, <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">review</span></code>) is now able to compare the labels in a score with those in a TSV file
@@ -116,11 +123,9 @@ from an older git revision.</p></li>
 <ul>
 <li><p>Methods previously beginning with <code class="docutils literal notranslate"><span class="pre">output_</span></code> were renamed to <code class="docutils literal notranslate"><span class="pre">store_</span></code>.</p></li>
 <li><p>Parse.parse_mscx() =&gt; Parse.parse_scores()</p></li>
-<li><p>Parse.parsed_mscx =&gt; Parse.n_parsed_scores</p></li>
-<li><p>Parse.parsed_tsv =&gt; Parse.n_parsed_tsvs</p></li>
 </ul>
 </li>
-<li><p>The properties for retrieving DataFrames from <code class="docutils literal notranslate"><span class="pre">Score</span></code> objects</p>
+<li><p>The properties for retrieving DataFrames from <code class="docutils literal notranslate"><span class="pre">Score</span></code> objects:</p>
 <ul>
 <li><p>are now methods and accept the parameters <code class="docutils literal notranslate"><span class="pre">unfold</span></code> and <code class="docutils literal notranslate"><span class="pre">interval_index</span></code>.</p></li>
 <li><p>return None when a facet is not available.</p></li>
@@ -136,13 +141,18 @@ extract them from the scores, according to availability.</p></li>
 <section id="changes-to-the-outputs">
 <h3>Changes to the outputs<a class="headerlink" href="#changes-to-the-outputs" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>The column <code class="docutils literal notranslate"><span class="pre">label_type</span></code> has been replaced and disambiguated into <code class="docutils literal notranslate"><span class="pre">harmony_layer</span></code> (0-3) and <code class="docutils literal notranslate"><span class="pre">regex_match</span></code> (which regEx matched first).</p></li>
+<li><p><strong>(1.0.1)</strong> When unfolding repeats, add the column <code class="docutils literal notranslate"><span class="pre">mn_playthrough</span></code> with disambiguated measure Numbers (‘1a’, ‘12b’, etc.).</p></li>
+<li><p>The column <code class="docutils literal notranslate"><span class="pre">label_type</span></code> has been replaced and disambiguated into <code class="docutils literal notranslate"><span class="pre">harmony_layer</span></code> (0-3, text, Roman numeral, Nashville,
+guitar chord) and <code class="docutils literal notranslate"><span class="pre">regex_match</span></code> (containing the name of the regular expression that matched first).</p></li>
 <li><p>Notes tables now come with the two additional columns <code class="docutils literal notranslate"><span class="pre">name</span></code> (e.g. “E#4”) and <code class="docutils literal notranslate"><span class="pre">octave</span></code>. For unpitched instruments,
 such as drumset, the column <code class="docutils literal notranslate"><span class="pre">name</span></code> displays the designated instrument name (which the user can modify in MuseScore),
 and have no value in the <code class="docutils literal notranslate"><span class="pre">octave</span></code> columns.</p></li>
 <li><p>For pieces that don’t have first and second endings, the TSVs come without a <code class="docutils literal notranslate"><span class="pre">volta</span></code> column.</p></li>
 <li><p>Extracted metadata</p>
 <ul>
+<li><p><strong>(1.0.1)</strong> come with the new columns last_mc_unfolded, last_mn_unfolded, volta_mcs, guitar_chord_count,
+form_label_count, ms3_version, has_drumset</p></li>
+<li><p>uses the column <code class="docutils literal notranslate"><span class="pre">fname</span></code> as index</p></li>
 <li><p>comes with a modified column order</p></li>
 <li><p>renames the previous column <code class="docutils literal notranslate"><span class="pre">rel_paths</span></code> to subdir, whereas the new column <code class="docutils literal notranslate"><span class="pre">rel_path</span></code> contains</p></li>
 <li><p>include the text fields included in a score. Columns are <code class="docutils literal notranslate"><span class="pre">composer_text</span></code>, <code class="docutils literal notranslate"><span class="pre">title_text</span></code>,
@@ -157,11 +167,20 @@ included in the last row of the README.</p></li>
 <section id="other-changes">
 <h3>Other changes<a class="headerlink" href="#other-changes" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
+<li><p><strong>(1.0.1)</strong> Checks integrity of DCML phrase annotations after unfolding repeats to correctly deal with voltas.</p></li>
 <li><p>Most functions and methods now come with type hints.</p></li>
 <li><p>New unittest suite that makes use of the DCMLab/unittest_metacorpus repo and enforces it to be at the correct commit.</p></li>
 <li><p>The parser is now more robust against user-induced strangeness in MuseScore files.</p></li>
 </ul>
 </section>
+</section>
+<section id="version-1-0-1">
+<h2>Version 1.0.1<a class="headerlink" href="#version-1-0-1" title="Permalink to this heading">¶</a></h2>
+<p>See above, version 1.0.2</p>
+</section>
+<section id="version-1-0-0">
+<h2>Version 1.0.0<a class="headerlink" href="#version-1-0-0" title="Permalink to this heading">¶</a></h2>
+<p>See above, version 1.0.2</p>
 </section>
 <section id="version-0-5-3">
 <h2>Version 0.5.3<a class="headerlink" href="#version-0-5-3" title="Permalink to this heading">¶</a></h2>
@@ -523,13 +542,15 @@ select all files from folders called notes.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#version-1-0-0">Version 1.0.0</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-2">Version 1.0.2</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#new-features">New features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changes-to-the-interface">Changes to the interface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changes-to-the-outputs">Changes to the outputs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#other-changes">Other changes</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-1">Version 1.0.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-0">Version 1.0.0</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-5-3">Version 0.5.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-5-2">Version 0.5.2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-5-1">Version 0.5.1</a></li>
@@ -609,7 +630,7 @@ select all files from folders called notes.</p></li>
         <li class="right" >
           <a href="authors.html" title="Contributors"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>

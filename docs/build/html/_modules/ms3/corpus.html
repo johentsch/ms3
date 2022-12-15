@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.corpus &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <title>ms3.corpus &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.corpus</a></li> 
@@ -87,7 +87,7 @@
     <span class="n">Facet</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">FileScoreTuple</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">,</span> <span class="n">AnnotationsFacet</span>
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">File</span><span class="p">,</span> <span class="n">column_order</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">get_path_component</span><span class="p">,</span> <span class="n">group_id_tuples</span><span class="p">,</span> <span class="n">iter_selection</span><span class="p">,</span> <span class="n">join_tsvs</span><span class="p">,</span> \
     <span class="n">load_tsv</span><span class="p">,</span> <span class="n">make_continuous_offset_series</span><span class="p">,</span> \
-    <span class="n">make_id_tuples</span><span class="p">,</span> <span class="n">make_playthrough2mc</span><span class="p">,</span> <span class="n">METADATA_COLUMN_ORDER</span><span class="p">,</span> <span class="n">path2type</span><span class="p">,</span> \
+    <span class="n">make_id_tuples</span><span class="p">,</span> <span class="n">make_playthrough_info</span><span class="p">,</span> <span class="n">METADATA_COLUMN_ORDER</span><span class="p">,</span> <span class="n">path2type</span><span class="p">,</span> \
     <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> \
     <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">write_metadata</span><span class="p">,</span> <span class="n">write_tsv</span><span class="p">,</span> <span class="n">available_views2str</span><span class="p">,</span> <span class="n">prepare_metadata_for_writing</span><span class="p">,</span> \
     <span class="n">files2disambiguation_dict</span><span class="p">,</span> <span class="n">ask_user_to_choose</span><span class="p">,</span> <span class="n">resolve_paths_argument</span><span class="p">,</span> <span class="n">make_file_path</span><span class="p">,</span> <span class="n">resolve_facets_param</span><span class="p">,</span> <span class="n">check_argument_against_literal_type</span><span class="p">,</span> <span class="n">LATEST_MUSESCORE_VERSION</span><span class="p">,</span> \
@@ -314,6 +314,11 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_parsed_tsvs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ix2parsed_tsv</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">n_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Number of all available pieces (&#39;fnames&#39;), independent of the view.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_unparsed_tsvs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -675,7 +680,10 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">F</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Corpus.disambiguate_facet"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.disambiguate_facet">[docs]</a>    <span class="k">def</span> <span class="nf">disambiguate_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">facet</span><span class="p">:</span> <span class="n">Facet</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">ask_for_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Corpus.disambiguate_facet"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.disambiguate_facet">[docs]</a>    <span class="k">def</span> <span class="nf">disambiguate_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">facet</span><span class="p">:</span> <span class="n">Facet</span><span class="p">,</span>
+                           <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">ask_for_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="sd">&quot;&quot;&quot; Make sure that, for a given facet, the current view includes only one or zero files. If at least one piece</span>
 <span class="sd">        has more than one file, the user will be asked which ones to use. The others will be excluded from the view.</span>
 
@@ -931,7 +939,7 @@
                                <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span></div>
 
 
-    <span class="k">def</span> <span class="nf">get_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Corpus.get_facet"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_facet">[docs]</a>    <span class="k">def</span> <span class="nf">get_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">facet</span><span class="p">:</span> <span class="n">ScoreFacet</span><span class="p">,</span>
                    <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
@@ -939,6 +947,7 @@
                    <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                    <span class="n">concatenate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot;Retrieves exactly one DataFrame per piece, if available.&quot;&quot;&quot;</span>
         <span class="n">view_name_display</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">view_name</span> <span class="k">if</span> <span class="n">view_name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">view_name</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_pieces</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
@@ -959,7 +968,7 @@
                 <span class="k">return</span> <span class="n">df</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
 
 <div class="viewcode-block" id="Corpus.get_facets"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_facets">[docs]</a>    <span class="k">def</span> <span class="nf">get_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1115,6 +1124,11 @@
 <div class="viewcode-block" id="Corpus.get_fnames"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_fnames">[docs]</a>    <span class="k">def</span> <span class="nf">get_fnames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="sd">&quot;&quot;&quot;Retrieve fnames included in the current or selected view.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">fname</span> <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_pieces</span><span class="p">(</span><span class="n">view_name</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="Corpus.get_piece"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_piece">[docs]</a>    <span class="k">def</span> <span class="nf">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Piece</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Returns the :obj:`Piece` object for fname.&quot;&quot;&quot;</span>
+        <span class="k">assert</span> <span class="n">fname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&#39; is not a piece in this corpus.&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span></div>
 
 
     <span class="k">def</span> <span class="nf">get_present_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
@@ -1596,12 +1610,12 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ix2fname</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span><span class="o">.</span><span class="n">add_parsed_score</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">successful</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">successful</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
-                    <span class="n">quantifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The file has&quot;</span> <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files have&quot;</span>
+                    <span class="n">quantifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The score has&quot;</span> <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> scores have&quot;</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quantifier</span><span class="si">}</span><span class="s2"> been parsed successfully.&quot;</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">successful</span><span class="si">}</span><span class="s2"> of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files have been parsed successfully.&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">successful</span><span class="si">}</span><span class="s2"> of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> scores have been parsed successfully.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;None of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files have been parsed successfully.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;None of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> scores have been parsed successfully.&quot;</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Parsing interrupted by user.&quot;</span><span class="p">)</span>
             <span class="k">raise</span>
@@ -1676,12 +1690,12 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ix2fname</span><span class="p">[</span><span class="n">ix</span><span class="p">])</span><span class="o">.</span><span class="n">add_parsed_tsv</span><span class="p">(</span><span class="n">ix</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">successful</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">successful</span> <span class="o">==</span> <span class="n">target</span><span class="p">:</span>
-                <span class="n">quantifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The file&quot;</span> <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files&quot;</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quantifier</span><span class="si">}</span><span class="s2"> files have been parsed successfully.&quot;</span><span class="p">)</span>
+                <span class="n">quantifier</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;The TSV file&quot;</span> <span class="k">if</span> <span class="n">target</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> TSV files&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">quantifier</span><span class="si">}</span><span class="s2"> have been parsed successfully.&quot;</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">successful</span><span class="si">}</span><span class="s2"> of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files have been parsed successfully.&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Only </span><span class="si">{</span><span class="n">successful</span><span class="si">}</span><span class="s2"> of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> TSV files have been parsed successfully.&quot;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;None of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> files have been parsed successfully.&quot;</span><span class="p">)</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;None of the </span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> TSV files have been parsed successfully.&quot;</span><span class="p">)</span></div>
 
 
     <span class="k">def</span> <span class="nf">register_files_with_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">FileList</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">fnames</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1992,13 +2006,6 @@
 
 
 
-    <span class="k">def</span> <span class="nf">_make_grouped_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">grouped_ids</span> <span class="o">=</span> <span class="n">group_id_tuples</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">grouped_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">k</span><span class="p">])))</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)}</span>
-        <span class="k">return</span> <span class="n">grouped_ids</span>
-
     <span class="k">def</span> <span class="nf">_concat_id_df_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dict_of_dataframes</span><span class="p">,</span> <span class="n">id_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">third_level_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Concatenate DataFrames contained in a {ID -&gt; df} dictionary.</span>
 
@@ -2070,70 +2077,22 @@
 
 
 
-<div class="viewcode-block" id="Corpus.add_detached_annotations"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.add_detached_annotations">[docs]</a>    <span class="k">def</span> <span class="nf">add_detached_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tsv_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">new_key</span><span class="o">=</span><span class="s1">&#39;old&#39;</span><span class="p">,</span> <span class="n">revision_specifier</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Add :py:attr:`~.annotations.Annotations` objects generated from TSV files to the :py:attr:`~.score.Score`</span>
-<span class="sd">        objects to which they are being matched based on their filenames or on ``match_dict``.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
-<span class="sd">            Key(s) under which score files are stored. By default, all keys are selected.</span>
-<span class="sd">        use : :obj:`str`, optional</span>
-<span class="sd">            By default, if several sets of annotation files are found, the user is asked to input</span>
-<span class="sd">            in which order to pick them. Instead, they can specify the name of a column of</span>
-<span class="sd">            _.pieces(), especially &#39;expanded&#39; or &#39;labels&#39; to be using only these.</span>
-<span class="sd">        new_key : :obj:`str`, optional</span>
-<span class="sd">            The key under which the :py:attr:`~.annotations.Annotations` objects will be available after attaching</span>
-<span class="sd">            them to the :py:attr:`~.score.Score` objects (``Corpusd.parsed_mscx[ID].new_key``).</span>
-<span class="sd">        tsv_key : :obj:`str`, optional</span>
-<span class="sd">            A key under which parsed TSV files are stored of which the type has been inferred as &#39;labels&#39;.</span>
-<span class="sd">            Note that passing ``tsv_key`` results in the deprecated use of Corpus.match_files(). The preferred way</span>
-<span class="sd">            is to parse the labels to be attached under the same key as the scores and use</span>
-<span class="sd">            View.add_detached_labels().</span>
-<span class="sd">        revision_specifier : :obj:`str`, optional</span>
-<span class="sd">            If you want to retrieve a previous version of the TSV file from a git commit (e.g. for</span>
-<span class="sd">            using compare_labels()), pass the commit&#39;s SHA.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">tsv_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-                <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_view</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-                <span class="n">view</span><span class="o">.</span><span class="n">add_detached_annotations</span><span class="p">(</span><span class="n">use</span><span class="o">=</span><span class="n">use</span><span class="p">,</span> <span class="n">new_key</span><span class="o">=</span><span class="n">new_key</span><span class="p">,</span> <span class="n">revision_specifier</span><span class="o">=</span><span class="n">revision_specifier</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_files</span><span class="p">(</span><span class="n">keys</span><span class="o">=</span><span class="n">keys</span> <span class="o">+</span> <span class="p">[</span><span class="n">tsv_key</span><span class="p">])</span>
-        <span class="n">matches</span> <span class="o">=</span> <span class="n">matches</span><span class="p">[</span><span class="n">matches</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span> <span class="o">|</span> <span class="n">matches</span><span class="o">.</span><span class="n">expanded</span><span class="o">.</span><span class="n">notna</span><span class="p">()]</span>
-        <span class="n">matches</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="n">matches</span><span class="o">.</span><span class="n">expanded</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">list_of_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">matches</span><span class="p">[[</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">itertuples</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_of_pairs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No files could be matched based on file names, probably a bug due to the deprecated use of the tsv_key parameter.&quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;The preferred way of adding labels is parsing them under the same key as the scores and use Corpus[key].add_detached_annotations()&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_add_detached_annotations_by_ids</span><span class="p">(</span><span class="n">list_of_pairs</span><span class="p">,</span> <span class="n">new_key</span><span class="o">=</span><span class="n">new_key</span><span class="p">)</span></div>
-
-
-
-
-
-
-<div class="viewcode-block" id="Corpus.annotation_objects"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.annotation_objects">[docs]</a>    <span class="k">def</span> <span class="nf">annotation_objects</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Iterator through all annotation objects.&quot;&quot;&quot;</span>
-        <span class="k">yield from</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">items</span><span class="p">()</span></div>
-
-
-
-
-<div class="viewcode-block" id="Corpus.attach_labels"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.attach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">attach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotation_key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.annotation_key`` to their</span>
-<span class="sd">        respective :py:attr:`~.score.Score`, changing their current XML. Calling :py:meth:`.store_scores` will output</span>
+<div class="viewcode-block" id="Corpus.insert_detached_labels"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.insert_detached_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_detached_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;detached&#39;</span><span class="p">,</span>
+                               <span class="n">staff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">voice</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">harmony_layer</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                               <span class="n">check_for_clashes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="sd">&quot;&quot;&quot; Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their</span>
+<span class="sd">        respective :py:attr:`~.score.Score`, altering the XML in memory. Calling :py:meth:`.store_scores` will output</span>
 <span class="sd">        MuseScore files where the annotations show in the score.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
-<span class="sd">            Key(s) under which parsed MuseScore files are stored. By default, all keys are selected.</span>
-<span class="sd">        annotation_key : :obj:`str` or :obj:`list` or :obj:`tuple`, optional</span>
-<span class="sd">            Key(s) under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the</span>
-<span class="sd">            :py:attr:`~.score.Score` objects. By default, all keys are selected.</span>
+<span class="sd">        key :</span>
+<span class="sd">            Key under which the :py:attr:`~.annotations.Annotations` objects to be attached are stored in the</span>
+<span class="sd">            :py:attr:`~.score.Score` objects. Defaults to &#39;detached&#39;.</span>
 <span class="sd">        staff : :obj:`int`, optional</span>
 <span class="sd">            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.</span>
 <span class="sd">            By default, the staves indicated in the &#39;staff&#39; column of :obj:`ms3.annotations.Annotations.df`</span>
@@ -2143,43 +2102,25 @@
 <span class="sd">            the labels will be attached to that one.</span>
 <span class="sd">            By default, the notational layers indicated in the &#39;voice&#39; column of</span>
 <span class="sd">            :obj:`ms3.annotations.Annotations.df` will be used.</span>
+<span class="sd">        harmony_layer : :obj:`int`, optional</span>
+<span class="sd">            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.</span>
+<span class="sd">            | Pass an integer to select a particular layer:</span>
+<span class="sd">            | * 0 to attach them as absolute (&#39;guitar&#39;) chords, meaning that when opened next time,</span>
+<span class="sd">            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).</span>
+<span class="sd">            | * 1 the labels are written into the staff&#39;s layer for Roman Numeral Analysis.</span>
+<span class="sd">            | * 2 to have MuseScore interpret them as Nashville Numbers</span>
 <span class="sd">        check_for_clashes : :obj:`bool`, optional</span>
 <span class="sd">            By default, warnings are thrown when there already exists a label at a position (and in a notational</span>
 <span class="sd">            layer) where a new one is attached. Pass False to deactivate these warnings.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_annotation_layers</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">which</span><span class="o">=</span><span class="s1">&#39;detached&#39;</span><span class="p">,</span> <span class="n">per_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">layers</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">ks</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span> <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="s1">&#39; under the key(s) &#39;</span> <span class="o">+</span> <span class="n">keys</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No detached annotations found</span><span class="si">{</span><span class="n">ks</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">if</span> <span class="n">annotation_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">annotation_key</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">annotation_key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">annotation_key</span> <span class="o">=</span> <span class="p">[</span><span class="n">annotation_key</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">annotation_key</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">):</span>
-            <span class="n">wrong</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">annotation_key</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">]</span>
-            <span class="n">annotation_key</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">annotation_key</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">layers</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">annotation_key</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-<span class="sa">f</span><span class="s2">&quot;&quot;&quot;&#39;</span><span class="si">{</span><span class="n">wrong</span><span class="si">}</span><span class="s2">&#39; are currently not keys for sets of detached labels that have been added to parsed scores.</span>
-<span class="s2">Currently available annotation keys are </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">layers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
-                <span class="k">return</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-<span class="sa">f</span><span class="s2">&quot;&quot;&quot;&#39;</span><span class="si">{</span><span class="n">wrong</span><span class="si">}</span><span class="s2">&#39; are currently not keys for sets of detached labels that have been added to parsed scores.</span>
-<span class="s2">Continuing with </span><span class="si">{</span><span class="n">annotation_key</span><span class="si">}</span><span class="s2">.&quot;&quot;&quot;</span><span class="p">)</span>
-
-        <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">only_detached_annotations</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
         <span class="n">reached</span><span class="p">,</span> <span class="n">goal</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">anno_key</span> <span class="ow">in</span> <span class="n">annotation_key</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">anno_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]:</span>
-                    <span class="n">r</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span><span class="o">.</span><span class="n">attach_labels</span><span class="p">(</span><span class="n">anno_key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="n">check_for_clashes</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2"> labels successfully added to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="nb">id</span><span class="p">[</span><span class="mi">0</span><span class="p">]][</span><span class="nb">id</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                    <span class="n">reached</span> <span class="o">+=</span> <span class="n">r</span>
-                    <span class="n">goal</span> <span class="o">+=</span> <span class="n">g</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reached</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">goal</span><span class="si">}</span><span class="s2"> labels successfully added to </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span><span class="si">}</span><span class="s2"> files.&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_annotations_objects_references</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span></div>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iter_parsed</span><span class="p">(</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">r</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">attach_labels</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="n">check_for_clashes</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">r</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">g</span><span class="si">}</span><span class="s2"> labels successfully added to </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">reached</span> <span class="o">+=</span> <span class="n">r</span>
+            <span class="n">goal</span> <span class="o">+=</span> <span class="n">g</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">reached</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">goal</span><span class="si">}</span><span class="s2"> labels successfully added to </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> files.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">reached</span><span class="p">,</span> <span class="n">goal</span></div>
 
 
 <div class="viewcode-block" id="Corpus.change_labels_cfg"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.change_labels_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">change_labels_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -2453,45 +2394,49 @@
 
 
 
-<div class="viewcode-block" id="Corpus.detach_labels"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.detach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">annotation_key</span><span class="o">=</span><span class="s1">&#39;detached&#39;</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Calls :py:meth:`Score.detach_labels&lt;ms3.score.Score.detach_labels` on every parsed score with key ``key``.</span>
+<div class="viewcode-block" id="Corpus.detach_labels"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.detach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                      <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                      <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;removed&#39;</span><span class="p">,</span>
+                      <span class="n">staff</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">voice</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">harmony_layer</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                      <span class="n">delete</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Calls :py:meth:`Score.detach_labels &lt;ms3.score.Score.detach_labels` on every parsed score under the</span>
+<span class="sd">        current or selected view.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">annotation_key</span> <span class="o">!=</span> <span class="s1">&#39;annotations&#39;</span><span class="p">,</span> <span class="s2">&quot;The key &#39;annotations&#39; is reserved, please choose a different one.&quot;</span>
-        <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">only_attached_annotations</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Selection did not contain scores with labels: keys = &#39;</span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
-        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
-            <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">file</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_parsed</span><span class="p">(</span><span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">,</span> <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">score</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">annotation_key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">)</span>
-            <span class="k">except</span><span class="p">:</span>
-                <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detaching labels failed with the following error:</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_collect_annotations_objects_references</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span></div>
+                <span class="n">score</span><span class="o">.</span><span class="n">detach_labels</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="n">voice</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="n">delete</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">score</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Detaching labels failed with the following error:</span><span class="se">\n</span><span class="s2">&#39;</span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Corpus.get_labels"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">concat</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; This function does not take into account self.labels_cfg &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No labels available so far. Add files using add_dir() and parse them using parse().&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="n">harmony_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_harmony_layer_param</span><span class="p">(</span><span class="n">harmony_layer</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_and_cache_dataframes</span><span class="p">(</span><span class="n">labels</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">l</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="n">p</span><span class="p">:</span> <span class="n">l</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
-        <span class="n">ids</span> <span class="o">=</span> <span class="p">[</span><span class="nb">id</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No labels match the criteria.&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="n">annotation_tables</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span><span class="o">.</span><span class="n">get_labels</span><span class="p">(</span><span class="o">**</span><span class="n">params</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
-        <span class="n">idx</span><span class="p">,</span> <span class="n">names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ids2idx</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-        <span class="n">names</span> <span class="o">+=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">annotation_tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">concat</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">annotation_tables</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">idx</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">annotation_tables</span></div>
+    <span class="c1"># def get_labels(self, keys=None, staff=None, voice=None, harmony_layer=None, positioning=True, decode=False, column_name=None,</span>
+    <span class="c1">#                color_format=None, concat=True):</span>
+    <span class="c1">#     &quot;&quot;&quot; This function does not take into account self.labels_cfg &quot;&quot;&quot;</span>
+    <span class="c1">#     if len(self._annotations) == 0:</span>
+    <span class="c1">#         self.logger.error(&quot;No labels available so far. Add files using add_dir() and parse them using parse().&quot;)</span>
+    <span class="c1">#         return pd.DataFrame()</span>
+    <span class="c1">#     keys = self._treat_key_param(keys)</span>
+    <span class="c1">#     harmony_layer = self._treat_harmony_layer_param(harmony_layer)</span>
+    <span class="c1">#     self._extract_and_cache_dataframes(labels=True, only_new=True)</span>
+    <span class="c1">#     l = locals()</span>
+    <span class="c1">#     params = {p: l[p] for p in self.labels_cfg.keys()}</span>
+    <span class="c1">#     ids = [id for id in self._iterids(keys) if id in self._annotations]</span>
+    <span class="c1">#     if len(ids) == 0:</span>
+    <span class="c1">#         self.logger.info(f&quot;No labels match the criteria.&quot;)</span>
+    <span class="c1">#         return pd.DataFrame()</span>
+    <span class="c1">#     annotation_tables = [self._annotations[id].get_labels(**params, inverse=False) for id in ids]</span>
+    <span class="c1">#     idx, names = self.ids2idx(ids)</span>
+    <span class="c1">#     if names is None:</span>
+    <span class="c1">#         names = (None,) * len(idx[0])</span>
+    <span class="c1">#     names += tuple(annotation_tables[0].index.names)</span>
+    <span class="c1">#     if concat:</span>
+    <span class="c1">#         return pd.concat(annotation_tables, keys=idx, names=names)</span>
+    <span class="c1">#     return annotation_tables</span>
 
     <span class="k">def</span> <span class="nf">get_facet_at_git_revision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                   <span class="n">facet</span><span class="p">:</span> <span class="n">ScoreFacet</span><span class="p">,</span>
@@ -2575,115 +2520,31 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This Corpus does not include a file with index </span><span class="si">{</span><span class="n">ix</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="nf">get_playthrough2mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">match_files</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">ids</span><span class="p">)</span>
-        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
-            <span class="n">unf_mcs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_playthrough2mc</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">unf_mcs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">res</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">unf_mcs</span>
-            <span class="c1"># else:</span>
-            <span class="c1">#     self.id_logger(id).(f&quot;Unable to unfold.&quot;)</span>
-        <span class="k">return</span> <span class="n">res</span>
-
-    <span class="k">def</span> <span class="nf">_get_measure_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Tries to retrieve the corresponding measure list, e.g. for unfolding repeats. Preference is given to</span>
-<span class="sd">        parsed MSCX files, then checks for parsed TSVs.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        key, i</span>
-<span class="sd">            ID</span>
-<span class="sd">        unfold : :obj:`bool` or ``&#39;raw&#39;``</span>
-<span class="sd">            Defaults to False, meaning that all voltas except second ones are dropped.</span>
-<span class="sd">            If set to True, the measure list is unfolded.</span>
-<span class="sd">            Pass the string &#39;raw&#39; to leave the measure list as it is, with all voltas.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix_logger</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-        <span class="n">piece</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_piece</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">piece</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not associate ID </span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2"> with a Piece object.&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">return</span> <span class="n">piece</span><span class="o">.</span><span class="n">get_dataframe</span><span class="p">(</span><span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">)</span>
 
 
-
-    <span class="k">def</span> <span class="nf">_get_playthrough2mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">):</span>
-        <span class="n">logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix_logger</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_playthrough2mc</span><span class="p">:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_playthrough2mc</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
-        <span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_measure_list</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;No measures table available.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_playthrough2mc</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">return</span>
-        <span class="n">mc_playthrough</span> <span class="o">=</span> <span class="n">make_playthrough2mc</span><span class="p">(</span><span class="n">ml</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mc_playthrough</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in the repeat structure for ID </span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2">: Did not reach the stopping value -1 in measures.next:</span><span class="se">\n</span><span class="si">{</span><span class="n">ml</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s1">&#39;mc&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">next</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">mc_playthrough</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Measures successfully unfolded.&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_playthrough2mc</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">mc_playthrough</span>
-        <span class="k">return</span> <span class="n">mc_playthrough</span>
-
-<div class="viewcode-block" id="Corpus.get_continuous_offsets"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_continuous_offsets">[docs]</a>    <span class="k">def</span> <span class="nf">get_continuous_offsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">id</span><span class="p">,</span> <span class="n">unfold</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Using a corresponding measure list, return a dictionary mapping MCs to their absolute distance from MC 1,</span>
-<span class="sd">            measured in quarter notes.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        key, i:</span>
-<span class="sd">            ID</span>
-<span class="sd">        unfold : :obj:`bool`</span>
-<span class="sd">            If True, return ``{mc_playthrough -&gt; offset}``, otherwise ``{mc -&gt; offset}``, keeping only second endings.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">logger</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix_logger</span><span class="p">(</span><span class="nb">id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quarter_offsets</span><span class="p">[</span><span class="n">unfold</span><span class="p">]:</span>
-            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_quarter_offsets</span><span class="p">[</span><span class="n">unfold</span><span class="p">][</span><span class="nb">id</span><span class="p">]</span>
-        <span class="n">ml</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_measure_list</span><span class="p">(</span><span class="nb">id</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ml</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not find measure list for id </span><span class="si">{</span><span class="nb">id</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">offset_col</span> <span class="o">=</span> <span class="n">make_continuous_offset_series</span><span class="p">(</span><span class="n">ml</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-        <span class="n">offsets</span> <span class="o">=</span> <span class="n">offset_col</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_quarter_offsets</span><span class="p">[</span><span class="n">unfold</span><span class="p">][</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">offsets</span>
-        <span class="k">return</span> <span class="n">offsets</span></div>
-
-
-
-
-
-    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">iter</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="n">skip_missing</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">tup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">yield</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">tup</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">iter_transformed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">columns</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">iter_transformed</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="n">columns</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="n">skip_missing</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="n">quarterbeats</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">tup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">yield</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">tup</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">iter_notes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">weight_grace_durations</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">iter_notes</span><span class="p">(</span><span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="n">quarterbeats</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">,</span> <span class="n">skip_missing</span><span class="o">=</span><span class="n">skip_missing</span><span class="p">,</span>
-                                            <span class="n">weight_grace_durations</span><span class="o">=</span><span class="n">weight_grace_durations</span><span class="p">):</span>
-                <span class="k">if</span> <span class="n">tup</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">yield</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="o">*</span><span class="n">tup</span><span class="p">)</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1"># def iter(self, columns, keys=None, skip_missing=False):</span>
+    <span class="c1">#     keys = self._treat_key_param(keys)</span>
+    <span class="c1">#     for key in keys:</span>
+    <span class="c1">#         for tup in self[key].iter(columns=columns, skip_missing=skip_missing):</span>
+    <span class="c1">#             if tup is not None:</span>
+    <span class="c1">#                 yield (key, *tup)</span>
+    <span class="c1">#</span>
+    <span class="c1"># def iter_transformed(self, columns, keys=None, skip_missing=False, unfold=False, quarterbeats=False, interval_index=False):</span>
+    <span class="c1">#     keys = self._treat_key_param(keys)</span>
+    <span class="c1">#     for key in keys:</span>
+    <span class="c1">#         for tup in self[key].iter_transformed(columns=columns, skip_missing=skip_missing, unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index):</span>
+    <span class="c1">#             if tup is not None:</span>
+    <span class="c1">#                 yield (key, *tup)</span>
+    <span class="c1">#</span>
+    <span class="c1"># def iter_notes(self, keys=None, unfold=False, quarterbeats=False, interval_index=False, skip_missing=False, weight_grace_durations=0):</span>
+    <span class="c1">#     keys = self._treat_key_param(keys)</span>
+    <span class="c1">#     for key in keys:</span>
+    <span class="c1">#         for tup in self[key].iter_notes(unfold=unfold, quarterbeats=quarterbeats, interval_index=interval_index, skip_missing=skip_missing,</span>
+    <span class="c1">#                                         weight_grace_durations=weight_grace_durations):</span>
+    <span class="c1">#             if tup is not None:</span>
+    <span class="c1">#                 yield (key, *tup)</span>
 
 
     <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">what</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_index</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
@@ -2699,105 +2560,9 @@
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">joined</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="n">key_ids</span><span class="p">)</span>
 
 
-    <span class="k">def</span> <span class="nf">_parse_tsv_from_git_revision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tsv_id</span><span class="p">,</span> <span class="n">revision_specifier</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Takes the ID of an annotation table, and parses the same file&#39;s previous version at ``revision_specifier``.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        tsv_id</span>
-<span class="sd">            ID of the TSV file containing an annotation table, for which to parse a previous version.</span>
-<span class="sd">        revision_specifier : :obj:`str`</span>
-<span class="sd">            String used by git.Repo.commit() to find the desired git revision.</span>
-<span class="sd">            Can be a long or short SHA, git tag, branch name, or relative specifier such as &#39;HEAD~1&#39;.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        ID</span>
-<span class="sd">            (key, i) of the newly added annotation table.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">key</span><span class="p">,</span> <span class="n">i</span> <span class="o">=</span> <span class="n">tsv_id</span>
-        <span class="n">corpus_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">corpus_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">repo</span> <span class="o">=</span> <span class="n">Repo</span><span class="p">(</span><span class="n">corpus_path</span><span class="p">,</span> <span class="n">search_parent_directories</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">except</span> <span class="n">InvalidGitRepositoryError</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">corpus_path</span><span class="si">}</span><span class="s2"> seems not to be (part of) a git repository.&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">git_repo</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">remote</span><span class="p">(</span><span class="s2">&quot;origin&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">url</span>
-        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-            <span class="n">git_repo</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">()</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">commit</span> <span class="o">=</span> <span class="n">repo</span><span class="o">.</span><span class="n">commit</span><span class="p">(</span><span class="n">revision_specifier</span><span class="p">)</span>
-            <span class="n">commit_sha</span> <span class="o">=</span> <span class="n">commit</span><span class="o">.</span><span class="n">hexsha</span>
-            <span class="n">short_sha</span> <span class="o">=</span> <span class="n">commit_sha</span><span class="p">[:</span><span class="mi">7</span><span class="p">]</span>
-            <span class="n">commit_info</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">short_sha</span><span class="si">}</span><span class="s2"> with message &#39;</span><span class="si">{</span><span class="n">commit</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
-        <span class="k">except</span> <span class="n">BadName</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">revision_specifier</span><span class="si">}</span><span class="s2"> does not resolve to a commit for repo </span><span class="si">{</span><span class="n">git_repo</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">tsv_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tsv_types</span><span class="p">[</span><span class="n">tsv_id</span><span class="p">]</span>
-        <span class="n">tsv_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">tsv_path</span><span class="p">,</span> <span class="n">corpus_path</span><span class="p">)</span>
-        <span class="n">new_directory</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corpus_path</span><span class="p">,</span> <span class="n">short_sha</span><span class="p">)</span>
-        <span class="n">new_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">new_directory</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">])</span>
-        <span class="k">if</span> <span class="n">new_path</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
-            <span class="n">existing_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">new_path</span><span class="p">)</span>
-            <span class="n">existing_tsv_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tsv_types</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">existing_i</span><span class="p">)]</span>
-            <span class="k">if</span> <span class="n">tsv_type</span> <span class="o">==</span> <span class="n">existing_tsv_type</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Had already loaded a </span><span class="si">{</span><span class="n">tsv_type</span><span class="si">}</span><span class="s2"> table for commit </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2"> of repo </span><span class="si">{</span><span class="n">git_repo</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                <span class="k">return</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">tsv_type</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Currently, only annotations are to be loaded from a git revision but </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> is a </span><span class="si">{</span><span class="n">tsv_type</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="n">targetfile</span> <span class="o">=</span> <span class="n">commit</span><span class="o">.</span><span class="n">tree</span> <span class="o">/</span> <span class="n">rel_path</span>
-        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-            <span class="c1"># if the file was not found, try and see if at the time of the git revision the folder was still called &#39;harmonies&#39;</span>
-            <span class="k">if</span> <span class="n">tsv_type</span> <span class="o">==</span> <span class="s1">&#39;expanded&#39;</span><span class="p">:</span>
-                <span class="n">folder</span><span class="p">,</span> <span class="n">tsv_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">folder</span> <span class="o">!=</span> <span class="s1">&#39;harmonies&#39;</span><span class="p">:</span>
-                    <span class="n">old_rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;harmonies&#39;</span><span class="p">,</span> <span class="n">tsv_name</span><span class="p">)</span>
-                    <span class="k">try</span><span class="p">:</span>
-                        <span class="n">targetfile</span> <span class="o">=</span> <span class="n">commit</span><span class="o">.</span><span class="n">tree</span> <span class="o">/</span> <span class="n">old_rel_path</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> did not exist at commit </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2">, using </span><span class="si">{</span><span class="n">old_rel_path</span><span class="si">}</span><span class="s2"> instead.&quot;</span><span class="p">)</span>
-                        <span class="n">rel_path</span> <span class="o">=</span> <span class="n">old_rel_path</span>
-                    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Neither </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> nor its older version </span><span class="si">{</span><span class="n">old_rel_path</span><span class="si">}</span><span class="s2"> existed at commit </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                        <span class="k">return</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> did not exist at commit </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-                <span class="k">return</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Successfully loaded </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> from </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="k">try</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">io</span><span class="o">.</span><span class="n">BytesIO</span><span class="p">(</span><span class="n">targetfile</span><span class="o">.</span><span class="n">data_stream</span><span class="o">.</span><span class="n">read</span><span class="p">())</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="n">df</span> <span class="o">=</span> <span class="n">load_tsv</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsing </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> @ commit </span><span class="si">{</span><span class="n">commit_info</span><span class="si">}</span><span class="s2"> failed with the following error:</span><span class="se">\n</span><span class="si">{</span><span class="n">sys</span><span class="o">.</span><span class="n">exc_info</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="k">return</span>
-        <span class="n">new_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_path</span><span class="p">(</span><span class="n">new_path</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">skip_checks</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_tsv</span><span class="p">[</span><span class="n">new_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dataframes</span><span class="p">[</span><span class="n">tsv_type</span><span class="p">][</span><span class="n">new_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">df</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tsv_types</span><span class="p">[</span><span class="n">new_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">tsv_type</span>
-        <span class="n">logger_cfg</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logger_cfg</span><span class="p">)</span>
-        <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="n">tsv_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">:</span>
-            <span class="n">anno_obj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">tsv_id</span><span class="p">]</span> <span class="c1"># get Annotation object&#39;s settings from the existing one</span>
-            <span class="n">cols</span> <span class="o">=</span> <span class="n">anno_obj</span><span class="o">.</span><span class="n">cols</span>
-            <span class="n">infer_types</span> <span class="o">=</span> <span class="n">anno_obj</span><span class="o">.</span><span class="n">regex_dict</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">cols</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
-            <span class="n">infer_types</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="n">new_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Annotations</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="n">infer_types</span><span class="p">,</span>
-                                            <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2"> successfully parsed from commit </span><span class="si">{</span><span class="n">short_sha</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">new_id</span>
-
-
     <span class="k">def</span> <span class="nf">pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parsed_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="c1"># pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]</span>
-        <span class="c1"># result = pd.concat(pieces_dfs, keys=self.keys())</span>
-        <span class="c1"># result.index.names = [&#39;key&#39;, &#39;metadata_row&#39;]</span>
-        <span class="c1"># return result</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;This method is deprecated. To view pieces, call Corpus.info() or Corpus.info(&#39;all&#39;). &quot;</span>
+                             <span class="s2">&quot;A DataFrame showing all detected files is available under the property Corpus.files_df&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Corpus.store_extracted_facets"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.store_extracted_facets">[docs]</a>    <span class="k">def</span> <span class="nf">store_extracted_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -2976,165 +2741,24 @@
 
 
 
-
-
-    <span class="k">def</span> <span class="nf">_collect_annotations_objects_references</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">only_parsed_mscx</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
-        <span class="n">updated</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">:</span>
-            <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">:</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">score</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="s1">&#39;annotations&#39;</span> <span class="ow">in</span> <span class="n">score</span><span class="p">:</span>
-                        <span class="n">updated</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="o">=</span> <span class="n">score</span><span class="o">.</span><span class="n">annotations</span>
-                    <span class="k">elif</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">:</span>
-                        <span class="k">del</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="p">[</span><span class="nb">id</span><span class="p">])</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">del</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">updated</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_handle_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_path</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">skip_checks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Store information about the file at ``full_path`` in their various fields under the given key.&quot;&quot;&quot;</span>
-        <span class="n">full_path</span> <span class="o">=</span> <span class="n">resolve_dir</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_checks</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">full_path</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;No file found at this path: &quot;</span> <span class="o">+</span> <span class="n">full_path</span><span class="p">)</span>
-            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">file_path</span><span class="p">,</span> <span class="n">file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
-        <span class="n">file_name</span><span class="p">,</span> <span class="n">file_ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_checks</span> <span class="ow">and</span> <span class="n">file_ext</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">Score</span><span class="o">.</span><span class="n">parseable_formats</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;tsv&#39;</span><span class="p">,):</span>
-            <span class="n">ext_string</span> <span class="o">=</span> <span class="s2">&quot;without extension&quot;</span> <span class="k">if</span> <span class="n">file_ext</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;with extension </span><span class="si">{</span><span class="n">file_ext</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ms3 does not handle files </span><span class="si">{</span><span class="n">ext_string</span><span class="si">}</span><span class="s2"> -&gt; discarding&quot;</span> <span class="o">+</span> <span class="n">full_path</span><span class="p">)</span>
-            <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-        <span class="n">rel_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">relpath</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span><span class="p">)</span>
-        <span class="n">subdir</span> <span class="o">=</span> <span class="n">get_path_component</span><span class="p">(</span><span class="n">rel_path</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">file</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
-            <span class="n">same_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">if</span> <span class="n">f</span> <span class="o">==</span> <span class="n">file</span><span class="p">]</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_checks</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">same_name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">rel_path</span><span class="p">):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;&quot;&quot;The file name </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> is already registered for key &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; and both files have the relative path </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2">.</span>
-<span class="s2">Load one of the identically named files with a different key using add_dir(key=&#39;KEY&#39;).&quot;&quot;&quot;</span><span class="p">)</span>
-                <span class="k">return</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;The file </span><span class="si">{</span><span class="n">file</span><span class="si">}</span><span class="s2"> is already registered for key &#39;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&#39; but can be distinguished via the relative path </span><span class="si">{</span><span class="n">rel_path</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-
-        <span class="n">i</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}{</span><span class="n">file_ext</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">full_path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">scan_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">rel_paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">subdirs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subdir</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">paths</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">file_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="si">}{</span><span class="n">file_ext</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">file_ext</span><span class="p">)</span>
-        <span class="n">F</span> <span class="o">=</span> <span class="n">File</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span>
-            <span class="n">full_path</span><span class="o">=</span><span class="n">full_path</span><span class="p">,</span>
-            <span class="n">scan_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">last_scanned_dir</span><span class="p">,</span>
-            <span class="n">rel_path</span><span class="o">=</span><span class="n">rel_path</span><span class="p">,</span>
-            <span class="n">subdir</span><span class="o">=</span><span class="n">subdir</span><span class="p">,</span>
-            <span class="n">path</span><span class="o">=</span><span class="n">file_path</span><span class="p">,</span>
-            <span class="n">file</span><span class="o">=</span><span class="n">file</span><span class="p">,</span>
-            <span class="n">fname</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span>
-            <span class="n">fext</span><span class="o">=</span><span class="n">file_ext</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">id2file_info</span><span class="p">[(</span><span class="n">key</span><span class="p">,</span> <span class="n">i</span><span class="p">)]</span> <span class="o">=</span> <span class="n">F</span>
-        <span class="k">return</span> <span class="n">key</span><span class="p">,</span> <span class="n">i</span>
-
-    <span class="k">def</span> <span class="nf">_iterids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">only_parsed_mscx</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">only_parsed_tsv</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">only_attached_annotations</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">only_detached_annotations</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Iterator through IDs for a given set of keys.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        keys</span>
-<span class="sd">        only_parsed_mscx</span>
-<span class="sd">        only_attached_annotations</span>
-<span class="sd">        only_detached_annotations</span>
-
-<span class="sd">        Yields</span>
-<span class="sd">        ------</span>
-<span class="sd">        :obj:`tuple`</span>
-<span class="sd">            (str, int)</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_treat_key_param</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
-            <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">make_id_tuples</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fnames</span><span class="p">[</span><span class="n">key</span><span class="p">])):</span>
-                <span class="k">if</span> <span class="n">only_parsed_mscx</span>  <span class="ow">or</span> <span class="n">only_attached_annotations</span> <span class="ow">or</span> <span class="n">only_detached_annotations</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">:</span>
-                        <span class="k">continue</span>
-                    <span class="k">if</span> <span class="n">only_attached_annotations</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="s1">&#39;annotations&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]:</span>
-                            <span class="k">pass</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="k">continue</span>
-                    <span class="k">elif</span> <span class="n">only_detached_annotations</span><span class="p">:</span>
-                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_mscx</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span><span class="o">.</span><span class="n">has_detached_annotations</span><span class="p">:</span>
-                            <span class="k">pass</span>
-                        <span class="k">else</span><span class="p">:</span>
-                            <span class="k">continue</span>
-                <span class="k">elif</span> <span class="n">only_parsed_tsv</span><span class="p">:</span>
-                    <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed_tsv</span><span class="p">:</span>
-                        <span class="k">pass</span>
-                    <span class="k">else</span><span class="p">:</span>
-                        <span class="k">continue</span>
-
-                <span class="k">yield</span> <span class="nb">id</span>
-
-    <span class="k">def</span> <span class="nf">_iter_subdir_selectors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Iterate through the specified ids grouped by subdirs.</span>
-
-<span class="sd">        Yields</span>
-<span class="sd">        ------</span>
-<span class="sd">        :obj:`tuple`</span>
-<span class="sd">            (key: str, subdir: str, ixs: list) tuples. IDs can be created by combining key with each i in ixs.</span>
-<span class="sd">            The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">grouped_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_make_grouped_ids</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ixs</span> <span class="ow">in</span> <span class="n">grouped_ids</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">subdirs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subdirs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">subdir</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">iter_selection</span><span class="p">(</span><span class="n">subdirs</span><span class="p">,</span> <span class="n">ixs</span><span class="p">))):</span>
-                <span class="k">yield</span> <span class="n">k</span><span class="p">,</span> <span class="n">subdir</span><span class="p">,</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ixs</span> <span class="k">if</span> <span class="n">subdirs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">subdir</span><span class="p">]</span>
-
-
-    <span class="k">def</span> <span class="nf">_score_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">score_extensions</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">native</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">convertible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">opposite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Return IDs of all detected scores with particular file extensions, or all others if ``opposite==True``.</span>
-
-<span class="sd">        Parameters</span>
-<span class="sd">        ----------</span>
-<span class="sd">        keys : :obj:`str` or :obj:`collections.abc.Iterable`, optional</span>
-<span class="sd">            Only get IDs for particular keys.</span>
-<span class="sd">        score_extensions : :obj:`collections.abc.Collection`, optional</span>
-<span class="sd">            Get IDs for files with the given extensions (each starting with a dot). If this parameter is defined,</span>
-<span class="sd">            ``native```and ``convertible`` are being ignored.</span>
-<span class="sd">        native : :obj:`bool`, optional</span>
-<span class="sd">            If ``score_extensions`` is not set, ``native=True`` selects all scores that ms3 can parse without using</span>
-<span class="sd">            a MuseScore 3 executable.</span>
-<span class="sd">        convertible : :obj:`bool`, optional</span>
-<span class="sd">            If ``score_extensions`` is not set, ``convertible=True`` selects all scores that ms3 can parse as long as</span>
-<span class="sd">            a MuseScore 3 executable is defined.</span>
-<span class="sd">        opposite : :obj:`bool`, optional</span>
-<span class="sd">            Set to True if you want to get the IDs of all the scores that do NOT have the specified extensions.</span>
-
-<span class="sd">        Returns</span>
-<span class="sd">        -------</span>
-<span class="sd">        :obj:`list`</span>
-<span class="sd">            A list of IDs.</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">score_extensions</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">score_extensions</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">if</span> <span class="n">native</span><span class="p">:</span>
-                <span class="n">score_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Score</span><span class="o">.</span><span class="n">native_formats</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">convertible</span><span class="p">:</span>
-                <span class="n">score_extensions</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">Score</span><span class="o">.</span><span class="n">convertible_formats</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">opposite</span><span class="p">:</span>
-            <span class="k">return</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">score_extensions</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterids</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">score_extensions</span><span class="p">]</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1"># def _collect_annotations_objects_references(self, keys=None, ids=None):</span>
+    <span class="c1">#     &quot;&quot;&quot; Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). &quot;&quot;&quot;</span>
+    <span class="c1">#     if ids is None:</span>
+    <span class="c1">#         ids = list(self._iterids(keys, only_parsed_mscx=True))</span>
+    <span class="c1">#     updated = {}</span>
+    <span class="c1">#     for id in ids:</span>
+    <span class="c1">#         if id in self._parsed_mscx:</span>
+    <span class="c1">#             score = self._parsed_mscx[id]</span>
+    <span class="c1">#             if score is not None:</span>
+    <span class="c1">#                 if &#39;annotations&#39; in score:</span>
+    <span class="c1">#                     updated[id] = score.annotations</span>
+    <span class="c1">#                 elif id in self._annotations:</span>
+    <span class="c1">#                     del (self._annotations[id])</span>
+    <span class="c1">#             else:</span>
+    <span class="c1">#                 del (self._parsed_mscx[id])</span>
+    <span class="c1">#     self._annotations.update(updated)</span>
 
 
 
@@ -3190,34 +2814,27 @@
                 <span class="n">piece</span><span class="o">.</span><span class="n">add_parsed_score</span><span class="p">(</span><span class="n">file_to_register</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">file_paths</span></div>
 
-
-    <span class="k">def</span> <span class="nf">_treat_key_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">keys</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">keys</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">keys</span><span class="p">]</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">files</span><span class="p">]</span>
-
-
-    <span class="k">def</span> <span class="nf">_treat_harmony_layer_param</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">harmony_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="kc">None</span>
-        <span class="n">all_types</span> <span class="o">=</span> <span class="p">{</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">count_labels</span><span class="p">()</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">harmony_layer</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
-            <span class="n">harmony_layer</span> <span class="o">=</span> <span class="p">[</span><span class="n">harmony_layer</span><span class="p">]</span>
-        <span class="n">lt</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">harmony_layer</span><span class="p">]</span>
-        <span class="k">def</span> <span class="nf">matches_any_type</span><span class="p">(</span><span class="n">user_input</span><span class="p">):</span>
-            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="kc">True</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_types</span> <span class="k">if</span> <span class="n">user_input</span> <span class="ow">in</span> <span class="n">t</span><span class="p">)</span>
-        <span class="k">def</span> <span class="nf">get_matches</span><span class="p">(</span><span class="n">user_input</span><span class="p">):</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_types</span> <span class="k">if</span> <span class="n">user_input</span> <span class="ow">in</span> <span class="n">t</span><span class="p">]</span>
-
-        <span class="n">not_found</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">lt</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">matches_any_type</span><span class="p">(</span><span class="n">t</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">plural</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
-            <span class="n">plural_s</span> <span class="o">=</span> <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s2">&quot;No labels found with </span><span class="si">{</span><span class="s1">&#39;these&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;this&#39;</span><span class="si">}</span><span class="s2"> label</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2"> harmony_layer</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="p">[</span><span class="n">all_types</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">user_input</span> <span class="ow">in</span> <span class="n">lt</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">get_matches</span><span class="p">(</span><span class="n">user_input</span><span class="p">)]</span>
+    <span class="c1">#</span>
+    <span class="c1">#</span>
+    <span class="c1"># def _treat_harmony_layer_param(self, harmony_layer):</span>
+    <span class="c1">#     if harmony_layer is None:</span>
+    <span class="c1">#         return None</span>
+    <span class="c1">#     all_types = {str(k): k for k in self.count_labels().keys()}</span>
+    <span class="c1">#     if isinstance(harmony_layer, int) or isinstance(harmony_layer, str):</span>
+    <span class="c1">#         harmony_layer = [harmony_layer]</span>
+    <span class="c1">#     lt = [str(t) for t in harmony_layer]</span>
+    <span class="c1">#     def matches_any_type(user_input):</span>
+    <span class="c1">#         return any(True for t in all_types if user_input in t)</span>
+    <span class="c1">#     def get_matches(user_input):</span>
+    <span class="c1">#         return [t for t in all_types if user_input in t]</span>
+    <span class="c1">#</span>
+    <span class="c1">#     not_found = [t for t in lt if not matches_any_type(t)]</span>
+    <span class="c1">#     if len(not_found) &gt; 0:</span>
+    <span class="c1">#         plural = len(not_found) &gt; 1</span>
+    <span class="c1">#         plural_s = &#39;s&#39; if plural else &#39;&#39;</span>
+    <span class="c1">#         self.logger.warning(</span>
+    <span class="c1">#             f&quot;No labels found with {&#39;these&#39; if plural else &#39;this&#39;} label{plural_s} harmony_layer{plural_s}: {&#39;, &#39;.join(not_found)}&quot;)</span>
+    <span class="c1">#     return [all_types[t] for user_input in lt for t in get_matches(user_input)]</span>
 
     <span class="c1"># def update_metadata(self, allow_suffix=False):</span>
     <span class="c1">#     &quot;&quot;&quot;Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns</span>
@@ -3318,14 +2935,9 @@
 
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-
-<div class="viewcode-block" id="Corpus.get_piece"><a class="viewcode-back" href="../../reference.html#ms3.corpus.Corpus.get_piece">[docs]</a>    <span class="k">def</span> <span class="nf">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Piece</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Returns the :obj:`Piece` object for fname.&quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">fname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">fname</span><span class="si">}</span><span class="s2">&#39; is not a piece in this corpus.&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">[</span><span class="n">fname</span><span class="p">]</span></div></div>
 <span class="c1">########################################################################################################################</span>
 <span class="c1">########################################################################################################################</span>
 <span class="c1">################################################# End of Corpus() ########################################################</span>
@@ -3443,7 +3055,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.corpus</a></li> 

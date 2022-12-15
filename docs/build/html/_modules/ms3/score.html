@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</title>
+    <title>ms3.score &#8212; ms3 1.0.2+ge926d22.dirty documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -144,7 +144,8 @@
 <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 <span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">assert_dfs_equal</span><span class="p">,</span> <span class="n">check_labels</span><span class="p">,</span> <span class="n">color2rgba</span><span class="p">,</span> <span class="n">convert</span><span class="p">,</span> <span class="n">DCML_DOUBLE_REGEX</span><span class="p">,</span> <span class="n">decode_harmonies</span><span class="p">,</span> <span class="n">FORM_DETECTION_REGEX</span><span class="p">,</span> \
-    <span class="n">get_ms_version</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">unpack_mscz</span><span class="p">,</span> <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">write_tsv</span><span class="p">,</span> <span class="n">replace_index_by_intervals</span><span class="p">,</span> <span class="n">expand_form_labels</span><span class="p">,</span> <span class="n">make_playthrough2mc</span>
+    <span class="n">get_ms_version</span><span class="p">,</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> <span class="n">rgba2params</span><span class="p">,</span> <span class="n">unpack_mscz</span><span class="p">,</span> <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">write_tsv</span><span class="p">,</span> <span class="n">replace_index_by_intervals</span><span class="p">,</span> <span class="n">expand_form_labels</span><span class="p">,</span> <span class="n">make_playthrough2mc</span><span class="p">,</span> \
+    <span class="n">check_phrase_annotations</span>
 <span class="kn">from</span> <span class="nn">.bs4_parser</span> <span class="kn">import</span> <span class="n">_MSCX_bs4</span>
 <span class="kn">from</span> <span class="nn">.annotations</span> <span class="kn">import</span> <span class="n">Annotations</span>
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">LoggedClass</span><span class="p">,</span> <span class="n">get_log_capture_handler</span><span class="p">,</span> <span class="n">function_logger</span>
@@ -329,10 +330,20 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Annotations are present but expansion failed due to errors.&quot;</span><span class="p">,</span>
                                     <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;message_id&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">17</span><span class="p">,</span> <span class="p">)})</span>
             <span class="k">return</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
-            <span class="n">expanded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">unfold_facet_df</span><span class="p">(</span><span class="n">expanded</span><span class="p">,</span> <span class="s1">&#39;expanded DCML labels&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">expanded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span>
+
+        <span class="n">unfolded_expanded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">unfold_facet_df</span><span class="p">(</span><span class="n">expanded</span><span class="p">,</span> <span class="s1">&#39;expanded DCML labels&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">unfolded_expanded</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">check_phrase_annotations</span><span class="p">(</span><span class="n">unfolded_expanded</span><span class="p">,</span> <span class="s1">&#39;phraseend&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Since unfolding failed, I&#39;ll check the phrase annotations as is.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;volta&#39;</span> <span class="ow">in</span> <span class="n">expanded</span><span class="p">:</span>
+                <span class="n">check_phrase_annotations</span><span class="p">(</span><span class="n">expanded</span><span class="p">[</span><span class="n">expanded</span><span class="o">.</span><span class="n">volta</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;phraseend&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">check_phrase_annotations</span><span class="p">(</span><span class="n">expanded</span><span class="p">,</span> <span class="s1">&#39;phraseend&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">unfold</span> <span class="ow">and</span> <span class="p">(</span><span class="n">unfolded_expanded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">return</span>
+
         <span class="n">has_chord</span> <span class="o">=</span> <span class="n">expanded</span><span class="o">.</span><span class="n">chord</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">has_chord</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
             <span class="c1"># Compute duration_qb for chord spans without interruption by other labels, such as phrase and</span>
@@ -2043,7 +2054,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 0.5.3.post0.dev88+g764fcd4.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
