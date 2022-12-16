@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.utils &#8212; ms3 1.0.2+ge926d22.dirty documentation</title>
+    <title>ms3.utils &#8212; ms3 1.0.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
@@ -98,7 +98,7 @@
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span><span class="p">,</span> <span class="n">update_cfg</span><span class="p">,</span> <span class="n">LogCapturer</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileDict</span><span class="p">,</span> <span class="n">Facet</span><span class="p">,</span> <span class="n">ViewDict</span><span class="p">,</span> <span class="n">FileDataframeTupleMaybe</span>
 
-<span class="n">MS3_VERSION</span> <span class="o">=</span> <span class="s1">&#39;1.0.2&#39;</span>
+<span class="n">MS3_VERSION</span> <span class="o">=</span> <span class="s1">&#39;1.0.3&#39;</span>
 <span class="n">LATEST_MUSESCORE_VERSION</span> <span class="o">=</span> <span class="s1">&#39;3.6.2&#39;</span>
 <span class="n">METADATA_COLUMN_ORDER</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;fname&#39;</span><span class="p">,</span>
                          <span class="c1"># automatically computed columns</span>
@@ -3333,7 +3333,7 @@
         <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Repeat structure successfully unfolded.&quot;</span><span class="p">)</span>
     <span class="n">unfolded_measures</span> <span class="o">=</span> <span class="n">unfold_repeats</span><span class="p">(</span><span class="n">measures</span><span class="p">,</span> <span class="n">playthrough2mc</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">mn_playthrough_col</span> <span class="o">=</span> <span class="n">compute_mn_playthrough</span><span class="p">(</span><span class="n">unfolded_measures</span><span class="p">)</span>
+        <span class="n">mn_playthrough_col</span> <span class="o">=</span> <span class="n">compute_mn_playthrough</span><span class="p">(</span><span class="n">unfolded_measures</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
         <span class="n">insert_position</span> <span class="o">=</span> <span class="n">unfolded_measures</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">get_loc</span><span class="p">(</span><span class="s1">&#39;mc_playthrough&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
         <span class="n">unfolded_measures</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">insert_position</span><span class="p">,</span> <span class="s1">&#39;mn_playthrough&#39;</span><span class="p">,</span> <span class="n">mn_playthrough_col</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -4032,7 +4032,8 @@
                              <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">numeral</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;#vii&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">minor</span><span class="p">:</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">numeral</span><span class="si">}</span><span class="s2"> in major context corrected to </span><span class="si">{</span><span class="n">numeral</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">numeral</span><span class="si">}</span><span class="s2"> in major context corrected to </span><span class="si">{</span><span class="n">numeral</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                       <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;message_id&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">27</span><span class="p">,</span> <span class="n">MC</span><span class="p">)})</span>
         <span class="n">numeral</span> <span class="o">=</span> <span class="n">numeral</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
 
     <span class="n">root_alteration</span><span class="p">,</span> <span class="n">num_degree</span> <span class="o">=</span> <span class="n">split_scale_degree</span><span class="p">(</span><span class="n">numeral</span><span class="p">,</span> <span class="n">count</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
@@ -4179,14 +4180,21 @@
     <span class="p">}</span>
     <span class="n">bass</span> <span class="o">=</span> <span class="n">figbass2bass</span><span class="p">[</span><span class="n">figbass</span><span class="p">]</span>
     <span class="n">chord_tones</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tone_function_names</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">0</span><span class="p">:</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;3rd&#39;</span><span class="p">,</span>
+        <span class="mi">4</span><span class="p">:</span> <span class="s1">&#39;5th&#39;</span><span class="p">,</span>
+        <span class="mi">6</span><span class="p">:</span> <span class="s1">&#39;7th&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
     <span class="k">for</span> <span class="n">tf</span> <span class="ow">in</span> <span class="n">tone_functions</span><span class="p">[</span><span class="n">bass</span><span class="p">:]</span> <span class="o">+</span> <span class="n">tone_functions</span><span class="p">[:</span><span class="n">bass</span><span class="p">]:</span>
         <span class="n">chord_tone</span><span class="p">,</span> <span class="n">replacing_tones</span> <span class="o">=</span> <span class="n">root_position</span><span class="p">[</span><span class="n">tf</span><span class="p">],</span> <span class="n">replacements</span><span class="p">[</span><span class="n">tf</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">chord_tone</span> <span class="o">==</span> <span class="n">replacing_tones</span> <span class="o">==</span> <span class="p">[]:</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord without </span><span class="si">{</span><span class="n">tf</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord without </span><span class="si">{</span><span class="n">tone_function_names</span><span class="p">[</span><span class="n">tf</span><span class="p">]</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">chord_tone</span> <span class="o">!=</span> <span class="p">[]:</span>
             <span class="n">chord_tones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">chord_tone</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">replacing_tones</span> <span class="o">!=</span> <span class="p">[]:</span>
-                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord tone </span><span class="si">{</span><span class="n">tf</span> <span class="o">+</span> <span class="mi">1</span><span class="si">}</span><span class="s2"> AND its replacement(s) </span><span class="si">{</span><span class="n">replacing_tones</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">,</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">MC</span><span class="si">}{</span><span class="n">label</span><span class="si">}</span><span class="s2"> results in a chord tone </span><span class="si">{</span><span class="n">tone_function_names</span><span class="p">[</span><span class="n">tf</span><span class="p">]</span><span class="si">}</span><span class="s2"> AND its replacement(s) (TPC </span><span class="si">{</span><span class="n">replacing_tones</span><span class="si">}</span><span class="s2">). &quot;</span>
+                               <span class="sa">f</span><span class="s2">&quot;You might want to add a + to distinguish from a suspension, or add this warning to IGNORED_WARNINGS with a comment.&quot;</span><span class="p">,</span>
                                <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;message_id&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">label</span><span class="p">)})</span>
         <span class="n">chord_tones</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">replacing_tones</span><span class="p">)</span>
 
@@ -4763,7 +4771,7 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">facets</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="n">facets</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">facets</span><span class="p">)</span>
         <span class="n">selected_facets</span> <span class="o">=</span> <span class="n">argument_and_literal_type2list</span><span class="p">(</span><span class="n">facets</span><span class="p">,</span> <span class="n">facet_type_var</span><span class="p">,</span> <span class="n">none_means_all</span><span class="o">=</span><span class="n">none_means_all</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
-    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Resolved argument &#39;</span><span class="si">{</span><span class="n">facets</span><span class="si">}</span><span class="s2">&#39; to </span><span class="si">{</span><span class="n">selected_facets</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+    <span class="c1">#logger.debug(f&quot;Resolved argument &#39;{facets}&#39; to {selected_facets}.&quot;)</span>
     <span class="k">return</span> <span class="n">selected_facets</span></div>
 
 <span class="k">def</span> <span class="nf">bold_font</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
@@ -4962,14 +4970,18 @@
     <span class="n">p_col</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">column</span><span class="p">]</span>
     <span class="n">opening</span> <span class="o">=</span> <span class="n">p_col</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;{&#39;</span><span class="p">)</span>
     <span class="n">closing</span> <span class="o">=</span> <span class="n">p_col</span><span class="o">.</span><span class="n">fillna</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;}&#39;</span><span class="p">)</span>
-    <span class="n">position_col</span> <span class="o">=</span> <span class="s1">&#39;mn_playthrough&#39;</span> <span class="k">if</span> <span class="s1">&#39;mn_playthrough&#39;</span> <span class="k">else</span> <span class="s1">&#39;mn&#39;</span>
+    <span class="k">if</span> <span class="s1">&#39;mn_playthrough&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
+        <span class="n">position_col</span> <span class="o">=</span> <span class="s1">&#39;mn_playthrough&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Column &#39;mn_playthrough&#39; is missing, so my assessment of the phrase annotations might be wrong.&quot;</span><span class="p">)</span>
+        <span class="n">position_col</span> <span class="o">=</span> <span class="s1">&#39;mn&#39;</span>
     <span class="n">columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">position_col</span><span class="p">,</span> <span class="n">column</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">opening</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">!=</span> <span class="n">closing</span><span class="o">.</span><span class="n">sum</span><span class="p">():</span>
         <span class="n">o</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">opening</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span> <span class="n">columns</span><span class="p">]</span>
         <span class="n">c</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[(</span><span class="n">closing</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">),</span> <span class="n">columns</span><span class="p">]</span>
         <span class="n">compare</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">o</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">c</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="s1">&#39;mn&#39;</span> <span class="ow">in</span> <span class="n">compare</span><span class="p">:</span>
-            <span class="n">compare</span> <span class="o">=</span> <span class="n">compare</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;mn9&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">})</span>
+            <span class="n">compare</span> <span class="o">=</span> <span class="n">compare</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;mn&#39;</span><span class="p">:</span> <span class="s1">&#39;Int64&#39;</span><span class="p">})</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Phrase beginning and endings don&#39;t match:</span><span class="se">\n</span><span class="si">{</span><span class="n">compare</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;message_id&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">16</span><span class="p">,)})</span>
         <span class="k">return</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="kc">True</span>
@@ -5035,7 +5047,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 

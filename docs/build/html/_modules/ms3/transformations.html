@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.transformations &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
+    <title>ms3.transformations &#8212; ms3 1.0.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -49,7 +49,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.transformations</a></li> 
@@ -185,8 +185,9 @@
                 <span class="n">n_problems</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unordered_index_pairs</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">n_problems</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="n">fails_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="n">fail</span><span class="p">]</span> <span class="k">for</span> <span class="n">fail</span> <span class="ow">in</span> <span class="n">unordered_index_pairs</span><span class="p">],</span> <span class="n">keys</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="n">n_problems</span><span class="p">),</span> <span class="n">names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;problem&#39;</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">])</span>
-                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In the following instances the second event occurs before the first one: </span><span class="se">\n</span><span class="si">{</span><span class="n">fails_df</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
-                                   <span class="sa">f</span><span class="s2">&quot;Each second row will not have a &#39;duration_qb&#39; value.&quot;</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In the following instances the second event occurs before the first one: </span><span class="se">\n</span><span class="si">{</span><span class="n">fails_df</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:,:</span><span class="mi">12</span><span class="p">]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                                   <span class="sa">f</span><span class="s2">&quot;Each second row will not have a &#39;duration_qb&#39; value.&quot;</span><span class="p">,</span>
+                                   <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;message_id&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mi">28</span><span class="p">,)})</span>
                     <span class="n">present_and_in_the_right_order</span> <span class="o">=</span> <span class="n">present_qb</span> <span class="o">&amp;</span> <span class="o">~</span><span class="p">(</span><span class="n">selected_qb</span> <span class="o">&gt;</span> <span class="n">selected_qb</span><span class="o">.</span><span class="n">shift</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
                     <span class="n">selected_qb</span> <span class="o">=</span> <span class="n">quarterbeats</span><span class="p">[</span><span class="n">present_and_in_the_right_order</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span>
                 <span class="k">else</span><span class="p">:</span>
@@ -1488,7 +1489,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.transformations</a></li> 

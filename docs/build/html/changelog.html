@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Changelog &#8212; ms3 1.0.2+ge926d22.dirty documentation</title>
+    <title>Changelog &#8212; ms3 1.0.3 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -54,7 +54,7 @@
         <li class="right" >
           <a href="authors.html" title="Contributors"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
@@ -69,8 +69,8 @@
             
   <section id="changelog">
 <span id="changes"></span><h1>Changelog<a class="headerlink" href="#changelog" title="Permalink to this heading">¶</a></h1>
-<section id="version-1-0-2">
-<h2>Version 1.0.2<a class="headerlink" href="#version-1-0-2" title="Permalink to this heading">¶</a></h2>
+<section id="version-1-0-3">
+<h2>Version 1.0.3<a class="headerlink" href="#version-1-0-3" title="Permalink to this heading">¶</a></h2>
 <p><strong>ms3 requires Python 3.10</strong></p>
 <p>ms3 has gotten a makeover and does not quite like it did before. The major changes are:</p>
 <ul class="simple">
@@ -136,6 +136,7 @@ is particularly relevant when using the <code class="docutils literal notranslat
 extract them from the scores, according to availability.</p></li>
 <li><p>Gets rid of the argument <code class="docutils literal notranslate"><span class="pre">simulate</span></code> except for writing files.</p></li>
 <li><p>logger_cfg now as <a href="#id1"><span class="problematic" id="id2">**</span></a>kwargs</p></li>
+<li><p><strong>(1.0.3)</strong> Currently the <code class="docutils literal notranslate"><span class="pre">-d/--dir</span></code> argument to <code class="docutils literal notranslate"><span class="pre">ms3</span></code> commands accepts only one directory, not several.</p></li>
 </ul>
 </section>
 <section id="changes-to-the-outputs">
@@ -166,21 +167,28 @@ included in the last row of the README.</p></li>
 </section>
 <section id="other-changes">
 <h3>Other changes<a class="headerlink" href="#other-changes" title="Permalink to this heading">¶</a></h3>
+<p>Many, many bugs have died on the way. Also:</p>
 <ul class="simple">
-<li><p><strong>(1.0.1)</strong> Checks integrity of DCML phrase annotations after unfolding repeats to correctly deal with voltas.</p></li>
 <li><p>Most functions and methods now come with type hints.</p></li>
 <li><p>New unittest suite that makes use of the DCMLab/unittest_metacorpus repo and enforces it to be at the correct commit.</p></li>
 <li><p>The parser is now more robust against user-induced strangeness in MuseScore files.</p></li>
+<li><p><strong>(1.0.1)</strong> Repetitions are unfolded for checking the integrity of DCML phrase annotations in order to deal with voltas correctly.</p></li>
+<li><p><strong>(1.0.3)</strong> Pedal notes that have multiple (volta) endings, although still not being correctly propagated into each ending,
+get propagated into the first ending, and don’t cause propagation nor the integrity check to fail anymore</p></li>
 </ul>
 </section>
 </section>
+<section id="version-1-0-2">
+<h2>Version 1.0.2<a class="headerlink" href="#version-1-0-2" title="Permalink to this heading">¶</a></h2>
+<p>See above, version 1.0.3</p>
+</section>
 <section id="version-1-0-1">
 <h2>Version 1.0.1<a class="headerlink" href="#version-1-0-1" title="Permalink to this heading">¶</a></h2>
-<p>See above, version 1.0.2</p>
+<p>See above, version 1.0.3</p>
 </section>
 <section id="version-1-0-0">
 <h2>Version 1.0.0<a class="headerlink" href="#version-1-0-0" title="Permalink to this heading">¶</a></h2>
-<p>See above, version 1.0.2</p>
+<p>See above, version 1.0.3</p>
 </section>
 <section id="version-0-5-3">
 <h2>Version 0.5.3<a class="headerlink" href="#version-0-5-3" title="Permalink to this heading">¶</a></h2>
@@ -542,13 +550,14 @@ select all files from folders called notes.</p></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Changelog</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#version-1-0-2">Version 1.0.2</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-3">Version 1.0.3</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#new-features">New features</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changes-to-the-interface">Changes to the interface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#changes-to-the-outputs">Changes to the outputs</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#other-changes">Other changes</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#version-1-0-2">Version 1.0.2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-1">Version 1.0.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-1-0-0">Version 1.0.0</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#version-0-5-3">Version 0.5.3</a></li>
@@ -630,7 +639,7 @@ select all files from folders called notes.</p></li>
         <li class="right" >
           <a href="authors.html" title="Contributors"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.0.3 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Changelog</a></li> 
       </ul>
