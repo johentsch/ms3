@@ -350,10 +350,10 @@ def review_cmd(args,
                 report_path = os.path.join(file.corpus_path, 'reviewed', file.fname + '_reviewed.tsv')
                 write_tsv(df, report_path)
         report = pd.concat(dataframes, keys=keys)
-        warning_selection = report.count_ratio > args.threshold
+        warning_selection = (report.count_ratio > args.threshold) & report.chord_tones.notna()
         if warning_selection.sum() > 0:
             test_passes = False
-            filtered_report = report[warning_selection]
+            filtered_report = report[warning_selection].droplevel(-1)
             pretty_report = filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio'])
             logger.warning(pretty_report,
                            extra={'message_id': (19,)})
