@@ -4705,7 +4705,7 @@ def resolve_facets_param(facets, facet_type_var: TypeVar = Facet, none_means_all
         if isinstance(facets, list):
             facets = tuple(facets)
         selected_facets = argument_and_literal_type2list(facets, facet_type_var, none_means_all=none_means_all, logger=logger)
-    logger.debug(f"Resolved argument '{facets}' to {selected_facets}.")
+    #logger.debug(f"Resolved argument '{facets}' to {selected_facets}.")
     return selected_facets
 
 def bold_font(s):
