@@ -119,8 +119,9 @@ def add_quarterbeats_col(df: pd.DataFrame,
                 n_problems = len(unordered_index_pairs)
                 if n_problems > 0:
                     fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
-                    logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df}\n"
-                                   f"Each second row will not have a 'duration_qb' value.")
+                    logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df.iloc[:,:12].to_string()}\n"
+                                   f"Each second row will not have a 'duration_qb' value.",
+                                   extra={'message_id': (28,)})
                     present_and_in_the_right_order = present_qb & ~(selected_qb > selected_qb.shift(-1))
                     selected_qb = quarterbeats[present_and_in_the_right_order].astype(float)
                 else:
