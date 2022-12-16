@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 1.0.2
+Version 1.0.3
 =============
 
 **ms3 requires Python 3.10**
@@ -36,10 +36,10 @@ New features
   same type apart (e.g., scores or annotation files) and pick one automatically, if necessary, or ask for
   user input.
 * The command ``ms3 review`` combines the functionalities of ``ms3 check``, ``ms3 extract``, and ``ms3 compare``, and is
-  now the only command used in the new ``dcml_corpus_workflow`` action. For each score that has DCML harmony labels, 
+  now the only command used in the new ``dcml_corpus_workflow`` action. For each score that has DCML harmony labels,
   it stores another score and TSV file with the suffix ``_reviewed``, in the folder ``reviewed``.
 
-  * The score has all out-of-label tones colored in red and 
+  * The score has all out-of-label tones colored in red and
   * the TSV file contains a report on this coloring procedure. Both files are stored in the folder
     ``reviewed`` on the top level of the corpus.
   * **(1.0.2)** In addition, if any warnings pop up, they are stored in the top-level ``warnings.log`` file.
@@ -68,6 +68,7 @@ Changes to the interface
   extract them from the scores, according to availability.
 * Gets rid of the argument ``simulate`` except for writing files.
 * logger_cfg now as **kwargs
+* **(1.0.3)** Currently the ``-d/--dir`` argument to ``ms3`` commands accepts only one directory, not several.
 
 
 
@@ -98,21 +99,30 @@ Changes to the outputs
 Other changes
 -------------
 
-* **(1.0.1)** Checks integrity of DCML phrase annotations after unfolding repeats to correctly deal with voltas.
+Many, many bugs have died on the way. Also:
+
 * Most functions and methods now come with type hints.
 * New unittest suite that makes use of the DCMLab/unittest_metacorpus repo and enforces it to be at the correct commit.
 * The parser is now more robust against user-induced strangeness in MuseScore files.
+* **(1.0.1)** Repetitions are unfolded for checking the integrity of DCML phrase annotations in order to deal with voltas correctly.
+* **(1.0.3)** Pedal notes that have multiple (volta) endings, although still not being correctly propagated into each ending,
+  get propagated into the first ending, and don't cause propagation nor the integrity check to fail anymore
+
+Version 1.0.2
+=============
+
+See above, version 1.0.3
 
 Version 1.0.1
 =============
 
-See above, version 1.0.2
+See above, version 1.0.3
 
 
 Version 1.0.0
 =============
 
-See above, version 1.0.2
+See above, version 1.0.3
 
 
 Version 0.5.3

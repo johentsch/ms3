@@ -32,7 +32,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.0.2'
+MS3_VERSION = '1.0.3'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 METADATA_COLUMN_ORDER = ['fname',
                          # automatically computed columns
