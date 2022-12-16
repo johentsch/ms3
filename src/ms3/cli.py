@@ -123,19 +123,18 @@ def convert_cmd(args):
             update_logger.info(f"Argument '{argument_name}' is currently being ignored.")
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
     ms = 'auto' if args.musescore is None else args.musescore
-    for directory in args.dir:
-        convert_folder(directory=directory,
-                       paths=args.files,
-                       target_dir=out_dir,
-                       extensions=args.extensions,
-                       target_extension=args.format,
-                       regex=args.include,
-                       suffix=args.suffix,
-                       recursive=not args.nonrecursive,
-                       ms=ms,
-                       overwrite=args.safe,
-                       parallel=not args.iterative,
-                       logger=update_logger)
+    convert_folder(directory=args.dir,
+                   paths=args.files,
+                   target_dir=out_dir,
+                   extensions=args.extensions,
+                   target_extension=args.format,
+                   regex=args.include,
+                   suffix=args.suffix,
+                   recursive=not args.nonrecursive,
+                   ms=ms,
+                   overwrite=args.safe,
+                   parallel=not args.iterative,
+                   logger=update_logger)
 
 def empty(args):
     logger_cfg = {
@@ -351,10 +350,10 @@ def review_cmd(args,
                 report_path = os.path.join(file.corpus_path, 'reviewed', file.fname + '_reviewed.tsv')
                 write_tsv(df, report_path)
         report = pd.concat(dataframes, keys=keys)
-        warning_selection = report.count_ratio > args.threshold
+        warning_selection = (report.count_ratio > args.threshold) & report.chord_tones.notna()
         if warning_selection.sum() > 0:
             test_passes = False
-            filtered_report = report[warning_selection]
+            filtered_report = report[warning_selection].droplevel(-1)
             pretty_report = filtered_report.to_string(columns=['mc', 'mn', 'mc_onset', 'label', 'chord_tones', 'added_tones', 'n_colored', 'n_untouched', 'count_ratio'])
             logger.warning(pretty_report,
                            extra={'message_id': (19,)})
@@ -453,7 +452,7 @@ Parse('{args.dir}',
 def get_arg_parser():
     # reusable argument sets
     parse_args = argparse.ArgumentParser(add_help=False)
-    parse_args.add_argument('-d', '--dir', metavar='DIR', nargs='+', default=os.getcwd(), type=check_dir,
+    parse_args.add_argument('-d', '--dir', metavar='DIR', default=os.getcwd(), type=check_dir,
                                 help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
     parse_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
                                 help='Output directory.')

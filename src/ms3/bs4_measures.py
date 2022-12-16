@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import numpy as np
@@ -291,7 +291,9 @@ class NextColumnMaker(LoggedClass):
                     markers[marker].append(t.mc)
             # markers = {marker: mcs.to_list() for marker, mcs in df.groupby('markers').mc}
 
-            def jump2marker(from_mc, marker, untill=None):
+            def jump2marker(from_mc: int,
+                            marker: Optional[str],
+                            untill: Optional[str] = None) -> Tuple[Optional[int], Optional[int]]:
 
                 def get_marker_mc(m, untilll=False):
                     mcs = markers[m]
@@ -349,8 +351,12 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                     else:
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                         if not pd.isnull(to_mc):
-                            self.next[jump_to_mc].append(to_mc)
-                            self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+                            n_existing_next = len(self.next[end_of_jump_mc])
+                            if n_existing_next > 0 and self.next[end_of_jump_mc][-1] == -1:
+                                self.next[end_of_jump_mc] = self.next[end_of_jump_mc][:-1] + [to_mc, -1]
+                            else:
+                                self.next[end_of_jump_mc].append(to_mc)
+                            self.logger.debug(f"Included forward jump from the {until} in MC {end_of_jump_mc} to the {jumpf} in MC {to_mc} ")
                         else:
                             self.logger.debug(f"Could not include forward jump from the {jumpb} in MC {jump_to_mc}.")
         else: # no backward jumps
