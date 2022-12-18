@@ -1192,7 +1192,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         for harmony_tag in self.soup.find_all('Harmony'):
             label = harmony_tag.find('name')
             if label is not None and label.string is not None:
-                m = re.match(r"^\.?([A-Ga-g](#+|b+)?)", label.string)
+                m = re.match(r"^\.?([A-Ga-g](#+|b+)?)\.", label.string)
                 if m is not None:
                     annotated_key = m.group(1)
                     break
