@@ -3491,9 +3491,10 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
 
 
 def prepare_metadata_for_writing(metadata_df):
-    convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in metadata_df}
-    if len(convert_to_str) > 0:
-        metadata_df = metadata_df.astype(convert_to_str, errors='ignore')
+    # convert_to_str = {c: 'string' for c in ('length_qb', 'length_qb_unfolded', 'all_notes_qb') if c in metadata_df}
+    # if len(convert_to_str) > 0:
+    #     metadata_df = metadata_df.astype(convert_to_str, errors='ignore')
+    metadata_df = metadata_df.astype('string', errors='ignore')
     metadata_df.sort_index(inplace=True)
     metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
     staff_cols, other_cols = [], []
