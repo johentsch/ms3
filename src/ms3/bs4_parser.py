@@ -1958,15 +1958,32 @@ class Metatags:
         self.soup = soup
 
     @property
-    def tags(self):
+    def tags(self) -> Dict[str, bs4.Tag]:
         return {tag['name']: tag for tag in self.soup.find_all('metaTag')}
 
-    def __getitem__(self, attr):
+    @property
+    def fields(self):
+        return {name: '' if tag.string is None else str(tag.string) for name, tag in self.tags.items()}
+
+
+    def remove(self, tag_name) -> bool:
+        tag = self.get_tag(tag_name)
+        if tag is None:
+            return False
+        tag.decompose()
+        return True
+
+    def __getitem__(self, attr) -> Optional[str]:
+        """Retrieve value of metadata tag."""
         tags = self.tags
         if attr in tags:
             val = tags[attr].string
             return '' if val is None else str(val)
         return None
+
+    def get_tag(self, attr) -> Optional[bs4.Tag]:
+        tags = self.tags
+        return tags.get(attr)
 
     def __setitem__(self, attr, val):
         tags = self.tags

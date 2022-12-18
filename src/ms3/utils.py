@@ -34,22 +34,34 @@ from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
 MS3_VERSION = '1.0.3'
 LATEST_MUSESCORE_VERSION = '3.6.2'
-METADATA_COLUMN_ORDER = ['fname',
-                         # automatically computed columns
-                         'TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
+COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
-                         'guitar_chord_count', 'form_label_count', 'label_count', 'harmony_version', 'annotated_key',
-                         # metadata from the files metadata fields
-                         ## custom fields
-                         'annotators', 'reviewers', 'score_integrity', 'composed_start', 'composed_end',
-                         ## default fields
-                         'composer', 'workTitle', 'movementNumber', 'movementTitle',
+                         'guitar_chord_count', 'form_label_count', 'label_count', 'harmony_version', 'annotated_key', ]
+"""Automatically computed columns"""
+
+DCML_METADATA_COLUMNS = ['annotators', 'reviewers', 'score_integrity', 'composed_start', 'composed_end',]
+"""Arbitrary column names used in the DCML corpus initiative"""
+
+
+MUSESCORE_METADATA_FIELDS = ['composer', 'workTitle', 'movementNumber', 'movementTitle',
                          'workNumber', 'poet', 'lyricist', 'arranger', 'copyright', 'creationDate',
-                         'mscVersion', 'platform', 'source', 'translator', 'musescore', 'ms3_version',
-                         ## default text fields
-                         'title_text', 'subtitle_text', 'lyricist_text', 'composer_text', 'part_name_text',
-                         # ambitus, instrument, and then all the rest
-                         'has_drumset', 'ambitus']
+                         'mscVersion', 'platform', 'source', 'translator',]
+"""Default fields available in the File -> Score Properties... menu."""
+
+VERSION_COLUMNS = ['musescore', 'ms3_version',]
+"""Software versions"""
+
+INSTRUMENT_RELATED_COLUMNS = ['has_drumset', 'ambitus']
+
+MUSESCORE_HEADER_FIELDS = ['title_text', 'subtitle_text', 'lyricist_text', 'composer_text', 'part_name_text',]
+"""Default text fields in MuseScore"""
+
+OTHER_COLUMNS = ['subdirectory', 'rel_path']
+
+AUTOMATIC_COLUMNS = COMPUTED_METADATA_COLUMNS + VERSION_COLUMNS + INSTRUMENT_RELATED_COLUMNS + OTHER_COLUMNS
+"""This combination of column names is excluded when updating metadata fields in MuseScore files via ms3 metadata."""
+
+METADATA_COLUMN_ORDER = ['fname'] + COMPUTED_METADATA_COLUMNS + DCML_METADATA_COLUMNS + MUSESCORE_METADATA_FIELDS + VERSION_COLUMNS + MUSESCORE_HEADER_FIELDS + OTHER_COLUMNS + INSTRUMENT_RELATED_COLUMNS
 
 STANDARD_COLUMN_ORDER = [
     'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',

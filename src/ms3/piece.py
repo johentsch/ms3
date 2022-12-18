@@ -1,4 +1,5 @@
 import os
+import re
 from collections import defaultdict, Counter
 from typing import Dict, Literal, Union, Iterator, Optional, overload, List, Tuple
 
@@ -11,7 +12,7 @@ from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -1449,7 +1450,7 @@ class Piece(LoggedClass):
             Path of the stored file.
         """
         if ix not in self.ix2parsed_score:
-            logger.error(f"No Score object found. Call parse_scores() first.")
+            self.logger.error(f"No Score object found. Call parse_scores() first.")
             return
         file = self.ix2file[ix]
         file_path = make_file_path(file=file,
@@ -1489,6 +1490,53 @@ class Piece(LoggedClass):
             del (self._views[new_name])
         if show_info:
             self.info()
+
+    def update_score_metadata_from_tsv(self,
+                              view_name: Optional[str] = None,
+                              force: bool = False,
+                              choose: Literal['all', 'auto', 'ask'] = 'all',
+                              write_empty_values: bool = False,
+                              remove_unused_fields: bool = False
+                              ) -> List[File]:
+        """Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv."""
+        row_dict = self.tsv_metadata
+        if row_dict is None:
+            self.logger.info(f"No metadata available for updating scores.")
+            return []
+        updated_scores = []
+        ignore_columns = AUTOMATIC_COLUMNS + ['fname', 'fnames']
+        for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
+            current_metadata = score.mscx.parsed.metatags.fields
+            row_dict = {column: value for column, value in row_dict.items()
+                        if column not in ignore_columns and not re.match(r"^staff_\d", column)}
+            unused_fields = [field for field in current_metadata.keys() if field not in row_dict and field not in MUSESCORE_METADATA_FIELDS]
+            if write_empty_values:
+                row_dict = {column: '' if pd.isnull(value) else str(value) for column, value in row_dict.items()}
+            else:
+                row_dict = {column: str(value) for column, value in row_dict.items() if value != '' and not pd.isnull(value)}
+            to_be_updated = {field: value for field, value in row_dict.items()
+                             if field not in current_metadata or current_metadata[field] != value}
+            fields_to_be_created = [field for field in to_be_updated.keys() if field not in current_metadata]
+            metadata_fields, text_fields = {}, {}
+            for field, value in to_be_updated.items():
+                if field in MUSESCORE_HEADER_FIELDS:
+                    text_fields[field] = value
+                else:
+                    metadata_fields[field] = value
+            if len(metadata_fields) == 0 and (not remove_unused_fields or len(unused_fields) == 0):
+                self.logger.debug(f"No metadata need updating in {file.rel_path}")
+                continue
+            for field, value in metadata_fields.items():
+                specifier = 'New field' if field in fields_to_be_created else 'Field'
+                self.logger.debug(f"{file.rel_path}: {specifier} '{field}' set to {value}.")
+                score.mscx.parsed.metatags[field] = value
+            if remove_unused_fields:
+                for field in unused_fields:
+                    score.mscx.parsed.metatags.remove(field)
+                    self.logger.debug(f"{file.rel_path}: Field {field} removed.")
+            score.mscx.changed = True
+            updated_scores.append(file)
+        return updated_scores
 
     def update_tsvs_on_disk(self,
                        facets: ScoreFacets = 'tsv',
