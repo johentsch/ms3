@@ -1031,6 +1031,40 @@ class Parse(LoggedClass):
         if show_info:
             self.info()
 
+    def update_metadata_tsv_from_parsed_scores(self,
+                                               root_dir: Optional[str] = None,
+                                               suffix: str = '',
+                                               markdown_file: Optional[str] = "README.md",
+                                               view_name: Optional[str] = None,
+                                               ) -> List[str]:
+        """
+        Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
+
+        Args:
+            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.
+            suffix:
+                Added to the filename: 'metadata{suffix}.tsv'. Defaults to ''. Metadata files with suffix may be
+                used to store views with particular subselections of pieces.
+            markdown_file:
+                By default, a subset of metadata columns will be written to 'README.md' in the same folder as the TSV file.
+                If the file exists, it will be scanned for a line containing the string '# Overview' and overwritten
+                from that line onwards.
+            view_name:
+                The view under which you want to update metadata from the selected parsed files. Defaults to None,
+                i.e. the active view.
+
+        Returns:
+            The file paths to which metadata was written.
+        """
+        metadata_paths = []
+        for _, corpus in self.iter_corpora():
+            paths = corpus.update_metadata_tsv_from_parsed_scores(root_dir=root_dir,
+                                                                  suffix=suffix,
+                                                                  markdown_file=markdown_file,
+                                                                  view_name=view_name)
+            metadata_paths.extend(paths)
+        return metadata_paths
+
     def update_scores(self,
                       root_dir: Optional[str] = None,
                       folder: str = '.',
