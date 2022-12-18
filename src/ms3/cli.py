@@ -21,9 +21,11 @@ __license__ = "gpl3"
 
 def gather_extract_params(args):
     params = [name for name, arg in zip(
-        ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords', 'metadata'),
-        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords, args.metadata))
+        ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords'),
+        (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords))
               if arg]
+    if args.metadata is not None:
+        params.append('metadata')
     return params
 
 
