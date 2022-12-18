@@ -10,8 +10,8 @@ from .corpus import Corpus
 from .logger import LoggedClass
 from .piece import Piece
 from ._typing import FileDict, FileList, CorpusFnameTuple, ScoreFacets, FacetArguments, FileParsedTuple, FileDataframeTuple, ScoreFacet, AnnotationsFacet, Facet
-from .utils import get_musescore,  get_first_level_corpora, pretty_dict, resolve_dir, \
-    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata
+from .utils import get_musescore, get_first_level_corpora, pretty_dict, resolve_dir, \
+    update_labels_cfg, available_views2str, path2parent_corpus, resolve_paths_argument, enforce_fname_index_for_metadata, File
 from .view import View, create_view_from_parameters, DefaultView
 
 
@@ -1064,6 +1064,38 @@ class Parse(LoggedClass):
                                                                   view_name=view_name)
             metadata_paths.extend(paths)
         return metadata_paths
+
+    def update_score_metadata_from_tsv(self,
+                                       view_name: Optional[str] = None,
+                                       force: bool = False,
+                                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                                       write_empty_values: bool = False,
+                                       remove_unused_fields: bool = False
+                                       ) -> List[File]:
+        """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
+
+        Args:
+            view_name:
+            force:
+            choose:
+            write_empty_values:
+                If set to True, existing values are overwritten even if the new value is empty, in which case the field
+                will be set to ''.
+            remove_unused_fields:
+                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+
+        Returns:
+            List of File objects of those scores of which the XML structure has been modified.
+        """
+        updated_scores = []
+        for _, corpus in self.iter_corpora(view_name):
+            modified = corpus.update_score_metadata_from_tsv(view_name=view_name,
+                                                 force=force,
+                                                 choose=choose,
+                                                 write_empty_values=write_empty_values,
+                                                 remove_unused_fields=remove_unused_fields)
+            updated_scores.extend(modified)
+        return updated_scores
 
     def update_scores(self,
                       root_dir: Optional[str] = None,

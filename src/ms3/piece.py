@@ -1498,7 +1498,21 @@ class Piece(LoggedClass):
                               write_empty_values: bool = False,
                               remove_unused_fields: bool = False
                               ) -> List[File]:
-        """Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv."""
+        """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
+
+        Args:
+            view_name:
+            force:
+            choose:
+            write_empty_values:
+                If set to True, existing values are overwritten even if the new value is empty, in which case the field
+                will be set to ''.
+            remove_unused_fields:
+                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+
+        Returns:
+            List of File objects of those scores of which the XML structure has been modified.
+        """
         row_dict = self.tsv_metadata
         if row_dict is None:
             self.logger.info(f"No metadata available for updating scores.")
@@ -1518,6 +1532,7 @@ class Piece(LoggedClass):
                              if field not in current_metadata or current_metadata[field] != value}
             fields_to_be_created = [field for field in to_be_updated.keys() if field not in current_metadata]
             metadata_fields, text_fields = {}, {}
+            # ToDo: Enable writing text_fields
             for field, value in to_be_updated.items():
                 if field in MUSESCORE_HEADER_FIELDS:
                     text_fields[field] = value

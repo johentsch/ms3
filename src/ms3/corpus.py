@@ -2674,7 +2674,37 @@ class Corpus(LoggedClass):
             return [metadata_path, markdown_path]
         return [metadata_path]
 
+    def update_score_metadata_from_tsv(self,
+                                       view_name: Optional[str] = None,
+                                       force: bool = False,
+                                       choose: Literal['all', 'auto', 'ask'] = 'all',
+                                       write_empty_values: bool = False,
+                                       remove_unused_fields: bool = False
+                                       ) -> List[File]:
+        """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
+        Args:
+            view_name:
+            force:
+            choose:
+            write_empty_values:
+                If set to True, existing values are overwritten even if the new value is empty, in which case the field
+                will be set to ''.
+            remove_unused_fields:
+                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+
+        Returns:
+            List of File objects of those scores of which the XML structure has been modified.
+        """
+        updated_scores = []
+        for fname, piece in self.iter_pieces(view_name):
+            modified = piece.update_score_metadata_from_tsv(view_name=view_name,
+                                                 force=force,
+                                                 choose=choose,
+                                                 write_empty_values=write_empty_values,
+                                                 remove_unused_fields=remove_unused_fields)
+            updated_scores.extend(modified)
+        return updated_scores
 
     #
     #
