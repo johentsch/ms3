@@ -528,10 +528,10 @@ class Corpus(LoggedClass):
         if already_there:
             if overwrite and suffix == '':
                 self.logger.warning("For security reasons I won't overwrite the 'metadata.tsv' file of this corpus. "
-                                    "Consider using _.update_metadata_from_parsed() or delete it yourself.")
+                                    "Consider using Corpus.update_metadata_tsv_from_parsed_scores() or delete it yourself.")
                 return
             elif not overwrite:
-                self.logger.warning(f"{path} existed already. Consider using _.update_metadata_from_parsed().")
+                self.logger.warning(f"{path} existed already. Consider using Corpus.update_metadata_tsv_from_parsed_scores().")
                 return
         metadata = self.score_metadata(view_name=view_name, choose=force)
         metadata = prepare_metadata_for_writing(metadata)
@@ -2612,18 +2612,18 @@ class Corpus(LoggedClass):
                 self.logger.info(f"Created metadata for '{facet}' TSVs: {json_path}")
         if output_metadata:
             if not markdown:
-                metadata_paths = self.update_metadata_from_parsed(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
+                metadata_paths = self.update_metadata_tsv_from_parsed_scores(root_dir=root_dir, suffix=metadata_suffix, markdown_file=None)
             else:
-                metadata_paths = self.update_metadata_from_parsed(root_dir=root_dir, suffix=metadata_suffix)
+                metadata_paths = self.update_metadata_tsv_from_parsed_scores(root_dir=root_dir, suffix=metadata_suffix)
             paths.extend(metadata_paths)
         return paths
 
-    def update_metadata_from_parsed(self,
-                                    root_dir: Optional[str] = None,
-                                    suffix: str = '',
-                                    markdown_file: Optional[str] = "README.md",
-                                    view_name: Optional[str] = None,
-                                    ) -> List[str]:
+    def update_metadata_tsv_from_parsed_scores(self,
+                                               root_dir: Optional[str] = None,
+                                               suffix: str = '',
+                                               markdown_file: Optional[str] = "README.md",
+                                               view_name: Optional[str] = None,
+                                               ) -> List[str]:
         """
         Gathers the metadata from parsed and currently selected scores and updates 'metadata.tsv' with the information.
 
@@ -2657,6 +2657,7 @@ class Corpus(LoggedClass):
         metadata_path = os.path.join(root_dir, 'metadata' + suffix + '.tsv')
         if not write_metadata(md, metadata_path, logger=self.logger):
             return []
+        # if the metadata<suffix>.tsv has been created or updated, register/reload it with the Corpus object
         new_files = self.add_file_paths([metadata_path])
         if len(new_files) == 0:
             file = self.get_file_from_path(metadata_path)
