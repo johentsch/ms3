@@ -2,7 +2,8 @@
 Changelog
 =========
 
-Version 1.0.3
+
+Version 1.0.4
 =============
 
 **ms3 requires Python 3.10**
@@ -108,21 +109,27 @@ Many, many bugs have died on the way. Also:
 * **(1.0.3)** Pedal notes that have multiple (volta) endings, although still not being correctly propagated into each ending,
   get propagated into the first ending, and don't cause propagation nor the integrity check to fail anymore
 
+
+Version 1.0.3
+=============
+
+See above, version 1.0.4
+
 Version 1.0.2
 =============
 
-See above, version 1.0.3
+See above, version 1.0.4
 
 Version 1.0.1
 =============
 
-See above, version 1.0.3
+See above, version 1.0.4
 
 
 Version 1.0.0
 =============
 
-See above, version 1.0.3
+See above, version 1.0.4
 
 
 Version 0.5.3
