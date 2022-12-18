@@ -56,12 +56,15 @@ INSTRUMENT_RELATED_COLUMNS = ['has_drumset', 'ambitus']
 MUSESCORE_HEADER_FIELDS = ['title_text', 'subtitle_text', 'lyricist_text', 'composer_text', 'part_name_text',]
 """Default text fields in MuseScore"""
 
-OTHER_COLUMNS = ['subdirectory', 'rel_path']
+OTHER_COLUMNS = ['subdirectory', 'rel_path',]
+
+LEGACY_COLUMNS = ['fnames', 'rel_paths', 'md5',]
 
 AUTOMATIC_COLUMNS = COMPUTED_METADATA_COLUMNS + VERSION_COLUMNS + INSTRUMENT_RELATED_COLUMNS + OTHER_COLUMNS
 """This combination of column names is excluded when updating metadata fields in MuseScore files via ms3 metadata."""
 
 METADATA_COLUMN_ORDER = ['fname'] + COMPUTED_METADATA_COLUMNS + DCML_METADATA_COLUMNS + MUSESCORE_METADATA_FIELDS + MUSESCORE_HEADER_FIELDS + VERSION_COLUMNS + OTHER_COLUMNS + INSTRUMENT_RELATED_COLUMNS
+"""The default order in which columns of metadata.tsv files are to be sorted."""
 
 STANDARD_COLUMN_ORDER = [
     'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',
@@ -3430,9 +3433,9 @@ def write_metadata(metadata_df: pd.DataFrame,
         previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
         previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
         previous.update(metadata_df)
-        legacy_columns = [c for c in ('rel_paths', 'md5') if c in previous.columns]
+        legacy_columns = [c for c in LEGACY_COLUMNS if c in previous.columns]
         if len(legacy_columns) > 0:
-            plural = f's {legacy_columns}' if legacy_columns > 1 else f' {legacy_columns[0]}'
+            plural = f's {legacy_columns}' if len(legacy_columns) > 1 else f' {legacy_columns[0]}'
             previous = previous.drop(columns=legacy_columns)
             logger.info(f"Dropped legacy column{plural} .")
         output_df = previous.reset_index()

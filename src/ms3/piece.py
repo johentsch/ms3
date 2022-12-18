@@ -12,7 +12,7 @@ from .transformations import dfs2quarterbeats
 from .utils import File, infer_tsv_type, automatically_choose_from_disambiguated_files, ask_user_to_choose_from_disambiguated_files, \
     files2disambiguation_dict, get_musescore, load_tsv, metadata2series, pretty_dict, resolve_facets_param, \
     available_views2str, argument_and_literal_type2list, check_argument_against_literal_type, make_file_path, write_tsv, assert_dfs_equal, \
-    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS
+    parse_tsv_file_at_git_revision, disambiguate_files, replace_index_by_intervals, AUTOMATIC_COLUMNS, MUSESCORE_HEADER_FIELDS, MUSESCORE_METADATA_FIELDS, LEGACY_COLUMNS
 from .score import Score
 from .logger import LoggedClass
 from .view import View, DefaultView
@@ -1518,7 +1518,7 @@ class Piece(LoggedClass):
             self.logger.info(f"No metadata available for updating scores.")
             return []
         updated_scores = []
-        ignore_columns = AUTOMATIC_COLUMNS + ['fname', 'fnames']
+        ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['fname']
         for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
             current_metadata = score.mscx.parsed.metatags.fields
             row_dict = {column: value for column, value in row_dict.items()

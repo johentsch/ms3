@@ -190,6 +190,7 @@ def metadata(args, parse_obj: Optional[Parse] = None):
         p = make_parse_obj(args)
     else:
         p = parse_obj
+    print(f"PARSING SCORES ONE AFTER THE OTHER...")
     p.parse_scores(parallel=False)
     modified_score_files = p.update_score_metadata_from_tsv(write_empty_values=args.empty,
                                                             remove_unused_fields=args.remove)
@@ -429,8 +430,11 @@ Parse('{args.dir}',
                  ms=ms,
                  **logger_cfg)
     if parse_scores:
+        mode = "ONE AFTER THE OTHER" if args.iterative else "IN PARALLEL"
+        print(f"PARSING SCORES {mode}...")
         parse_obj.parse_scores(parallel=not args.iterative)
     if parse_tsv:
+        print(f"PARSING TSV FILES...")
         parse_obj.parse_tsv()
     info_str = parse_obj.info(show_discarded=args.verbose, return_str=True).replace('\n', '\n\t')
     print(f"RESULTING PARSE OBJECT:\n\t{info_str}")
