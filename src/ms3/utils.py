@@ -3412,12 +3412,17 @@ def write_metadata(metadata_df: pd.DataFrame,
                 duplicated = ix[ix.duplicated()].to_list()
                 logger.error(f"The {what} metadata contains duplicates and no metadata were written.\nDuplicates: {duplicated}")
                 return False
-        new_cols = [c for c in metadata_df.columns if c not in previous.columns]
-        previous.update(metadata_df)
+        new_cols = metadata_df.columns.difference(previous.columns)
+        shared_cols = metadata_df.columns.intersection(previous.columns)
+        new_rows = metadata_df.index.difference(previous.index)
+        previous = pd.concat([previous, metadata_df.loc[new_rows, shared_cols]])
         previous = pd.concat([previous, metadata_df[new_cols]], axis=1)
-        if 'rel_paths' in previous.columns:
-            logger.info(f"Dropped legacy column 'rel_paths'.")
-            previous = previous.drop(columns='rel_paths')
+        previous.update(metadata_df)
+        legacy_columns = [c for c in ('rel_paths', 'md5') if c in previous.columns]
+        if len(legacy_columns) > 0:
+            plural = f's {legacy_columns}' if legacy_columns > 1 else f' {legacy_columns[0]}'
+            previous = previous.drop(columns=legacy_columns)
+            logger.info(f"Dropped legacy column{plural} .")
         output_df = previous.reset_index()
         msg = 'Updated'
     output_df = prepare_metadata_for_writing(output_df)

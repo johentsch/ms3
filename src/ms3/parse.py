@@ -1035,12 +1035,37 @@ class Parse(LoggedClass):
                       root_dir: Optional[str] = None,
                       folder: str = '.',
                       suffix: str = '',
-                      overwrite: bool = False):
+                      overwrite: bool = False) -> List[str]:
+        """ Update scores created with an older MuseScore version to the latest MuseScore 3 version.
+
+                Args:
+                    root_dir:
+                        In case you want to create output paths for the updated MuseScore files based on a folder different
+                        from :attr:`corpus_path`.
+                    folder:
+                        * The default '.' has the updated scores written to the same directory as the old ones, effectively
+                          overwriting them if ``root_dir`` is None.
+                        * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.
+                        * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+                        * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                          For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.
+                        * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                          ``root_dir``.
+                    suffix: String to append to the file names of the updated files, e.g. '_updated'.
+                    overwrite: By default, existing files are not overwritten. Pass True to allow this.
+
+                Returns:
+                    A list of all up-to-date paths, whether they had to be converted or were already in the latest version.
+                """
+        up2date_paths = []
         for _, corpus in self.iter_corpora():
-            corpus.update_scores(root_dir=root_dir,
-                                 folder=folder,
-                                 suffix=suffix,
-                                 overwrite=overwrite)
+            paths = corpus.update_scores(root_dir=root_dir,
+                                         folder=folder,
+                                         suffix=suffix,
+                                         overwrite=overwrite)
+            up2date_paths.extend(paths)
+        return up2date_paths
+
 
     def update_tsvs_on_disk(self,
                        facets: ScoreFacets = 'tsv',

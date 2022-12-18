@@ -186,18 +186,10 @@ def metadata(args):
     """ Update MSCX files with changes made in metadata.tsv (created via ms3 extract -D). In particular,
         add the values from (new?) columns to the corresponding fields in the MuseScore files' "Score info".
     """
-    logger_cfg = {
-        'level': args.level,
-        'path': args.log,
-    }
-
-    regex = r'(metadata\.tsv|\.mscx)$' if args.regex == '(\.mscx|\.mscz|\.tsv)$' else args.regex
-
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
-    if not any('metadata' in fnames for fnames in p.fnames.values()):
-        p.logger.info("metadata.tsv not found.")
-        return
-    p.parse(parallel=False)
+    if parse_obj is None:
+        p = make_parse_obj(args, parse_scores=True)
+    else:
+        p = parse_obj
     if len(p._metadata) == 0:
         p.logger.info("No suitable metadata recognized.")
         return
