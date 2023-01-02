@@ -165,12 +165,12 @@ class MSCX(LoggedClass):
         ms_version = get_ms_version(self.mscx_src)
         if ms_version is None:
             raise ValueError(f"MuseScore version could not be read from {self.mscx_src}")
-        if ms_version[0] == '3':
+        if ms_version[0] in ('3', '4'):
             self.parse_mscx()
         else:
             if self.parent_score.ms is None:
-                raise ValueError(f"""In order to parse a version {ms_version} file,
-use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
+                raise ValueError(f"In order to parse a version {ms_version} file, "
+                                 f"use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
             with self.parent_score._tmp_convert(self.mscx_src) as tmp:
                 self.logger.debug(f"Using temporally converted file {os.path.basename(tmp)} for parsing the version {ms_version} file.")
                 self.mscx_src = tmp
