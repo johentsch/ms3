@@ -1,28 +1,53 @@
 """Functions for transforming DataFrames as output by ms3."""
 import sys
+import warnings
 from fractions import Fraction as frac
 from functools import reduce
-from typing import Union
+from typing import Union, List, Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
 
 from .logger import function_logger
 from .utils import adjacency_groups, features2tpcs, fifths2name, fifths2iv, fifths2pc, fifths2rn, fifths2sd, make_interval_index_from_breaks, \
-    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough2mc, name2fifths, nan_eq, rel2abs_key, \
+    make_continuous_offset_series, make_interval_index_from_durations, make_playthrough_info, midi2octave, name2fifths, nan_eq, rel2abs_key, \
     replace_index_by_intervals, resolve_relative_keys, roman_numeral2fifths, \
-    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
+    roman_numeral2semitones, series_is_minor, reduce_dataframe_duration_to_first_row, tpc2name, transform, transpose, transpose_changes, unfold_repeats, overlapping_chunk_per_interval
 
 
 def add_localkey_change_column(at, key_column='localkey'):
     key_segment, _ = adjacency_groups(at[key_column], na_values='ffill')
     return pd.concat([at, key_segment.rename('key_segment')], axis=1)
 
+@function_logger
+def make_note_name_and_octave_columns(notes: pd.DataFrame,
+                                      staff2drums: Optional[Dict[int, Union[dict, pd.DataFrame, pd.Series]]] = None) -> Tuple[pd.Series, pd.Series]:
+    """Takes a notelist and maybe a {staff -> {midi_pitch -> 'instrument_name'}} mapping and returns two columns named 'name' and 'octave'."""
+    octaves = midi2octave(notes.midi, notes.tpc).rename('octave')
+    names = (tpc2name(notes.tpc) + octaves.astype(str)).rename('name')
+    if staff2drums is None or len(staff2drums) == 0:
+        return names, octaves
+    result = pd.Series(index=notes.index, dtype='string', name='name')
+    for staff, drum_map in staff2drums.items():
+        if isinstance(drum_map, pd.DataFrame):
+            drum_map = drum_map.name
+        drum_notes = notes.staff == staff
+        result.loc[drum_notes] = notes.midi[drum_notes].map(drum_map)
+    not_drum = result.isna()
+    if not_drum.sum() > 0:
+        result = result.fillna(names)
+    if not not_drum.all():
+        is_drum = ~not_drum
+        octaves = octaves.astype('Int64')
+        octaves.loc[is_drum] = pd.NA
+    return result, octaves
 
 @function_logger
-def add_quarterbeats_col(df, offset_dict, interval_index=False):
+def add_quarterbeats_col(df: pd.DataFrame,
+                         offset_dict: Union[pd.Series, dict],
+                         interval_index: bool = False) -> pd.DataFrame:
     """ Insert a column measuring the distance of events from MC 1 in quarter notes. If no 'mc_onset' column is present,
-        the column corresponds to the ``insert_after`` column's measure counts.
+        the column corresponds to the values given in the offset_dict..
 
     Parameters
     ----------
@@ -87,19 +112,40 @@ def add_quarterbeats_col(df, offset_dict, interval_index=False):
         else:
             quarterbeats = new_cols['quarterbeats']
             present_qb = quarterbeats.notna()
+            selected_qb = quarterbeats[present_qb].astype(float)
+            qb_are_sorted = (selected_qb.sort_values().index == selected_qb.index).all()
+            if not qb_are_sorted:
+                unordered_index_pairs = [[ix_a, ix_b] for (ix_a, a), (ix_b, b) in zip(selected_qb.items(), selected_qb.iloc[1:].items()) if b < a]
+                n_problems = len(unordered_index_pairs)
+                if n_problems > 0:
+                    fails_df = pd.concat([df.loc[fail] for fail in unordered_index_pairs], keys=range(n_problems), names=['problem', 'index'])
+                    logger.warning(f"In the following instances the second event occurs before the first one: \n{fails_df.iloc[:,:12].to_string()}\n"
+                                   f"Each second row will not have a 'duration_qb' value.",
+                                   extra={'message_id': (28,)})
+                    present_and_in_the_right_order = present_qb & ~(selected_qb > selected_qb.shift(-1))
+                    selected_qb = quarterbeats[present_and_in_the_right_order].astype(float)
+                else:
+                    # the index changed when sorting values but only because some quarterbeats were identical
+                    qb_are_sorted = True
             try:
-                ivs = make_interval_index_from_breaks(quarterbeats[present_qb].astype(float),
+                ivs = make_interval_index_from_breaks(selected_qb,
                                                       end_value=float(offset_dict['end']), logger=logger)
                 duration_qb = pd.Series(pd.NA, index=df.index, name='duration_qb')
-                duration_qb.loc[present_qb] = ivs.length
+                if qb_are_sorted:
+                    duration_qb.loc[present_qb] = ivs.length
+                else:
+                    duration_qb.loc[present_and_in_the_right_order] = ivs.length
                 new_cols['duration_qb'] = duration_qb
             except Exception as e:
                 logger.warning(
-                    f"Error while creating durations from quarterbeats column. Check consistency (quarterbeats need to be monotically ascending; 'end' value in offset_dict "
-                    f"needs to be larger than the last quarterbeat). Error:\n{e}")
+                    f"Error while creating durations from quarterbeats column. Error:\n{e}")
     if len(new_cols) > 0:
-        df = pd.concat(list(new_cols.values()) + [df], axis=1)
-        logger.debug(f"Prepended the columns {list(new_cols.keys())}.")
+        insert_after = next(col for col in ('mn_playthrough', 'mc_playthrough', 'mn', 'mc') if col in df.columns)
+        logger.debug(f"Inserting {list(new_cols.keys())} after '{insert_after}'")
+        insert_position = df.columns.get_loc(insert_after) + 1
+        left, right = df.iloc[:, :insert_position], df.iloc[:, insert_position:]
+        df = pd.concat([left] + list(new_cols.values()) + [right], axis=1)
+        logger.debug(f"Inserted the columns {list(new_cols.keys())}.")
     else:
         logger.debug("No columns were added.")
     if interval_index and all(c in df.columns for c in ('quarterbeats', 'duration_qb')):
@@ -256,7 +302,7 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
             logger.warning(str(sys.exc_info()[1]))
     if expand:
         res = pd.DataFrame([result_dict[t] for t in param_tuples], index=df.index)
-        res['bass_note'] = res.chord_tones.apply(lambda l: np.nan if pd.isnull(l) or len(l) == 0 else l[0])
+        res['bass_note'] = res.chord_tones.apply(lambda l: pd.NA if pd.isnull(l) or len(l) == 0 else l[0])
         res[['root', 'bass_note']] = res[['root', 'bass_note']].astype('Int64')
     else:
         res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
@@ -268,21 +314,18 @@ def compute_chord_tones(df, bass_only=False, expand=False, cols={}):
 
 
 @function_logger
-def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_index=True):
+def dfs2quarterbeats(dfs: Union[pd.DataFrame, List[pd.DataFrame]],
+                     measures: pd.DataFrame, unfold=False, quarterbeats=True, interval_index=True) -> List[pd.DataFrame]:
     """ Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.
 
-    Parameters
-    ----------
-    dfs : (:obj:`list` of) :obj:`pandas.DataFrame`
-        DataFrame(s) that are to be unfolded and/or receive quarterbeats.
-    measures : :obj:`pandas.DataFrame`
-    unfold : :obj:`bool`, optional
-    quarterbeats : :obj:`bool`, optional
-    interval_index : :obj:`bool`, optional
+    Args:
+        dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.
+        measures:
+        unfold:
+        quarterbeats:
+        interval_index:
 
-    Returns
-    -------
-    :obj:`list` of :obj:`pandas.DataFrame`
+    Returns:
         Altered copies of `dfs`.
     """
     assert sum((unfold, quarterbeats, interval_index)) >= 1, "At least one of the 'unfold', 'quarterbeats', and 'interval_index' arguments needs to be True."
@@ -292,14 +335,14 @@ def dfs2quarterbeats(dfs, measures, unfold=False, quarterbeats=True, interval_in
     if interval_index:
         quarterbeats = True
     if unfold:
-        playthrough2mc = make_playthrough2mc(measures, logger=logger)
-        if len(playthrough2mc) == 0:
+        playthrough_info = make_playthrough_info(measures, logger=logger)
+        if playthrough_info is None or len(playthrough_info) == 0:
             logger.warning("Unfolding not possible because of incorrect repeat structure.")
             return []
     if unfold:
-        dfs = [unfold_repeats(df, playthrough2mc, logger=logger) if df is not None else df for df in dfs]
+        dfs = [unfold_repeats(df, playthrough_info, logger=logger) if df is not None else df for df in dfs]
         if quarterbeats:
-            unfolded_measures = unfold_repeats(measures, playthrough2mc, logger=logger)
+            unfolded_measures = unfold_repeats(measures, playthrough_info, logger=logger)
             continuous_offset = make_continuous_offset_series(unfolded_measures, logger=logger)
             dfs = [add_quarterbeats_col(df, continuous_offset, interval_index=interval_index, logger=logger)
                    if df is not None else df for df in dfs]
@@ -458,7 +501,7 @@ def group_annotations_by_features(at, features='numeral'):
             return a | ~nan_eq(b, b.shift())
         # The change mask is True for every row where either of the feature or safety columns is different from its previous value.
         change_mask = reduce(column_shift_mask,
-                             (col for _, col in at[cols].iteritems()),
+                             (col for _, col in at[cols].items()),
                              pd.Series(False, index=at.index))
         res = at[change_mask]
     keep_cols = [c for c in keep_cols if c in at.columns] + features
@@ -603,7 +646,7 @@ def make_chord_col(at, cols=None):
 @function_logger
 def make_gantt_data(at, last_mn=None, relativeroots=True, mode_agnostic_adjacency=True):
     """ Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,
-        based on the column ``localkey``. The column names are suited for the plotly library.
+    based on the column ``localkey``. The column names are suited for the plotly library.
     Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic
 
     Parameters
@@ -780,7 +823,7 @@ def notes2pcvs(notes,
     ensure_columns : :obj:`Iterable`, optional
         By default, pitch classes that don't appear don't get a column. Pass a value if you want to
         ensure the presence of particular columns, even if empty. For example, if ``pitch_class_format='pc'``
-        you could pass ``ensure_columns=range(12).
+        you could pass ``ensure_columns=range(12)``.
 
 
     Returns
@@ -918,7 +961,7 @@ def segment_by_adjacency_groups(df, cols, na_values='group', group_keys=False):
         while len(na_values) < N:
             na_values.append('group')
     groups, names = zip(
-        *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].iteritems(), na_values)))
+        *(adjacency_groups(c, na_values=na) for (_, c), na in zip(df[cols].items(), na_values)))
 
     grouped = df.groupby(list(groups), dropna=False).apply(reduce_dataframe_duration_to_first_row)
     if any(gr.isna().any() for gr in groups):
@@ -958,7 +1001,7 @@ def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.arr
     if 'duration_qb' in df.columns:
         df = df.drop(columns='duration_qb')
 
-    result = add_quarterbeats_col(df, offset_dict, interval_index=True)
+    result = add_quarterbeats_col(df, offset_dict, interval_index=True, logger=logger)
     if warn_na and not boolean_mask.iloc[0]:
         logger.warning("Boolean mask started with False, meaning that a part of the DataFrame is excluded from the segmentation.")
     return result
@@ -994,7 +1037,8 @@ def segment_by_interval_index(df, idx, truncate=True):
     return pd.concat(chunks.values(), keys=idx, levels=idx.levels)
 
 
-def slice_df(df, quarters_per_slice=None):
+def slice_df(df: pd.DataFrame,
+             quarters_per_slice: Optional[float] = None) -> Dict[pd.Interval, pd.DataFrame]:
     """ Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event's
     durations within the slice are shown in the column 'duration_qb'.
     Uses:
@@ -1303,5 +1347,17 @@ def transpose_chord_tones_by_localkey(df, by_global=False):
     ct = pd.DataFrame(transposed_row_tuples,
                       index=df.index,
                       columns=ct_cols)
-    df.loc[:, ct_cols] = ct
+    with warnings.catch_warnings():
+        # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+        # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+        # See also: https://stackoverflow.com/q/74057367/859591
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*will attempt to set the values inplace instead of always setting a new array. "
+                "To retain the old behavior, use either.*"
+            ),
+        )
+        df.loc[:, ct_cols] = ct
     return df

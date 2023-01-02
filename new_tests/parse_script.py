@@ -4,7 +4,7 @@ from ms3.logger import get_logger
 
 def main():
     p = Parse("~/unittest_metacorpus/mixed_files")
-    p.parse_mscx()
+    p.parse_scores()
     t = get_logger("ms3.Parse.mixed_files.Did03M-Son_regina-1762-Sarti.mscx")
     filt = t.filters[0]
     print("IGNORED_WARNINGS")

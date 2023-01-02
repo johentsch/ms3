@@ -1,10 +1,12 @@
-import sys, re
+import sys
+import warnings
 from functools import lru_cache
+from inspect import stack
 
 import pandas as pd
 
 from .utils import DCML_REGEX, DCML_DOUBLE_REGEX, decode_harmonies, is_any_row_equal, html2format, load_tsv, \
-    map_dict, name2format, resolve_dir, rgb2format, column_order, update_cfg
+    name2format, resolve_dir, rgb2format, column_order, update_cfg, FORM_DETECTION_REGEX
 from .logger import LoggedClass
 from .expand_dcml import expand_labels
 
@@ -17,7 +19,7 @@ class Annotations(LoggedClass):
     additional_cols = ['harmony_layer', 'regex_match', 'absolute_root', 'rootCase', 'absolute_base', 'leftParen', 'rightParen', 'offset_x', 'offset_y',
                        'nashville', 'decoded', 'color_name', 'color_html', 'color_r', 'color_g', 'color_b', 'color_a', 'placement', 'minDistance', 'style', 'z']
 
-    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types=None, read_only=False, logger_cfg={}, **kwargs):
+    def __init__(self, tsv_path=None, df=None, cols={}, index_col=None, sep='\t', mscx_obj=None, infer_types=None, read_only=False, **logger_cfg):
         """
 
         Parameters
@@ -49,7 +51,9 @@ class Annotations(LoggedClass):
         """
         super().__init__(subclass='Annotations', logger_cfg=logger_cfg)
         if infer_types is None:
-            self.regex_dict = {'dcml': DCML_DOUBLE_REGEX}
+            self.regex_dict = {'dcml': DCML_DOUBLE_REGEX,
+                               'form_labels': FORM_DETECTION_REGEX,
+                               }
         else:
             self.regex_dict = infer_types
         self._expanded = None
@@ -60,14 +64,19 @@ class Annotations(LoggedClass):
 
         columns = self.main_cols + self.additional_cols
         self.cols = {c: c for c in columns}
-        self.cols.update(update_cfg(cols, self.cols.keys(), logger=self.logger))
+        cols_update, incorrect = update_cfg(cols, self.cols.keys())
+        if len(incorrect) > 0:
+            last_5 = ', '.join(f"-{i}: {stack()[i].function}()" for i in range(1, 6))
+            plural = 'These mappings do' if len(incorrect) > 1 else 'This mapping does'
+            self.logger.warning(f"{plural} not pertain to standard columns: {incorrect}\nLast 5 function calls leading here: {last_5}")
+        self.cols.update(cols_update)
 
 
         if df is not None:
             self.df = df.copy()
         else:
             assert tsv_path is not None, "Name a TSV file to be loaded."
-            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep, **kwargs)
+            self.df = load_tsv(tsv_path, index_col=index_col, sep=sep)
         sorting_cols = ['mc', 'mn', 'mc_onset', 'staff']
         sorting_cols = [self.cols[c] if c in self.cols else c for c in sorting_cols]
         sorting_cols = [c for c in sorting_cols if c in self.df.columns]
@@ -98,13 +107,13 @@ class Annotations(LoggedClass):
             df[staff_col] = staff
         else:
             if staff is None:
-                self.logger.info(
-                    "Some labels don't have staff information. Using the default -1 (lowest staff) for those.")
-                staff = -1
+                if df[staff_col].isna().any():
+                    staff = -1
+                    self.logger.info(f"Some labels don't have staff information. Assigned staff {staff}.")
+                    df[staff_col].fillna(staff, inplace=True)
             else:
                 df[staff_col] = staff
-        if df[staff_col].isna().any():
-            df[staff_col].fillna(staff)
+
 
         voice_col = self.cols['voice']
         if voice_col not in cols:
@@ -112,12 +121,29 @@ class Annotations(LoggedClass):
                 self.logger.info("Annotations don't have voice information. Attaching to the default, voice 1.")
                 voice = 1
             df[voice_col] = voice
-        if df[voice_col].isna().any():
+        else:
             if voice is None:
-                self.logger.info("Some labels don't have voice information. Attaching to the default, voice 1.")
+                if df[voice_col].isna().any():
+                    voice = 1
+                    self.logger.info("Some labels don't have voice information. Attaching to the default, voice 1.")
+                    df[voice_col].fillna(voice, inplace=True)
+            else:
+                df[voice_col] = voice
 
-        if harmony_layer is not None:
-            df[self.cols['harmony_layer']] = harmony_layer
+        layer_col = self.cols['harmony_layer']
+        if layer_col not in cols:
+            if harmony_layer is None:
+                self.logger.info("Annotations don't have harmony_layer information. Using the default, 1 (Roman numerals).")
+                harmony_layer = 1
+            df[layer_col] = harmony_layer
+        else:
+            if harmony_layer is None:
+                if df[layer_col].isna().any():
+                    harmony_layer = 1
+                    self.logger.info("Some labels don't have harmony_layer information. Using the default, 1 (Roman numerals).")
+                    df[layer_col].fillna(harmony_layer, inplace=True)
+            else:
+                df[layer_col] = harmony_layer
 
         error = False
         if self.cols['mc'] not in cols:
@@ -140,8 +166,11 @@ class Annotations(LoggedClass):
                     df.loc[:, 'mc_onset'] = inferred_positions['mc_onset']
                     cols.extend(['mc', 'mc_onset'])
 
-        if self.cols['mc_onset' ] not in cols:
+        mc_onset_col = self.cols['mc_onset']
+        if mc_onset_col not in cols:
             self.logger.info("No 'mc_onset' column found. All labels will be inserted at mc_onset 0.")
+            new_col = pd.Series([0]*len(df), index=df.index, name='mc_onset')
+            df = pd.concat([new_col, df], axis=1)
 
         position_cols = ['mc', 'mc_onset', 'staff', 'voice']
         new_pos_cols = [self.cols[c] for c in position_cols]
@@ -196,14 +225,15 @@ class Annotations(LoggedClass):
         else:
             df['color_name'] = 'default'
             layers.append('color_name')
-        df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
+        if 'regex_match' in df.columns:
+            df.harmony_layer = df.harmony_layer.astype(str) + (' (' + df.regex_match + ')').fillna('')
         return self.count(), df.groupby(layers, dropna=False).size()
 
     def __repr__(self):
         n, layers = self.annotation_layers
         return f"{n} labels:\n{layers.to_string()}"
 
-    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, warnings=True, column_name=None, color_format=None):
+    def get_labels(self, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, drop=False, inverse=False, column_name=None, color_format=None, regex=None):
         """ Returns a DataFrame of annotation labels.
 
         Parameters
@@ -225,8 +255,6 @@ class Annotations(LoggedClass):
             as encoded by MuseScore (e.g., with root and bass as TPC (tonal pitch class) where C = 14 for layer 0).
         drop : :obj:`bool`, optional
             Set to True to delete the returned labels from this object.
-        warnings : :obj:`bool`, optional
-            Set to False to suppress warnings about non-existent harmony_layers.
         column_name : :obj:`str`, optional
             Can be used to rename the columns holding the labels.
         color_format : {'html', 'rgb', 'rgba', 'name', None}
@@ -244,8 +272,12 @@ class Annotations(LoggedClass):
             sel = sel & (self.df[self.cols['voice']] == voice)
         if harmony_layer is not None and 'harmony_layer' in self.df.columns:
             # TODO: account for the split into harmony_layer and regex_match
-            harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
-            sel = sel & self.df.harmony_layer.isin(harmony_layer)
+            #harmony_layer = self._treat_harmony_layer_param(harmony_layer, warnings=warnings)
+            sel = sel & (self.df.harmony_layer == str(harmony_layer))
+        if regex is not None:
+            sel = sel & self.df[self.cols['label']].str.match(regex).fillna(False)
+        if inverse:
+            sel = ~sel
         res = self.df[sel].copy()
         if positioning:
             pos_cols = [c for c in ('offset',) if c in res.columns]
@@ -356,12 +388,26 @@ class Annotations(LoggedClass):
                 self._expanded = exp
             else:
                 df = self.df.copy()
-                df.loc[select_dcml, exp.columns] = exp
+                key_cols = ['globalkey', 'localkey', 'globalkey_is_minor', 'localkey_is_minor']
+                with warnings.catch_warnings():
+                    # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+                    # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+                    # See also: https://stackoverflow.com/q/74057367/859591
+                    warnings.filterwarnings(
+                        "ignore",
+                        category=FutureWarning,
+                        message=(
+                            ".*will attempt to set the values inplace instead of always setting a new array. "
+                            "To retain the old behavior, use either.*"
+                        ),
+                    )
+                    df.loc[select_dcml, exp.columns] = exp
+                    df.loc[:, key_cols] = df[key_cols].fillna(method='ffill')
                 self._expanded = df
             drop_cols = [col for col in ('harmony_layer', 'regex_match') if col in df.columns]
             if len(drop_cols) > 0:
                 self._expanded.drop(columns=drop_cols, inplace=True)
-        except:
+        except Exception:
             self.logger.error(f"Expanding labels failed with the following error:\n{sys.exc_info()[1]}")
 
         if drop_empty_cols:
@@ -399,13 +445,20 @@ class Annotations(LoggedClass):
         if len(regex_dict) > 0:
             decoded = decode_harmonies(self.df, label_col=self.cols['label'], return_series=True, logger=self.logger)
             sel = decoded.notna()
+            if not sel.any():
+                self.logger.info(f"No labels present: {self.df}")
+                return
             if 'regex_match' not in self.df.columns and sel.any():
                 regex_col = pd.Series(index=self.df.index, dtype='object')
                 column_position = self.df.columns.get_loc('harmony_layer') + 1
                 self.df.insert(column_position, 'regex_match', regex_col)
             for name, regex in regex_dict.items():
                 # TODO: Check if in the loop, previously matched regex names are being overwritten by those matched after
-                mtch = decoded[sel].str.match(regex)
+                try:
+                    mtch = decoded[sel].str.match(regex)
+                except AttributeError:
+                    self.logger.warning(f"Couldn't match regex against these labels: {decoded[sel]}")
+                    raise
                 self.df.loc[sel & mtch, 'regex_match'] = name
 
 
@@ -414,9 +467,8 @@ class Annotations(LoggedClass):
             self.logger.warning(f"Cannot change labels attached to a score. Detach them first.")
             return
         label_col = self.cols['label']
-        rem_dots = lambda s: s[1:] if s[0] == '.' else s
-        no_nan = self.df[label_col].notna()
-        self.df.loc[no_nan, label_col] = self.df.loc[no_nan, label_col].map(rem_dots)
+        starts_with_dot = self.df[label_col].str[0] == '.'
+        self.df.loc[starts_with_dot, label_col] = self.df.loc[starts_with_dot, label_col].str[1:]
 
 
     def store_tsv(self, tsv_path, staff=None, voice=None, harmony_layer=None, positioning=False, decode=True, sep='\t', index=False, **kwargs):

@@ -20,6 +20,8 @@ finally:
 from .score import Score
 from .annotations import Annotations
 from .parse import Parse
+from .piece import Piece
+from .corpus import Corpus
 from .utils import *
 from .transformations import *
 from .logger import config_logger

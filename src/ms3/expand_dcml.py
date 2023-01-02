@@ -5,9 +5,9 @@ import sys, re
 from collections import defaultdict
 
 import pandas as pd
-import numpy as np
 
-from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, series_is_minor, split_alternatives, transform
+from .utils import abs2rel_key, changes2list, DCML_REGEX, rel2abs_key, resolve_relative_keys, \
+    series_is_minor, split_alternatives, transform
 from .transformations import compute_chord_tones, labels2global_tonic, transpose_chord_tones_by_localkey
 from .logger import function_logger
 
@@ -121,7 +121,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         if k > 0:
             if k / len(not_nan.index) > 0.1:
                 logger.warning(
-                    "DataFrame has many direct repetitions of labels. This function is written for lists of labels only which should have no immediate repetitions.")
+                    "DataFrame has many direct repetitions of labels.")
             else:
                 logger.debug(f"Immediate repetition of labels:\n{not_nan[immediate_repetitions]}")
 
@@ -132,16 +132,6 @@ from several pieces. Apply expand_labels() to one piece at a time."""
     df['chord_type'] = transform(df, features2type, [rename[col] for col in ['numeral', 'form', 'figbass']], logger=logger)
     df = replace_special(df, regex=regex, merge=True, cols=rename, logger=logger)
 
-    if not skip_checks:
-        ### Check phrase annotations
-        p_col = df[rename['phraseend']]
-        opening = p_col.fillna('').str.count('{')
-        closing = p_col.fillna('').str.count('}')
-        if opening.sum() != closing.sum():
-            o = df.loc[(opening > 0), ['mc', rename['phraseend']]]
-            c = df.loc[(closing > 0), ['mc', rename['phraseend']]]
-            compare = pd.concat([o.reset_index(drop=True), c.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
-            logger.warning(f"Phrase beginning and endings don't match:\n{compare}", extra={"message_id": (16, )})
 
     key_cols = {col: rename[col] for col in ['localkey', 'globalkey']}
     if propagate:
@@ -174,6 +164,7 @@ from several pieces. Apply expand_labels() to one piece at a time."""
         df.index = ix
 
     return df
+
 
 @function_logger
 def extract_features_from_labels(S, regex=None):
@@ -354,7 +345,7 @@ def replace_special(df, regex, merge=False, inplace=False, cols={}, special_map=
 
     logger.debug(f"Moving special symbols from {cols['numeral']} to {cols['special']}...")
     if not cols['special'] in df.columns:
-        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], np.nan)
+        df.insert(df.columns.get_loc(cols['numeral']), cols['special'], pd.NA)
     df.loc[select_all_special, cols['special']] = df.loc[select_all_special, cols['numeral']]
 
     def repl_spec(frame, special, instead):
@@ -533,15 +524,25 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
     logger.debug('Extending pedal notes to concerned harmonies')
     beginnings = df.loc[df[pedal].notna(), ['mc', pedal]]
     endings = df.loc[df[pedalend].notna(), ['mc', pedalend]]
-    n_b, n_e = len(beginnings), len(endings)
+    n_beginnings, n_endings = len(beginnings), len(endings)
 
     def make_comparison():
         return pd.concat([beginnings.reset_index(drop=True), endings.reset_index(drop=True)], axis=1).astype({'mc': 'Int64'})
 
-    assert n_b == n_e, f"{n_b} organ points started, {n_e} ended:\n{make_comparison()}"
+    mismatch_maybe_due_to_voltas = None
+    if n_beginnings != n_endings:
+        mismatch_maybe_due_to_voltas = False
+        if 'volta' in df.columns:
+            only_one_volta = (df.volta.fillna(2) == 2)
+            n_endings_cleaned = df.loc[only_one_volta, pedalend].notna().sum()
+            if n_beginnings == n_endings_cleaned:
+                mismatch_maybe_due_to_voltas = True
+                logger.info(f"One or several pedal points have there endings in a first/second ending scenario. "
+                               f"So far I can only correctly propagate the pedal note into first endings, not the others.")
+    if mismatch_maybe_due_to_voltas is False:
+        raise AssertionError(f"{n_beginnings} organ points started, {n_endings} ended:\n{make_comparison()}")
     if relative:
-        assert df[cols[
-            'localkey']].notna().all(), "Local keys must first be propagated using propagate_keys(), no NaNs allowed."
+        assert df[cols['localkey']].notna().all(), "Local keys must first be propagated using propagate_keys(), no NaNs allowed."
 
     for (fro, ped), to in zip(beginnings[pedal].items(), endings[pedalend].index):
         try:
@@ -549,14 +550,23 @@ def propagate_pedal(df, relative=True, drop_pedalend=True, cols={}):
         except:
             logger.error(
                 f"Slicing of the DataFrame did not work from {fro} to {to}. Index looks like this:\n{df.head().index}")
-        localkeys = df.loc[section, cols['localkey']]
+        section_df = df.loc[section]
+        if mismatch_maybe_due_to_voltas and section_df['volta'].notna().any():
+            only_one_volta = section_df.volta.fillna(1) == 1
+            if not only_one_volta.all():
+                # ToDo: Make full-fledged solution for correct propagation to endings in several voltas or even beyond
+                section = section[only_one_volta]
+                section_df = df.loc[section]
+        localkeys = section_df[cols['localkey']]
         if localkeys.nunique() > 1:
             first_localkey = localkeys.iloc[0]
-            globalkeys = df.loc[section, cols['globalkey']].unique()
+            globalkeys = section_df[cols['globalkey']].unique()
             assert len(globalkeys) == 1, "Several globalkeys appearing within the same organ point."
             global_minor = globalkeys[0].islower()
+            # if the localkey changes during the pedal point, the reference changes and the Roman numeral indicating
+            # the pedal note needs to be adapted
             key2pedal = {
-                key: ped if key == first_localkey else abs2rel_key(rel2abs_key(ped, first_localkey, global_minor), key,
+                key: ped if key == first_localkey else abs2rel_key(rel2abs_key(ped, first_localkey, global_minor, logger=logger), key,
                                                                    global_minor) for key in localkeys.unique()}
             logger.debug(
                 f"Pedal note {ped} has been transposed relative to other local keys within a global {'minor' if global_minor else 'major'} context: {key2pedal}")

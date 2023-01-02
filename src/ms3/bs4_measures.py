@@ -1,7 +1,9 @@
 from collections import defaultdict
+from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
 import numpy as np
+from numpy.typing import NDArray
 from fractions import Fraction as frac
 
 from .logger import get_logger, function_logger, LoggedClass
@@ -51,6 +53,7 @@ class MeasureList(LoggedClass):
             'file': PATH_TO_LOGFILE to store all log messages under the given path.
         """
         super().__init__(subclass='MeasureList', logger_cfg=logger_cfg)
+        assert len(df) > 0, "Score contains no measures."
         self.df = df
         self.ml = pd.DataFrame()
         self.sections = sections
@@ -97,7 +100,7 @@ class MeasureList(LoggedClass):
                    'play_until', 'sigD_col', 'sigN_col', 'startRepeat', 'volta_start', 'volta_length']
         for col in [self.cols[col] for col in info_cols]:
             if not col in self.ml.columns:
-                self.ml[col] = np.nan
+                self.ml[col] = pd.NA
         self.ml.rename(columns={self.cols[c]: c for c in ['mc', 'breaks', 'jump_bwd', 'jump_fwd', 'markers', 'play_until']}, inplace=True)
         if self.ml.jump_fwd.notna().any():
             self.ml.jump_fwd = self.ml.jump_fwd.replace({'/': None})
@@ -124,15 +127,19 @@ class MeasureList(LoggedClass):
             self.ml.reset_index(drop=True, inplace=True)
         rn = {self.cols[col]: col for col in ['barline', 'dont_count', 'numbering_offset']}
         self.ml.rename(columns=rn, inplace=True)
-        ml_cols = ['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta', 'numbering_offset', 'dont_count',
-                   'barline', 'breaks', 'repeats']
-        remove_if_empty = ['markers', 'jump_bwd', 'jump_fwd', 'play_until']
-        if self.ml[remove_if_empty].isna().all().all():
-            ml_cols += ['next']
-        else:
-            ml_cols += remove_if_empty + ['next']
-        self.ml = self.ml[ml_cols]
-        self.ml.loc[:, ['numbering_offset', 'dont_count']] = self.ml[['numbering_offset', 'dont_count']].apply(pd.to_numeric).astype('Int64')
+        cols1 = ['mc', 'mn', 'keysig', 'timesig', 'act_dur', 'mc_offset', 'volta']
+        cols2 = ['numbering_offset', 'dont_count']
+        cols3 = ['barline', 'breaks', 'repeats']
+        cols4 = ['markers', 'jump_bwd', 'jump_fwd', 'play_until']
+        chunk1 = self.ml[cols1]
+        chunk2 = self.ml[cols2].apply(pd.to_numeric).astype('Int64')
+        chunk3 = self.ml[cols3]
+        chunk4 = self.ml[cols4]
+        chunks = [chunk1, chunk2, chunk3]
+        if not chunk4.isna().all().all():
+            chunks.append(chunk4)
+        chunks.append(self.ml['next'])
+        self.ml = pd.concat(chunks, axis=1)
         self.check_measure_numbers()
 
 
@@ -248,25 +255,33 @@ class NextColumnMaker(LoggedClass):
             self.logger.warning(f"MC column contains NaN which will lead to an incorrect 'next' column.")
         nxt = self.mc.shift(-1).astype('Int64').map(lambda x: [x] if not pd.isnull(x) else [-1])
         last_row = df.iloc[-1]
-        end_mc = last_row.mc
+        self.last_mc = last_row.mc
         self.next = {mc: nx for mc, nx in zip(self.mc, nxt)}
         fines = df.markers.fillna('').str.contains('fine')
         if fines.any():
             if fines.sum() > 1:
                 self.logger.warning(f"ms3 currently does not deal with more than one Fine. Using last measure as Fine.")
-            elif last_row.repeats != 'end' and pd.isnull(last_row.jump_bwd):
+            elif last_row.repeats != 'end' and df.jump_bwd.isna().all():
+                fine_mc = df.loc[fines, 'mc'].values[0]
                 self.logger.warning(
-                    f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.")
+                    f"Piece has a Fine but the last MC is missing a repeat sign or a D.C. (da capo) or D.S. (dal segno). Ignoring Fine.",
+                extra={"message_id": (20, fine_mc)})
             else:
                 fine_mc = df[fines].iloc[0].mc
-                volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
-                if fine_mc in volta_mcs:
-                    self.next[fine_mc] = [-1]
-                else:
-                    self.next[fine_mc].append(-1)
-                end_mc = fine_mc
-                self.next[last_row.mc] = []
-                self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
+                if -1 not in self.next[fine_mc]:
+                    volta_mcs = dict(df.loc[df.volta.notna(), ['mc', 'volta']].values)
+                    if fine_mc in volta_mcs:
+                        # voltas can be reached only a single time, hence the name
+                        self.next[fine_mc] = [-1]
+                    else:
+                        self.next[fine_mc].append(-1)
+                    if fine_mc != self.last_mc:
+                        if -1 in self.next[self.last_mc]:
+                            self.next[self.last_mc].remove(-1)
+                        else:
+                            self.logger.warning(f"Which MC has -1 in the 'next' column at the moment I've set it to 'Fine' measure {fine_mc}?")
+                        self.last_mc = fine_mc
+                    self.logger.debug(f"Set the Fine in MC {fine_mc} as final measure.")
 
         if df.jump_bwd.notna().any():
             #jumps = dict(map(lambda row: (row[0], tuple(row[1:])), df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']].values))
@@ -276,7 +291,9 @@ class NextColumnMaker(LoggedClass):
                     markers[marker].append(t.mc)
             # markers = {marker: mcs.to_list() for marker, mcs in df.groupby('markers').mc}
 
-            def jump2marker(from_mc, marker, untill=None):
+            def jump2marker(from_mc: int,
+                            marker: Optional[str],
+                            untill: Optional[str] = None) -> Tuple[Optional[int], Optional[int]]:
 
                 def get_marker_mc(m, untilll=False):
                     mcs = markers[m]
@@ -295,19 +312,21 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                     jump_to_mc = get_marker_mc(marker)
                 else:
                     self.logger.warning(
-                        f"MC {from_mc} is supposed to jump to label {marker} but there is no corresponding marker in the score. Ignoring.")
+                        f"MC {from_mc} is supposed to jump to label {marker} but there is no corresponding marker in the score. Ignoring.",
+                    extra={'message_id': (22, from_mc)})
                     return None, None
 
                 if pd.isnull(untill):
                     end_of_jump_mc = None
                 elif untill == 'end':
-                    end_of_jump_mc = end_mc
+                    end_of_jump_mc = self.last_mc
                 elif untill in markers:
                     end_of_jump_mc = get_marker_mc(untill, True)
                 else:
                     end_of_jump_mc = None
                     self.logger.warning(
-                        f"After jumping from MC {from_mc} to {marker}, the music is supposed to play until label {untill} but there is no corresponding marker in the score. Ignoring.")
+                        f"After jumping from MC {from_mc} to {marker}, the music is supposed to play until label {untill} but there is no corresponding marker in the score. Ignoring.",
+                    extra={'message_id': (21, from_mc)})
                 return jump_to_mc, end_of_jump_mc
 
             bwd_jumps = df.loc[df.jump_bwd.notna(), ['mc', 'jump_bwd', 'jump_fwd', 'play_until']] #.copy()
@@ -315,8 +334,10 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             for mc, jumpb, jumpf, until in bwd_jumps.itertuples(name=None, index=False):
                 jump_to_mc, end_of_jump_mc = jump2marker(mc, jumpb, until)
                 if not pd.isnull(jump_to_mc):
+                    previous_value = self.next[mc]
                     self.next[mc] = [jump_to_mc]
-                    self.logger.debug(f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                    #print(self.logger, f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
+                    self.logger.debug(f"Replacing next value {previous_value} of MC {mc} with the {jumpb} in MC {jump_to_mc}.")
                 else:
                     self.logger.debug(f"Could not include backward jump from MC {mc}.")
                 if not pd.isnull(jumpf):
@@ -330,8 +351,12 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                     else:
                         to_mc, _ = jump2marker(end_of_jump_mc, jumpf)
                         if not pd.isnull(to_mc):
-                            self.next[jump_to_mc].append(to_mc)
-                            self.logger.debug(f"Included forward jump from the {jumpb} in MC {jump_to_mc} to the {jumpf} in MC {to_mc} ")
+                            n_existing_next = len(self.next[end_of_jump_mc])
+                            if n_existing_next > 0 and self.next[end_of_jump_mc][-1] == -1:
+                                self.next[end_of_jump_mc] = self.next[end_of_jump_mc][:-1] + [to_mc, -1]
+                            else:
+                                self.next[end_of_jump_mc].append(to_mc)
+                            self.logger.debug(f"Included forward jump from the {until} in MC {end_of_jump_mc} to the {jumpf} in MC {to_mc} ")
                         else:
                             self.logger.debug(f"Could not include forward jump from the {jumpb} in MC {jump_to_mc}.")
         else: # no backward jumps
@@ -347,39 +372,53 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
             firsts = []
             lasts = []
             last_volta = max(group)
-            mc_after_voltas = max(group[last_volta]) + 1
+            last_group = group[last_volta]
+            if len(last_group) == 0:
+                try:
+                    previous_mc = max(mc for volta, mcs in group.items() for mc in mcs if volta < last_volta)
+                    last_volta_mc = previous_mc + 1
+                    group[last_volta] = [last_volta_mc]
+                    mc_after_voltas = last_volta_mc + 1 # wild guess
+                except ValueError:
+                    self.logger.warning(f"Last volta does not indicate any MCs: {group}. Column 'next' will probably be "
+                                        f"invalid and unfolding might fail.")
+                    mc_after_voltas = None
+                    del(group[last_volta])
+            else:
+                mc_after_voltas = max(last_group) + 1
             if mc_after_voltas not in self.next:
                 mc_after_voltas = None
             for volta, mcs in group.items():
+                if len(mcs) == 0:
+                    continue
                 # every volta except the last needs will have the `next` value replaced either by the startRepeat MC or
                 # by the first MC after the last volta
                 if volta < last_volta:
                     lasts.append(mcs[-1])
                 # the bar before the first volta will have first bar of every volta as `next`
                 firsts.append(mcs[0])
-            self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
+            if first_mc > 1:
+                # prepend first MC of each volta to the 'next' tuple of the preceding measure
+                self.next[first_mc - 1] = firsts + self.next[first_mc - 1][1:]
             # check_volta_repeats keys are last MCs of all voltas except last voltas, values are all False at the beginning
-            # and they are set to True if
-            lasts_with_repeat = [l for l in lasts if self.repeats[l] == 'end']
+            # and they are set to True if their value has been changed to something else than the next MC
+            backward_jumps = bwd_jumps.mc.to_list()
+            wasp_nest = [l for l in lasts if not pd.isnull(self.repeats[l]) and self.repeats[l] == 'end' and l not in backward_jumps]
             for l in lasts:
                 has_repeat = not pd.isnull(self.repeats[l])
-                has_backward_jump = l in bwd_jumps.mc.values
-                if has_repeat or has_backward_jump:
+                has_backward_jump = l in backward_jumps
+                if has_backward_jump:
+                    self.check_volta_repeats[l] = True
+                elif has_repeat:
                     if self.repeats[l] == 'end':
                         self.check_volta_repeats[l] = False
-                        self.wasp_nest[l] = lasts_with_repeat
+                        self.wasp_nest[l] = wasp_nest
                         # for voltas with and endRepeat, the wasp_nest makes sure that once the sections' beginning is
                         # determined in end_section(), it becomes their 'next' value
-                    elif has_backward_jump:
-                        # if there is a backward jump, it is already part of the 'next' column
-                        pass
-                        self.logger.debug(
-                            f"MC {l}, which is the last MC of a volta, has no repeat sign but a jump back to '{bwd_jumps.loc[bwd_jumps.mc == l, 'jump_bwd'].values[0]}'")
                     else:
                         self.logger.warning(f"MC {l}, which is the last MC of a volta, has a different repeat sign than 'end': {self.repeats[l]}")
                 elif mc_after_voltas is None:
-                    if l not in bwd_jumps.mc.values:
-                        self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
+                    self.logger.warning(f"MC {l} is the last MC of a volta but has neither a repeat sign or jump, nor is there a MC after the volta group where to continue.")
                 else:
                     self.next[l] = [mc_after_voltas]
 
@@ -420,17 +459,21 @@ For correction, MC {start} is interpreted as such because it {reason}."""
             start = None
 
         if mc in self.check_volta_repeats:
-            self.check_volta_repeats[mc] = True
-            if mc in self.wasp_nest:
-                if start is None:
-                    self.logger.error(
-                        f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
-                else:
-                    volta_endings = self.wasp_nest[mc]
-                    for e in volta_endings:
-                        self.next[e] = [start]
-                        del (self.wasp_nest[e])
-                    self.start = None
+            if self.check_volta_repeats[mc]:
+                # this one has a backwards_jump and doesn't need amending
+                pass
+            else:
+                self.check_volta_repeats[mc] = True
+                if mc in self.wasp_nest:
+                    if start is None:
+                        self.logger.error(
+                            f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
+                    else:
+                        volta_endings = self.wasp_nest[mc]
+                        for e in volta_endings:
+                            self.next[e] = [start]
+                            del (self.wasp_nest[e])
+                        self.start = None
         elif start is None:
             self.logger.error(f"No starting point for the repeatEnd in MC {mc} could be determined. It is being ignored.")
         else:
@@ -445,11 +488,12 @@ For correction, MC {start} is interpreted as such because it {reason}."""
                 self.potential_start = (mc + 1, 'is the first bar after the previous endRepeat')
             self.start = None
 
-    def treat_input(self, mc, repeat, section_break=False):
-        if section_break:
+    def treat_input(self, mc, repeat, section_break=False) -> None:
+        if not pd.isnull(section_break) and section_break and mc != self.last_mc:
             self.potential_ending = (mc, 'precedes a section break')
             self.potential_start = (mc + 1, 'follows a section break')
-
+        if pd.isnull(repeat):
+            return
         if repeat == 'firstMeasure':
             self.potential_start = (mc, 'firstMeasure')
         elif repeat == 'start':
@@ -467,13 +511,21 @@ For correction, MC {start} is interpreted as such because it {reason}."""
 
 
 @function_logger
-def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dict:
-    """
-        Uses: treat_group()
+def get_volta_structure(measures, mc, volta_start, volta_length, frac_col=None) -> Dict[int, Dict[int, List[int]]]:
+    """ Extract volta structure from measures table.
+
+    Uses: :func:`treat_group`
+
+    Args:
+        measures: Measures table containing the columns indicated in the other arguments.
+        mc, volta_start, volta_length, frac_col: column names
+
+    Returns:
+        {first_mc -> {volta_number -> [MC] } }
     """
     cols = [mc, volta_start, volta_length]
-    sel = df[volta_start].notna()
-    voltas = (df.loc[sel, cols])
+    sel = measures[volta_start].notna()
+    voltas = (measures.loc[sel, cols])
     if voltas[volta_length].isna().sum() > 0:
         rows = voltas[voltas[volta_length].isna()]
         logger.debug(f"The volta in MC {rows[mc].values} has no length: A standard length of 1 is supposed.")
@@ -486,7 +538,7 @@ def get_volta_structure(df, mc, volta_start, volta_length, frac_col=None) -> dic
     if len(voltas) == 0:
         return {}
     if frac_col is not None:
-        voltas[volta_length] += df.loc[sel, frac_col].notna()
+        voltas[volta_length] += measures.loc[sel, frac_col].notna()
     voltas.loc[voltas[volta_start] == 1, 'group'] = 1
     voltas.group = voltas.group.fillna(0).astype(int).cumsum()
     groups = {v[mc].iloc[0]: v[cols].to_numpy() for _, v in voltas.groupby('group')}
@@ -586,8 +638,8 @@ def make_actdur_col(df, len_col, timesig_col='timesig', name='act_dur'):
     actdur = actdur.fillna(df[timesig_col])
     try:
         return actdur.map(frac).rename(name)
-    except:
-        print(df.to_dict())
+    except Exception:
+        print(f"Failed to turn all values into fractions: {actdur}")
         raise
 
 
@@ -709,7 +761,7 @@ def make_offset_col(df, mc_col='mc', timesig='timesig', act_dur='act_dur', next_
                 add_offset(compl)
         elif offsets[mc] == 0:
             add_offset(mc)
-    mc2ix = {m: ix for ix, m in df.mc.iteritems()}
+    mc2ix = {m: ix for ix, m in df.mc.items()}
     result = {mc2ix[m]: offset for m, offset in offsets.items()}
     return pd.Series(result, name=name, dtype='object').reindex(df.index, fill_value=0)
 
@@ -733,24 +785,25 @@ def make_repeat_col(df, startRepeat, endRepeat, name='repeats'):
 
 @function_logger
 def make_timesig_col(df, sigN_col, sigD_col, name='timesig'):
-    if pd.isnull(df[sigN_col].iloc[0]):
-        logger.info("No time signature defined in MC 1 (maybe an incipit?).")
-        ## old behaviour where missing time signature is set to 4/4
-        # sigN_pos, sigD_pos = df.columns.get_loc(sigN_col), df.columns.get_loc(sigD_col)
-        # df.iloc[0, [sigN_pos, sigD_pos]] = '4'
     n = pd.to_numeric(df[sigN_col]).astype('Int64').fillna(method='ffill').astype('string')
     d = pd.to_numeric(df[sigD_col]).astype('Int64').fillna(method='ffill').astype('string')
     result = (n + '/' + d).rename(name)
-    if result.isna().any():
-        missing = result.isna()
+    missing = result.isna()
+    if missing.all():
+        logger.warning("No time signature specified. Wild-guessing it's the default 4/4.",
+                       extra={'message_id': (23,)})
+        result = result.fillna('4/4')
+    elif missing.any():
+        # because of the forward fill, only initial measures can have missing values
         result.fillna(method='bfill', inplace=True)
-        if result.isna().any():
-            logger.warning("No time signature specified. Wild-guessing it's the default 4/4.")
-            result = result.fillna('4/4')
+        fill_value = result.iloc[0]
+        if missing.sum() == 1:
+            logger.info(f"The first measure doesn't come with a time signature (probably an incipit?) but for matters "
+                        f"of consistency the measure table will indicate {fill_value}")
         else:
-            inferred = result[missing].to_dict()
-            logger.info(f"The following measures have received the first timesig of the piece although "
-                             f"it occurred only later:\n{inferred}")
+            logger.warning(f"The {missing.sum()} first MCs came without time signature but the measure table will indicate "
+                           f"the first time signature occurring in the piece for them, namely {fill_value}",
+                           extra = {'message_id': (24,)})
     return result
 
 
@@ -763,10 +816,19 @@ def make_volta_col(df, volta_structure, mc='mc', name='volta'):
 
 
 @function_logger
-def treat_group(mc, group):
-    """ Helper function for make_volta_col()
-        Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
-        where columns are (MC, volta number, volta length).
+def treat_group(mc: int,
+                group: NDArray) -> Dict[int, List[int]]:
+    """  Helper function for make_volta_col()
+
+
+    Args:
+        mc: MC of the first bar of the first measure.
+        group:
+            Input example: array([[93,  1,  1], [94,  2,  2], [96,  3,  1]])
+            where columns are (MC, volta number, volta length).
+
+    Returns:
+
     """
     n = group.shape[0]
     mcs, numbers, lengths = group.T
@@ -778,7 +840,8 @@ def treat_group(mc, group):
     frst = lengths[0]
     if (lengths != frst).any():
         logger.warning(
-            f"Volta group of MC {mc} contains voltas with different lengths: {lengths.tolist()} Check for correct computation of MNs.",
+            f"Volta group of MC {mc} contains voltas with different lengths: {lengths.tolist()} Check for correct computation of MNs "
+            f"and copy this message into an IGNORED_WARNINGS file to make the warning disappear.",
         extra={"message_id": (4, mc)})
     # check for overlaps and holes
     boundaries = np.append(mcs, mcs[-1] + group[-1, 2])

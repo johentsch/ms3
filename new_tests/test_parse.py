@@ -9,8 +9,8 @@ class TestEquivalence():
     def test_parallel(self, directory):
         a = Parse(directory)
         b = Parse(directory)
-        a.parse_mscx()
-        b.parse_mscx(parallel=False)
+        a.parse_scores()
+        b.parse_scores(parallel=False)
         assert a.info(return_str=True) == b.info(return_str=True)
 
     def test_add_corpus(self, directory):
@@ -21,12 +21,12 @@ class TestEquivalence():
         for sd in first_level_subdirs(directory):
             corpus = os.path.join(directory, sd)
             c.add_corpus(corpus)
-        assert a.count_extensions(per_key=True) == c.count_extensions(per_key=True)
-        assert len(b.count_extensions(per_key=True)) == 1
+        assert a.count_extensions() == c.count_extensions()
+        assert len(b.count_extensions()) == 1
 
 def assert_all_loggers_level(level):
-    for logger in iter_ms3_loggers():
-        if not logger.name.startswith('ms3.Parse'):
+    for name, logger in iter_ms3_loggers():
+        if not name.startswith('ms3.Parse'):
             continue
         eff_level = logger.getEffectiveLevel()
         if eff_level != level:
@@ -43,14 +43,14 @@ def assert_all_loggers_level(level):
 class TestLogging():
 
     def test_parallel_log_capture(self, directory):
-        cfg = dict(level='d')
-        a = Parse(directory, logger_cfg=cfg)
-        b = Parse(directory, logger_cfg=cfg)
+        """Compare log messages emitted when parsing the same thing in parallel or iteratively."""
+        a = Parse(directory, level='d')
+        b = Parse(directory, level='d')
         with capture_parse_logs(a.logger) as captured_msgs:
-            a.parse_mscx(parallel=False)
+            a.parse_scores(parallel=False)
             non_parallel_msgs = captured_msgs.content_list
         with capture_parse_logs(b.logger) as captured_msgs:
-            b.parse_mscx(parallel=True)
+            b.parse_scores(parallel=True)
             parallel_msgs = captured_msgs.content_list
         for msg in non_parallel_msgs:
             assert msg in parallel_msgs
@@ -62,14 +62,14 @@ class TestLogging():
         assert_all_loggers_level(30)
 
     def test_debug(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='d'))
+        p = Parse(directory, level='d')
         p.parse()
         _ = p.get_dataframes(expanded=True)
         assert_all_loggers_level(10)
 
 
     def test_info(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='i'))
+        p = Parse(directory, level='i')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -81,7 +81,7 @@ class TestLogging():
             assert False
 
     def test_warning(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='w'))
+        p = Parse(directory, level='w')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -94,7 +94,7 @@ class TestLogging():
 
 
     def test_error(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='e'))
+        p = Parse(directory, level='e')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -107,7 +107,7 @@ class TestLogging():
 
 
     def test_critical(self, directory):
-        p = Parse(directory, logger_cfg=dict(level='c'))
+        p = Parse(directory, level='c')
         with capture_parse_logs(p.logger) as captured_msgs:
             p.parse()
             _ = p.get_dataframes(expanded=True)
@@ -119,7 +119,7 @@ class TestLogging():
 
 
     def test_notset(self, directory):
-        p = Parse(directory, logger_cfg=dict(level=0))
+        p = Parse(directory, level=0)
         p.parse()
         _ = p.get_dataframes(expanded=True)
         assert_all_loggers_level(30)
@@ -143,12 +143,11 @@ class TestLogging():
 
     def test_seeing_ignored_warnings(self, directory, get_all_warnings_parsed):
         ignored_warnings_file = os.path.join(directory, 'mixed_files', 'ALL_WARNINGS_IGNORED')
-        p = Parse(directory)
+        p = Parse(directory, level='d')
         p.load_ignored_warnings(ignored_warnings_file)
-        p.change_logger_cfg(level='d')
         with capture_parse_logs(p.logger, level='d') as captured_msgs:
             p.parse()
-            _ = p.get_dataframes(expanded=True)
+            _ = p.extract_facets("expanded")
             all_msgs = captured_msgs.content_list
         ignored = ['\n'.join(msg.split("\n\t")[1:]) for msg in all_msgs if msg.startswith('IGNORED')]
         try:
