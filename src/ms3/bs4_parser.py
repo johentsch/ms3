@@ -1221,7 +1221,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 continue
             ambitus[staff] = {'min_midi': int(min_midi),
                               'min_name': fifths2name(min_tpc, min_midi, logger=self.logger)}
-        for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
+        for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
             if staff in self.staff2drum_map:
                 continue
             ambitus[staff]['max_midi'] = int(max_midi)
