@@ -650,16 +650,91 @@ def compute_mn_playthrough(measures: pd.DataFrame) -> pd.Series:
         previous_mc = mc
     return pd.Series(mn_playthrough_column, index=measures.index, name='mn_playthrough')
 
-
+@lru_cache()
+def get_major_version_of_musescore_executable(ms) -> Optional[int]:
+    try:
+        result = subprocess.run([ms, "-v"], capture_output=True, text=True)
+        version = result.stdout
+        if version.startswith('MuseScore'):
+            return int(version[9])
+        return
+    except Exception:
+        return
 
 
 @function_logger
 def convert(old, new, MS='mscore'):
+    version = get_major_version_of_musescore_executable(MS)
+    if version == 4:
+        convert_to_ms4(old=old, new=new, MS=MS, logger=logger)
+        return
     process = [MS, "-fo", new, old] #[MS, '--appimage-extract-and-run', "-fo", new, old] if MS.endswith('.AppImage') else [MS, "-fo", new, old]
-    if subprocess.run(process):
+    if subprocess.run(process, capture_output=True, text=True):
         logger.info(f"Converted {old} to {new}")
     else:
         logger.warning("Error while converting " + old)
+
+@function_logger
+def convert_to_ms4(old, new, MS='mscore'):
+    version = get_major_version_of_musescore_executable(MS)
+    if not (version is None or version == 4):
+        if version is None:
+            msg = f"{MS} is not MuseScore 4.x.x."
+        else:
+            msg = f"{MS3} is MuseScore {version}, not 4. Try convert()."
+        raise RuntimeError(msg)
+    old_path, old_file = os.path.split(old)
+    old_fname, old_ext = os.path.splitext(old_file)
+    if old_ext.lower() not in SCORE_EXTENSIONS:
+        logger.warning(f"Source file '{old}' doesn't have one of the following extensions and is skipped: {SCORE_EXTENSIONS}.")
+        return
+    if os.path.isdir(new):
+        target_folder = new
+        target_file = old_file
+    else:
+        target_folder, target_file = os.path.split(new)
+    target_fname, target_ext = os.path.splitext(target_file)
+    tmp_needed = target_ext in ('.mscx', '.mscz')
+    if tmp_needed:
+        tmp_dir = os.path.join(target_folder, '.ms3_tmp_' + old_file)
+        try:
+            os.makedirs(tmp_dir, exist_ok=False)
+        except FileExistsError:
+            logger.warning(f"The temporary directory {tmp_dir} exists already and would be overwritten. Delete it first.")
+            return
+        tmp_mscx = os.path.join(tmp_dir, target_fname + '.mscx')
+        new = tmp_mscx
+    process = [MS, "-fo", new, old]
+    result = subprocess.run(process, capture_output=True, text=True)
+    if result.returncode == 0:
+        if tmp_needed:
+            target_path_without_extension = os.path.join(target_folder, target_fname)
+            if not os.path.isdir(tmp_dir):
+                logger.warning(f"Temporary directory '{tmp_dir}' did not exist after conversion.")
+                return
+            if not os.path.isfile(tmp_mscx):
+                logger.warning(f"Conversion of '{old}' did not yield a complete uncompressed MuseScore folder, an .mscx file was missing.")
+                shutil.rmtree(tmp_dir)
+                return
+            if target_ext == '.mscz':
+                zip_file_path = shutil.make_archive(target_path_without_extension, 'zip', tmp_dir)
+                new = target_path_without_extension + '.mscz'
+                shutil.move(zip_file_path, new)
+            else:
+                new = target_path_without_extension + '.mscx'
+                shutil.move(tmp_mscx, new)
+            shutil.rmtree(tmp_dir)
+        logger.info(f"Successfully converted {old} => {new}")
+    else:
+        logger.error(f"Conversion to MuseScore 4 failed:\n{result.stderr}")
+        if tmp_needed and os.path.isdir(tmp_dir):
+            shutil.rmtree(tmp_dir)
+
+
+
+
+
+
 
 def _convert_kwargs(kwargs):
     """Auxiliary function allowing to use Pool.starmap() with keyword arguments (needed in order to
