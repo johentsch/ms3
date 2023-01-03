@@ -66,6 +66,8 @@ AUTOMATIC_COLUMNS = COMPUTED_METADATA_COLUMNS + VERSION_COLUMNS + INSTRUMENT_REL
 METADATA_COLUMN_ORDER = ['fname'] + COMPUTED_METADATA_COLUMNS + DCML_METADATA_COLUMNS + MUSESCORE_METADATA_FIELDS + MUSESCORE_HEADER_FIELDS + VERSION_COLUMNS + OTHER_COLUMNS + INSTRUMENT_RELATED_COLUMNS
 """The default order in which columns of metadata.tsv files are to be sorted."""
 
+SCORE_EXTENSIONS = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
+
 STANDARD_COLUMN_ORDER = [
     'mc', 'mc_playthrough', 'mn', 'mn_playthrough', 'quarterbeats', 'mc_onset', 'mn_onset', 'beat',
     'event', 'timesig', 'staff', 'voice', 'duration', 'tied',
@@ -2598,9 +2600,8 @@ def path2type(path):
     -------
 
     """
-    score_extensions = ('.mscx', '.mscz', '.cap', '.capx', '.midi', '.mid', '.musicxml', '.mxl', '.xml')
     _, fext = os.path.splitext(path)
-    if fext.lower() in score_extensions:
+    if fext.lower() in SCORE_EXTENSIONS:
         logger.debug(f"Recognized file extension '{fext}' as score.")
         return 'scores'
     comp2type = path_component2file_type_map()
