@@ -165,7 +165,11 @@ class MSCX(LoggedClass):
         ms_version = get_ms_version(self.mscx_src)
         if ms_version is None:
             raise ValueError(f"MuseScore version could not be read from {self.mscx_src}")
-        if ms_version[0] in ('3', '4'):
+        major_version = int(ms_version[0])
+        if major_version == 3:
+            self.parse_mscx()
+        elif major_version == 4:
+            self.logger.info(f"This file has been created with MuseScore {ms_version} which I deal with experimentally for now.")
             self.parse_mscx()
         else:
             if self.parent_score.ms is None:
