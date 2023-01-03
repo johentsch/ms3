@@ -1,29 +1,27 @@
 ---
 title: 'ms3: A parser for MuseScore files, serving as data factory for annotated music corpora.'
 tags:
-
-- python
-- music
-- scores
-- corpus
-- corpora
-- data
-- musescore
-- tab-separated values
-  authors:
-- name: Johannes Hentschel
-  orcid: 0000-0002-1986-9545
-  corresponding: true
-  affiliation: 1
-- name: Martin Rohrmeier
-  orcid: 0000-0002-4323-7257
-  affiliation: 1
-  affiliations:
-- name: École Polytechnique Fédérale de Lausanne, Switzerland
-  index: 1
-  date: 13 October 2022
-  bibliography: paper.bib
-
+  - python
+  - music
+  - scores
+  - corpus
+  - corpora
+  - data
+  - musescore
+  - tab-separated values
+authors:
+  - name: Johannes Hentschel
+    orcid: 0000-0002-1986-9545
+    corresponding: true
+    affiliation: 1
+  - name: Martin Rohrmeier
+    orcid: 0000-0002-4323-7257
+    affiliation: 1
+affiliations:
+ - name: École Polytechnique Fédérale de Lausanne, Switzerland
+   index: 1
+date: 13 October 2022
+bibliography: paper.bib
 ---
 
 # Summary
