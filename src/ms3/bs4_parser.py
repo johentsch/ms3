@@ -170,15 +170,14 @@ class _MSCX_bs4(LoggedClass):
     def parse_mscx(self) -> None:
         """ Load the XML structure from the score in self.mscx_src and store references to staves and measures.
         """
-        assert self.mscx_src is not None, "No MSCX file specified." \
-                                          ""
+        assert self.mscx_src is not None, "No MSCX file specified."
         with open(self.mscx_src, 'r', encoding='utf-8') as file:
             self.soup = bs4.BeautifulSoup(file.read(), 'xml')
 
-        if self.version[0] != '3':
+        if self.version[0] not in ('3', '4'):
             # self.logger.exception(f"Cannot parse MuseScore {self.version} file.")
-            raise ValueError(f"""Cannot parse MuseScore {self.version} file.
-Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.""")
+            raise ValueError(f"Cannot parse MuseScore {self.version} file. "
+                             f"Use 'ms3 convert' command or pass parameter 'ms' to Score to temporally convert.")
 
         # Check if any of the <Part> tags contains a pitch -> drumset instrument map
         # all_part_tags = self.soup.find_all('Part')
