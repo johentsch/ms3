@@ -959,6 +959,10 @@ class Parse(LoggedClass):
             for fname, piece in corpus:
                 yield (corpus_name, fname), piece
 
+    def keys(self) -> List[str]:
+        """Return the names of all corpus objects."""
+        return list(self.corpus_objects.keys())
+
     def load_facet_into_scores(self,
                                facet: AnnotationsFacet,
                                view_name: Optional[str] = None,

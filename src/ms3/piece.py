@@ -1270,6 +1270,10 @@ class Piece(LoggedClass):
             else:
                 self.add_parsed_tsv(ix, df)
 
+    def keys(self) -> List[int]:
+        """Return the indices of all Files registered with this Piece."""
+        return list(self.ix2file.keys())
+
     def load_annotation_table_into_score(self,
                                          ix: Optional[int] = None,
                                          df: Optional[pd.DataFrame] = None,
