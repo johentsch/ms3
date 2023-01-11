@@ -2493,6 +2493,10 @@ class Corpus(LoggedClass):
         joined = [join_tsvs(dfs) for dfs in join_this]
         return pd.concat(joined, keys=key_ids)
 
+    def keys(self) -> List[str]:
+        """Return the names of all Piece objects."""
+        return list(self._pieces.keys())
+
 
     def pieces(self, parsed_only=False):
         raise AttributeError("This method is deprecated. To view pieces, call Corpus.info() or Corpus.info('all'). "

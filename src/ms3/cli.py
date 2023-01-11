@@ -86,6 +86,8 @@ def compare_cmd(args,
                 parse_obj=None,
                 output: bool = True,
                 logger = None) -> None:
+    if logger is None:
+        logger = get_logger('ms3.compare', level=args.level)
     if parse_obj is None:
         p = make_parse_obj(args)
     else:

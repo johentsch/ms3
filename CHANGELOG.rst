@@ -2,6 +2,23 @@
 Changelog
 =========
 
+Version 1.1.0
+=============
+
+**ms3 requires Python 3.10**
+
+This version does not throw errors when trying to parse files created by MuseScore 4. Parsing these files has not
+sufficiently been tested but so far it was looking good. The fact that MuseScore 3 is able to read such files shows
+that not much has changed in the file format itself.
+
+The command ``ms3 convert`` has been updated to support MuseScore 4 executables. With the current MuseScore 4.0.0 this
+is not quite straightforward because conversion to ``.mscz`` via the commandline isn't currently working and conversion
+to ``.mscx``, if it works at all, deletes the contents of the target directory
+(`issue #15367 <https://github.com/musescore/MuseScore/issues/15367#issuecomment-1369783686>`__). The new function
+``utils.convert_to_ms4()`` offers a workaround that creates temporary directories to store the
+"Uncompressed MuseScore folder" and then copies the ``.mscx`` file to the target directory (default) or zips the
+temporary directory into an ``.mscz`` file (parameter ``--format mscz``). For all other target formats, the output
+will correspond to what the MuseScore 4 executable yields.
 
 Version 1.0.4
 =============

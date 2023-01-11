@@ -157,6 +157,7 @@ class _MSCX_bs4(LoggedClass):
         cols = ['mc', 'mc_onset', 'duration', 'staff', 'voice', 'scalar', 'nominal_duration']
         self._nl, self._cl, self._rl, self._nrl, self._fl = pd.DataFrame(), pd.DataFrame(columns=cols), pd.DataFrame(columns=cols), \
                                                             pd.DataFrame(columns=cols), pd.DataFrame(columns=cols)
+        self._prelims = None
         self._style = None
         self.staff2drum_map: Dict[int, pd.DataFrame] = {}
         """For each stuff that is to be treated as drumset score, keep a mapping from MIDI pitch (DataFrame index) to
@@ -737,6 +738,14 @@ class _MSCX_bs4(LoggedClass):
         return self._rl
 
     @property
+    def prelims(self):
+        if self._prelims is None:
+            if self.soup is None:
+                self.make_writeable()
+            self._prelims = Prelims(self.soup)
+        return self._prelims
+
+    @property
     def staff_ids(self):
         return list(self.measure_nodes.keys())
 
@@ -1220,7 +1229,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                 continue
             ambitus[staff] = {'min_midi': int(min_midi),
                               'min_name': fifths2name(min_tpc, min_midi, logger=self.logger)}
-        for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmin(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
+        for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
             if staff in self.staff2drum_map:
                 continue
             ambitus[staff]['max_midi'] = int(max_midi)
@@ -2032,6 +2041,89 @@ class Style:
     def __repr__(self):
         tags = self.style.find_all()
         return ', '.join(t.name for t in tags)
+
+
+class Prelims(LoggedClass):
+    """Easy way to read and write the preliminaries of a score, that is
+    Title, Subtitle, Composer, Lyricist, and 'Instrument Name (Part)'."""
+
+    styles = ('Title', 'Subtitle', 'Composer', 'Lyricist', 'Instrument Name (Part)')
+    keys = ('title_text', 'subtitle_text', 'composer_text', 'lyricist_text', 'part_name_text') # == utils.MUSESCORE_HEADER_FIELDS
+    key2style = dict(zip(keys, styles))
+    style2key = dict(zip(styles, keys))
+
+    def __init__(self, soup: bs4.BeautifulSoup):
+        super().__init__('Prelims')
+        self.soup = soup
+        first_measure = soup.find('Measure')
+        try:
+            self.vbox = next(sib for sib in first_measure.previous_siblings if sib.name == 'VBox')
+        except StopIteration:
+            self.vbox = self.soup.new_tag('VBox')
+            self.logger.debug('Inserted <VBox> before first <Measure> tag.')
+
+
+
+    @property
+    def text_tags(self) -> Dict[str, bs4.Tag]:
+        tag_dict = {}
+        for text_tag in self.vbox.find_all('Text'):
+            style = text_tag.find('style')
+            if style is not None:
+                key = self.style2key[str(style.string)]
+                tag_dict[key] = text_tag
+        return tag_dict
+
+    @property
+    def fields(self):
+        result = {}
+        for key, tag in self.text_tags.items():
+            value = None
+            text_node = tag.find('text')
+            if text_node is not None:
+                value = str(text_node.string)
+            result[key] = value
+        return result
+
+    def __getitem__(self, key) -> Optional[str]:
+        if key not in self.keys:
+            raise KeyError(f"Don't recognize key '{key}'")
+        fields = self.fields
+        if key in fields:
+            return fields[key]
+        return
+
+    def __setitem__(self, key, val: str):
+        if key not in self.keys:
+            raise KeyError(f"Don't recognize key '{key}'")
+        existing_value = self[key]
+        new_value = str(val)
+        if existing_value is not None and existing_value == new_value:
+            self.logger.debug(f"The {key} was already '{existing_value}' and doesn't need changing.")
+            return
+        clean_tag = self.soup.new_tag('Text')
+        style_tag = self.soup.new_tag('style')
+        style_tag.string = self.key2style[key]
+        clean_tag.append(style_tag)
+        text_tag = self.soup.new_tag('text')
+        text_tag.string = new_value
+        clean_tag.append(text_tag)
+        text_tags = self.text_tags
+        if existing_value is None:
+            following_key_index = self.keys.index(key) + 1
+            try:
+                following_present_key = next(k for k in self.keys[following_key_index:] if k in text_tags)
+                following_tag = text_tags[following_present_key]
+                following_tag.insert_before(clean_tag)
+                self.logger.warning(f"Inserted {key} before existing {following_key_index}.")
+            except StopIteration:
+                self.vbox.append(clean_tag)
+                self.logger.warning(f"Appended {key} as last tag of the VBox (after {text_tags.keys()}).")
+        else:
+            existing_tag = text_tags[key]
+            existing_tag.replace_with(clean_tag)
+            self.logger.warning(f"Replaced {key} '{existing_value}' with '{new_value}'.")
+
 
 
 def get_duration_event(elements):

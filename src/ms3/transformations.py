@@ -66,6 +66,8 @@ def add_quarterbeats_col(df: pd.DataFrame,
     -------
 
     """
+    if len(df.index) == 0:
+        return df
     has_quarterbeats = 'quarterbeats' in df.columns
     has_duration_qb = 'duration_qb' in df.columns
     has_duration = 'duration' in df.columns
