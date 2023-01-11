@@ -41,27 +41,30 @@ contents as sets of tabular files.
 # Statement of need
 
 Music scores represent relations between sounding events by graphical means. Music notation software therefore is very
-much concerned with the aesthetically pleasing and easy-to-read rendering of symbols in line with the commonplace notational conventions
-[@Read1979_MusicNotationManual; @Ross2001_ArtMusicEngraving]; and much less so with the explicit encoding of the musical relations themselves.
+much concerned with the aesthetically pleasing and easy-to-read rendering of symbols in line with the commonplace
+notational conventions [@Read1979_MusicNotationManual; @Ross2001_ArtMusicEngraving]; and much less so with the explicit
+encoding of the musical relations themselves.
 For example, the Free and Open Source Software [MuseScore](https://musescore.org/) provides a full-featured yet
-intuitive interface for engraving music, but its native XML format does not explicitly encode the temporal positions of 
+intuitive interface for engraving music, but its native XML format does not explicitly encode the temporal positions of
 events such as notes and rests. Hence the need for a parser that extracts the implicit information and stores it in an
 interoperable format.
 
 The Python library `ms3` loads the XML tree of a MuseScore file into working memory, computes the temporal positions of
 all encoded elements, and transforms those requested by the user
 into [DataFrames](https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe), i.e., feature
-matrices. The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) for
-version control and use by other software. The most typical aspects that users extract from a score are notes, measures
-(bars), metadata, and chord labels including those resulting from analysis. Moreover, `ms3` allows the user to remove 
-and insert chord labels from and into scores and to write back the modified scores. This functionality turns MuseScore
-into a convenient score annotation tool enabling users to graphically insert into a score arbitrary textual labels, 
-to then have `ms3` extract them with their temporal positions for further analysis. 
+matrices. The DataFrames can be used by other Python programs and scripts, or written to Tab-Separated Values (TSV) to
+enable version control and processing with other software. The most typical aspects that users extract from a score are
+tables containing notes, measures (bars), metadata, and text labels, in particular those representing analytical annotations.
+Moreover, `ms3` allows the user to remove and insert analytical labels from and into scores and to write back the modified
+scores. This functionality turns MuseScore into a convenient score annotation tool enabling users to graphically insert
+into a score arbitrary textual labels, to then have `ms3` extract them with their temporal positions for further
+analysis. It comes with a commandline interface that makes its data extraction, translocation, and validation
+functionalities accessible for productive every-day workflows.
 
-`ms3` has been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus 
+`ms3` has been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus
 [@Neuwirth2018_AnnotatedBeethovenCorpus], the Annotated Mozart Sonatas [@Hentschel2021_AnnotatedMozartSonatas],
 and an annotated corpus of 19th century piano music [@Hentschelunderreview_AnnotatedCorpusTonal]. Moreover,
-the library is at the heart of a semi-automated annotation workflow running on GitHub 
+the library is at the heart of a semi-automated annotation workflow running on GitHub
 [@Hentschel2021_SemiautomatedWorkflowParadigm] and a dependency of the music corpus analysis library
 DiMCAT [@Hentschel2022_DiMCATDIgitalMusicology].
 
