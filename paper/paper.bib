@@ -1,29 +1,47 @@
-
-@article{Abdallah2017_DigitalMusicLab,
-  title = {The {{Digital Music Lab}}: {{A Big Data Infrastructure}} for {{Digital Musicology}}},
-  shorttitle = {The {{Digital Music Lab}}},
-  author = {Abdallah, Samer and Benetos, Emmanouil and Gold, Nicolas and Hargreaves, Steven and Weyde, Tillman and Wolff, Daniel},
-  year = {2017},
-  month = jan,
-  journal = {Journal on Computing and Cultural Heritage},
-  volume = {10},
+@article{Hentschel2021_AnnotatedMozartSonatas,
+  title = {The {{Annotated Mozart Sonatas}}: {{Score}}, {{Harmony}}, and {{Cadence}}},
+  author = {Hentschel, Johannes and Neuwirth, Markus and Rohrmeier, Martin},
+  year = {2021},
+  journal = {Transactions of the International Society for Music Information Retrieval},
+  volume = {4},
   number = {1},
-  pages = {1--21},
-  issn = {15564673},
-  doi = {10.1145/2983918},
-  abstract = {In musicology and music research generally, the increasing availability of digital music, storage capacities, and computing power enable and require new and intelligent systems. In the transition from traditional to digital musicology, many techniques and tools have been developed for the analysis of individual pieces of music, but large-scale music data that are increasingly becoming available require research methods and systems that work on the collection-level and at scale. Although many relevant algorithms have been developed during the past 15 years of research in Music Information Retrieval, an integrated system that supports large-scale digital musicology research has so far been lacking. In the Digital Music Lab (DML) project, a collaboration among music librarians, musicologists, computer scientists, and human-computer interface specialists, the DML software system has been developed that fills this gap by providing intelligent large-scale music analysis with a user-friendly interactive interface supporting musicologists in their exploration and enquiry. The DML system empowers musicologists by addressing several challenges: distributed processing of audio and other music data, management of the data analysis process and results, remote analysis of data under copyright, logical inference on the extracted information and metadata, and visual web-based interfaces for exploring and querying the music collections. The DML system is scalable and based on Semantic Web technology and integrates into Linked Data with the vision of a distributed system that enables music research across archives, libraries, and other providers of music data. A first DML system prototype has been set up in collaboration with the British Library and I Like Music Ltd. This system has been used to analyse a diverse corpus of currently 250,000 music tracks. In this article, we describe the DML system requirements, design, architecture, components, and available data sources, explaining their interaction. We report use cases and applications with initial evaluations of the proposed system.},
-  langid = {english},
-  file = {/home/hentsche/Zotero/storage/WSJ8F2LA/Abdallah et al. - 2017 - The Digital Music Lab A Big Data Infrastructure f.pdf}
+  pages = {67--80},
+  doi = {10.5334/tismir.63},
+  abstract = {This article describes a new expert-labelled dataset featuring harmonic, phrase, and cadence analyses of all piano sonatas by W.A. Mozart. The dataset draws on the DCML standard for harmonic annotation and is being published adopting the FAIR principles of Open Science. The annotations have been verified using a data triangulation procedure which is presented as an alternative approach to handling annotator subjectivity. This procedure is suited for ensuring consistency, within the dataset and beyond, despite the high level of analytical detail afforded by the employed harmonic annotation syntax. The harmony labels also encode contextual information and are therefore suited for investigating music theoretical questions related to tonal harmony and the harmonic makeup of cadences in the classical style. Apart from providing basic statistical analyses characterizing the dataset, its music theoretical potential is illustrated by two preliminary experiments, one on the terminal harmonies of cadences and the other on the relation between performance durations and harmonic density. Furthermore, particular features can be selected to produce more coarse-grained training data, for example for chord detection algorithms that require less analytical detail. Facilitating the dataset's reusability, it comes with a Python script that allows researchers to easily access various representations of the data tailored to their particular needs.},
+  file = {/home/hentsche/Zotero/storage/WF5J7KZX/Hentschel et al. - 2021 - The Annotated Mozart Sonatas Score, Harmony, and .pdf}
 }
 
-@misc{Cook2005_CompleatMusicologist,
-  title = {Towards the Compleat Musicologist?},
-  author = {Cook, Nicholas},
-  year = {2005},
-  address = {{London}},
-  langid = {english},
-  file = {/home/hentsche/Zotero/storage/T4L6DQUL/Cook - The compleat musicologist.pdf}
+@inproceedings{Hentschel2021_SemiautomatedWorkflowParadigm,
+  title = {A Semi-Automated Workflow Paradigm for the Distributed Creation and Curation of Expert Annotations},
+  booktitle = {Proceedings of the 22nd {{International Society}} for {{Music Information Retrieval Conference}}, {{ISMIR}}},
+  author = {Hentschel, Johannes and Moss, Fabian C. and Neuwirth, Markus and Rohrmeier, Martin A},
+  year = {2021},
+  month = nov,
+  pages = {262--269},
+  publisher = {{Zenodo}},
+  address = {{Online}},
+  doi = {10.5281/ZENODO.5624417},
+  abstract = {The creation and curation of labeled datasets can be an arduous, expensive, and time-consuming task. We introduce a workflow paradigm for remote consensus-building between expert annotators, while considerably reducing the associated administrative overhead through automation. Most music annotation tasks rely heavily on human interpretation and therefore defy the concept of an objective and indisputable ground truth. Thus, our paradigm invites and documents inter-annotator controversy based on a transparent set of analytical criteria, and aims at putting forth the consensual solutions emerging from such deliberations. The workflow that we suggest traces the entire genesis of annotation data, including the relevant discussions between annotators, reviewers, and curators. It adopts a well-proven pattern from collaborative software development, namely distributed version control, and allows for the automation of repetitive maintenance tasks, such as validity checks, message dispatch, or updates of meta- and paradata. To demonstrate the workflow's effectiveness, we introduce one possible implementation through GitHub Actions and showcase its success in creating cadence, phrase, and harmony annotations for a corpus of 36 trio sonatas by Arcangelo Corelli. Both code and annotated scores are freely available and the implementation can be readily used in and adapted for other MIR projects.},
+  copyright = {Creative Commons Attribution 4.0 International, Open Access}
 }
+
+@article{Hentschel2022_DiMCATDIgitalMusicology,
+  title = {{{DiMCAT}}: {{A DIgital Musicology Corpus Analysis Toolkit}}},
+  author = {Hentschel, Johannes and McLeod, Andrew and Rohrmeier, Martin},
+  year = {2022},
+  url = {https://github.com/DCMLab/dimcat},
+  journal = {GitHub},
+  journal = {GitHub repository},
+}
+
+
+@article{Hentschelunderreview_AnnotatedCorpusTonal,
+  title = {An {{Annotated Corpus}} of {{Tonal Piano Music}} from the {{Long}} 19th {{Century}}},
+  author = {Hentschel, Johannes and Rammos, Yannis and Neuwirth, Markus and Rohrmeier, Martin},
+  year = {under review}
+}
+
+
 
 @article{Honing2006_GrowingRoleObservation,
   title = {On the {{Growing Role}} of {{Observation}}, {{Formalization}} and {{Experimental Method}} in {{Musicology}}},
@@ -80,6 +98,22 @@
   file = {/home/hentsche/Zotero/storage/9KRXYS6Z/Moss - Transitions of Tonality A Model-Based Corpus Stud.pdf}
 }
 
+@article{Neuwirth2018_AnnotatedBeethovenCorpus,
+  ids = {neuwirthAnnotatedBeethovenCorpus2018},
+  title = {The {{Annotated Beethoven Corpus}} ({{ABC}}): {{A Dataset}} of {{Harmonic Analyses}} of {{All Beethoven String Quartets}}},
+  author = {Neuwirth, Markus and Harasim, Daniel and Moss, Fabian C. and Rohrmeier, Martin},
+  year = {2018},
+  journal = {Frontiers in Digital Humanities},
+  volume = {5},
+  number = {July},
+  pages = {1--5},
+  publisher = {{Frontiers}},
+  issn = {2297-2668},
+  doi = {10.3389/fdigh.2018.00016},
+  keywords = {beethoven,Beethoven,corpus research,Corpus research,digital musicology,Digital Musicology,ground truth,Ground truth,harmony,music,Music,music; digital musicology; corpus research; ground,symbolic music data,Symbolic Music Data},
+  file = {/home/hentsche/Zotero/storage/X46NBWZ2/Neuwirth et al. - 2018 - The Annotated Beethoven Corpus (ABC) A Dataset of Harmonic Analyses of All Beethoven String Quartets.pdf;/home/hentsche/Zotero/storage/ZWW28K44/Neuwirth et al2018.pdf}
+}
+
 @book{Read1979_MusicNotationManual,
   title = {Music Notation: A Manual of Modern Practice},
   shorttitle = {Music Notation},
@@ -92,6 +126,19 @@
   isbn = {978-0-8008-5459-1 978-0-8008-5453-9},
   lccn = {MT35.R253 M9 1979},
   keywords = {Musical notation}
+}
+
+@book{Ross2001_ArtMusicEngraving,
+  title = {The Art of Music Engraving \& Processing},
+  author = {Ross, Ted},
+  year = {2001},
+  edition = {Rev01},
+  publisher = {{Npc Imaging}},
+  address = {{Santa Rosa, Calif.}},
+  abstract = {Includes history and background of music reproduction, review of processes of music reproduction, preparing music for engraving, discussion of general notation, including charts of beam angles, discussion of specific notation, including spacing for key/time signatures, accidentals, and first notes and repeat bars},
+  isbn = {978-0-9706231-1-9},
+  langid = {english},
+  annotation = {OCLC: 175291468}
 }
 
 
