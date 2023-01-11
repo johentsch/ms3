@@ -1500,7 +1500,8 @@ class Piece(LoggedClass):
                               force: bool = False,
                               choose: Literal['all', 'auto', 'ask'] = 'all',
                               write_empty_values: bool = False,
-                              remove_unused_fields: bool = False
+                              remove_unused_fields: bool = False,
+                              write_text_fields: bool = True,
                               ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -1525,6 +1526,7 @@ class Piece(LoggedClass):
         ignore_columns = AUTOMATIC_COLUMNS + LEGACY_COLUMNS + ['fname']
         for file, score in self.iter_parsed('scores', view_name=view_name, force=force, choose=choose):
             current_metadata = score.mscx.parsed.metatags.fields
+            current_metadata.update(score.mscx.parsed.prelims.fields)
             row_dict = {column: value for column, value in row_dict.items()
                         if column not in ignore_columns and not re.match(r"^staff_\d", column)}
             unused_fields = [field for field in current_metadata.keys() if field not in row_dict and field not in MUSESCORE_METADATA_FIELDS]
@@ -1536,25 +1538,36 @@ class Piece(LoggedClass):
                              if field not in current_metadata or current_metadata[field] != value}
             fields_to_be_created = [field for field in to_be_updated.keys() if field not in current_metadata]
             metadata_fields, text_fields = {}, {}
-            # ToDo: Enable writing text_fields
             for field, value in to_be_updated.items():
                 if field in MUSESCORE_HEADER_FIELDS:
                     text_fields[field] = value
                 else:
                     metadata_fields[field] = value
-            if len(metadata_fields) == 0 and (not remove_unused_fields or len(unused_fields) == 0):
-                self.logger.debug(f"No metadata need updating in {file.rel_path}")
-                continue
+            changed = False
+            if write_text_fields and len(text_fields) > 0:
+                for field, value in text_fields.items():
+                    if pd.isnull(value):
+                        continue
+                    if value == '' and not write_empty_values:
+                        continue
+                    score.mscx.parsed.prelims[field] = value
+                    self.logger.warning(f"{file.rel_path}: '{field}' was set to {value}.")
+                    changed = True
             for field, value in metadata_fields.items():
                 specifier = 'New field' if field in fields_to_be_created else 'Field'
                 self.logger.debug(f"{file.rel_path}: {specifier} '{field}' set to {value}.")
                 score.mscx.parsed.metatags[field] = value
+                changed = True
             if remove_unused_fields:
                 for field in unused_fields:
                     score.mscx.parsed.metatags.remove(field)
                     self.logger.debug(f"{file.rel_path}: Field {field} removed.")
-            score.mscx.changed = True
-            updated_scores.append(file)
+                    changed = True
+            if changed:
+                score.mscx.changed = True
+                updated_scores.append(file)
+            else:
+                self.logger.debug(f"No metadata need updating in {file.rel_path}")
         return updated_scores
 
     def update_tsvs_on_disk(self,
