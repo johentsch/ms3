@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 1.1.1
+=============
+
+**ms3 requires Python 3.10**
+
+* enables updating score headers from the respective `metadata.tsv` columns
+  (`title_text`, `subtitle_text`, `composer_text`, `lyricist_text`, and `part_name_text`)
+* Parse, Corpus, and Piece now come with the method keys()
+
 Version 1.1.0
 =============
 
