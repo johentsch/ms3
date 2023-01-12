@@ -82,13 +82,20 @@ class LoggedClass():
         Dictionaries for keeping track of file information handled by .
     """
     def __init__(self, subclass, logger_cfg={}):
-        logger_cfg = dict(logger_cfg)
-        if 'name' not in logger_cfg or logger_cfg['name'] is None:
+        if 'logger_cfg' in logger_cfg:
+            old_code_warning = True
+            logger_cfg = logger_cfg['logger_cfg']
+        else:
+            old_code_warning = False
+        self.logger_cfg: dict = dict(logger_cfg)
+        if 'name' not in self.logger_cfg or self.logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
-            logger_cfg['name'] = name
-        self.logger_cfg: dict = logger_cfg
+            self.logger_cfg['name'] = name
         self.logger_names: dict = {}
         self.logger: logging.Logger = get_logger(**self.logger_cfg)
+        if old_code_warning:
+            self.logger.warning(f"You are using old code that initiated a '{subclass}' object with the argument 'logger_cfg'. "
+                                f"New code passes the logger config as **kwargs.")
         self.logger_names['class'] = self.logger.name
 
     def change_logger_cfg(self, level):
