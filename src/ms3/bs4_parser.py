@@ -72,6 +72,7 @@
 """
 
 import re, sys, warnings
+from copy import copy
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
 from typing import Literal, Optional, List, Tuple, Dict, overload, Union
@@ -2078,10 +2079,7 @@ class Prelims(LoggedClass):
     def fields(self):
         result = {}
         for key, tag in self.text_tags.items():
-            value = None
-            text_node = tag.find('text')
-            if text_node is not None:
-                value = str(text_node.string)
+            value, _ = tag2text(tag)
             result[key] = value
         return result
 
@@ -2106,7 +2104,10 @@ class Prelims(LoggedClass):
         style_tag.string = self.key2style[key]
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
-        text_tag.string = new_value
+        # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
+        text_contents = bs4.BeautifulSoup(new_value, 'html').find('p').contents
+        for tag in text_contents:
+            text_tag.append(copy(tag))
         clean_tag.append(text_tag)
         text_tags = self.text_tags
         if existing_value is None:
@@ -2480,11 +2481,13 @@ def bs4_to_mscx(soup):
     return initial_tag + format_node(first_tag, indent=0)
 
 def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
+    """Takes the <Text> from a MuseScore file's header and returns its style and string."""
     sty_tag = tag.find('style')
     txt_tag = tag.find('text')
     style = sty_tag.string if sty_tag is not None else ''
-    txt = ''
-    if txt_tag is not None:
+    if txt_tag is None:
+        txt = ''
+    else:
         components = []
         for c in txt_tag.contents:
             if isinstance(c, NavigableString):
@@ -2493,5 +2496,8 @@ def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
                 sym = c.string
                 if sym in NOTE_SYMBOL_MAP:
                     components.append(NOTE_SYMBOL_MAP[sym])
+            else:
+                # <i></i> or other text markup within the string
+                components.append(str(c))
         txt = ''.join(components)
     return txt, style
