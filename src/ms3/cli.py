@@ -195,7 +195,8 @@ def metadata(args, parse_obj: Optional[Parse] = None):
     print(f"PARSING SCORES ONE AFTER THE OTHER...")
     p.parse_scores(parallel=False)
     modified_score_files = p.update_score_metadata_from_tsv(write_empty_values=args.empty,
-                                                            remove_unused_fields=args.remove)
+                                                            remove_unused_fields=args.remove,
+                                                            write_text_fields=not args.ignore)
     if len(modified_score_files) == 0:
         print("Nothing to update.")
         return
@@ -628,6 +629,8 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
                                   help="Set this flag to remove non-default metadata fields that are not columns in the metadata.tsv file anymore.")
     metadata_parser.add_argument('-s', '--suffix', metavar='SUFFIX',
                             help='Suffix of the new scores with updated metadata fields.')
+    metadata_parser.add_argument('--ignore', action='store_true', help="By default, score headers are updated from the columns title_text, subtitle_text, composer_text, "
+                                                                       "lyricist_text, part_name_text. Pass --ignore to skip.")
     metadata_parser.set_defaults(func=metadata)
 
     repair_parser = subparsers.add_parser('repair',

@@ -2116,14 +2116,14 @@ class Prelims(LoggedClass):
                 following_present_key = next(k for k in self.keys[following_key_index:] if k in text_tags)
                 following_tag = text_tags[following_present_key]
                 following_tag.insert_before(clean_tag)
-                self.logger.warning(f"Inserted {key} before existing {following_key_index}.")
+                self.logger.info(f"Inserted {key} before existing {following_key_index}.")
             except StopIteration:
                 self.vbox.append(clean_tag)
-                self.logger.warning(f"Appended {key} as last tag of the VBox (after {text_tags.keys()}).")
+                self.logger.info(f"Appended {key} as last tag of the VBox (after {text_tags.keys()}).")
         else:
             existing_tag = text_tags[key]
             existing_tag.replace_with(clean_tag)
-            self.logger.warning(f"Replaced {key} '{existing_value}' with '{new_value}'.")
+            self.logger.info(f"Replaced {key} '{existing_value}' with '{new_value}'.")
 
 
 

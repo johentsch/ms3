@@ -1551,7 +1551,7 @@ class Piece(LoggedClass):
                     if value == '' and not write_empty_values:
                         continue
                     score.mscx.parsed.prelims[field] = value
-                    self.logger.warning(f"{file.rel_path}: '{field}' was set to {value}.")
+                    self.logger.debug(f"{file.rel_path}: {field} set to '{value}'.")
                     changed = True
             for field, value in metadata_fields.items():
                 specifier = 'New field' if field in fields_to_be_created else 'Field'

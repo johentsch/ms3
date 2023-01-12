@@ -2683,7 +2683,8 @@ class Corpus(LoggedClass):
                                        force: bool = False,
                                        choose: Literal['all', 'auto', 'ask'] = 'all',
                                        write_empty_values: bool = False,
-                                       remove_unused_fields: bool = False
+                                       remove_unused_fields: bool = False,
+                                       write_text_fields: bool = True,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -2703,10 +2704,11 @@ class Corpus(LoggedClass):
         updated_scores = []
         for fname, piece in self.iter_pieces(view_name):
             modified = piece.update_score_metadata_from_tsv(view_name=view_name,
-                                                 force=force,
-                                                 choose=choose,
-                                                 write_empty_values=write_empty_values,
-                                                 remove_unused_fields=remove_unused_fields)
+                                                            force=force,
+                                                            choose=choose,
+                                                            write_empty_values=write_empty_values,
+                                                            remove_unused_fields=remove_unused_fields,
+                                                            write_text_fields=write_text_fields)
             updated_scores.extend(modified)
         return updated_scores
 
