@@ -745,6 +745,10 @@ class Parse(LoggedClass):
                                            include_empty=include_empty
                                            )
 
+    def get_lists(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`get_facets`."""
+        raise AttributeError(f"Method get_lists() not in use any more. Use Parse.get_facets() instead.")
+
 
     def get_piece(self, corpus_name: str, fname: str) -> Piece:
         """Returns an existing Piece object."""
