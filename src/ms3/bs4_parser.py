@@ -1084,7 +1084,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             self.logger.warning(f"The onset {mn_onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
         return mc, mc_onset
 
-    def get_texts(self) -> Dict[str, str]:
+    def get_texts(self, only_header: bool = True) -> Dict[str, str]:
         """Process <Text> nodes (normally attached to <Staff id="1">)."""
         texts = defaultdict(set)
         tags = self.soup.find_all('Text')
@@ -1101,6 +1101,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             elif style == 'Instrument Name (Part)':
                 style = 'part_name_text'
             else:
+                if only_header:
+                    continue
                 style = 'text'
             texts[style].add(txt)
         return {st: '; '.join(txt) for st, txt in texts.items()}
@@ -2105,7 +2107,7 @@ class Prelims(LoggedClass):
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
         # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
-        text_contents = bs4.BeautifulSoup(new_value, 'html').find('p').contents
+        text_contents = bs4.BeautifulSoup(new_value, 'lxml').find('p').contents
         for tag in text_contents:
             text_tag.append(copy(tag))
         clean_tag.append(text_tag)
