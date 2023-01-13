@@ -2107,9 +2107,11 @@ class Prelims(LoggedClass):
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
         # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
-        text_contents = bs4.BeautifulSoup(new_value, 'lxml').find('p').contents
-        for tag in text_contents:
-            text_tag.append(copy(tag))
+        value_as_paragraph = bs4.BeautifulSoup(new_value, 'lxml').find('p')
+        if value_as_paragraph is not None:
+            text_contents = value_as_paragraph.contents
+            for tag in text_contents:
+                text_tag.append(copy(tag))
         clean_tag.append(text_tag)
         text_tags = self.text_tags
         if existing_value is None:
