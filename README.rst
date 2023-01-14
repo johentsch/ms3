@@ -16,9 +16,9 @@
     :alt: PyPI
 
 
-=========================
-ms3 - Parsing MuseScore 3
-=========================
+===============================
+ms3 - Parsing MuseScore 3 and 4
+===============================
 
 ..
     Plan to use
@@ -26,20 +26,94 @@ ms3 - Parsing MuseScore 3
     failed because of PyPi
 
 
-Welcome to **ms3**, a Python library for parsing annotated `MuseScore 3 <https://musescore.org/en/download>`__ files. It
+Welcome to **ms3**, a Python library for parsing `MuseScore <https://musescore.org/en/download>`__ files. It
 
-* parses uncompressed MuseScore 3 files (``*.mscx``),
-* also parses compressed MuseScore 2 & 3 files (``*.mscz``), and cap, capx, midi, and musicxml formats by temporally converting them
-* stores the contained information (notes, harmonies, lyrics etc.) in a tabular format (``*.tsv``),
-* deletes and writes annotation labels to MuseScore's <Harmony> layer,
-* parses and transforms labels following the `DCML harmonic annotation standard <https://github.com/DCMLab/standards>`__
+* parses MuseScore 3 and 4 files, i.e.
 
-View the documentation on `GitHub <https://johentsch.github.io/ms3/>`__.
+  * uncompressed ``*.mscx`` files,
+  * compressed ``*.mscz`` files,
 
-Video `available on YouTube <https://youtu.be/UBY3wuIS4wc>`__
+* extracts and processes the information contained in one or many scores in the form of
+  `DataFrames <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`__:
 
-Note
-====
+  * **notes** (start, duration, pitch etc.) and/or rests,
+  * **measures** (time signature, lengths, repeat structure etc.)
+  * **labels**, such as
 
-This project has been set up using PyScaffold 3.2.3. For details and usage
-information on PyScaffold see https://pyscaffold.org/.
+    * guitar/Jazz chord labels
+    * arbitrary annotation labels
+    * **expanded** harmony labels following the `DCML annotation standard <https://github.com/DCMLab/standards>`__
+    * **cadences** (part of the same annotation syntax)
+    * **form_labels** (annotation standard currently in press)
+
+  * **chords**, that is, onset positions that have musical markup attached, e.g. dynamics, lyrics, slurs, 8va signs...
+  * **metadata** from the respective fields, but also score statistics, such as length, number of notes, etc.
+
+* stores the extracted information in a uniform and interoperable tabular format (``*.tsv``)
+* writes information from tabular ``*.tsv`` files into MuseScore files, especially
+
+  * chord and annotation labels
+  * metadata
+  * header information (title, subtitle, etc.)
+  * note coloring
+
+* uses a locally installed or standalone MuseScore executable for
+
+  * batch-converting files to any output format supported by MuseScore (mscz, mscx, mp3, midi, pdf etc.)
+  * on-the-fly converting any file that MuseScore can read (including MuseScore 2, cap, capx, midi, and musicxml) to parse it
+
+* offers its functionality via the convenient ``ms3`` commandline interface.
+
+View the `full documentation here <https://johentsch.github.io/ms3/>`__.
+
+For a demo video (using an old, pre-1.0.0 version) on YouTube, `click here <https://youtu.be/UBY3wuIS4wc>`__
+
+Installation
+============
+
+ms3 requires Python >= 3.10 (type ``python3 --version`` to check). Once you have switched to a virtual environment
+that has Python 3.10 installed you can pip-install the library via one of the two commands:
+
+    python3 -m pip install ms3
+    pip install ms3
+
+If successful, the installation will make the ``ms3`` commands available in your PATH (try by typing ``ms3``).
+
+Quick demo
+==========
+
+Parsing a single score
+----------------------
+
+.. code-block:: python
+
+    import ms3
+    score = ms3.Score('musescore_file.mscz')
+
+Parsing a corpus
+----------------
+
+.. code-block:: python
+
+    import ms3
+    corpus = ms3.Corpus('score_directory')
+    corpus.parse()
+
+Parsing several corpora
+-----------------------
+
+.. code-block:: python
+
+    import ms3
+    corpora = ms3.Parse('my_research_corpora')
+    corpora.parse()
+
+
+Acknowledgements
+================
+
+Development of this software tool was supported by the Swiss National Science Foundation within the project “Distant
+Listening – The Development of Harmony over Three Centuries (1700–2000)” (Grant no. 182811). This project is being
+conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr. Claude Latour.
+
+The Python package has been set up using `PyScaffold <https://pyscaffold.org/>`__ 3.2.3.
