@@ -3588,6 +3588,10 @@ def prepare_metadata_for_writing(metadata_df):
     metadata_df = metadata_df.astype('string', errors='ignore')
     metadata_df.sort_index(inplace=True)
     metadata_df = column_order(metadata_df, METADATA_COLUMN_ORDER, sort=False)
+    # on Windows, make sure the paths are written with / separators
+    path_cols = [col for col in ('subdir', 'rel_path') if col in metadata_df.columns]
+    for col in path_cols:
+        metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, '/')
     staff_cols, other_cols = [], []
     for col in metadata_df.columns:
         if re.match(r"^staff_(\d+)", col):
