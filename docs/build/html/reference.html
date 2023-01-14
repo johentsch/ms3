@@ -7452,274 +7452,35 @@ In particular, check DCML harmony labels for syntactic correctness.</p>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Developers' Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.parse">The Parse class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.parse.Parse"><code class="docutils literal notranslate"><span class="pre">Parse</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.__init__"><code class="docutils literal notranslate"><span class="pre">Parse.__init__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.corpus_paths"><code class="docutils literal notranslate"><span class="pre">Parse.corpus_paths</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.corpus_objects"><code class="docutils literal notranslate"><span class="pre">Parse.corpus_objects</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.labels_cfg"><code class="docutils literal notranslate"><span class="pre">Parse.labels_cfg</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.ms"><code class="docutils literal notranslate"><span class="pre">Parse.ms</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_detected"><code class="docutils literal notranslate"><span class="pre">Parse.n_detected</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_orphans"><code class="docutils literal notranslate"><span class="pre">Parse.n_orphans</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_parsed"><code class="docutils literal notranslate"><span class="pre">Parse.n_parsed</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_parsed_scores"><code class="docutils literal notranslate"><span class="pre">Parse.n_parsed_scores</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_parsed_tsvs"><code class="docutils literal notranslate"><span class="pre">Parse.n_parsed_tsvs</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_pieces"><code class="docutils literal notranslate"><span class="pre">Parse.n_pieces</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_unparsed_scores"><code class="docutils literal notranslate"><span class="pre">Parse.n_unparsed_scores</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.n_unparsed_tsvs"><code class="docutils literal notranslate"><span class="pre">Parse.n_unparsed_tsvs</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parsed_mscx"><code class="docutils literal notranslate"><span class="pre">Parse.parsed_mscx</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parsed_tsv"><code class="docutils literal notranslate"><span class="pre">Parse.parsed_tsv</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.view"><code class="docutils literal notranslate"><span class="pre">Parse.view</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.views"><code class="docutils literal notranslate"><span class="pre">Parse.views</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.view_name"><code class="docutils literal notranslate"><span class="pre">Parse.view_name</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.add_corpus"><code class="docutils literal notranslate"><span class="pre">Parse.add_corpus()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.add_dir"><code class="docutils literal notranslate"><span class="pre">Parse.add_dir()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.add_files"><code class="docutils literal notranslate"><span class="pre">Parse.add_files()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.change_labels_cfg"><code class="docutils literal notranslate"><span class="pre">Parse.change_labels_cfg()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.compare_labels"><code class="docutils literal notranslate"><span class="pre">Parse.compare_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.count_extensions"><code class="docutils literal notranslate"><span class="pre">Parse.count_extensions()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.disambiguate_facet"><code class="docutils literal notranslate"><span class="pre">Parse.disambiguate_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.get_dataframes"><code class="docutils literal notranslate"><span class="pre">Parse.get_dataframes()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.get_lists"><code class="docutils literal notranslate"><span class="pre">Parse.get_lists()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.get_piece"><code class="docutils literal notranslate"><span class="pre">Parse.get_piece()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.get_view"><code class="docutils literal notranslate"><span class="pre">Parse.get_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.insert_detached_labels"><code class="docutils literal notranslate"><span class="pre">Parse.insert_detached_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.iter_corpora"><code class="docutils literal notranslate"><span class="pre">Parse.iter_corpora()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.keys"><code class="docutils literal notranslate"><span class="pre">Parse.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.load_ignored_warnings"><code class="docutils literal notranslate"><span class="pre">Parse.load_ignored_warnings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.set_view"><code class="docutils literal notranslate"><span class="pre">Parse.set_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.update_metadata_tsv_from_parsed_scores"><code class="docutils literal notranslate"><span class="pre">Parse.update_metadata_tsv_from_parsed_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.update_score_metadata_from_tsv"><code class="docutils literal notranslate"><span class="pre">Parse.update_score_metadata_from_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.update_scores"><code class="docutils literal notranslate"><span class="pre">Parse.update_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.update_tsvs_on_disk"><code class="docutils literal notranslate"><span class="pre">Parse.update_tsvs_on_disk()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.metadata_tsv"><code class="docutils literal notranslate"><span class="pre">Parse.metadata_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.store_extracted_facets"><code class="docutils literal notranslate"><span class="pre">Parse.store_extracted_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.store_parsed_scores"><code class="docutils literal notranslate"><span class="pre">Parse.store_parsed_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parse"><code class="docutils literal notranslate"><span class="pre">Parse.parse()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parse_mscx"><code class="docutils literal notranslate"><span class="pre">Parse.parse_mscx()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parse_scores"><code class="docutils literal notranslate"><span class="pre">Parse.parse_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.parse_tsv"><code class="docutils literal notranslate"><span class="pre">Parse.parse_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.__iter__"><code class="docutils literal notranslate"><span class="pre">Parse.__iter__()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.parse.Parse.__repr__"><code class="docutils literal notranslate"><span class="pre">Parse.__repr__()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.parse.Parse"><code class="docutils literal notranslate"><span class="pre">Parse</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.corpus">The Corpus class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.corpus.Corpus"><code class="docutils literal notranslate"><span class="pre">Corpus</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.corpus_path"><code class="docutils literal notranslate"><span class="pre">Corpus.corpus_path</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.name"><code class="docutils literal notranslate"><span class="pre">Corpus.name</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.files"><code class="docutils literal notranslate"><span class="pre">Corpus.files</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.labels_cfg"><code class="docutils literal notranslate"><span class="pre">Corpus.labels_cfg</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.metadata_tsv"><code class="docutils literal notranslate"><span class="pre">Corpus.metadata_tsv</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.metadata_ix"><code class="docutils literal notranslate"><span class="pre">Corpus.metadata_ix</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.ix2fname"><code class="docutils literal notranslate"><span class="pre">Corpus.ix2fname</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.ix2metadata_file"><code class="docutils literal notranslate"><span class="pre">Corpus.ix2metadata_file</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.ix2orphan_file"><code class="docutils literal notranslate"><span class="pre">Corpus.ix2orphan_file</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.score_fnames"><code class="docutils literal notranslate"><span class="pre">Corpus.score_fnames</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.n_pieces"><code class="docutils literal notranslate"><span class="pre">Corpus.n_pieces</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.collect_fnames_from_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.collect_fnames_from_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.create_metadata_tsv"><code class="docutils literal notranslate"><span class="pre">Corpus.create_metadata_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.create_pieces"><code class="docutils literal notranslate"><span class="pre">Corpus.create_pieces()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.detect_parseable_files"><code class="docutils literal notranslate"><span class="pre">Corpus.detect_parseable_files()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.disambiguate_facet"><code class="docutils literal notranslate"><span class="pre">Corpus.disambiguate_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.extract_facets"><code class="docutils literal notranslate"><span class="pre">Corpus.extract_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.find_and_load_metadata"><code class="docutils literal notranslate"><span class="pre">Corpus.find_and_load_metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.fnames_in_metadata"><code class="docutils literal notranslate"><span class="pre">Corpus.fnames_in_metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.fnames_not_in_metadata"><code class="docutils literal notranslate"><span class="pre">Corpus.fnames_not_in_metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_dataframes"><code class="docutils literal notranslate"><span class="pre">Corpus.get_dataframes()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_facet"><code class="docutils literal notranslate"><span class="pre">Corpus.get_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_facets"><code class="docutils literal notranslate"><span class="pre">Corpus.get_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_all_fnames"><code class="docutils literal notranslate"><span class="pre">Corpus.get_all_fnames()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_fnames"><code class="docutils literal notranslate"><span class="pre">Corpus.get_fnames()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_piece"><code class="docutils literal notranslate"><span class="pre">Corpus.get_piece()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.get_view"><code class="docutils literal notranslate"><span class="pre">Corpus.get_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.iter_facets"><code class="docutils literal notranslate"><span class="pre">Corpus.iter_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.iter_pieces"><code class="docutils literal notranslate"><span class="pre">Corpus.iter_pieces()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.load_facet_into_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.load_facet_into_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.look_for_ignored_warnings"><code class="docutils literal notranslate"><span class="pre">Corpus.look_for_ignored_warnings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.load_ignored_warnings"><code class="docutils literal notranslate"><span class="pre">Corpus.load_ignored_warnings()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.load_metadata_file"><code class="docutils literal notranslate"><span class="pre">Corpus.load_metadata_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.parse"><code class="docutils literal notranslate"><span class="pre">Corpus.parse()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.parse_mscx"><code class="docutils literal notranslate"><span class="pre">Corpus.parse_mscx()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.parse_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.parse_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.parse_tsv"><code class="docutils literal notranslate"><span class="pre">Corpus.parse_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.metadata"><code class="docutils literal notranslate"><span class="pre">Corpus.metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.set_view"><code class="docutils literal notranslate"><span class="pre">Corpus.set_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.update_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.update_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.update_tsvs_on_disk"><code class="docutils literal notranslate"><span class="pre">Corpus.update_tsvs_on_disk()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.insert_detached_labels"><code class="docutils literal notranslate"><span class="pre">Corpus.insert_detached_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.change_labels_cfg"><code class="docutils literal notranslate"><span class="pre">Corpus.change_labels_cfg()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.compare_labels"><code class="docutils literal notranslate"><span class="pre">Corpus.compare_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.count_annotation_layers"><code class="docutils literal notranslate"><span class="pre">Corpus.count_annotation_layers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.count_labels"><code class="docutils literal notranslate"><span class="pre">Corpus.count_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.count_tsv_types"><code class="docutils literal notranslate"><span class="pre">Corpus.count_tsv_types()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.detach_labels"><code class="docutils literal notranslate"><span class="pre">Corpus.detach_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.keys"><code class="docutils literal notranslate"><span class="pre">Corpus.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.store_extracted_facets"><code class="docutils literal notranslate"><span class="pre">Corpus.store_extracted_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.update_metadata_tsv_from_parsed_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.update_metadata_tsv_from_parsed_scores()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.update_score_metadata_from_tsv"><code class="docutils literal notranslate"><span class="pre">Corpus.update_score_metadata_from_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.corpus.Corpus.store_parsed_scores"><code class="docutils literal notranslate"><span class="pre">Corpus.store_parsed_scores()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.corpus.Corpus"><code class="docutils literal notranslate"><span class="pre">Corpus</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ms3.corpus.parse_musescore_file"><code class="docutils literal notranslate"><span class="pre">parse_musescore_file()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.piece">The Piece class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.piece.Piece"><code class="docutils literal notranslate"><span class="pre">Piece</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.facet2files"><code class="docutils literal notranslate"><span class="pre">Piece.facet2files</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.ix2file"><code class="docutils literal notranslate"><span class="pre">Piece.ix2file</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.facet2parsed"><code class="docutils literal notranslate"><span class="pre">Piece.facet2parsed</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.ix2parsed"><code class="docutils literal notranslate"><span class="pre">Piece.ix2parsed</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.ix2parsed_score"><code class="docutils literal notranslate"><span class="pre">Piece.ix2parsed_score</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.ix2parsed_tsv"><code class="docutils literal notranslate"><span class="pre">Piece.ix2parsed_tsv</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.ix2annotations"><code class="docutils literal notranslate"><span class="pre">Piece.ix2annotations</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.all_facets_present"><code class="docutils literal notranslate"><span class="pre">Piece.all_facets_present()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.has_changed_scores"><code class="docutils literal notranslate"><span class="pre">Piece.has_changed_scores</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.score_metadata"><code class="docutils literal notranslate"><span class="pre">Piece.score_metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.tsv_metadata"><code class="docutils literal notranslate"><span class="pre">Piece.tsv_metadata</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.metadata"><code class="docutils literal notranslate"><span class="pre">Piece.metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.set_view"><code class="docutils literal notranslate"><span class="pre">Piece.set_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_view"><code class="docutils literal notranslate"><span class="pre">Piece.get_view()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.compare_labels"><code class="docutils literal notranslate"><span class="pre">Piece.compare_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.extract_facets"><code class="docutils literal notranslate"><span class="pre">Piece.extract_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_dataframe"><code class="docutils literal notranslate"><span class="pre">Piece.get_dataframe()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_facets"><code class="docutils literal notranslate"><span class="pre">Piece.get_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_facet"><code class="docutils literal notranslate"><span class="pre">Piece.get_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_file"><code class="docutils literal notranslate"><span class="pre">Piece.get_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_files"><code class="docutils literal notranslate"><span class="pre">Piece.get_files()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_parsed"><code class="docutils literal notranslate"><span class="pre">Piece.get_parsed()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.get_all_parsed"><code class="docutils literal notranslate"><span class="pre">Piece.get_all_parsed()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.iter_extracted_facet"><code class="docutils literal notranslate"><span class="pre">Piece.iter_extracted_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.iter_extracted_facets"><code class="docutils literal notranslate"><span class="pre">Piece.iter_extracted_facets()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.iter_facet2files"><code class="docutils literal notranslate"><span class="pre">Piece.iter_facet2files()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.iter_facet2parsed"><code class="docutils literal notranslate"><span class="pre">Piece.iter_facet2parsed()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.iter_files"><code class="docutils literal notranslate"><span class="pre">Piece.iter_files()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.keys"><code class="docutils literal notranslate"><span class="pre">Piece.keys()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.load_annotation_table_into_score"><code class="docutils literal notranslate"><span class="pre">Piece.load_annotation_table_into_score()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.store_extracted_facet"><code class="docutils literal notranslate"><span class="pre">Piece.store_extracted_facet()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.store_parsed_score_at_ix"><code class="docutils literal notranslate"><span class="pre">Piece.store_parsed_score_at_ix()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.update_score_metadata_from_tsv"><code class="docutils literal notranslate"><span class="pre">Piece.update_score_metadata_from_tsv()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.piece.Piece.update_tsvs_on_disk"><code class="docutils literal notranslate"><span class="pre">Piece.update_tsvs_on_disk()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.piece.Piece"><code class="docutils literal notranslate"><span class="pre">Piece</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.view">The View class</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#ms3.view.empty_counts"><code class="docutils literal notranslate"><span class="pre">empty_counts()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.view.View"><code class="docutils literal notranslate"><span class="pre">View</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.is_default"><code class="docutils literal notranslate"><span class="pre">View.is_default()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.copy"><code class="docutils literal notranslate"><span class="pre">View.copy()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.check_token"><code class="docutils literal notranslate"><span class="pre">View.check_token()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.check_file"><code class="docutils literal notranslate"><span class="pre">View.check_file()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.filter_by_token"><code class="docutils literal notranslate"><span class="pre">View.filter_by_token()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.filtered_tokens"><code class="docutils literal notranslate"><span class="pre">View.filtered_tokens()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.View.filtered_file_list"><code class="docutils literal notranslate"><span class="pre">View.filtered_file_list()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.view.DefaultView"><code class="docutils literal notranslate"><span class="pre">DefaultView</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.view.DefaultView.is_default"><code class="docutils literal notranslate"><span class="pre">DefaultView.is_default()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.view.View"><code class="docutils literal notranslate"><span class="pre">View</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.view.DefaultView"><code class="docutils literal notranslate"><span class="pre">DefaultView</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#the-score-class">The Score class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.score.Score"><code class="docutils literal notranslate"><span class="pre">Score</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.ABS_REGEX"><code class="docutils literal notranslate"><span class="pre">Score.ABS_REGEX</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.NASHVILLE_REGEX"><code class="docutils literal notranslate"><span class="pre">Score.NASHVILLE_REGEX</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.RN_REGEX"><code class="docutils literal notranslate"><span class="pre">Score.RN_REGEX</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.native_formats"><code class="docutils literal notranslate"><span class="pre">Score.native_formats</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.convertible_formats"><code class="docutils literal notranslate"><span class="pre">Score.convertible_formats</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.parseable_formats"><code class="docutils literal notranslate"><span class="pre">Score.parseable_formats</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.read_only"><code class="docutils literal notranslate"><span class="pre">Score.read_only</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.full_paths"><code class="docutils literal notranslate"><span class="pre">Score.full_paths</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.paths"><code class="docutils literal notranslate"><span class="pre">Score.paths</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.files"><code class="docutils literal notranslate"><span class="pre">Score.files</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.fnames"><code class="docutils literal notranslate"><span class="pre">Score.fnames</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.fexts"><code class="docutils literal notranslate"><span class="pre">Score.fexts</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.ms"><code class="docutils literal notranslate"><span class="pre">Score.ms</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._mscx"><code class="docutils literal notranslate"><span class="pre">Score._mscx</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._detached_annotations"><code class="docutils literal notranslate"><span class="pre">Score._detached_annotations</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._types_to_infer"><code class="docutils literal notranslate"><span class="pre">Score._types_to_infer</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._regex_name_description"><code class="docutils literal notranslate"><span class="pre">Score._regex_name_description</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._name2regex"><code class="docutils literal notranslate"><span class="pre">Score._name2regex</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.labels_cfg"><code class="docutils literal notranslate"><span class="pre">Score.labels_cfg</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.parser"><code class="docutils literal notranslate"><span class="pre">Score.parser</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.review_report"><code class="docutils literal notranslate"><span class="pre">Score.review_report</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.comparison_report"><code class="docutils literal notranslate"><span class="pre">Score.comparison_report</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.name2regex"><code class="docutils literal notranslate"><span class="pre">Score.name2regex</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.has_detached_annotations"><code class="docutils literal notranslate"><span class="pre">Score.has_detached_annotations</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.mscx"><code class="docutils literal notranslate"><span class="pre">Score.mscx</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.types"><code class="docutils literal notranslate"><span class="pre">Score.types</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.attach_labels"><code class="docutils literal notranslate"><span class="pre">Score.attach_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.change_labels_cfg"><code class="docutils literal notranslate"><span class="pre">Score.change_labels_cfg()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.check_labels"><code class="docutils literal notranslate"><span class="pre">Score.check_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.color_non_chord_tones"><code class="docutils literal notranslate"><span class="pre">Score.color_non_chord_tones()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.compare_labels"><code class="docutils literal notranslate"><span class="pre">Score.compare_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.detach_labels"><code class="docutils literal notranslate"><span class="pre">Score.detach_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.get_infer_regex"><code class="docutils literal notranslate"><span class="pre">Score.get_infer_regex()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.get_labels"><code class="docutils literal notranslate"><span class="pre">Score.get_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.new_type"><code class="docutils literal notranslate"><span class="pre">Score.new_type()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.load_annotations"><code class="docutils literal notranslate"><span class="pre">Score.load_annotations()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.store_annotations"><code class="docutils literal notranslate"><span class="pre">Score.store_annotations()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.output_mscx"><code class="docutils literal notranslate"><span class="pre">Score.output_mscx()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.store_score"><code class="docutils literal notranslate"><span class="pre">Score.store_score()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score._handle_path"><code class="docutils literal notranslate"><span class="pre">Score._handle_path()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.Score.parse_mscx"><code class="docutils literal notranslate"><span class="pre">Score.parse_mscx()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#the-mscx-class">The MSCX class</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.score.MSCX"><code class="docutils literal notranslate"><span class="pre">MSCX</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.score.Score"><code class="docutils literal notranslate"><span class="pre">Score</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-mscx-class">The MSCX class</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.annotations">The Annotations class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.annotations.Annotations"><code class="docutils literal notranslate"><span class="pre">Annotations</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.annotations.Annotations.harmony_layer_counts"><code class="docutils literal notranslate"><span class="pre">Annotations.harmony_layer_counts</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.annotations.Annotations.get_labels"><code class="docutils literal notranslate"><span class="pre">Annotations.get_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.annotations.Annotations.expand_dcml"><code class="docutils literal notranslate"><span class="pre">Annotations.expand_dcml()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.annotations.Annotations"><code class="docutils literal notranslate"><span class="pre">Annotations</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#module-ms3.bs4_parser">The BeautifulSoup parser</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.mscx_src"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.mscx_src</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.measure_nodes"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.measure_nodes</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.tags"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.tags</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.staff2drum_map"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.staff2drum_map</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.parse_mscx"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.parse_mscx()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.parse_measures"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.parse_measures()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4._make_measure_list"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4._make_measure_list()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.chords"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.chords()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.cl"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.cl()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.events"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.events()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.form_labels"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.form_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.fl"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.fl()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.has_voltas"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.has_voltas</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.measures"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.measures()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.ml"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.ml()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.notes"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.notes()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.nl"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.nl()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.notes_and_rests"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.notes_and_rests()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.nrl"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.nrl()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.offset_dict"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.offset_dict()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.rests"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.rests()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.rl"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.rl()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.volta_structure"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.volta_structure</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.make_standard_chordlist"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.make_standard_chordlist()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.get_chords"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.get_chords()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.get_raw_labels"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.get_raw_labels()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.infer_mc"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.infer_mc()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.get_texts"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.get_texts()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4._get_metadata"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4._get_metadata()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.add_standard_cols"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.add_standard_cols()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.delete_label"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.delete_label()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.add_label"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.add_label()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.change_label_color"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.change_label_color()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4.color_notes"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4.color_notes()</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#ms3.bs4_parser._MSCX_bs4"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ms3.bs4_parser.Metatags"><code class="docutils literal notranslate"><span class="pre">Metatags</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ms3.bs4_parser.Style"><code class="docutils literal notranslate"><span class="pre">Style</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#ms3.bs4_parser.Prelims"><code class="docutils literal notranslate"><span class="pre">Prelims</span></code></a></li>
@@ -7917,20 +7678,7 @@ In particular, check DCML harmony labels for syntactic correctness.</p>
 <li class="toctree-l2"><a class="reference internal" href="#the-commandline-interface">The commandline interface</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#Positional Arguments">Positional Arguments</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#options">options</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#Sub-commands:">Sub-commands:</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#add">add</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#check">check</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#compare">compare</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#convert">convert</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#empty">empty</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#extract">extract</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#metadata">metadata</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#repair">repair</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#review">review</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#transform">transform</a></li>
-<li class="toctree-l4"><a class="reference internal" href="#update">update</a></li>
-</ul>
-</li>
+<li class="toctree-l3"><a class="reference internal" href="#Sub-commands:">Sub-commands:</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#developing-a-new-parser">Developing a new parser</a><ul>

@@ -1,15 +1,11 @@
-=========================
-ms3 - Parsing MuseScore 3
-=========================
-
-.. include:: ./intro.rst
+.. include:: ../README.rst
 
 
-Contents
-========
+Table of Contents
+=================
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 3
 
    Installation <install>
    Quick Reference <quick>
