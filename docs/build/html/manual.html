@@ -8,16 +8,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Manual &#8212; ms3 1.0.3 documentation</title>
+    <title>Manual &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
 
     
     
@@ -58,7 +56,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.0.3 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>
@@ -1260,18 +1258,18 @@ except <code class="docutils literal notranslate"><span class="pre">measures</sp
 <p>The value <code class="docutils literal notranslate"><span class="pre">'∅'</span></code> is used for empty tags. For example, in the column <code class="docutils literal notranslate"><span class="pre">Chord/Spanner/Slur</span></code> it would correspond to
 the tag structure (formatting as in an MSCX file):</p>
 <div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;Chord&gt;</span>
-  <span class="nt">&lt;Spanner</span> <span class="na">type=</span><span class="s">&quot;Slur&quot;</span><span class="nt">&gt;</span>
-    <span class="nt">&lt;Slur&gt;</span>
-      <span class="nt">&lt;/Slur&gt;</span>
-    <span class="nt">&lt;/Spanner&gt;</span>
-  <span class="nt">&lt;/Chord&gt;</span>
+<span class="w">  </span><span class="nt">&lt;Spanner</span><span class="w"> </span><span class="na">type=</span><span class="s">&quot;Slur&quot;</span><span class="nt">&gt;</span>
+<span class="w">    </span><span class="nt">&lt;Slur&gt;</span>
+<span class="w">      </span><span class="nt">&lt;/Slur&gt;</span>
+<span class="w">    </span><span class="nt">&lt;/Spanner&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/Chord&gt;</span>
 </pre></div>
 </div>
 <p>The value <code class="docutils literal notranslate"><span class="pre">'/'</span></code> on the other hand represents a shortcut empty tag. For example, in the column <code class="docutils literal notranslate"><span class="pre">Chord/grace16</span></code>
 it would correspond to the tag structure (formatting as in an MSCX file):</p>
 <div class="highlight-xml notranslate"><div class="highlight"><pre><span></span><span class="nt">&lt;Chord&gt;</span>
-  <span class="nt">&lt;grace16/&gt;</span>
-  <span class="nt">&lt;/Chord&gt;</span>
+<span class="w">  </span><span class="nt">&lt;grace16/&gt;</span>
+<span class="w">  </span><span class="nt">&lt;/Chord&gt;</span>
 </pre></div>
 </div>
 </section>
@@ -1407,12 +1405,31 @@ folder names (here ‘docs’, and ‘tests’):</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>80 files.
-KEY -&gt; EXTENSIONS
------------------
-ms3 -&gt; {&#39;.mscx&#39;: 14, &#39;.tsv&#39;: 66}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  ms3.Parse.docs -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.new_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.old_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+[[1mdefault[0;0m|all]
+All corpora
+-----------
+View: This view is called &#39;default&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml), and
+	- excludes review files and folders.
 
-None of the 14 score files have been parsed.
+               has   active
+          metadata     view
+corpus                     
+docs            no  default
+new_tests       no  default
+old_tests       no  default
+
+11/11 fnames are excluded from this view.
+
+
+There are 3 orphans that could not be attributed to any of the respective corpus&#39;s fnames.
 </pre></div>
 </div>
 <p>Without any further parameters, ms3 detects only file types that it can potentially parse, i.e. MSCX, MSCZ, and TSV.
@@ -1424,14 +1441,31 @@ XML, MIDI, or CAP.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>98 files.
-KEY -&gt; EXTENSIONS
------------------
-ms3 -&gt; {&#39;.xml&#39;: 18, &#39;.mscx&#39;: 14, &#39;.tsv&#39;: 66}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  ms3.Parse.docs -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.new_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.old_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+[[1mdefault[0;0m|all]
+All corpora
+-----------
+View: This view is called &#39;default&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml), and
+	- excludes review files and folders.
 
-None of the 32 score files have been parsed.
+               has   active
+          metadata     view
+corpus                     
+docs            no  default
+new_tests       no  default
+old_tests       no  default
 
-MuseScore 3 executable has been found.
+11/11 fnames are excluded from this view.
+
+
+There are 3 orphans that could not be attributed to any of the respective corpus&#39;s fnames.
 </pre></div>
 </div>
 <p>By default, present TSV files are detected and can be parsed as well, allowing one to access already extracted
@@ -1448,12 +1482,32 @@ in their names would be selected, too):</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>14 files.
-KEY -&gt; EXTENSIONS
------------------
-ms3 -&gt; {&#39;.mscx&#39;: 14}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  ms3.Parse.docs -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.new_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.old_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+[[1mgilmar[0;0m|default|all]
+All corpora
+-----------
+View: This view is called &#39;gilmar&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml),
+	- excludes review files and folders, and
+	- includes only files containing &#39;mscx$&#39;.
 
-None of the 14 score files have been parsed.
+               has  active
+          metadata    view
+corpus                    
+docs            no  gilmar
+new_tests       no  gilmar
+old_tests       no  gilmar
+
+11/11 fnames are excluded from this view.
+
+
+There are 3 orphans that could not be attributed to any of the respective corpus&#39;s fnames.
 </pre></div>
 </div>
 <p>In this example, we assigned the key <code class="docutils literal notranslate"><span class="pre">'ms3'</span></code>. Note that the same MSCX files that were distributed over several keys
@@ -1464,13 +1518,39 @@ selected files. For example, we could add MSCX files from another folder using t
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>73 files.
-KEY   -&gt; EXTENSIONS
--------------------
-ms3   -&gt; {&#39;.mscx&#39;: 14}
-other -&gt; {&#39;.mscx&#39;: 58, &#39;.tsv&#39;: 1}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  ms3.Parse.docs -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.new_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.old_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.mozart_piano_sonatas -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 112) __init__():
+	If you pass an existing view, other view-related parameters are ignored.
+[[1mluise[0;0m|default|all]
+All corpora
+-----------
+View: This view is called &#39;luise&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml),
+	- excludes review files and folders, and
+	- includes only files containing &#39;mscx$&#39;.
 
-None of the 72 score files have been parsed.
+                          has active   scores
+                     metadata   view detected
+corpus                                       
+docs                       no  luise        0
+new_tests                  no  luise        0
+old_tests                  no  luise        0
+mozart_piano_sonatas      yes  luise       54
+
+324/432 files are excluded from this view.
+4/58 fnames are excluded from this view.
+
+162 files have been excluded based on their subdir.
+162 files have been excluded based on their file name.
+
+
+There are 3 orphans that could not be attributed to any of the respective corpus&#39;s fnames.
 </pre></div>
 </div>
 </div></blockquote>
@@ -1486,71 +1566,39 @@ warnings:</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">p</span>
 </pre></div>
 </div>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>73 files.
-KEY   -&gt; EXTENSIONS
--------------------
-ms3   -&gt; {&#39;.mscx&#39;: 14}
-other -&gt; {&#39;.mscx&#39;: 58, &#39;.tsv&#39;: 1}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING  ms3.Parse.docs -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.new_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.old_tests -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 805) fnames_in_metadata():
+	No metadata.tsv file has been detected for this Corpus object.
+WARNING  ms3.Parse.mozart_piano_sonatas -- /home/hentsche/PycharmProjects/ms3/src/ms3/corpus.py (line 112) __init__():
+	If you pass an existing view, other view-related parameters are ignored.
+[[1manswald[0;0m|default|all]
+All corpora
+-----------
+View: This view is called &#39;answald&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml),
+	- excludes review files and folders, and
+	- includes only files containing &#39;mscx$&#39;.
 
-14/72 MSCX files have been parsed.
+                          has   active scores         
+                     metadata     view parsed detected
+corpus                                                
+docs                       no  answald      0        0
+new_tests                  no  answald      0        0
+old_tests                  no  answald      0        0
+mozart_piano_sonatas      yes  answald     54       54
 
-8 of them have annotations attached.
-KEY -&gt; ANNOTATION LAYERS
-------------------------
-ms3 -&gt; staff  voice  harmony_layer       color             
-    -&gt; 2      1      0 (Plain Text)      default               167
-    -&gt; 3      1      0 (Plain Text)      default                63
-    -&gt;        2      0 (Plain Text)      default                48
-    -&gt; 1      1      0 (Plain Text)      default               575
-    -&gt;               3 (Absolute Chord)  default               166
-    -&gt; 3      1      0 (Plain Text)      blue                    1
-    -&gt;                                   cyan                    1
-    -&gt;                                   lime                    1
-    -&gt;                                   magenta                 1
-    -&gt;                                   ms3_aquamarine          1
-    -&gt;                                   ms3_blue                1
-    -&gt;                                   ms3_chartreuse          1
-    -&gt;                                   ms3_cornflowerblue      1
-    -&gt;                                   ms3_darkcyan            1
-    -&gt;                                   ms3_darkgoldenrod       1
-    -&gt;                                   ms3_darkgray            1
-    -&gt;                                   ms3_darkmagenta         1
-    -&gt;                                   ms3_darkolivegreen      1
-    -&gt;                                   ms3_darkslateblue       1
-    -&gt;                                   ms3_darkviolet          1
-    -&gt;                                   ms3_deeppink            1
-    -&gt;                                   ms3_deepskyblue         1
-    -&gt;                                   ms3_dodgerblue          1
-    -&gt;                                   ms3_green               1
-    -&gt;                                   ms3_indianred           1
-    -&gt;                                   ms3_indigo              1
-    -&gt;                                   ms3_khaki               1
-    -&gt;                                   ms3_lawngreen           1
-    -&gt;                                   ms3_lightcoral          1
-    -&gt;                                   ms3_lightgreen          1
-    -&gt;                                   ms3_lightpink           1
-    -&gt;                                   ms3_lightsalmon         1
-    -&gt;                                   ms3_lightsteelblue      1
-    -&gt;                                   ms3_maroon              1
-    -&gt;                                   ms3_mediumorchid        1
-    -&gt;                                   ms3_mediumseagreen      1
-    -&gt;                                   ms3_navy                1
-    -&gt;                                   ms3_olive               1
-    -&gt;                                   ms3_orange              1
-    -&gt;                                   ms3_orangered           1
-    -&gt;                                   ms3_palegreen           1
-    -&gt;                                   ms3_paleturquoise       1
-    -&gt;                                   ms3_royalblue           1
-    -&gt;                                   ms3_sienna              1
-    -&gt;                                   ms3_teal                1
-    -&gt;                                   ms3_violet              1
-    -&gt;                                   red                     1
-    -&gt;                                   springgreen             1
-    -&gt;                                   white                   1
-    -&gt;                                   yellow                  1
-    -&gt;               2 (Roman Numeral)   ms3_darkred             1
-    -&gt;               3 (Absolute Chord)  ms3_darkgreen           1
-    -&gt;                                   ms3_darkred             1
+324/432 files are excluded from this view.
+4/58 fnames are excluded from this view.
+
+162 files have been excluded based on their subdir.
+162 files have been excluded based on their file name.
+
+
+There are 3 orphans that could not be attributed to any of the respective corpus&#39;s fnames.
 </pre></div>
 </div>
 <p>As we can see, only the files with the key ‘ms3’ were parsed and the
@@ -1563,7 +1611,7 @@ different notational layers (i.e. staff &amp; voice), grouped by their colours.<
 <h4>Parsing options<a class="headerlink" href="#id15" title="Permalink to this heading">¶</a></h4>
 <dl class="py method">
 <dt class="sig sig-object py">
-<span class="sig-prename descclassname"><span class="pre">Parse.</span></span><span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Union" title="(in Python v3.10)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Collection" title="(in Python v3.10)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_metadata_fnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_convertible</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_tsv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_review</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Union" title="(in Python v3.10)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Union" title="(in Python v3.10)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Union" title="(in Python v3.10)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Optional" title="(in Python v3.10)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Collection" title="(in Python v3.10)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">logger_cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
+<span class="sig-prename descclassname"><span class="pre">Parse.</span></span><span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Collection" title="(in Python v3.10)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recursive</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">only_metadata_fnames</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_convertible</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_tsv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_review</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#bool" title="(in Python v3.10)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">folder_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">exclude_re</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Pattern</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paths</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/typing.html#typing.Collection" title="(in Python v3.10)"><span class="pre">Collection</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3.10/library/constants.html#None" title="(in Python v3.10)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_cfg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#dict" title="(in Python v3.10)"><span class="pre">dict</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ms</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">logger_cfg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ms3/parse.html#Parse.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a></dt>
 <dd><p>Initialize a Parse object and try to create corpora if directories and/or file paths are specified.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2775,7 +2823,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.0.3 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>
@@ -2784,7 +2832,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

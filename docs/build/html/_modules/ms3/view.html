@@ -7,16 +7,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.view &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
+    <title>ms3.view &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
 
     
     
@@ -49,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.view</a></li> 
@@ -81,11 +79,11 @@
 
 
 <div class="viewcode-block" id="empty_counts"><a class="viewcode-back" href="../../reference.html#ms3.view.empty_counts">[docs]</a><span class="k">def</span> <span class="nf">empty_counts</span><span class="p">():</span>
-    <span class="sd">&quot;&quot;&quot;Array for counting kept items, discarded items, and their sum.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Array for counting kept items, discarded items, and their sum.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="View"><a class="viewcode-back" href="../../reference.html#ms3.view.View">[docs]</a><span class="k">class</span> <span class="nc">View</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Object storing regular expressions and filter lists, storing and keeping track of things filtered out.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">review_regex</span> <span class="o">=</span> <span class="s2">&quot;review&quot;</span>
@@ -121,13 +119,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">selected_facets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">available_facets</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_filtering_counts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">npt</span><span class="o">.</span><span class="n">NDArray</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">empty_counts</span><span class="p">)</span>
-        <span class="sd">&quot;&quot;&quot;For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For each filter method, store the counts of the last run as [n_kept, n_discarded, N (the sum)].</span>
 <span class="sd">        Keys are &quot;category&quot; for :meth:`filter_by_token` and &#39;files&#39; or &#39;parsed&#39; for :meth:`filtered_file_list`.</span>
 <span class="sd">        To inspect, you can use the method :meth:`filtering_report`</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_file_criteria</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;subdir&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="s1">&#39;suffix&#39;</span><span class="p">],</span> <span class="n">Counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">Counter</span><span class="p">)</span>
-        <span class="sd">&quot;&quot;&quot;{criterion -&gt; {excluded_name -&gt; n_excluded}} dict for keeping track of which file was discarded based on which criterion.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{criterion -&gt; {excluded_name -&gt; n_excluded}} dict for keeping track of which file was discarded based on which criterion.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># booleans</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fnames_in_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
@@ -162,7 +160,7 @@
 
 <div class="viewcode-block" id="View.is_default"><a class="viewcode-back" href="../../reference.html#ms3.view.View.is_default">[docs]</a>    <span class="k">def</span> <span class="nf">is_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">relax_for_cli</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Checks includes and excludes that may influence the selection of fnames. Returns True if the settings</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks includes and excludes that may influence the selection of fnames. Returns True if the settings</span>
 <span class="sd">        do not filter out any fnames. Only if ``relax_for_cli`` is set to True, the filters :attr:`include_convertible`</span>
 <span class="sd">        and :attr:`exclude_review` are permitted, too.&quot;&quot;&quot;</span>
         <span class="c1"># define the expected number of filter regexes per category (ignore &#39;corpora&#39; and &#39;facets&#39;)</span>
@@ -202,7 +200,7 @@
           <span class="p">)</span></div>
 
 <div class="viewcode-block" id="View.copy"><a class="viewcode-back" href="../../reference.html#ms3.view.View.copy">[docs]</a>    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;View&#39;</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Returns a copy of this view, i.e., a new View object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a copy of this view, i.e., a new View object.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">new_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">new_name</span> <span class="o">=</span> <span class="n">get_ferocious_name</span><span class="p">()</span>
         <span class="n">new_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">new_name</span><span class="p">)</span>
@@ -287,7 +285,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">unexclude</span><span class="p">((</span><span class="s1">&#39;files&#39;</span><span class="p">,</span> <span class="s1">&#39;fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;folders&#39;</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">review_regex</span><span class="p">)</span>
 
 <div class="viewcode-block" id="View.check_token"><a class="viewcode-back" href="../../reference.html#ms3.view.View.check_token">[docs]</a>    <span class="k">def</span> <span class="nf">check_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">token</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Checks if a string pertaining to a certain category should be included in the view or not.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Checks if a string pertaining to a certain category should be included in the view or not.&quot;&quot;&quot;</span>
         <span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_category</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">rgx</span><span class="p">,</span> <span class="n">token</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">rgx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluding</span><span class="p">[</span><span class="n">category</span><span class="p">]):</span>
             <span class="k">return</span> <span class="kc">False</span>
@@ -297,7 +295,7 @@
 
 
 <div class="viewcode-block" id="View.check_file"><a class="viewcode-back" href="../../reference.html#ms3.view.View.check_file">[docs]</a>    <span class="k">def</span> <span class="nf">check_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file</span><span class="p">:</span> <span class="n">File</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Check if an individual File passes all filters w.r.t. its subdirectories, file name and suffix.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            file:</span>
@@ -343,7 +341,7 @@
 
 
 <div class="viewcode-block" id="View.filter_by_token"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filter_by_token">[docs]</a>    <span class="k">def</span> <span class="nf">filter_by_token</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">tuples</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">tuple</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Filters out those tuples where the token (first element) does not pass _.check_token(category, token).&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Filters out those tuples where the token (first element) does not pass _.check_token(category, token).&quot;&quot;&quot;</span>
         <span class="n">category</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_category</span><span class="p">(</span><span class="n">category</span><span class="p">)</span>
         <span class="n">n_kept</span><span class="p">,</span> <span class="n">n_discarded</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
         <span class="n">discarded_items</span> <span class="o">=</span> <span class="p">[]</span>
@@ -361,12 +359,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_discarded_items</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">discarded_items</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="View.filtered_tokens"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filtered_tokens">[docs]</a>    <span class="k">def</span> <span class="nf">filtered_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">category</span><span class="p">:</span> <span class="n">Category</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Applies :meth:`filter_by_token` to a collection of tokens.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Applies :meth:`filter_by_token` to a collection of tokens.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">token</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_by_token</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="p">((</span><span class="n">t</span><span class="p">,)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">))]</span></div>
 
 
 <div class="viewcode-block" id="View.filtered_file_list"><a class="viewcode-back" href="../../reference.html#ms3.view.View.filtered_file_list">[docs]</a>    <span class="k">def</span> <span class="nf">filtered_file_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="n">File</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileList</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; Keep only the files that pass _.check_file().</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Keep only the files that pass _.check_file().</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            files: :obj:`File` objects to be filtered.</span>
@@ -463,7 +461,7 @@
                 <span class="n">included</span> <span class="o">=</span> <span class="s1">&#39;one of &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">included</span> <span class="o">=</span> <span class="s1">&#39;one of [&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">regex</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="n">re_strings</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;... &#39;</span>
-                <span class="n">included</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_included</span> <span class="o">-</span> <span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report()))&quot;</span>
+                <span class="n">included</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_included</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report()))&quot;</span>
             <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;includes only </span><span class="si">{</span><span class="n">what_to_exclude</span><span class="si">}</span><span class="s2"> containing </span><span class="si">{</span><span class="n">included</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">what_to_exclude</span><span class="p">,</span> <span class="n">re_strings</span> <span class="ow">in</span> <span class="n">excluded_re</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">n_excluded</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
@@ -475,7 +473,7 @@
                 <span class="n">excluded</span> <span class="o">=</span> <span class="s1">&#39;one of &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">re_strings</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">excluded</span> <span class="o">=</span> <span class="s1">&#39;one of [&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">regex</span><span class="si">}</span><span class="s2">&#39;&quot;</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="n">re_strings</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span> <span class="o">+</span> <span class="s1">&#39;... &#39;</span>
-                <span class="n">excluded</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_excluded</span> <span class="o">-</span> <span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report())&quot;</span>
+                <span class="n">excluded</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (</span><span class="si">{</span><span class="n">n_excluded</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">10</span><span class="si">}</span><span class="s2"> more, see filtering_report())&quot;</span>
             <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;excludes any </span><span class="si">{</span><span class="n">what_to_exclude</span><span class="si">}</span><span class="s2"> containing </span><span class="si">{</span><span class="n">excluded</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">msg_components</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;excludes </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">excluded_file_paths</span><span class="p">)</span><span class="si">}</span><span class="s2"> files based on user input&quot;</span><span class="p">)</span>
@@ -714,7 +712,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.view</a></li> 
@@ -724,7 +722,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

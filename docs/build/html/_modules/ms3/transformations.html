@@ -7,16 +7,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.transformations &#8212; ms3 1.0.3 documentation</title>
+    <title>ms3.transformations &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
 
     
     
@@ -49,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.transformations</a></li> 
@@ -88,7 +86,7 @@
 <div class="viewcode-block" id="make_note_name_and_octave_columns"><a class="viewcode-back" href="../../reference.html#ms3.transformations.make_note_name_and_octave_columns">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">make_note_name_and_octave_columns</span><span class="p">(</span><span class="n">notes</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
                                       <span class="n">staff2drums</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot;Takes a notelist and maybe a {staff -&gt; {midi_pitch -&gt; &#39;instrument_name&#39;}} mapping and returns two columns named &#39;name&#39; and &#39;octave&#39;.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Takes a notelist and maybe a {staff -&gt; {midi_pitch -&gt; &#39;instrument_name&#39;}} mapping and returns two columns named &#39;name&#39; and &#39;octave&#39;.&quot;&quot;&quot;</span>
     <span class="n">octaves</span> <span class="o">=</span> <span class="n">midi2octave</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">midi</span><span class="p">,</span> <span class="n">notes</span><span class="o">.</span><span class="n">tpc</span><span class="p">)</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;octave&#39;</span><span class="p">)</span>
     <span class="n">names</span> <span class="o">=</span> <span class="p">(</span><span class="n">tpc2name</span><span class="p">(</span><span class="n">notes</span><span class="o">.</span><span class="n">tpc</span><span class="p">)</span> <span class="o">+</span> <span class="n">octaves</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">str</span><span class="p">))</span><span class="o">.</span><span class="n">rename</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">staff2drums</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">staff2drums</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -112,7 +110,7 @@
 <span class="k">def</span> <span class="nf">add_quarterbeats_col</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
                          <span class="n">offset_dict</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span>
                          <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot; Insert a column measuring the distance of events from MC 1 in quarter notes. If no &#39;mc_onset&#39; column is present,</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Insert a column measuring the distance of events from MC 1 in quarter notes. If no &#39;mc_onset&#39; column is present,</span>
 <span class="sd">        the column corresponds to the values given in the offset_dict..</span>
 
 <span class="sd">    Parameters</span>
@@ -132,6 +130,8 @@
 <span class="sd">    -------</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">index</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">df</span>
     <span class="n">has_quarterbeats</span> <span class="o">=</span> <span class="s1">&#39;quarterbeats&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
     <span class="n">has_duration_qb</span> <span class="o">=</span> <span class="s1">&#39;duration_qb&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
     <span class="n">has_duration</span> <span class="o">=</span> <span class="s1">&#39;duration&#39;</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span>
@@ -220,7 +220,7 @@
 
 <div class="viewcode-block" id="add_weighted_grace_durations"><a class="viewcode-back" href="../../reference.html#ms3.transformations.add_weighted_grace_durations">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">add_weighted_grace_durations</span><span class="p">(</span><span class="n">notes</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; For a given notes table, change the &#39;duration&#39; value of all grace notes, weighting it by ``weight``.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; For a given notes table, change the &#39;duration&#39; value of all grace notes, weighting it by ``weight``.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -275,7 +275,7 @@
 
 <div class="viewcode-block" id="compute_chord_tones"><a class="viewcode-back" href="../../reference.html#ms3.transformations.compute_chord_tones">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">compute_chord_tones</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">bass_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">expand</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="p">{}):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Compute the chord tones for DCML harmony labels. They are returned as lists</span>
 <span class="sd">    of tonal pitch classes in close position, starting with the bass note. The</span>
 <span class="sd">    tonal pitch classes represent intervals relative to the local tonic:</span>
@@ -382,7 +382,7 @@
 <div class="viewcode-block" id="dfs2quarterbeats"><a class="viewcode-back" href="../../reference.html#ms3.transformations.dfs2quarterbeats">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">dfs2quarterbeats</span><span class="p">(</span><span class="n">dfs</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]],</span>
                      <span class="n">measures</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">quarterbeats</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot; Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Pass one or several DataFrames and one measures table to unfold repeats and/or add quarterbeats columns and/or index.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        dfs: DataFrame(s) that are to be unfolded and/or receive quarterbeats.</span>
@@ -428,7 +428,7 @@
 
 <div class="viewcode-block" id="get_chord_sequences"><a class="viewcode-back" href="../../reference.html#ms3.transformations.get_chord_sequences">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">get_chord_sequences</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">major_minor</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">column</span><span class="o">=</span><span class="s1">&#39;chord&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Transforms an annotation table into lists of chord symbols for n-gram analysis. If your table represents</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Transforms an annotation table into lists of chord symbols for n-gram analysis. If your table represents</span>
 <span class="sd">    several pieces, make sure to pass the groupby parameter ``level`` to avoid including inexistent transitions.</span>
 
 <span class="sd">    Parameters</span>
@@ -481,7 +481,7 @@
 
 <div class="viewcode-block" id="group_annotations_by_features"><a class="viewcode-back" href="../../reference.html#ms3.transformations.group_annotations_by_features">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">group_annotations_by_features</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="s1">&#39;numeral&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Drop exact repetitions of one or several feature columns when occurring under the same localkey (and pedal point).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Drop exact repetitions of one or several feature columns when occurring under the same localkey (and pedal point).</span>
 <span class="sd">    For example, pass ``features = [&#39;numeral&#39;, &#39;form&#39;, &#39;figbass&#39;]`` to drop rows where all three features are identical</span>
 <span class="sd">    with the previous row _and_ the localkey stays the same. If the column ``duration_qb`` is present, it is updated</span>
 <span class="sd">    with the new durations, as would be the IntervalIndex if there is one.</span>
@@ -558,12 +558,12 @@
 
     <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">c</span> <span class="ow">in</span> <span class="n">at</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">qb_cols</span><span class="p">):</span>
         <span class="n">na_values</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ffill&#39;</span> <span class="k">if</span> <span class="n">c</span> <span class="o">==</span> <span class="s1">&#39;numeral&#39;</span> <span class="k">else</span> <span class="s1">&#39;group&#39;</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">cols</span><span class="p">]</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Grouping with the following na_values settings: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span> <span class="n">na_values</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Grouping with the following na_values settings: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">cols</span><span class="p">,</span><span class="w"> </span><span class="n">na_values</span><span class="p">))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">res</span> <span class="o">=</span> <span class="n">segment_by_adjacency_groups</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="n">na_values</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="n">logger</span><span class="p">)</span>
         <span class="n">keep_cols</span> <span class="o">=</span> <span class="n">qb_cols</span> <span class="o">+</span> <span class="n">keep_cols</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">def</span> <span class="nf">column_shift_mask</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-            <span class="sd">&quot;&quot;&quot;Sets those values of Series a to True where a value in the Series b is different from its predecessor.&quot;&quot;&quot;</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Sets those values of Series a to True where a value in the Series b is different from its predecessor.&quot;&quot;&quot;</span>
             <span class="k">return</span> <span class="n">a</span> <span class="o">|</span> <span class="o">~</span><span class="n">nan_eq</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">shift</span><span class="p">())</span>
         <span class="c1"># The change mask is True for every row where either of the feature or safety columns is different from its previous value.</span>
         <span class="n">change_mask</span> <span class="o">=</span> <span class="n">reduce</span><span class="p">(</span><span class="n">column_shift_mask</span><span class="p">,</span>
@@ -589,7 +589,7 @@
 
 <div class="viewcode-block" id="labels2global_tonic"><a class="viewcode-back" href="../../reference.html#ms3.transformations.labels2global_tonic">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">labels2global_tonic</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="p">{},</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Transposes all numerals to their position in the global major or minor scale.</span>
 <span class="sd">    This eliminates localkeys and relativeroots. The resulting chords are defined</span>
 <span class="sd">    by [`numeral`, `figbass`, `changes`, `globalkey_is_minor`] (and `pedal`).</span>
@@ -711,7 +711,7 @@
 
 <div class="viewcode-block" id="make_gantt_data"><a class="viewcode-back" href="../../reference.html#ms3.transformations.make_gantt_data">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">make_gantt_data</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">last_mn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">relativeroots</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mode_agnostic_adjacency</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Takes an expanded DCML annotation table and returns a DataFrame with timings of the included key segments,</span>
 <span class="sd">    based on the column ``localkey``. The column names are suited for the plotly library.</span>
 <span class="sd">    Uses: rel2abs_key, resolve_relative_keys, roman_numeral2fifths roman_numerals2semitones, labels2global_tonic</span>
 
@@ -756,7 +756,7 @@
     <span class="n">check_columns</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;localkey&#39;</span><span class="p">,</span> <span class="s1">&#39;globalkey_is_minor&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">at</span><span class="o">.</span><span class="n">columns</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">check_columns</span><span class="p">):</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Annotation table is missing the columns </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">check_columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">at</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">. Cannot make Gantt data&quot;</span><span class="p">)</span>
+            <span class="sa">f</span><span class="s2">&quot;Annotation table is missing the columns </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">c</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">check_columns</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">at</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="si">}</span><span class="s2">. Cannot make Gantt data&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
 
     <span class="n">at</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">position_col</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -858,7 +858,7 @@
                <span class="n">fillna</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                <span class="n">additional_group_cols</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">ensure_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -943,7 +943,7 @@
 
 
 <div class="viewcode-block" id="resolve_all_relative_numerals"><a class="viewcode-back" href="../../reference.html#ms3.transformations.resolve_all_relative_numerals">[docs]</a><span class="k">def</span> <span class="nf">resolve_all_relative_numerals</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">additional_columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Resolves Roman numerals that include slash notation such as &#39;#vii/ii&#39; =&gt; &#39;#i&#39; or &#39;V/V/V&#39; =&gt; &#39;VI&#39; in a major and</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Resolves Roman numerals that include slash notation such as &#39;#vii/ii&#39; =&gt; &#39;#i&#39; or &#39;V/V/V&#39; =&gt; &#39;VI&#39; in a major and</span>
 <span class="sd">    &#39;#VI&#39; in a minor key. The function expects the columns [&#39;globalkey_is_minor&#39;, &#39;localkey_is_minor&#39;] to be present.</span>
 <span class="sd">    The former is necessary only if the column &#39;localkey&#39; is present and needs resolving. Execution will be slightly</span>
 <span class="sd">    faster if performed on the entire DataFrame rather than using :py:meth:`transform_multiple`.</span>
@@ -986,7 +986,7 @@
 
 <div class="viewcode-block" id="segment_by_adjacency_groups"><a class="viewcode-back" href="../../reference.html#ms3.transformations.segment_by_adjacency_groups">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">segment_by_adjacency_groups</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">cols</span><span class="p">,</span> <span class="n">na_values</span><span class="o">=</span><span class="s1">&#39;group&#39;</span><span class="p">,</span> <span class="n">group_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Drop exact adjacent repetitions within one or a combination of several feature columns and adapt the</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Drop exact adjacent repetitions within one or a combination of several feature columns and adapt the</span>
 <span class="sd">    IntervalIndex and the column &#39;duration_qb&#39; accordingly.</span>
 <span class="sd">    Uses: :func:`adjacency_groups`, :func:`reduce_dataframe_duration_to_first_row`</span>
 
@@ -1049,7 +1049,7 @@
 
 <div class="viewcode-block" id="segment_by_criterion"><a class="viewcode-back" href="../../reference.html#ms3.transformations.segment_by_criterion">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">segment_by_criterion</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">boolean_mask</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">],</span> <span class="n">warn_na</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot; Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column &#39;duration_qb&#39; accordingly.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Drop all rows where the boolean mask does not match and adapt the IntervalIndex and the column &#39;duration_qb&#39; accordingly.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        df: DataFrame to be reduced, expected to come with the column ``duration_qb`` and an :obj:`pandas.IntervalIndex`.</span>
@@ -1074,7 +1074,7 @@
 
 
 <div class="viewcode-block" id="segment_by_interval_index"><a class="viewcode-back" href="../../reference.html#ms3.transformations.segment_by_interval_index">[docs]</a><span class="k">def</span> <span class="nf">segment_by_interval_index</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">truncate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Segment a DataFrame into chunks based on a given IntervalIndex.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Segment a DataFrame into chunks based on a given IntervalIndex.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1105,7 +1105,7 @@
 
 <div class="viewcode-block" id="slice_df"><a class="viewcode-back" href="../../reference.html#ms3.transformations.slice_df">[docs]</a><span class="k">def</span> <span class="nf">slice_df</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span>
              <span class="n">quarters_per_slice</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">Interval</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-    <span class="sd">&quot;&quot;&quot; Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event&#39;s</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Returns a sliced version of the DataFrame. Slices appear in the IntervalIndex and the contained event&#39;s</span>
 <span class="sd">    durations within the slice are shown in the column &#39;duration_qb&#39;.</span>
 <span class="sd">    Uses:</span>
 
@@ -1139,7 +1139,7 @@
 
 <div class="viewcode-block" id="transform_multiple"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transform_multiple">[docs]</a><span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">transform_multiple</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">level</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Applying transformation(s) separately to concatenated pieces that can be differentiated by index level(s).</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Applying transformation(s) separately to concatenated pieces that can be differentiated by index level(s).</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1184,7 +1184,7 @@
 
 
 <div class="viewcode-block" id="transform_annotations"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transform_annotations">[docs]</a><span class="k">def</span> <span class="nf">transform_annotations</span><span class="p">(</span><span class="n">at</span><span class="p">,</span> <span class="n">groupby_features</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">resolve_relative</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Wrapper for applying several transformations to an annotation table.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Wrapper for applying several transformations to an annotation table.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1207,7 +1207,7 @@
 
 
 <div class="viewcode-block" id="transpose_notes_to_localkey"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transpose_notes_to_localkey">[docs]</a><span class="k">def</span> <span class="nf">transpose_notes_to_localkey</span><span class="p">(</span><span class="n">notes</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Transpose the columns &#39;tpc&#39; and &#39;midi&#39; such that they reflect the local key as if it was C major/minor. This</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Transpose the columns &#39;tpc&#39; and &#39;midi&#39; such that they reflect the local key as if it was C major/minor. This</span>
 <span class="sd">    operation is typically required for creating pitch class profiles.</span>
 <span class="sd">    Uses: :py:func:`transform`, :py:func:`name2fifths`, :py:func:`roman_numeral2fifths`</span>
 
@@ -1245,7 +1245,7 @@
 
 <span class="nd">@function_logger</span>
 <span class="k">def</span> <span class="nf">_treat_level_parameter</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="n">nlevels</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Given a number of index levels, turn an int such as -1 into a list of all levels except the last.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Given a number of index levels, turn an int such as -1 into a list of all levels except the last.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1276,7 +1276,7 @@
 
 
 <div class="viewcode-block" id="transform_columns"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transform_columns">[docs]</a><span class="k">def</span> <span class="nf">transform_columns</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">param2col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Wrapper function to use transform() on df[columns], leaving the other columns untouched.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Wrapper function to use transform() on df[columns], leaving the other columns untouched.</span>
 
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
@@ -1322,7 +1322,7 @@
 
 
 <div class="viewcode-block" id="transform_note_columns"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transform_note_columns">[docs]</a><span class="k">def</span> <span class="nf">transform_note_columns</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">to</span><span class="p">,</span> <span class="n">note_cols</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;chord_tones&#39;</span><span class="p">,</span> <span class="s1">&#39;added_tones&#39;</span><span class="p">,</span> <span class="s1">&#39;bass_note&#39;</span><span class="p">,</span> <span class="s1">&#39;root&#39;</span><span class="p">],</span> <span class="n">minor_col</span><span class="o">=</span><span class="s1">&#39;localkey_is_minor&#39;</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Turns columns with line-of-fifth tonal pitch classes into another representation.</span>
 
 <span class="sd">    Uses: transform_columns()</span>
@@ -1369,7 +1369,7 @@
     <span class="k">assert</span> <span class="n">to</span> <span class="ow">in</span> <span class="n">transformations</span><span class="p">,</span> <span class="s2">&quot;Parameter to needs to be one of {&#39;name&#39;, &#39;iv&#39;, &#39;pc&#39;, &#39;sd&#39;, &#39;rn&#39;}&quot;</span>
     <span class="n">cols</span> <span class="o">=</span> <span class="p">[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">note_cols</span> <span class="k">if</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">note_cols</span><span class="p">):</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Columns </span><span class="si">{</span><span class="p">[[</span><span class="n">col</span> <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">note_cols</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Columns </span><span class="si">{</span><span class="p">[[</span><span class="n">col</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">note_cols</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="n">col</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">]]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
     <span class="n">param2col</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">to</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sd&#39;</span><span class="p">,</span> <span class="s1">&#39;rn&#39;</span><span class="p">]:</span>
         <span class="k">assert</span> <span class="n">minor_col</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="ow">or</span> <span class="s1">&#39;minor&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">to</span><span class="si">}</span><span class="s2"> representation requires a boolean column for the &#39;minor&#39; argument, e.g. &#39;globalkey_is_minor&#39;.&quot;</span>
@@ -1382,7 +1382,7 @@
 
 
 <div class="viewcode-block" id="transpose_chord_tones_by_localkey"><a class="viewcode-back" href="../../reference.html#ms3.transformations.transpose_chord_tones_by_localkey">[docs]</a><span class="k">def</span> <span class="nf">transpose_chord_tones_by_localkey</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">by_global</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Returns a copy of the expanded table where the scale degrees in the chord tone columns</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Returns a copy of the expanded table where the scale degrees in the chord tone columns</span>
 <span class="sd">        have been transposed by localkey (i.e. they express all chord tones as scale degrees of</span>
 <span class="sd">        the globalkey) or, if ``by_global`` is set to True, additionally by globalkey (i.e., chord</span>
 <span class="sd">        tones as tonal pitch classes TPC).</span>
@@ -1489,7 +1489,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.3 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.transformations</a></li> 
@@ -1499,7 +1499,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

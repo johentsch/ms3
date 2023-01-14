@@ -7,16 +7,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.score &#8212; ms3 1.0.2+ge926d22.dirty documentation</title>
+    <title>ms3.score &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
 
     
     
@@ -49,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -153,13 +151,13 @@
 
 
 <div class="viewcode-block" id="MSCX"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX">[docs]</a><span class="k">class</span> <span class="nc">MSCX</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Object for interacting with the XML structure of a MuseScore 3 file. Is usually attached to a</span>
 <span class="sd">    :obj:`Score` object and exposed as ``Score.mscx``.</span>
 <span class="sd">    An object is only created if a score was successfully parsed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mscx_src</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">parent_score</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Object for interacting with the XML structure of a MuseScore 3 file.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Object for interacting with the XML structure of a MuseScore 3 file.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -186,42 +184,42 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;MSCX&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">mscx_src</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">mscx_src</span>
-            <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">            Full path of the parsed MuseScore file.&quot;&quot;&quot;</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File does not exist: </span><span class="si">{</span><span class="n">mscx_src</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
 <span class="sd">        Switches to True as soon as the original XML structure is changed. Does not automatically switch back to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">read_only</span> <span class="o">=</span> <span class="n">read_only</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`bool`, optional</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`bool`, optional</span>
 <span class="sd">        Shortcut for ``MSCX.parsed.read_only``.</span>
 <span class="sd">        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations</span>
 <span class="sd">        of the score, such as adding and deleting labels. Set to ``True`` if you&#39;re only extracting information.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="sd">&quot;&quot;&quot;:py:class:`~.annotations.Annotations` or None</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:py:class:`~.annotations.Annotations` or None</span>
 <span class="sd">        If the score contains at least one &lt;Harmony&gt; tag, this attribute points to the object representing all</span>
 <span class="sd">        annotations, otherwise it is None.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parent_score</span> <span class="o">=</span> <span class="n">parent_score</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`Score`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`Score`</span>
 <span class="sd">        The Score object to which this MSCX object is attached.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
-        <span class="sd">&quot;&quot;&quot;{&#39;bs4&#39;}</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{&#39;bs4&#39;}</span>
 <span class="sd">        The currently used parser.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span><span class="p">:</span> <span class="n">_MSCX_bs4</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="sd">&quot;&quot;&quot;{:obj:`_MSCX_bs4`}</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{:obj:`_MSCX_bs4`}</span>
 <span class="sd">        Holds the MSCX score parsed by the selected parser (currently only BeautifulSoup 4 available).&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span> <span class="o">=</span> <span class="n">labels_cfg</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`</span>
 <span class="sd">        object representing the labels that are attached to a score (stored as :py:attr:`._annotations``). </span>
 <span class="sd">        The options correspond to the parameters of</span>
@@ -231,12 +229,16 @@
         <span class="n">ms_version</span> <span class="o">=</span> <span class="n">get_ms_version</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">ms_version</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;MuseScore version could not be read from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">ms_version</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
+        <span class="n">major_version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ms_version</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">major_version</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">major_version</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;This file has been created with MuseScore </span><span class="si">{</span><span class="n">ms_version</span><span class="si">}</span><span class="s2"> which I deal with experimentally for now.&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">parse_mscx</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_score</span><span class="o">.</span><span class="n">ms</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&quot;&quot;In order to parse a version </span><span class="si">{</span><span class="n">ms_version</span><span class="si">}</span><span class="s2"> file,</span>
-<span class="s2">use &#39;ms3 convert&#39; command or pass parameter &#39;ms&#39; to Score to temporally convert.&quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;In order to parse a version </span><span class="si">{</span><span class="n">ms_version</span><span class="si">}</span><span class="s2"> file, &quot;</span>
+                                 <span class="sa">f</span><span class="s2">&quot;use &#39;ms3 convert&#39; command or pass parameter &#39;ms&#39; to Score to temporally convert.&quot;</span><span class="p">)</span>
             <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent_score</span><span class="o">.</span><span class="n">_tmp_convert</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span><span class="p">)</span> <span class="k">as</span> <span class="n">tmp</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using temporally converted file </span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span><span class="si">}</span><span class="s2"> for parsing the version </span><span class="si">{</span><span class="n">ms_version</span><span class="si">}</span><span class="s2"> file.&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">mscx_src</span> <span class="o">=</span> <span class="n">tmp</span>
@@ -248,7 +250,7 @@
 <div class="viewcode-block" id="MSCX.cadences"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.cadences">[docs]</a>    <span class="k">def</span> <span class="nf">cadences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        DataFrame representing all cadence annotations in the score.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">exp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expanded</span><span class="p">(</span><span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">)</span>
@@ -263,7 +265,7 @@
                <span class="n">mode</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span><span class="s1">&#39;strict&#39;</span><span class="p">,</span><span class="s1">&#39;all&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
                <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame of :ref:`chords` representing all &lt;Chord&gt; tags contained in the MuseScore file</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame of :ref:`chords` representing all &lt;Chord&gt; tags contained in the MuseScore file</span>
 <span class="sd">        (all &lt;note&gt; tags come within one) and attached score information and performance maerks, e.g.</span>
 <span class="sd">        lyrics, dynamics, articulations, slurs (see the explanation for the ``mode`` parameter for more details).</span>
 <span class="sd">        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|,</span>
@@ -290,7 +292,7 @@
 <div class="viewcode-block" id="MSCX.events"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.events">[docs]</a>    <span class="k">def</span> <span class="nf">events</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing a raw skeleton of the score&#39;s XML structure and contains all :ref:`events`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing a raw skeleton of the score&#39;s XML structure and contains all :ref:`events`</span>
 <span class="sd">        contained in it. It is the original tabular representation of the MuseScore file’s source code from which</span>
 <span class="sd">        all other tables, except ``measures`` are generated.</span>
 
@@ -306,7 +308,7 @@
 <div class="viewcode-block" id="MSCX.expanded"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.expanded">[docs]</a>    <span class="k">def</span> <span class="nf">expanded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in &lt;Harmony&gt; tags which could</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DataFrame representing :ref:`expanded` labels, i.e., all annotations encoded in &lt;Harmony&gt; tags which could</span>
 <span class="sd">        be matched against one of the registered regular expressions and split into feature columns. Currently this</span>
 <span class="sd">        method is hard-coded to return expanded DCML harmony labels only but it takes into account the current</span>
 <span class="sd">        :attr:`._labels_cfg`. Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|,</span>
@@ -341,8 +343,10 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">check_phrase_annotations</span><span class="p">(</span><span class="n">expanded</span><span class="p">,</span> <span class="s1">&#39;phraseend&#39;</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">unfold</span> <span class="ow">and</span> <span class="p">(</span><span class="n">unfolded_expanded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
-            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">unfold</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">unfolded_expanded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="n">expanded</span> <span class="o">=</span> <span class="n">unfolded_expanded</span>
 
         <span class="n">has_chord</span> <span class="o">=</span> <span class="n">expanded</span><span class="o">.</span><span class="n">chord</span><span class="o">.</span><span class="n">notna</span><span class="p">()</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">has_chord</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
@@ -361,7 +365,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">has_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
 <span class="sd">        Shortcut for ``MSCX.parsed.has_annotations``.</span>
 <span class="sd">        Is True as long as at least one label is attached to the current XML.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">has_annotations</span>
@@ -372,7 +376,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_form_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`int`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`int`</span>
 <span class="sd">        Shortcut for ``MSCX.parsed.n_form_labels``.</span>
 <span class="sd">        Is True if at least one StaffText seems to constitute a form label.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">n_form_labels</span>
@@ -383,7 +387,7 @@
                     <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                     <span class="n">expand</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                     <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing :ref:`form labels &lt;form_labels&gt;` (or other) that have been encoded as &lt;StaffText&gt;s rather than in the &lt;Harmony&gt; layer.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing :ref:`form labels &lt;form_labels&gt;` (or other) that have been encoded as &lt;StaffText&gt;s rather than in the &lt;Harmony&gt; layer.</span>
 <span class="sd">        This function essentially filters all StaffTexts matching the ``detection_regex`` and adds the standard position columns.</span>
 
 <span class="sd">        Args:</span>
@@ -417,7 +421,7 @@
 <div class="viewcode-block" id="MSCX.labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.labels">[docs]</a>    <span class="k">def</span> <span class="nf">labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;DataFrame representing all :ref:`labels`, i.e., all &lt;Harmony&gt; tags in the score, as returned by calling</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DataFrame representing all :ref:`labels`, i.e., all &lt;Harmony&gt; tags in the score, as returned by calling</span>
 <span class="sd">        :meth:`~.annotations.Annotations.get_labels` on the object at :attr:`._annotations` with the current :attr:`._labels_cfg`.</span>
 <span class="sd">        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,</span>
 <span class="sd">        |offset_x|, |offset_y|, |regex_match|</span>
@@ -443,7 +447,7 @@
 <div class="viewcode-block" id="MSCX.measures"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.measures">[docs]</a>    <span class="k">def</span> <span class="nf">measures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`measures` of the MuseScore file (which can be incomplete measures). Comes with</span>
 <span class="sd">        the columns |mc|, |mn|, |quarterbeats|, |duration_qb|, |keysig|, |timesig|, |act_dur|, |mc_offset|, |volta|, |numbering_offset|, |dont_count|, |barline|, |breaks|,</span>
 <span class="sd">        |repeats|, |next|</span>
 
@@ -460,12 +464,12 @@
                     <span class="n">all_endings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                     <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                     <span class="n">negative_anacrusis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; {mc -&gt; offset} dictionary measuring each MC&#39;s distance from the piece&#39;s beginning (0) in quarter notes.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; {mc -&gt; offset} dictionary measuring each MC&#39;s distance from the piece&#39;s beginning (0) in quarter notes.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">offset_dict</span><span class="p">(</span><span class="n">all_endings</span><span class="o">=</span><span class="n">all_endings</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span> <span class="n">negative_anacrusis</span><span class="o">=</span><span class="n">negative_anacrusis</span><span class="p">)</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Shortcut for ``MSCX.parsed.metadata``.</span>
 <span class="sd">        Metadata from and about the MuseScore file.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">metadata</span>
@@ -473,7 +477,7 @@
 <div class="viewcode-block" id="MSCX.notes"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.notes">[docs]</a>    <span class="k">def</span> <span class="nf">notes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes` of the MuseScore file. Comes with the columns</span>
 <span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|, |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|,</span>
 <span class="sd">        |tpc|, |midi|, |volta|, |chord_id|</span>
 
@@ -489,7 +493,7 @@
 <div class="viewcode-block" id="MSCX.notes_and_rests"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.notes_and_rests">[docs]</a>    <span class="k">def</span> <span class="nf">notes_and_rests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                  <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`notes_and_rests` of the MuseScore file. Comes with the columns</span>
 <span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,</span>
 <span class="sd">        |gracenote|, |tremolo|, |nominal_duration|, |scalar|, |tied|, |tpc|, |midi|, |volta|, |chord_id|</span>
 
@@ -503,7 +507,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">parsed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">_MSCX_bs4</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`~._MSCX_bs4`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`~._MSCX_bs4`</span>
 <span class="sd">        Standard way of accessing the object exposed by the current parser. :obj:`MSCX` uses this object&#39;s</span>
 <span class="sd">        interface for requesting manipulations of and information from the source XML.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parsed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -514,7 +518,7 @@
 <div class="viewcode-block" id="MSCX.rests"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.rests">[docs]</a>    <span class="k">def</span> <span class="nf">rests</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; DataFrame representing the :ref:`rests` of the MuseScore file. Comes with the columns</span>
 <span class="sd">        |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |duration|,</span>
 <span class="sd">        |nominal_duration|, |scalar|, |volta|</span>
 
@@ -528,30 +532,30 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">staff_ids</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`list` of :obj:`int`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`list` of :obj:`int`</span>
 <span class="sd">        The staff IDs contained in the score, usually just a list of increasing numbers starting at 1.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">staff_ids</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">style</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`Style`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`Style`</span>
 <span class="sd">        Can be used like a dictionary to change the information within the score&#39;s &lt;Style&gt; tag.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">style</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">version</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">        MuseScore version that the file was created with.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">version</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">volta_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        {first_mc -&gt; {volta_number -&gt; [mc1, mc2...]} } dictionary.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">volta_structure</span>
 
 <div class="viewcode-block" id="MSCX.add_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.add_labels">[docs]</a>    <span class="k">def</span> <span class="nf">add_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations_object</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Receives the labels from an :py:class:`~.annotations.Annotations` object and adds them to the XML structure</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Receives the labels from an :py:class:`~.annotations.Annotations` object and adds them to the XML structure</span>
 <span class="sd">        representing the MuseScore file that might be written to a file afterwards.</span>
 
 <span class="sd">        Parameters</span>
@@ -598,7 +602,7 @@
 
 <div class="viewcode-block" id="MSCX.change_label_color"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.change_label_color">[docs]</a>    <span class="k">def</span> <span class="nf">change_label_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mc</span><span class="p">,</span> <span class="n">mc_onset</span><span class="p">,</span> <span class="n">staff</span><span class="p">,</span> <span class="n">voice</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">color_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_html</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_r</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">color_g</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_b</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_a</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;  Shortcut for :py:meth:``MSCX.parsed.change_label_color``</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;  Shortcut for :py:meth:``MSCX.parsed.change_label_color``</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -624,7 +628,7 @@
 
 <div class="viewcode-block" id="MSCX.change_labels_cfg"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.change_labels_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">change_labels_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Update :py:attr:`.MSCX.labels_cfg`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Update :py:attr:`.MSCX.labels_cfg`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -646,7 +650,7 @@
                               <span class="n">color_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span>
                               <span class="n">chord_tone_cols</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;chord_tones&#39;</span><span class="p">,</span> <span class="s1">&#39;added_tones&#39;</span><span class="p">],</span>
                               <span class="n">color_nan</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; Iterates backwards through the rows of the given DataFrame, interpreting each row as a score segment,</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Iterates backwards through the rows of the given DataFrame, interpreting each row as a score segment,</span>
 <span class="sd">        and colors all notes that do not correspond to one of the tonal pitch classes (TPC) indicated in one of the</span>
 <span class="sd">        tuples contained in the ``chord_tone_cols``. The columns &#39;mc&#39; and &#39;mc_onset&#39; are taken to indicate each score</span>
 <span class="sd">        segment&#39;s start, which reaches to the subsequent one (the last segment reaching to the end of the score). Only</span>
@@ -717,7 +721,7 @@
         <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">df</span><span class="p">,</span> <span class="n">stats</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MSCX.delete_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.delete_labels">[docs]</a>    <span class="k">def</span> <span class="nf">delete_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">df</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Delete a set of labels from the current XML.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Delete a set of labels from the current XML.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -739,10 +743,10 @@
             <span class="n">target</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">changes</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">target</span><span class="si">}</span><span class="s2"> labels successfully deleted.&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">changes</span> <span class="o">&lt;</span> <span class="n">target</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span> <span class="o">-</span> <span class="n">changes</span><span class="si">}</span><span class="s2"> labels could not be deleted:</span><span class="se">\n</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">changed</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">target</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">changes</span><span class="si">}</span><span class="s2"> labels could not be deleted:</span><span class="se">\n</span><span class="si">{</span><span class="n">df</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="o">~</span><span class="n">changed</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MSCX.replace_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.replace_labels">[docs]</a>    <span class="k">def</span> <span class="nf">replace_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">annotations_object</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -757,7 +761,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">add_labels</span><span class="p">(</span><span class="n">annotations_object</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MSCX.delete_empty_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.delete_empty_labels">[docs]</a>    <span class="k">def</span> <span class="nf">delete_empty_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Remove all empty labels from the attached annotations. &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Remove all empty labels from the attached annotations. &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_annotations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;No annotations attached.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
@@ -781,7 +785,7 @@
 
 <div class="viewcode-block" id="MSCX.get_chords"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.get_chords">[docs]</a>    <span class="k">def</span> <span class="nf">get_chords</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">lyrics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">staff_text</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dynamics</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                    <span class="n">articulation</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">spanners</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Retrieve a customized chord list, e.g. one including less of the processed features or additional,</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Retrieve a customized chord list, e.g. one including less of the processed features or additional,</span>
 <span class="sd">        unprocessed ones compared to the standard chord list.</span>
 
 <span class="sd">        Parameters</span>
@@ -819,7 +823,7 @@
                                       <span class="n">articulation</span><span class="o">=</span><span class="n">articulation</span><span class="p">,</span> <span class="n">spanners</span><span class="o">=</span><span class="n">spanners</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MSCX.get_raw_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.get_raw_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_raw_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Shortcut for ``MSCX.parsed.get_raw_labels()``.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shortcut for ``MSCX.parsed.get_raw_labels()``.</span>
 <span class="sd">        Retrieve a &quot;raw&quot; list of labels, meaning that label types reflect only those defined within &lt;Harmony&gt; tags</span>
 <span class="sd">        which can be 1 (MuseScore&#39;s Roman Numeral display), 2 (Nashville) or undefined (in the case of &#39;normal&#39;</span>
 <span class="sd">        chord labels, defaulting to 0).</span>
@@ -832,7 +836,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_raw_labels</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MSCX.infer_mc"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.infer_mc">[docs]</a>    <span class="k">def</span> <span class="nf">infer_mc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mn</span><span class="p">,</span> <span class="n">mn_onset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">volta</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Shortcut for ``MSCX.parsed.infer_mc()``.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Shortcut for ``MSCX.parsed.infer_mc()``.</span>
 <span class="sd">        Tries to convert a ``(mn, mn_onset)`` into a ``(mc, mc_onset)`` tuple on the basis of this MuseScore file.</span>
 <span class="sd">        In other words, a human readable score position such as &quot;measure number 32b (i.e., a second ending), beat</span>
 <span class="sd">        3&quot; needs to be converted to ``(32, 1/2, 2)`` if &quot;beat&quot; has length 1/4, or--if the meter is, say 9/8 and &quot;beat&quot;</span>
@@ -878,7 +882,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parsed</span><span class="o">.</span><span class="n">get_playthrough_mcs</span><span class="p">()</span>
 
 <div class="viewcode-block" id="MSCX.store_score"><a class="viewcode-back" href="../../reference.html#ms3.score.MSCX.store_score">[docs]</a>    <span class="k">def</span> <span class="nf">store_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Shortcut for ``MSCX.parsed.store_scores()``.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shortcut for ``MSCX.parsed.store_scores()``.</span>
 <span class="sd">        Store the current XML structure as uncompressed MuseScore file.</span>
 
 <span class="sd">        Parameters</span>
@@ -996,48 +1000,48 @@
 <span class="c1">########################################################################################################################</span>
 
 <div class="viewcode-block" id="Score"><a class="viewcode-back" href="../../reference.html#ms3.score.Score">[docs]</a><span class="k">class</span> <span class="nc">Score</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot; Object representing a score.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Object representing a score.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">ABS_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^\(?[A-G|a-g](b*|#*).*?(/[A-G|a-g](b*|#*))?$&quot;</span>
-    <span class="sd">&quot;&quot;&quot; :obj:`str`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; :obj:`str`</span>
 <span class="sd">    Class variable with a regular expression that</span>
 <span class="sd">    recognizes absolute chord symbols in their decoded (string) form; they start with a note name.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 
     <span class="n">NASHVILLE_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^(b*|#*)(\d).*$&quot;</span>
-    <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">    Class variable with a regular expression that</span>
 <span class="sd">    recognizes labels representing a Nashville numeral, which MuseScore is able to encode.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">RN_REGEX</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;^$&quot;</span>
-    <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">    Class variable with a regular expression for Roman numerals that</span>
 <span class="sd">    momentarily matches nothing because ms3 tries interpreting Roman Numerals</span>
 <span class="sd">    als DCML harmony annotations.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">native_formats</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;mscx&#39;</span><span class="p">,</span> <span class="s1">&#39;mscz&#39;</span><span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
 <span class="sd">    Formats that MS3 reads without having to convert.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">convertible_formats</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="s1">&#39;capx&#39;</span><span class="p">,</span> <span class="s1">&#39;midi&#39;</span><span class="p">,</span> <span class="s1">&#39;mid&#39;</span><span class="p">,</span> <span class="s1">&#39;musicxml&#39;</span><span class="p">,</span> <span class="s1">&#39;mxl&#39;</span><span class="p">,</span> <span class="s1">&#39;xml&#39;</span><span class="p">,</span> <span class="p">)</span>
-    <span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
 <span class="sd">    Formats that have to be converted before parsing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">parseable_formats</span> <span class="o">=</span> <span class="n">native_formats</span> <span class="o">+</span> <span class="n">convertible_formats</span>
-    <span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;:obj:`tuple`</span>
 <span class="sd">    Formats that ms3 can parse.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">dataframe_types</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;measures&#39;</span><span class="p">,</span> <span class="s1">&#39;notes&#39;</span><span class="p">,</span> <span class="s1">&#39;rests&#39;</span><span class="p">,</span> <span class="s1">&#39;notes_and_rests&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;expanded&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">,</span> <span class="s1">&#39;cadences&#39;</span><span class="p">,</span> <span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Score.__init__"><a class="viewcode-back" href="../../manual.html#ms3.score.Score.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">musescore_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">match_regex</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;dcml&#39;</span><span class="p">,</span> <span class="s1">&#39;form_labels&#39;</span><span class="p">],</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">parser</span><span class="o">=</span><span class="s1">&#39;bs4&#39;</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1067,7 +1071,7 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;Score&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">read_only</span> <span class="o">=</span> <span class="n">read_only</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`bool`, optional</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`bool`, optional</span>
 <span class="sd">        Defaults to ``False``, meaning that the parsing is slower and uses more memory in order to allow for manipulations</span>
 <span class="sd">        of the score, such as adding and deleting labels. Set to ``True`` if you&#39;re only extracting information.&quot;&quot;&quot;</span>
 
@@ -1076,49 +1080,49 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">musescore_file</span> <span class="o">=</span> <span class="n">musescore_file</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">full_paths</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{KEY: {i: full_path}}`` dictionary holding the full paths of all parsed MuseScore and TSV files,</span>
 <span class="sd">        including file names. Handled internally by :py:meth:`~.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">paths</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{KEY: {i: file path}}`` dictionary holding the paths of all parsed MuseScore and TSV files,</span>
 <span class="sd">        excluding file names. Handled internally by :py:meth:`~.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">files</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{KEY: {i: file name with extension}}`` dictionary holding the complete file name  of each parsed file,</span>
 <span class="sd">        including the extension. Handled internally by :py:meth:`~.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fnames</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{KEY: {i: file name without extension}}`` dictionary holding the file name  of each parsed file,</span>
 <span class="sd">        without its extension. Handled internally by :py:meth:`~.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">fexts</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{KEY: {i: file extension}}`` dictionary holding the file extension of each parsed file.</span>
 <span class="sd">        Handled internally by :py:meth:`~.Score._handle_path`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">ms</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`str`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`str`</span>
 <span class="sd">        Path or command of the local MuseScore 3 installation if specified by the user.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="p">:</span> <span class="n">MSCX</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="sd">&quot;&quot;&quot; The object representing the parsed MuseScore file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; The object representing the parsed MuseScore file.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        ``{(key, i): Annotations object}`` dictionary for accessing all detached :py:class:`~.annotations.Annotations` objects.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_types_to_infer</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`list`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`list`</span>
 <span class="sd">        Current order in which types are being recognized.&quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_harmony_layer_description</span> <span class="o">=</span> <span class="p">{</span>
@@ -1138,7 +1142,7 @@
             <span class="s1">&#39;dcml&#39;</span><span class="p">:</span> <span class="s2">&quot;Latest version of the DCML harmonic annotation standard.&quot;</span><span class="p">,</span>
             <span class="s1">&#39;form_labels&#39;</span><span class="p">:</span> <span class="s2">&quot;Form labels that have been encoded as harmonies rather than as StaffText.&quot;</span>
         <span class="p">}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Mapping regex names to their descriptions.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -1146,7 +1150,7 @@
             <span class="s1">&#39;dcml&#39;</span><span class="p">:</span> <span class="n">DCML_DOUBLE_REGEX</span><span class="p">,</span>
             <span class="s1">&#39;form_labels&#39;</span><span class="p">:</span> <span class="n">FORM_DETECTION_REGEX</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Mapping names to their corresponding regex. Managed via the property :py:attr:`name2regex`.</span>
 <span class="sd">        &#39;dcml&#39;: utils.DCML_REGEX,</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1160,7 +1164,7 @@
             <span class="s1">&#39;column_name&#39;</span><span class="p">:</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span>
             <span class="s1">&#39;color_format&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Configuration dictionary to determine the output format of the :py:class:`~.annotations.Annotations`</span>
 <span class="sd">        objects contained in the current object, especially when calling :meth:`Score.mscx.labels()&lt;.MSCX.labels&gt;`.</span>
 <span class="sd">        The default options correspond to the default parameters of</span>
@@ -1169,19 +1173,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">update_labels_cfg</span><span class="p">(</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
-        <span class="sd">&quot;&quot;&quot;{&#39;bs4&#39;}</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{&#39;bs4&#39;}</span>
 <span class="sd">        Currently only one XML parser has been implemented which uses BeautifulSoup 4.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">review_report</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        After calling :py:meth:`color_non_chord_tones`, this DataFrame contains the expanded chord labels</span>
 <span class="sd">        plus the six additional columns [&#39;n_colored&#39;, &#39;n_untouched&#39;, &#39;count_ratio&#39;, &#39;dur_colored&#39;, &#39;dur_untouched&#39;, &#39;dur_ratio&#39;]</span>
 <span class="sd">        representing the statistics of chord (untouched) vs. non-chord (colored) notes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">comparison_report</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">()</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`pandas.DataFrame`</span>
 <span class="sd">        DataFrame showing the labels modified (&#39;new&#39;) and added (&#39;old&#39;) by :py:meth:`compare_labels`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
@@ -1193,7 +1197,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">name2regex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`list` or :obj:`dict`, optional</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`list` or :obj:`dict`, optional</span>
 <span class="sd">        The order in which label types are to be inferred.</span>
 <span class="sd">        Assigning a new value results in a call to :py:meth:`~.annotations.Annotations.infer_types`.</span>
 <span class="sd">        Passing a {label type: regex} dictionary is a shortcut to update type regex&#39;s or to add new ones.</span>
@@ -1211,7 +1215,7 @@
             <span class="n">exist</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name2regex</span><span class="p">]</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exist</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
                 <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;The following harmony types have not been added via the new_type() method:</span><span class="se">\n</span><span class="si">{</span><span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name2regex</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;The following harmony types have not been added via the new_type() method:</span><span class="se">\n</span><span class="si">{</span><span class="p">[</span><span class="n">v</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">val</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="ow">not</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="bp">self</span><span class="o">.</span><span class="n">_name2regex</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_types_to_infer</span> <span class="o">=</span> <span class="n">exist</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1230,27 +1234,27 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">has_detached_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`bool`</span>
 <span class="sd">        Is True as long as the score contains :py:class:`~.annotations.Annotations` objects, that are not attached to the :obj:`MSCX` object.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MSCX</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Standard way of accessing the parsed MuseScore file.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Standard way of accessing the parsed MuseScore file.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s2">&quot;No XML has been parsed so far. Use the method parse_mscx().&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Shows the mapping of label types to their descriptions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_regex_name_description</span>
 
 
 <div class="viewcode-block" id="Score.attach_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.attach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">attach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">check_for_clashes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_detached</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Insert detached labels ``key`` into this score&#39;s :obj:`MSCX` object.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Insert detached labels ``key`` into this score&#39;s :obj:`MSCX` object.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1313,7 +1317,7 @@
 
 <div class="viewcode-block" id="Score.change_labels_cfg"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.change_labels_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">change_labels_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Update :py:attr:`.Score.labels_cfg` and :py:attr:`.MSCX.labels_cfg`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Update :py:attr:`.Score.labels_cfg` and :py:attr:`.MSCX.labels_cfg`.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1333,7 +1337,7 @@
 
 
 <div class="viewcode-block" id="Score.check_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.check_labels">[docs]</a>    <span class="k">def</span> <span class="nf">check_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="o">=</span><span class="s1">&#39;annotations&#39;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">regex_name</span><span class="o">=</span><span class="s1">&#39;dcml&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``regex_name``.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Tries to match the labels ``keys`` against the given ``regex`` or the one of the registered ``regex_name``.</span>
 <span class="sd">        Returns wrong labels.</span>
 
 <span class="sd">        Parameters</span>
@@ -1387,7 +1391,7 @@
 
 
 <div class="viewcode-block" id="Score.color_non_chord_tones"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.color_non_chord_tones">[docs]</a>    <span class="k">def</span> <span class="nf">color_non_chord_tones</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">color_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;red&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; Iterates through the attached labels, tries to interpret them as DCML harmony labels,</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Iterates through the attached labels, tries to interpret them as DCML harmony labels,</span>
 <span class="sd">        colors the notes in the parsed score that are not expressed by the respective label for a score segment,</span>
 <span class="sd">        and stores a report under :py:attr:`review_report`.</span>
 
@@ -1422,7 +1426,7 @@
                        <span class="n">old_color</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;ms3_darkred&#39;</span><span class="p">,</span>
                        <span class="n">detached_is_newer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                        <span class="n">add_to_rna</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; Compare detached labels ``key`` to the ones attached to the Score to create a diff.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Compare detached labels ``key`` to the ones attached to the Score to create a diff.</span>
 <span class="sd">        By default, the attached labels are considered as the reviewed version and labels that have changed or been added</span>
 <span class="sd">        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are</span>
 <span class="sd">        attached to the Score in red, just like any deleted label.</span>
@@ -1512,7 +1516,7 @@
 
 
 <div class="viewcode-block" id="Score.detach_labels"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.detach_labels">[docs]</a>    <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">delete</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Detach all annotations labels from this score&#39;s :obj:`MSCX` object or just a selection of them, without taking</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Detach all annotations labels from this score&#39;s :obj:`MSCX` object or just a selection of them, without taking</span>
 <span class="sd">        labels_cfg into account (don&#39;t decode the labels).</span>
 <span class="sd">        The extracted labels are stored as a new :py:class:`~.annotations.Annotations` object that is accessible via ``Score.{key}``.</span>
 <span class="sd">        By default, ``delete`` is set to True, meaning that if you call :py:meth:`store_scores` afterwards,</span>
@@ -1558,7 +1562,7 @@
 
 
 <div class="viewcode-block" id="Score.get_infer_regex"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.get_infer_regex">[docs]</a>    <span class="k">def</span> <span class="nf">get_infer_regex</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        :obj:`dict`</span>
@@ -1571,7 +1575,7 @@
                    <span class="n">key</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                    <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;DataFrame representing all :ref:`labels`, i.e., all &lt;Harmony&gt; tags, of the score or another set of annotations.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;DataFrame representing all :ref:`labels`, i.e., all &lt;Harmony&gt; tags, of the score or another set of annotations.</span>
 <span class="sd">        Corresponds to calling :meth:`~.annotations.Annotations.get_labels` on the selected object (by default, the one</span>
 <span class="sd">        representing labels attached to the score) with the current :attr:`._labels_cfg`.</span>
 <span class="sd">        Comes with the columns |quarterbeats|, |duration_qb|, |mc|, |mn|, |mc_onset|, |mn_onset|, |timesig|, |staff|, |voice|, |volta|, |harmony_layer|, |label|,</span>
@@ -1653,7 +1657,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">changed</span>
 
 <div class="viewcode-block" id="Score.new_type"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.new_type">[docs]</a>    <span class="k">def</span> <span class="nf">new_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">regex</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">infer</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Declare a custom label type. A type consists of a name, a regular expression and,</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Declare a custom label type. A type consists of a name, a regular expression and,</span>
 <span class="sd">        falculatively, of a description.</span>
 
 <span class="sd">        Parameters</span>
@@ -1684,7 +1688,7 @@
                          <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;detached&#39;</span><span class="p">,</span>
                          <span class="n">infer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                          <span class="o">**</span><span class="n">cols</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Attach an :py:class:`~.annotations.Annotations` object to the score and make it available as ``Score.{key}``.</span>
 <span class="sd">        It can be an existing object or one newly created from the TSV file ``tsv_path``.</span>
 
 <span class="sd">        Args:</span>
@@ -1722,7 +1726,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">anno_obj</span></div>
 
 <div class="viewcode-block" id="Score.store_annotations"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.store_annotations">[docs]</a>    <span class="k">def</span> <span class="nf">store_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s1">&#39;annotations&#39;</span><span class="p">,</span> <span class="n">tsv_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Save a set of annotations as TSV file. While ``store_list`` stores attached labels only, this method</span>
 <span class="sd">        can also store detached labels by passing a ``key``.</span>
 
 <span class="sd">        Parameters</span>
@@ -1753,12 +1757,12 @@
                 <span class="bp">self</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">update_logger_cfg</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger_names</span><span class="p">[</span><span class="n">new_key</span><span class="p">]})</span></div>
 
 <div class="viewcode-block" id="Score.output_mscx"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.output_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">output_mscx</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`store_score`.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`store_score`.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Score.store_score() to write the score to an MSCX file.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Score.store_score"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.store_score">[docs]</a>    <span class="k">def</span> <span class="nf">store_score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filepath</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.</span>
 <span class="sd">        Just a shortcut for ``Score.mscx.store_scores()``.</span>
 
 <span class="sd">        Parameters</span>
@@ -1770,7 +1774,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">store_score</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Score._handle_path"><a class="viewcode-back" href="../../reference.html#ms3.score.Score._handle_path">[docs]</a>    <span class="k">def</span> <span class="nf">_handle_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Puts the path into ``paths, files, fnames, fexts`` dicts with the given key.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -1813,12 +1817,12 @@
         <span class="k">if</span> <span class="n">tsv</span><span class="p">:</span>
             <span class="n">exts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tsv&#39;</span><span class="p">)</span>
         <span class="n">dot</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;\.&#39;</span>
-        <span class="n">regex</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dot</span> <span class="o">+</span> <span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">exts</span><span class="p">)</span><span class="si">}</span><span class="s2">)$&quot;</span>
+        <span class="n">regex</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="s1">&#39;|&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dot</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">exts</span><span class="p">)</span><span class="si">}</span><span class="s2">)$&quot;</span>
         <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="Score.parse_mscx"><a class="viewcode-back" href="../../reference.html#ms3.score.Score.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">musescore_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parser</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{}):</span>
-        <span class="sd">&quot;&quot;&quot; </span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; </span>
 <span class="sd">        This method is called by :py:meth:`.__init__` to parse the score. It checks the file extension</span>
 <span class="sd">        and in the case of a compressed MuseScore file (.mscz), a temporary uncompressed file is generated</span>
 <span class="sd">        which is removed after the parsing process.</span>
@@ -1945,7 +1949,7 @@
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">__getstate__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Loggers pose problems when pickling: Remove the reference.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Loggers pose problems when pickling: Remove the reference.&quot;&quot;&quot;</span>
         <span class="n">log_capture_handler</span> <span class="o">=</span> <span class="n">get_log_capture_handler</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">log_capture_handler</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">captured_logs</span> <span class="o">=</span> <span class="n">log_capture_handler</span><span class="o">.</span><span class="n">log_queue</span>
@@ -1953,7 +1957,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span>
 
     <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Iterate keys of Annotation objects. &quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Iterate keys of Annotation objects. &quot;&quot;&quot;</span>
         <span class="n">attached</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;annotations&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mscx</span><span class="o">.</span><span class="n">has_annotations</span> <span class="k">else</span> <span class="p">[]</span>
         <span class="k">yield from</span> <span class="n">attached</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_detached_annotations</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
     <span class="c1"># def __setattr__(self, key, value):</span>
@@ -2054,7 +2058,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2+ge926d22.dirty documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.score</a></li> 
@@ -2064,7 +2068,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

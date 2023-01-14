@@ -7,16 +7,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.parse &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
+    <title>ms3.parse &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
 
     
     
@@ -49,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
@@ -76,13 +74,13 @@
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">LoggedClass</span>
 <span class="kn">from</span> <span class="nn">.piece</span> <span class="kn">import</span> <span class="n">Piece</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileDict</span><span class="p">,</span> <span class="n">FileList</span><span class="p">,</span> <span class="n">CorpusFnameTuple</span><span class="p">,</span> <span class="n">ScoreFacets</span><span class="p">,</span> <span class="n">FacetArguments</span><span class="p">,</span> <span class="n">FileParsedTuple</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">,</span> <span class="n">ScoreFacet</span><span class="p">,</span> <span class="n">AnnotationsFacet</span><span class="p">,</span> <span class="n">Facet</span>
-<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">get_musescore</span><span class="p">,</span>  <span class="n">get_first_level_corpora</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> \
-    <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">available_views2str</span><span class="p">,</span> <span class="n">path2parent_corpus</span><span class="p">,</span> <span class="n">resolve_paths_argument</span><span class="p">,</span> <span class="n">enforce_fname_index_for_metadata</span>
+<span class="kn">from</span> <span class="nn">.utils</span> <span class="kn">import</span> <span class="n">get_musescore</span><span class="p">,</span> <span class="n">get_first_level_corpora</span><span class="p">,</span> <span class="n">pretty_dict</span><span class="p">,</span> <span class="n">resolve_dir</span><span class="p">,</span> \
+    <span class="n">update_labels_cfg</span><span class="p">,</span> <span class="n">available_views2str</span><span class="p">,</span> <span class="n">path2parent_corpus</span><span class="p">,</span> <span class="n">resolve_paths_argument</span><span class="p">,</span> <span class="n">enforce_fname_index_for_metadata</span><span class="p">,</span> <span class="n">File</span>
 <span class="kn">from</span> <span class="nn">.view</span> <span class="kn">import</span> <span class="n">View</span><span class="p">,</span> <span class="n">create_view_from_parameters</span><span class="p">,</span> <span class="n">DefaultView</span>
 
 
 <div class="viewcode-block" id="Parse"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse">[docs]</a><span class="k">class</span> <span class="nc">Parse</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for creating one or several :class:`~.corpus.Corpus` objects and performing actions on all of them.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -100,7 +98,7 @@
                  <span class="n">labels_cfg</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
                  <span class="n">ms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Initialize a Parse object and try to create corpora if directories and/or file paths are specified.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize a Parse object and try to create corpora if directories and/or file paths are specified.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            directory: Path to scan for corpora.</span>
@@ -136,11 +134,11 @@
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;Parse&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">corpus_paths</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;{corpus_name -&gt; path} dictionary with each corpus&#39;s base directory. Generally speaking, each corpus path is expected to contain a ``metadata.tsv`` and, maybe, to be a git.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{corpus_name -&gt; path} dictionary with each corpus&#39;s base directory. Generally speaking, each corpus path is expected to contain a ``metadata.tsv`` and, maybe, to be a git.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Corpus</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="sd">&quot;&quot;&quot;{corpus_name -&gt; Corpus} dictionary with one object per :attr:`corpus_path &lt;corpus_paths&gt;`.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;{corpus_name -&gt; Corpus} dictionary with one object per :attr:`corpus_path &lt;corpus_paths&gt;`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_ms</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
@@ -175,7 +173,7 @@
             <span class="s1">&#39;column_name&#39;</span><span class="p">:</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span>
             <span class="s1">&#39;color_format&#39;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;:obj:`dict`</span>
 <span class="sd">        Configuration dictionary to determine the output format of :py:attr:`~.score.Score.labels` and</span>
 <span class="sd">        :py:attr:`~.score.Score.expanded` tables. The dictonary is passed to :py:attr:`~.score.Score` upon parsing.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -194,7 +192,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">ms</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Path or command of the local MuseScore 3 installation if specified by the user and recognized.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Path or command of the local MuseScore 3 installation if specified by the user and recognized.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ms</span>
 
     <span class="nd">@ms</span><span class="o">.</span><span class="n">setter</span>
@@ -203,58 +201,58 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_detected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of detected files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of detected files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_detected</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_orphans</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of files that are always disregarded because they could not be attributed to any of the fnames.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of files that are always disregarded because they could not be attributed to any of the fnames.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">ix2orphan_file</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_parsed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of parsed files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of parsed files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_parsed</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_parsed_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of parsed scores aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of parsed scores aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_parsed_scores</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_parsed_tsvs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of parsed TSV files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of parsed TSV files aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_parsed_tsvs</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of all available pieces (&#39;fnames&#39;), independent of the view.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of all available pieces (&#39;fnames&#39;), independent of the view.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_pieces</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_unparsed_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of all detected but not yet parsed scores, aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of all detected but not yet parsed scores, aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_unparsed_scores</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_unparsed_tsvs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Number of all detected but not yet parsed TSV files, aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Number of all detected but not yet parsed TSV files, aggregated from all :class:`~.corpus.Corpus` objects without taking views into account. Excludes metadata files.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_unparsed_tsvs</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">parsed_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_scores`&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_scores`&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_scores.&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">parsed_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_tsvs`&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_tsvs`&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_tsvs.&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">View</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Retrieve the current View object. Shorthand for :meth:`get_view`.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve the current View object. Shorthand for :meth:`get_view`.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">()</span>
 
     <span class="nd">@view</span><span class="o">.</span><span class="n">setter</span>
@@ -266,12 +264,12 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">views</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Display a short description of the available views.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Display a short description of the available views.&quot;&quot;&quot;</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">pretty_dict</span><span class="p">({</span><span class="s2">&quot;[active]&quot;</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span> <span class="s2">&quot;view_name&quot;</span><span class="p">,</span> <span class="s2">&quot;Description&quot;</span><span class="p">))</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">view_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Get the name of the active view.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the name of the active view.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">()</span><span class="o">.</span><span class="n">name</span>
 
     <span class="nd">@view_name</span><span class="o">.</span><span class="n">setter</span>
@@ -287,7 +285,7 @@
                    <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                    <span class="n">corpus_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method creates a :class:`~.corpus.Corpus` object which scans the directory ``directory`` for parseable files.</span>
 <span class="sd">        It inherits all :class:`Views &lt;.view.View&gt;` from the Parse object.</span>
 
@@ -429,7 +427,7 @@
 <div class="viewcode-block" id="Parse.add_dir"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_dir">[docs]</a>    <span class="k">def</span> <span class="nf">add_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                 <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method decides if the directory ``directory`` contains several corpora or if it is a corpus</span>
 <span class="sd">        itself, and calls :meth:`add_corpus` for each corpus.</span>
 
@@ -466,7 +464,7 @@
 
 
 <div class="viewcode-block" id="Parse.add_files"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_files">[docs]</a>    <span class="k">def</span> <span class="nf">add_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">corpus_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Deprecated: To deal with particular files only, use :meth:`add_corpus` passing the directory containing them and</span>
 <span class="sd">        configure the :class`~.view.View` accordingly. This method here does it for you but easily leads to unexpected behaviour.</span>
 <span class="sd">        It expects the file paths to point to files located in a shared corpus folder</span>
@@ -550,7 +548,7 @@
         <span class="k">return</span> <span class="n">result</span>
 
 <div class="viewcode-block" id="Parse.change_labels_cfg"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.change_labels_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">change_labels_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Update :obj:`Parse.labels_cfg` and retrieve new &#39;labels&#39; tables accordingly.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Update :obj:`Parse.labels_cfg` and retrieve new &#39;labels&#39; tables accordingly.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -579,7 +577,7 @@
                        <span class="n">detached_is_newer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                        <span class="n">add_to_rna</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                        <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot; Compare detached labels ``key`` to the ones attached to the Score to create a diff.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Compare detached labels ``key`` to the ones attached to the Score to create a diff.</span>
 <span class="sd">        By default, the attached labels are considered as the reviewed version and labels that have changed or been added</span>
 <span class="sd">        in comparison to the detached labels are colored in green; whereas the previous versions of changed labels are</span>
 <span class="sd">        attached to the Score in red, just like any deleted label.</span>
@@ -621,7 +619,7 @@
                          <span class="n">per_piece</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                          <span class="n">include_metadata</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                          <span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Count file extensions.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Count file extensions.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -689,7 +687,7 @@
                            <span class="n">facet</span><span class="p">:</span> <span class="n">Facet</span><span class="p">,</span>
                            <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                            <span class="n">ask_for_input</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Calls the method on every selected corpus.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calls the method on every selected corpus.&quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
             <span class="n">corpus</span><span class="o">.</span><span class="n">disambiguate_facet</span><span class="p">(</span><span class="n">facet</span><span class="o">=</span><span class="n">facet</span><span class="p">,</span>
                                       <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
@@ -757,7 +755,7 @@
                        <span class="n">flat</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                        <span class="n">include_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                       <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">CorpusFnameTuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span>  <span class="n">List</span><span class="p">[</span><span class="n">FileDataframeTuple</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">FileDataframeTuple</span><span class="p">]]]]:</span>
-        <span class="sd">&quot;&quot;&quot;Renamed to :meth:`get_facets`.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Renamed to :meth:`get_facets`.&quot;&quot;&quot;</span>
         <span class="n">l</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
         <span class="n">facets</span> <span class="o">=</span> <span class="p">[</span><span class="n">facet</span> <span class="k">for</span> <span class="n">facet</span> <span class="ow">in</span> <span class="n">ScoreFacet</span><span class="o">.</span><span class="n">__args__</span> <span class="k">if</span> <span class="n">l</span><span class="p">[</span><span class="n">facet</span><span class="p">]]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_facets</span><span class="p">(</span><span class="n">facets</span><span class="o">=</span><span class="n">facets</span><span class="p">,</span>
@@ -811,9 +809,13 @@
                                            <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span>
                                            <span class="p">)</span>
 
+<div class="viewcode-block" id="Parse.get_lists"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_lists">[docs]</a>    <span class="k">def</span> <span class="nf">get_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`get_facets`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method get_lists() not in use any more. Use Parse.get_facets() instead.&quot;</span><span class="p">)</span></div>
+
 
 <div class="viewcode-block" id="Parse.get_piece"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_piece">[docs]</a>    <span class="k">def</span> <span class="nf">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">corpus_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Piece</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Returns an existing Piece object.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns an existing Piece object.&quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">corpus_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">corpus_name</span><span class="si">}</span><span class="s2">&#39; is not an existing corpus. Choose from </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="p">[</span><span class="n">corpus_name</span><span class="p">]</span><span class="o">.</span><span class="n">get_piece</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span></div>
 
@@ -821,7 +823,7 @@
                  <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">config</span>
                  <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">View</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Retrieve an existing or create a new View object, potentially while updating the config.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieve an existing or create a new View object, potentially while updating the config.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">view_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="p">:</span>
             <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="p">[</span><span class="n">view_name</span><span class="p">]</span>
         <span class="k">elif</span> <span class="n">view_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">view_name</span><span class="p">:</span>
@@ -838,7 +840,7 @@
 
 
     <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">return_str</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">show_discarded</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;&quot;&quot;&quot;</span>
         <span class="n">header</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;All corpora&quot;</span>
         <span class="n">header</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">header</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
 
@@ -965,7 +967,7 @@
                                <span class="n">voice</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                                <span class="n">harmony_layer</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                                <span class="n">check_for_clashes</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Attach all :py:attr:`~.annotations.Annotations` objects that are reachable via ``Score.key`` to their</span>
 <span class="sd">        respective :py:attr:`~.score.Score`, altering the XML in memory. Calling :py:meth:`.store_scores` will output</span>
 <span class="sd">        MuseScore files where the annotations show in the score.</span>
 
@@ -1010,7 +1012,7 @@
 
 
 <div class="viewcode-block" id="Parse.iter_corpora"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.iter_corpora">[docs]</a>    <span class="k">def</span> <span class="nf">iter_corpora</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Corpus</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;Iterate through corpora under the current or specified view.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Iterate through corpora under the current or specified view.&quot;&quot;&quot;</span>
         <span class="n">view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">(</span><span class="n">view_name</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="n">view</span><span class="o">.</span><span class="n">filter_by_token</span><span class="p">(</span><span class="s1">&#39;corpora&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">view_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">corpus</span><span class="o">.</span><span class="n">_views</span><span class="p">:</span>
@@ -1024,6 +1026,10 @@
         <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece</span> <span class="ow">in</span> <span class="n">corpus</span><span class="p">:</span>
                 <span class="k">yield</span> <span class="p">(</span><span class="n">corpus_name</span><span class="p">,</span> <span class="n">fname</span><span class="p">),</span> <span class="n">piece</span>
+
+<div class="viewcode-block" id="Parse.keys"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the names of all corpus objects.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
 
     <span class="k">def</span> <span class="nf">load_facet_into_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                <span class="n">facet</span><span class="p">:</span> <span class="n">AnnotationsFacet</span><span class="p">,</span>
@@ -1047,7 +1053,7 @@
         <span class="k">return</span> <span class="n">result</span>
 
 <div class="viewcode-block" id="Parse.load_ignored_warnings"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.load_ignored_warnings">[docs]</a>    <span class="k">def</span> <span class="nf">load_ignored_warnings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot; Adds a filters to all loggers included in a IGNORED_WARNINGS file.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Adds a filters to all loggers included in a IGNORED_WARNINGS file.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            path: Path of the IGNORED_WARNINGS file.</span>
@@ -1056,7 +1062,7 @@
             <span class="n">_</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">load_ignored_warnings</span><span class="p">(</span><span class="n">path</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Parse.set_view"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.set_view">[docs]</a>    <span class="k">def</span> <span class="nf">set_view</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">active</span><span class="p">:</span> <span class="n">View</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">views</span><span class="p">:</span> <span class="n">View</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Register one or several view_name=View pairs.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register one or several view_name=View pairs.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">active</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">new_name</span> <span class="o">=</span> <span class="n">active</span><span class="o">.</span><span class="n">name</span>
             <span class="k">if</span> <span class="n">new_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span> <span class="ow">and</span> <span class="n">active</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="p">[</span><span class="n">new_name</span><span class="p">]:</span>
@@ -1097,16 +1103,109 @@
         <span class="k">if</span> <span class="n">show_info</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">update_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="Parse.update_metadata_tsv_from_parsed_scores"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.update_metadata_tsv_from_parsed_scores">[docs]</a>    <span class="k">def</span> <span class="nf">update_metadata_tsv_from_parsed_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                               <span class="n">root_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                               <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                               <span class="n">markdown_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;README.md&quot;</span><span class="p">,</span>
+                                               <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                               <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gathers the metadata from parsed and currently selected scores and updates &#39;metadata.tsv&#39; with the information.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            root_dir: In case you want to output the metadata to folder different from :attr:`corpus_path`.</span>
+<span class="sd">            suffix:</span>
+<span class="sd">                Added to the filename: &#39;metadata{suffix}.tsv&#39;. Defaults to &#39;&#39;. Metadata files with suffix may be</span>
+<span class="sd">                used to store views with particular subselections of pieces.</span>
+<span class="sd">            markdown_file:</span>
+<span class="sd">                By default, a subset of metadata columns will be written to &#39;README.md&#39; in the same folder as the TSV file.</span>
+<span class="sd">                If the file exists, it will be scanned for a line containing the string &#39;# Overview&#39; and overwritten</span>
+<span class="sd">                from that line onwards.</span>
+<span class="sd">            view_name:</span>
+<span class="sd">                The view under which you want to update metadata from the selected parsed files. Defaults to None,</span>
+<span class="sd">                i.e. the active view.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            The file paths to which metadata was written.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">metadata_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">():</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">update_metadata_tsv_from_parsed_scores</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span>
+                                                                  <span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span>
+                                                                  <span class="n">markdown_file</span><span class="o">=</span><span class="n">markdown_file</span><span class="p">,</span>
+                                                                  <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">)</span>
+            <span class="n">metadata_paths</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">metadata_paths</span></div>
+
+<div class="viewcode-block" id="Parse.update_score_metadata_from_tsv"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.update_score_metadata_from_tsv">[docs]</a>    <span class="k">def</span> <span class="nf">update_score_metadata_from_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                       <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                                       <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                                       <span class="n">write_empty_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="n">remove_unused_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                       <span class="n">write_text_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+                                       <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">File</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            view_name:</span>
+<span class="sd">            force:</span>
+<span class="sd">            choose:</span>
+<span class="sd">            write_empty_values:</span>
+<span class="sd">                If set to True, existing values are overwritten even if the new value is empty, in which case the field</span>
+<span class="sd">                will be set to &#39;&#39;.</span>
+<span class="sd">            remove_unused_fields:</span>
+<span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">updated_scores</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
+            <span class="n">modified</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">update_score_metadata_from_tsv</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                                                             <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">,</span>
+                                                             <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">,</span>
+                                                             <span class="n">write_empty_values</span><span class="o">=</span><span class="n">write_empty_values</span><span class="p">,</span>
+                                                             <span class="n">remove_unused_fields</span><span class="o">=</span><span class="n">remove_unused_fields</span><span class="p">,</span>
+                                                             <span class="n">write_text_fields</span><span class="o">=</span><span class="n">write_text_fields</span><span class="p">)</span>
+            <span class="n">updated_scores</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">modified</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">updated_scores</span></div>
+
+<div class="viewcode-block" id="Parse.update_scores"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.update_scores">[docs]</a>    <span class="k">def</span> <span class="nf">update_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">root_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                       <span class="n">folder</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="p">,</span>
                       <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
-                      <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+                      <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Update scores created with an older MuseScore version to the latest MuseScore 3 version.</span>
+
+<span class="sd">                Args:</span>
+<span class="sd">                    root_dir:</span>
+<span class="sd">                        In case you want to create output paths for the updated MuseScore files based on a folder different</span>
+<span class="sd">                        from :attr:`corpus_path`.</span>
+<span class="sd">                    folder:</span>
+<span class="sd">                        * The default &#39;.&#39; has the updated scores written to the same directory as the old ones, effectively</span>
+<span class="sd">                          overwriting them if ``root_dir`` is None.</span>
+<span class="sd">                        * If ``folder`` is None, the files will be written to ``{root_dir}/scores/``.</span>
+<span class="sd">                        * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">                        * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">                          For example, ``..\scores`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">                        * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">                          ``root_dir``.</span>
+<span class="sd">                    suffix: String to append to the file names of the updated files, e.g. &#39;_updated&#39;.</span>
+<span class="sd">                    overwrite: By default, existing files are not overwritten. Pass True to allow this.</span>
+
+<span class="sd">                Returns:</span>
+<span class="sd">                    A list of all up-to-date paths, whether they had to be converted or were already in the latest version.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+        <span class="n">up2date_paths</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">():</span>
-            <span class="n">corpus</span><span class="o">.</span><span class="n">update_scores</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span>
-                                 <span class="n">folder</span><span class="o">=</span><span class="n">folder</span><span class="p">,</span>
-                                 <span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span>
-                                 <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="n">corpus</span><span class="o">.</span><span class="n">update_scores</span><span class="p">(</span><span class="n">root_dir</span><span class="o">=</span><span class="n">root_dir</span><span class="p">,</span>
+                                         <span class="n">folder</span><span class="o">=</span><span class="n">folder</span><span class="p">,</span>
+                                         <span class="n">suffix</span><span class="o">=</span><span class="n">suffix</span><span class="p">,</span>
+                                         <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span>
+            <span class="n">up2date_paths</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">up2date_paths</span></div>
+
 
 <div class="viewcode-block" id="Parse.update_tsvs_on_disk"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.update_tsvs_on_disk">[docs]</a>    <span class="k">def</span> <span class="nf">update_tsvs_on_disk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">facets</span><span class="p">:</span> <span class="n">ScoreFacets</span> <span class="o">=</span> <span class="s1">&#39;tsv&#39;</span><span class="p">,</span>
@@ -1114,7 +1213,7 @@
                        <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                        <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
                        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Update existing TSV files corresponding to one or several facets with information freshly extracted from a parsed</span>
 <span class="sd">        score, but only if the contents are identical. Otherwise, the existing TSV file is not overwritten and the</span>
 <span class="sd">        differences are displayed in a log warning. The purpose is to safely update the format of existing TSV files,</span>
@@ -1415,7 +1514,7 @@
         <span class="k">return</span> <span class="n">metadata</span>
 
 <div class="viewcode-block" id="Parse.metadata_tsv"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.metadata_tsv">[docs]</a>    <span class="k">def</span> <span class="nf">metadata_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-        <span class="sd">&quot;&quot;&quot;Concatenates the &#39;metadata.tsv&#39; (as they come) files for all corpora with a [corpus, fname] MultiIndex. If</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Concatenates the &#39;metadata.tsv&#39; (as they come) files for all corpora with a [corpus, fname] MultiIndex. If</span>
 <span class="sd">        you need metadata that filters out fnames according to the current view, use :meth:`metadata`.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">metadata_dfs</span> <span class="o">=</span> <span class="p">{</span><span class="n">corpus_name</span><span class="p">:</span> <span class="n">enforce_fname_index_for_metadata</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">metadata_tsv</span><span class="p">)</span>
@@ -1445,7 +1544,7 @@
                                <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                                <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                                <span class="n">silence_label_warnings</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;  Store facets extracted from parsed scores as TSV files.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;  Store facets extracted from parsed scores as TSV files.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            view_name:</span>
@@ -1489,7 +1588,7 @@
                             <span class="n">suffix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
                             <span class="n">overwrite</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                             <span class="n">simulate</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot; Stores all parsed scores under this view as MuseScore 3 files.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Stores all parsed scores under this view as MuseScore 3 files.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            view_name:</span>
@@ -1517,7 +1616,7 @@
         <span class="k">return</span> <span class="n">paths</span></div>
 
 <div class="viewcode-block" id="Parse.parse"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">cols</span><span class="o">=</span><span class="p">{},</span> <span class="n">infer_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Shorthand for executing parse_scores and parse_tsv at a time.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Shorthand for executing parse_scores and parse_tsv at a time.</span>
 <span class="sd">        Args:</span>
 <span class="sd">            view_name:</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1525,7 +1624,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_tsv</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="n">infer_types</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Parse.parse_mscx"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`parse_scores`.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`parse_scores`.&quot;&quot;&quot;</span>
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.parse_scores().&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Parse.parse_scores"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse_scores">[docs]</a>    <span class="k">def</span> <span class="nf">parse_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1535,7 +1634,7 @@
                      <span class="n">labels_cfg</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
                      <span class="n">view_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                      <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Parse MuseScore 3 files (MSCX or MSCZ) and store the resulting read-only Score objects. If they need</span>
 <span class="sd">        to be writeable, e.g. for removing or adding labels, pass ``parallel=False`` which takes longer but prevents</span>
 <span class="sd">        having to re-parse at a later point.</span>
 
@@ -1580,7 +1679,7 @@
                   <span class="n">only_new</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                   <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
                   <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Parse TSV files (or other value-separated files such as CSV) to be able to do something with them.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -2129,7 +2228,7 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">corpus_name</span><span class="p">)[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">remainder</span><span class="p">)]</span>
 
 <div class="viewcode-block" id="Parse.__iter__"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.__iter__">[docs]</a>    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Corpus</span><span class="p">]]:</span>
-        <span class="sd">&quot;&quot;&quot;  Iterate through all (corpus_name, Corpus) tuples, regardless of any Views.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;  Iterate through all (corpus_name, Corpus) tuples, regardless of any Views.</span>
 
 <span class="sd">        Yields: (corpus_name, Corpus) tuples</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -2137,7 +2236,7 @@
 
 
 <div class="viewcode-block" id="Parse.__repr__"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Show the :meth:`info` under the active view.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the :meth:`info` under the active view.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
 
     <span class="c1"># def _get_unambiguous_fnames_from_ids(self, score_ids, key):</span>
@@ -2351,7 +2450,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
@@ -2361,7 +2460,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>

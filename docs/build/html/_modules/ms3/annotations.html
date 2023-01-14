@@ -7,16 +7,14 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.annotations &#8212; ms3 1.0.2.post0.dev3+g94020f6 documentation</title>
+    <title>ms3.annotations &#8212; ms3 1.1.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
     
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-    <script src="../../_static/jquery.js"></script>
-    <script src="../../_static/underscore.js"></script>
-    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
 
     
     
@@ -49,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 
@@ -77,7 +75,7 @@
 <span class="kn">from</span> <span class="nn">.expand_dcml</span> <span class="kn">import</span> <span class="n">expand_labels</span>
 
 <div class="viewcode-block" id="Annotations"><a class="viewcode-back" href="../../reference.html#ms3.annotations.Annotations">[docs]</a><span class="k">class</span> <span class="nc">Annotations</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class for storing, converting and manipulating annotation labels.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -86,7 +84,7 @@
                        <span class="s1">&#39;nashville&#39;</span><span class="p">,</span> <span class="s1">&#39;decoded&#39;</span><span class="p">,</span> <span class="s1">&#39;color_name&#39;</span><span class="p">,</span> <span class="s1">&#39;color_html&#39;</span><span class="p">,</span> <span class="s1">&#39;color_r&#39;</span><span class="p">,</span> <span class="s1">&#39;color_g&#39;</span><span class="p">,</span> <span class="s1">&#39;color_b&#39;</span><span class="p">,</span> <span class="s1">&#39;color_a&#39;</span><span class="p">,</span> <span class="s1">&#39;placement&#39;</span><span class="p">,</span> <span class="s1">&#39;minDistance&#39;</span><span class="p">,</span> <span class="s1">&#39;style&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tsv_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">df</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="p">{},</span> <span class="n">index_col</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">mscx_obj</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">read_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -247,7 +245,7 @@
                 <span class="n">clashes</span> <span class="o">=</span> <span class="n">is_any_row_equal</span><span class="p">(</span><span class="n">existing</span><span class="p">,</span> <span class="n">to_be_attached</span><span class="p">)</span>
                 <span class="n">has_clashes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">clashes</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
                 <span class="k">if</span> <span class="n">has_clashes</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following positions already have labels:</span><span class="se">\n</span><span class="si">{</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">clashes</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">position_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The following positions already have labels:</span><span class="se">\n</span><span class="si">{</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">clashes</span><span class="p">,</span><span class="w"> </span><span class="n">columns</span><span class="o">=</span><span class="n">position_cols</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
                     <span class="n">error</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="k">elif</span> <span class="n">check_for_clashes</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Check for clashes could not be performed because there are columns missing.&quot;</span><span class="p">)</span>
@@ -263,7 +261,7 @@
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">harmony_layer_counts</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns the counts of the harmony_layers as dict.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns the counts of the harmony_layers as dict.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="s1">&#39;harmony_layer&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">columns</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">df</span><span class="o">.</span><span class="n">harmony_layer</span><span class="o">.</span><span class="n">value_counts</span><span class="p">(</span><span class="n">dropna</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
@@ -300,7 +298,7 @@
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2"> labels:</span><span class="se">\n</span><span class="si">{</span><span class="n">layers</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <div class="viewcode-block" id="Annotations.get_labels"><a class="viewcode-back" href="../../reference.html#ms3.annotations.Annotations.get_labels">[docs]</a>    <span class="k">def</span> <span class="nf">get_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">staff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">voice</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">harmony_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">positioning</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">decode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">inverse</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">column_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">color_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Returns a DataFrame of annotation labels.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Returns a DataFrame of annotation labels.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -396,7 +394,7 @@
 
 <div class="viewcode-block" id="Annotations.expand_dcml"><a class="viewcode-back" href="../../reference.html#ms3.annotations.Annotations.expand_dcml">[docs]</a>    <span class="nd">@lru_cache</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">expand_dcml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drop_others</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">warn_about_others</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">drop_empty_cols</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">chord_tones</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">relative_to_global</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">absolute</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">all_in_c</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot; Expands all labels where the regex_match has been inferred as &#39;dcml&#39; and stores the DataFrame in self._expanded.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Expands all labels where the regex_match has been inferred as &#39;dcml&#39; and stores the DataFrame in self._expanded.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
@@ -445,7 +443,7 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">drop_others</span><span class="p">:</span>
             <span class="n">warn_about_others</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">if</span> <span class="n">warn_about_others</span> <span class="ow">and</span> <span class="p">(</span><span class="o">~</span><span class="n">select_dcml</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Score contains </span><span class="si">{</span><span class="p">(</span><span class="o">~</span><span class="n">select_dcml</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> labels that don&#39;t (and </span><span class="si">{</span><span class="n">select_dcml</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> that do) match the DCML standard:</span><span class="se">\n</span><span class="si">{</span><span class="n">decode_harmonies</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">select_dcml</span><span class="p">],</span> <span class="n">keep_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span> <span class="s1">&#39;mn&#39;</span><span class="p">,</span> <span class="s1">&#39;label&#39;</span><span class="p">,</span> <span class="s1">&#39;harmony_layer&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Score contains </span><span class="si">{</span><span class="p">(</span><span class="o">~</span><span class="n">select_dcml</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> labels that don&#39;t (and </span><span class="si">{</span><span class="n">select_dcml</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2"> that do) match the DCML standard:</span><span class="se">\n</span><span class="si">{</span><span class="n">decode_harmonies</span><span class="p">(</span><span class="n">df</span><span class="p">[</span><span class="o">~</span><span class="n">select_dcml</span><span class="p">],</span><span class="w"> </span><span class="n">keep_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span><span class="w"> </span><span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)[[</span><span class="s1">&#39;mc&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;mn&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;label&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;harmony_layer&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                                 <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;message_id&quot;</span><span class="p">:</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="p">)})</span>
         <span class="n">df</span> <span class="o">=</span> <span class="n">df</span><span class="p">[</span><span class="n">select_dcml</span><span class="p">]</span>
         <span class="k">try</span><span class="p">:</span>
@@ -559,7 +557,7 @@
                 <span class="n">plural</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
                 <span class="n">plural_s</span> <span class="o">=</span> <span class="s1">&#39;s&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;No labels found with </span><span class="si">{</span><span class="s1">&#39;these&#39;</span> <span class="k">if</span> <span class="n">plural</span> <span class="k">else</span> <span class="s1">&#39;this&#39;</span><span class="si">}</span><span class="s2"> label</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2"> harmony_layer</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s2">&quot;No labels found with </span><span class="si">{</span><span class="s1">&#39;these&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">plural</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;this&#39;</span><span class="si">}</span><span class="s2"> label</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2"> harmony_layer</span><span class="si">{</span><span class="n">plural_s</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">not_found</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">all_types</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">lt</span> <span class="k">if</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">all_types</span><span class="p">]</span></div>
 </pre></div>
 
@@ -623,7 +621,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.0.2.post0.dev3+g94020f6 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.annotations</a></li> 
@@ -633,7 +631,7 @@
 
     <div class="footer" role="contentinfo">
         &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 5.1.1.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
     </div>
     <!-- cloud_sptheme 1.4 -->
   </body>
