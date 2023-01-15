@@ -2,7 +2,7 @@
 Installing ms3
 ==============
 
-The library is hosted at `PyPI <https://pypi.org/project/ms3/>`__ and can be installed via ``pip``.
+The library is hosted at `PyPI <https://pypi.org/project/ms3/>`__ and can be installed via ``pip install ms3``.
 
 Unix-based systems
 ==================
@@ -14,21 +14,21 @@ You can check which Python executable is currently used by typing
 
     which python
 
-Using Python >= 3.6
--------------------
+Using Python >= 3.10
+--------------------
 
-Check the Python of your environment by typing
+Check the Python version of your environment by typing
 
 .. code-block:: console
 
-    python -V
+    python --version
 
 If it's a Python 2 version, replace ``python`` by ``python3``:
 
 .. code-block:: console
 
     which python3
-    python3 -V
+    python3 --version
 
 If Python 3 doesn't seem to be installed, we recommend installing it via the small `Miniconda <https://docs.conda.io/en/latest/miniconda.html>`__
 or the large `Anaconda <https://docs.anaconda.com/anaconda/install/>`__. The latter comes with many libraries pre-installed,

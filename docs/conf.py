@@ -279,9 +279,9 @@ latex_documents = [
 python_version = '.'.join(map(str, sys.version_info[0:2]))
 intersphinx_mapping = {
     'sphinx': ('http://www.sphinx-doc.org/en/master', None),
-    'python': ('https://docs.python.org/stable' + python_version, None),
+    'python': ('https://docs.python.org/' + python_version, None),
     'matplotlib': ('https://matplotlib.org', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy/stable', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'sklearn': ('https://scikit-learn.org/stable', None),
     'pandas': ('http://pandas.pydata.org/pandas-docs/stable', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
