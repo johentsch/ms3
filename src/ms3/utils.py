@@ -1248,7 +1248,7 @@ def fifths2acc(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]
         fifths = int(float(fifths))
     except TypeError:
         return cast2collection(coll=fifths, func=fifths2acc)
-    acc = (fifths + 1) // 7
+    acc = fifths // 7
     return abs(acc) * 'b' if acc < 0 else acc * '#'
 
 
