@@ -2454,27 +2454,14 @@ def closing_tag(node_name):
     return f"</{node_name}>"
 
 
-def make_oneliner(node: bs4.Tag,
-                  shorten: bool = False):
-    """Pass a tag of which the layout does not spread over several lines.
-
-    Args:
-        node:
-        shorten: This functiion is called when the outer tag is not to be shortened. That's why this recursive function should always be called with the default,
-        only recursive calls will set it to True and shorten empty tags such as <font/>.
-
-    Returns:
-
-    """
-    children = list(node.children)
-    if shorten and len(children) == 0:
-        return opening_tag(node, closed=True)
+def make_oneliner(node):
+    """ Pass a tag of which the layout does not spread over several lines. """
     result = opening_tag(node)
-    for child in children:
-        if isinstance(child, bs4.element.Tag):
-            result += make_oneliner(child, shorten=True)
+    for c in node.children:
+        if isinstance(c, bs4.element.Tag):
+            result += make_oneliner(c)
         else:
-            result += escape_string(child)
+            result += escape_string(c)
     result += closing_tag(node.name)
     return result
 
