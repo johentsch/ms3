@@ -1234,6 +1234,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                               'min_name': fifths2name(min_tpc, min_midi, logger=self.logger)}
         for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
             if staff in self.staff2drum_map:
+                # no ambitus for drum parts
                 continue
             ambitus[staff]['max_midi'] = int(max_midi)
             ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
@@ -1241,15 +1242,20 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:
                 part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
-        ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
-        mimi, mina, mami, mana = zip(*ambitus_tuples)
-        min_midi, max_midi = min(mimi), max(mami)
-        data['ambitus'] = {
-                            'min_midi': min_midi,
-                            'min_name': mina[mimi.index(min_midi)],
-                            'max_midi': max_midi,
-                            'max_name': mana[mami.index(max_midi)],
-                          }
+        ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values() if amb_dict != {}]
+        if len(ambitus_tuples) == 0:
+            self.logger.info(f"The score does not seem to contain any pitched events. No indication of ambitus possible.")
+            data['ambitus'] = {}
+        else:
+            # computing global ambitus
+            mimi, mina, mami, mana = zip(*ambitus_tuples)
+            min_midi, max_midi = min(mimi), max(mami)
+            data['ambitus'] = {
+                                'min_midi': min_midi,
+                                'min_name': mina[mimi.index(min_midi)],
+                                'max_midi': max_midi,
+                                'max_name': mana[mami.index(max_midi)],
+                              }
         return data
 
     @property
