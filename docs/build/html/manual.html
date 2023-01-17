@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>Manual &#8212; ms3 1.1.1 documentation</title>
+    <title>Manual &#8212; ms3 1.1.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -56,7 +56,7 @@
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              accesskey="P">previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.1.2 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>
@@ -2604,6 +2604,324 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <p>The <a class="reference internal" href="#numeral"><span class="std std-ref">numeral</span></a> expressed as <a class="reference internal" href="#fifths"><span class="std std-ref">scale degree</span></a>.</p>
 </section>
 </section>
+<section id="metadata">
+<h3>Metadata<a class="headerlink" href="#metadata" title="Permalink to this heading">¶</a></h3>
+<p>If not otherwise specified, metadata fields are of type <a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a>.</p>
+<section id="fname">
+<span id="id69"></span><h4><strong>fname</strong><a class="headerlink" href="#fname" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>File information about the score described by this set of metadata.</p>
+</div>
+<p>File name without extension. Serves as ID for linking files that belong to the same piece although they might have
+different suffixes and file extensions. It follows that only files will be detected as belonging to this score whose
+file names are at least as long. In other words, the main score file that is to be considered as the most up-to-date
+version of the data should ideally not come with a suffix.</p>
+</section>
+<section id="rel-path">
+<span id="id70"></span><h4><strong>rel_path</strong><a class="headerlink" href="#rel-path" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>File information about the score described by this set of metadata.</p>
+</div>
+<p>Relative file path of the score, including extension.</p>
+<p>Metadata extracted with older versions of ms3 (&lt;1.0.0) would come instead with the column <code class="docutils literal notranslate"><span class="pre">rel_paths</span></code> which would
+include the relative folder path without the file itself. This value can now be found in the column
+<a class="reference internal" href="#subdirectory"><span class="std std-ref">subdirectory</span></a>.</p>
+</section>
+<section id="subdirectory">
+<span id="id71"></span><h4><strong>subdirectory</strong><a class="headerlink" href="#subdirectory" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>File information about the score described by this set of metadata.</p>
+</div>
+<p>Folder where the score is located, relative to the corpus_path. Equivalent to <a class="reference internal" href="#rel-path"><span class="std std-ref">rel_path</span></a> but without the file.</p>
+</section>
+<section id="composer">
+<span id="id72"></span><h4><strong>composer</strong><a class="headerlink" href="#composer" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Composer name as it would figure in the English Wikipedia (although middle names may be dropped).</p>
+</section>
+<section id="worktitle">
+<span id="id73"></span><h4><strong>workTitle</strong><a class="headerlink" href="#worktitle" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Title of the whole composition (cycle), even if the score holds only a part of it. It should not contain opus or other
+catalogue numbers, which go into the <a class="reference internal" href="#worknumber"><span class="std std-ref">workNumber</span></a> column/field.</p>
+<p>The title of the part included in this score, be it a movement or, for instance, a song within a song cycle, goes
+into the <a class="reference internal" href="#movementtitle"><span class="std std-ref">movementTitle</span></a> column/field.</p>
+</section>
+<section id="worknumber">
+<span id="id74"></span><h4><strong>workNumber</strong><a class="headerlink" href="#worknumber" title="Permalink to this heading">¶</a></h4>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<p>Catalogue number(s), e.g. <code class="docutils literal notranslate"><span class="pre">op.</span> <span class="pre">30a</span></code>.</p>
+</section>
+<section id="movementnumber">
+<span id="id75"></span><h4><strong>movementNumber</strong><a class="headerlink" href="#movementnumber" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>If applicable, the sequential number of the movement or part of a cycle contained in this score. In other words,
+the string should probably be interpretable as a number; a second movement should have the value <code class="docutils literal notranslate"><span class="pre">2</span></code>, not <code class="docutils literal notranslate"><span class="pre">II</span></code>.</p>
+</section>
+<section id="movementtitle">
+<span id="id76"></span><h4><strong>movementTitle</strong><a class="headerlink" href="#movementtitle" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>If applicable, the name of the movement or part of a cycle contained in this score.</p>
+</section>
+<section id="source">
+<span id="id77"></span><h4><strong>source</strong><a class="headerlink" href="#source" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Default metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>If applicable, the URL to the online score that this file has been derived from.</p>
+</section>
+<section id="typesetter">
+<span id="id78"></span><h4><strong>typesetter</strong><a class="headerlink" href="#typesetter" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Name or user profile URL of the person who first engraved this score.</p>
+</section>
+<section id="annotators">
+<span id="id79"></span><h4><strong>annotators</strong><a class="headerlink" href="#annotators" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Creator(s) of the chord, phrase, cadence, and/or form labels pertaining to the
+<a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony annotation standard</a>.</p>
+</section>
+<section id="reviewers">
+<span id="id80"></span><h4><strong>reviewers</strong><a class="headerlink" href="#reviewers" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Reviewer(s) of the chord, phrase, cadence, and/or form labels pertaining to the
+<a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony annotation standard</a>.</p>
+</section>
+<section id="wikidata">
+<span id="id81"></span><h4><strong>wikidata</strong><a class="headerlink" href="#wikidata" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>URL of the WikiData item describing the piece that this score represents.</p>
+</section>
+<section id="viaf">
+<span id="id82"></span><h4><strong>viaf</strong><a class="headerlink" href="#viaf" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>URL of the Virtual International Authority File (VIAF) entry identifying the piece that this score represents.</p>
+</section>
+<section id="musicbrainz">
+<span id="id83"></span><h4><strong>musicbrainz</strong><a class="headerlink" href="#musicbrainz" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>MusicBrainz URI identifying the piece that this score represents.</p>
+</section>
+<section id="imslp">
+<span id="id84"></span><h4><strong>imslp</strong><a class="headerlink" href="#imslp" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>URL to the wiki page within the International Music Score Library Project (IMSLP) that identifies this score.</p>
+</section>
+<section id="composed-start">
+<span id="id85"></span><h4><strong>composed_start</strong><a class="headerlink" href="#composed-start" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> of length 4 or <code class="docutils literal notranslate"><span class="pre">..</span></code></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Year in which the composing began. If there is evidence that composing the piece took more than one year but only the
+<a class="reference internal" href="#composed-end"><span class="std std-ref">composed_end</span></a> of the time span is known, this value should be <code class="docutils literal notranslate"><span class="pre">..</span></code>. In all other cases the string should be composed of
+four integers so that it can be converted to a number.</p>
+<p>Collecting <code class="docutils literal notranslate"><span class="pre">(composed_start,</span> <span class="pre">composed_end)</span></code> year values was a conscious decision against more elaborate indications
+such as the <a class="reference external" href="https://www.loc.gov/standards/datetime/">Extended Date/Time Format (EDTF)</a>, based on a trade-off.</p>
+</section>
+<section id="composed-end">
+<span id="id86"></span><h4><strong>composed_end</strong><a class="headerlink" href="#composed-end" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a> of length 4 or <code class="docutils literal notranslate"><span class="pre">..</span></code></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Custom metadata field in MuseScore’s <em>Score Properties</em>. Can be updated using the command <code class="docutils literal notranslate"><span class="pre">ms3</span> <span class="pre">metadata</span></code>.</p>
+</div>
+<p>Year in which the composition was finished, or in which it was published for the first time.
+If there is evidence that composing the piece took more than one year but only the
+<a class="reference internal" href="#composed-start"><span class="std std-ref">composed_start</span></a> of the time span is known, this value should be <code class="docutils literal notranslate"><span class="pre">..</span></code>. In all other cases the string should be composed of
+four integers so that it can be converted to a number.</p>
+<p>Collecting <code class="docutils literal notranslate"><span class="pre">(composed_start,</span> <span class="pre">composed_end)</span></code> year values was a conscious decision against more elaborate indications
+such as the <a class="reference external" href="https://www.loc.gov/standards/datetime/">Extended Date/Time Format (EDTF)</a>, based on a trade-off.</p>
+</section>
+<section id="last-mn">
+<span id="id87"></span><h4><strong>last_mn</strong><a class="headerlink" href="#last-mn" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Last <a class="reference internal" href="#mn"><span class="std std-ref">measure number</span></a> (i.e., the length of the score as number of complete measures).</p>
+</section>
+<section id="last-mn-unfolded">
+<span id="id88"></span><h4><strong>last_mn_unfolded</strong><a class="headerlink" href="#last-mn-unfolded" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Number of measures when playing all repeats.</p>
+</section>
+<section id="length-qb">
+<span id="id89"></span><h4><strong>length_qb</strong><a class="headerlink" href="#length-qb" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Length of the piece, measured in quarter notes.</p>
+</section>
+<section id="length-qb-unfolded">
+<span id="id90"></span><h4><strong>length_qb_unfolded</strong><a class="headerlink" href="#length-qb-unfolded" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Length of the piece when playing all repeats, measured in quarter notes.</p>
+</section>
+<section id="volta-mcs">
+<span id="id91"></span><h4><strong>volta_mcs</strong><a class="headerlink" href="#volta-mcs" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#tuple" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p><a class="reference internal" href="#mc"><span class="std std-ref">Measure counts</span></a> of first and second (and further) endings. For example, <code class="docutils literal notranslate"><span class="pre">(((16,),</span> <span class="pre">(17,)),</span> <span class="pre">((75,</span> <span class="pre">76),</span> <span class="pre">(77,</span> <span class="pre">78)))</span></code>
+would stand for two sets of two brackets, the first one with two endings of length 1 (probably measure numbers 16a
+and 16b) and the second one for two endings of length 2, starting in MC 75.</p>
+<p>The name comes from Italian “prima/seconda volta” for “first/second time”.</p>
+</section>
+<section id="all-notes-qb">
+<span id="id92"></span><h4><strong>all_notes_qb</strong><a class="headerlink" href="#all-notes-qb" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#float" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">float</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Summed up duration of all notes, measured in quarter notes.</p>
+</section>
+<section id="n-onsets">
+<span id="id93"></span><h4><strong>n_onsets</strong><a class="headerlink" href="#n-onsets" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Number of all note onsets. This number is at most the number of rows in the corresponding notes table which, in return,
+is the number of all note <em>heads</em>. <code class="docutils literal notranslate"><span class="pre">n_onsets</span></code> does not count tied-to note heads (which do not represent onsets).</p>
+</section>
+<section id="n-onset-positions">
+<span id="id94"></span><h4><strong>n_onset_positions</strong><a class="headerlink" href="#n-onset-positions" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Number of unique note onsets (“slices”).</p>
+</section>
+<section id="guitar-chord-count">
+<span id="id95"></span><h4><strong>guitar_chord_count</strong><a class="headerlink" href="#guitar-chord-count" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Number of all &lt;Harmony&gt; labels that do not match the <a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony annotation standard</a>.
+In most cases, they will be so-called guitar or Jazz chords (“changes”) as used in lead sheets, pop and folk songs, etc.</p>
+</section>
+<section id="label-count">
+<span id="id96"></span><h4><strong>label_count</strong><a class="headerlink" href="#label-count" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/functions.html#int" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Number of chord labels that match the <a class="reference external" href="https://github.com/DCMLab/standards">DCML harmony annotation standard</a>.</p>
+<p>For metadata extracted with older versions of ms3 (&lt;1.0.0) this value would represent the number of all &lt;Harmony&gt;
+labels including <a class="reference internal" href="#guitar-chord-count"><span class="std std-ref">guitar/Jazz chords</span></a>.</p>
+</section>
+<section id="key-signatures">
+<span id="id97"></span><h4><strong>KeySig</strong> Key signatures<a class="headerlink" href="#key-signatures" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Key signature(s) (negative = flats, positive = sharps) and their position(s) in the score. A score in C major would have
+the value <code class="docutils literal notranslate"><span class="pre">1:</span> <span class="pre">0</span></code>, i.e. zero accidentals in <a class="reference internal" href="#mc"><span class="std std-ref">MC</span></a> 1, the first &lt;Measure&gt; tag. A score with the key signatures
+of C minor (3 flats), G minor (1 flat) and G major (1 sharp) could have, for example, <code class="docutils literal notranslate"><span class="pre">1:</span> <span class="pre">-3,</span> <span class="pre">39:</span> <span class="pre">-1,</span> <span class="pre">67:</span> <span class="pre">1</span></code>. In
+other words, the values are like dictionaries without curly braces.</p>
+<p>The column name is in CamelCase, other than the <a class="reference internal" href="#keysig"><span class="std std-ref">keysig Key Signatures</span></a> column found in <a class="reference internal" href="#measures"><span class="std std-ref">Measures</span></a> tables.</p>
+</section>
+<section id="time-signatures">
+<span id="id98"></span><h4><strong>TimeSig</strong> Time Signatures<a class="headerlink" href="#time-signatures" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>Time signature(s) and their position(s) in the score. A score entirely in 4/4 would have
+the value <code class="docutils literal notranslate"><span class="pre">1:</span> <span class="pre">4/4</span></code>, where 1 is the <a class="reference internal" href="#mc"><span class="std std-ref">MC</span></a> of the first &lt;Measure&gt; tag. A score with time signature changes
+could have, for example, <code class="docutils literal notranslate"><span class="pre">1:</span> <span class="pre">4/4,</span> <span class="pre">39:</span> <span class="pre">6/8,</span> <span class="pre">67:</span> <span class="pre">4/4</span></code>. In other words, the values are like dictionaries without curly braces.</p>
+<p>The column name is in CamelCase, other than the <a class="reference internal" href="#timesig"><span class="std std-ref">timesig Time Signatures</span></a> column found in <a class="reference internal" href="#measures"><span class="std std-ref">Measures</span></a> tables.</p>
+</section>
+<section id="musescore">
+<span id="id99"></span><h4><strong>musescore</strong><a class="headerlink" href="#musescore" title="Permalink to this heading">¶</a></h4>
+<p><a class="reference external" href="https://docs.python.org/3.10/library/stdtypes.html#str" title="(in Python v3.10)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">str</span></code></a></p>
+<div class="admonition-metadata-category admonition">
+<p class="admonition-title">Metadata category</p>
+<p>Computed by ms3.</p>
+</div>
+<p>MuseScore version that has been used to save this score, e.g. <code class="docutils literal notranslate"><span class="pre">3.6.2</span></code>.</p>
+</section>
+</section>
 </section>
 </section>
 
@@ -2661,6 +2979,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
 <li class="toctree-l3"><a class="reference internal" href="#id39">Chords</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id52">Labels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#id57">Expanded</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#metadata">Metadata</a></li>
 </ul>
 </li>
 </ul>
@@ -2736,7 +3055,7 @@ relativeroot is the Roman numeral of the key that is being tonicized.</p>
         <li class="right" >
           <a href="quick.html" title="Quick Reference"
              >previous</a> &nbsp; &nbsp;</li>
-    <li><a href="index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <li><a href="index.html">ms3 1.1.2 documentation</a> &#187;</li>
 
         <li class="nav-item nav-item-this"><a href="">Manual</a></li> 
       </ul>

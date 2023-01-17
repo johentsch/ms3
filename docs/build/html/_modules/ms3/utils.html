@@ -7,7 +7,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.utils &#8212; ms3 1.1.1 documentation</title>
+    <title>ms3.utils &#8212; ms3 1.1.2 documentation</title>
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
     <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
@@ -47,7 +47,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.2 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 
@@ -96,7 +96,7 @@
 <span class="kn">from</span> <span class="nn">.logger</span> <span class="kn">import</span> <span class="n">function_logger</span><span class="p">,</span> <span class="n">update_cfg</span><span class="p">,</span> <span class="n">LogCapturer</span>
 <span class="kn">from</span> <span class="nn">._typing</span> <span class="kn">import</span> <span class="n">FileDict</span><span class="p">,</span> <span class="n">Facet</span><span class="p">,</span> <span class="n">ViewDict</span><span class="p">,</span> <span class="n">FileDataframeTupleMaybe</span>
 
-<span class="n">MS3_VERSION</span> <span class="o">=</span> <span class="s1">&#39;1.1.1&#39;</span>
+<span class="n">MS3_VERSION</span> <span class="o">=</span> <span class="s1">&#39;1.1.2&#39;</span>
 <span class="n">LATEST_MUSESCORE_VERSION</span> <span class="o">=</span> <span class="s1">&#39;3.6.2&#39;</span>
 <span class="n">COMPUTED_METADATA_COLUMNS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;TimeSig&#39;</span><span class="p">,</span> <span class="s1">&#39;KeySig&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mc&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mn&#39;</span><span class="p">,</span> <span class="s1">&#39;length_qb&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mc_unfolded&#39;</span><span class="p">,</span> <span class="s1">&#39;last_mn_unfolded&#39;</span><span class="p">,</span> <span class="s1">&#39;length_qb_unfolded&#39;</span><span class="p">,</span>
                          <span class="s1">&#39;volta_mcs&#39;</span><span class="p">,</span> <span class="s1">&#39;all_notes_qb&#39;</span><span class="p">,</span> <span class="s1">&#39;n_onsets&#39;</span><span class="p">,</span> <span class="s1">&#39;n_onset_positions&#39;</span><span class="p">,</span>
@@ -1519,8 +1519,8 @@
 <span class="sd">    Returns:</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="n">acc</span> <span class="o">=</span> <span class="n">fifths2acc</span><span class="p">(</span><span class="n">fifths</span><span class="p">)</span>
+    <span class="n">fifths</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">inverted</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span> <span class="o">+</span> <span class="n">acc</span>
     <span class="k">return</span> <span class="n">acc</span> <span class="o">+</span> <span class="n">steps</span><span class="p">[</span><span class="n">fifths</span> <span class="o">%</span> <span class="mi">7</span><span class="p">]</span>
@@ -3633,7 +3633,7 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Created&#39;</span>
         <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="c1"># in case the README.rst exists, everything from the line including &#39;# Overview&#39; (or last line otherwise) is overwritten</span>
+    <span class="c1"># in case the README.md exists, everything from the line including &#39;# Overview&#39; (or last line otherwise) is overwritten</span>
     <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
             <span class="k">if</span> <span class="s1">&#39;# Overview&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
@@ -5146,7 +5146,7 @@
         <li class="right" >
           <a href="../../py-modindex.html" title="Python Module Index"
              >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <li><a href="../../index.html">ms3 1.1.2 documentation</a> &#187;</li>
 
           <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">ms3.utils</a></li> 

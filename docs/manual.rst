@@ -2083,3 +2083,485 @@ relativeroot is the Roman numeral of the key that is being tonicized.
 :obj:`int`
 
 The |numeral| expressed as :ref:`scale degree <fifths>`.
+
+Metadata
+--------
+
+If not otherwise specified, metadata fields are of type :obj:`str`.
+
+.. _fname:
+
+**fname**
+^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   File information about the score described by this set of metadata.
+
+File name without extension. Serves as ID for linking files that belong to the same piece although they might have
+different suffixes and file extensions. It follows that only files will be detected as belonging to this score whose
+file names are at least as long. In other words, the main score file that is to be considered as the most up-to-date
+version of the data should ideally not come with a suffix.
+
+
+.. _rel_path:
+
+**rel_path**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   File information about the score described by this set of metadata.
+
+Relative file path of the score, including extension.
+
+Metadata extracted with older versions of ms3 (<1.0.0) would come instead with the column ``rel_paths`` which would
+include the relative folder path without the file itself. This value can now be found in the column
+:ref:`subdirectory`.
+
+
+.. _subdirectory:
+
+**subdirectory**
+^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   File information about the score described by this set of metadata.
+
+Folder where the score is located, relative to the corpus_path. Equivalent to :ref:`rel_path` but without the file.
+
+
+.. _composer:
+
+**composer**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Composer name as it would figure in the English Wikipedia (although middle names may be dropped).
+
+
+.. _workTitle:
+
+**workTitle**
+^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Title of the whole composition (cycle), even if the score holds only a part of it. It should not contain opus or other
+catalogue numbers, which go into the :ref:`workNumber` column/field.
+
+The title of the part included in this score, be it a movement or, for instance, a song within a song cycle, goes
+into the :ref:`movementTitle` column/field.
+
+.. _workNumber:
+
+**workNumber**
+^^^^^^^^^^^^^^
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+
+:obj:`str`
+
+Catalogue number(s), e.g. ``op. 30a``.
+
+
+.. _movementNumber:
+
+**movementNumber**
+^^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+If applicable, the sequential number of the movement or part of a cycle contained in this score. In other words,
+the string should probably be interpretable as a number; a second movement should have the value ``2``, not ``II``.
+
+
+.. _movementTitle:
+
+**movementTitle**
+^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+If applicable, the name of the movement or part of a cycle contained in this score.
+
+
+.. _source:
+
+**source**
+^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Default metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+If applicable, the URL to the online score that this file has been derived from.
+
+
+.. _typesetter:
+
+**typesetter**
+^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Name or user profile URL of the person who first engraved this score.
+
+
+.. _annotators:
+
+**annotators**
+^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Creator(s) of the chord, phrase, cadence, and/or form labels pertaining to the
+`DCML harmony annotation standard <https://github.com/DCMLab/standards>`__.
+
+
+.. _reviewers:
+
+**reviewers**
+^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Reviewer(s) of the chord, phrase, cadence, and/or form labels pertaining to the
+`DCML harmony annotation standard <https://github.com/DCMLab/standards>`__.
+
+
+.. _wikidata:
+
+**wikidata**
+^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+URL of the WikiData item describing the piece that this score represents.
+
+
+.. _viaf:
+
+**viaf**
+^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+URL of the Virtual International Authority File (VIAF) entry identifying the piece that this score represents.
+
+
+.. _musicbrainz:
+
+**musicbrainz**
+^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+MusicBrainz URI identifying the piece that this score represents.
+
+
+.. _imslp:
+
+**imslp**
+^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+URL to the wiki page within the International Music Score Library Project (IMSLP) that identifies this score.
+
+.. _composed_start:
+
+**composed_start**
+^^^^^^^^^^^^^^^^^^
+
+:obj:`str` of length 4 or ``..``
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Year in which the composing began. If there is evidence that composing the piece took more than one year but only the
+:ref:`composed_end` of the time span is known, this value should be ``..``. In all other cases the string should be composed of
+four integers so that it can be converted to a number.
+
+Collecting ``(composed_start, composed_end)`` year values was a conscious decision against more elaborate indications
+such as the `Extended Date/Time Format (EDTF) <https://www.loc.gov/standards/datetime/>`__, based on a trade-off.
+
+
+.. _composed_end:
+
+**composed_end**
+^^^^^^^^^^^^^^^^
+
+:obj:`str` of length 4 or ``..``
+
+.. admonition:: Metadata category
+
+   Custom metadata field in MuseScore's *Score Properties*. Can be updated using the command ``ms3 metadata``.
+
+Year in which the composition was finished, or in which it was published for the first time.
+If there is evidence that composing the piece took more than one year but only the
+:ref:`composed_start` of the time span is known, this value should be ``..``. In all other cases the string should be composed of
+four integers so that it can be converted to a number.
+
+Collecting ``(composed_start, composed_end)`` year values was a conscious decision against more elaborate indications
+such as the `Extended Date/Time Format (EDTF) <https://www.loc.gov/standards/datetime/>`__, based on a trade-off.
+
+
+.. _last_mn:
+
+**last_mn**
+^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+
+Last :ref:`measure number <mn>` (i.e., the length of the score as number of complete measures).
+
+
+.. _last_mn_unfolded:
+
+**last_mn_unfolded**
+^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+
+Number of measures when playing all repeats.
+
+
+.. _length_qb:
+
+**length_qb**
+^^^^^^^^^^^^^
+
+:obj:`float`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Length of the piece, measured in quarter notes.
+
+
+.. _length_qb_unfolded:
+
+**length_qb_unfolded**
+^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Length of the piece when playing all repeats, measured in quarter notes.
+
+
+.. _volta_mcs:
+
+**volta_mcs**
+^^^^^^^^^^^^^
+
+:obj:`tuple`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+:ref:`Measure counts <mc>` of first and second (and further) endings. For example, ``(((16,), (17,)), ((75, 76), (77, 78)))``
+would stand for two sets of two brackets, the first one with two endings of length 1 (probably measure numbers 16a
+and 16b) and the second one for two endings of length 2, starting in MC 75.
+
+The name comes from Italian "prima/seconda volta" for "first/second time".
+
+.. _all_notes_qb:
+
+**all_notes_qb**
+^^^^^^^^^^^^^^^^
+
+:obj:`float`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+
+Summed up duration of all notes, measured in quarter notes.
+
+
+.. _n_onsets:
+
+**n_onsets**
+^^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Number of all note onsets. This number is at most the number of rows in the corresponding notes table which, in return,
+is the number of all note *heads*. ``n_onsets`` does not count tied-to note heads (which do not represent onsets).
+
+
+.. _n_onset_positions:
+
+**n_onset_positions**
+^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Number of unique note onsets ("slices").
+
+
+.. _guitar_chord_count:
+
+**guitar_chord_count**
+^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Number of all <Harmony> labels that do not match the `DCML harmony annotation standard <https://github.com/DCMLab/standards>`__.
+In most cases, they will be so-called guitar or Jazz chords ("changes") as used in lead sheets, pop and folk songs, etc.
+
+
+.. _label_count:
+
+**label_count**
+^^^^^^^^^^^^^^^
+
+:obj:`int`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Number of chord labels that match the `DCML harmony annotation standard <https://github.com/DCMLab/standards>`__.
+
+For metadata extracted with older versions of ms3 (<1.0.0) this value would represent the number of all <Harmony>
+labels including :ref:`guitar/Jazz chords <guitar_chord_count>`.
+
+
+.. _key_signatures:
+
+**KeySig** Key signatures
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Key signature(s) (negative = flats, positive = sharps) and their position(s) in the score. A score in C major would have
+the value ``1: 0``, i.e. zero accidentals in :ref:`MC <mc>` 1, the first <Measure> tag. A score with the key signatures
+of C minor (3 flats), G minor (1 flat) and G major (1 sharp) could have, for example, ``1: -3, 39: -1, 67: 1``. In
+other words, the values are like dictionaries without curly braces.
+
+The column name is in CamelCase, other than the :ref:`keysig` column found in :ref:`measures` tables.
+
+
+.. _time_signatures:
+
+**TimeSig** Time Signatures
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+Time signature(s) and their position(s) in the score. A score entirely in 4/4 would have
+the value ``1: 4/4``, where 1 is the :ref:`MC <mc>` of the first <Measure> tag. A score with time signature changes
+could have, for example, ``1: 4/4, 39: 6/8, 67: 4/4``. In other words, the values are like dictionaries without curly braces.
+
+The column name is in CamelCase, other than the :ref:`timesig` column found in :ref:`measures` tables.
+
+.. _musescore:
+
+**musescore**
+^^^^^^^^^^^^^
+
+:obj:`str`
+
+.. admonition:: Metadata category
+
+   Computed by ms3.
+
+MuseScore version that has been used to save this score, e.g. ``3.6.2``.
+
