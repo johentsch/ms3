@@ -623,15 +623,15 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     metadata_parser = subparsers.add_parser('metadata',
                                             help="Update MSCX files with changes made to metadata.tsv (created via ms3 extract -D [-a]).",
                                             parents=[parse_args])
-    metadata_parser.add_argument('--empty', action='store_true',
-                                  help="Set this flag to also allow empty values to be used for overwriting existing ones.")
-    metadata_parser.add_argument('--remove', action='store_true',
-                                  help="Set this flag to remove non-default metadata fields that are not columns in the metadata.tsv file anymore.")
     metadata_parser.add_argument('-s', '--suffix', metavar='SUFFIX',
                             help='Suffix of the new scores with updated metadata fields.')
     metadata_parser.add_argument('-p', '--prelims', action='store_true',
                                  help="Pass this flag if, in addition to updating metadata fields, you also want score headers to be updated "
                                       "from the columns title_text, subtitle_text, composer_text, lyricist_text, part_name_text.")
+    metadata_parser.add_argument('--empty', action='store_true',
+                                  help="Set this flag to also allow empty values to be used for overwriting existing ones.")
+    metadata_parser.add_argument('--remove', action='store_true',
+                                  help="Set this flag to remove non-default metadata fields that are not columns in the metadata.tsv file anymore.")
     metadata_parser.set_defaults(func=metadata)
     #
     # repair_parser = subparsers.add_parser('repair',

@@ -3591,7 +3591,19 @@ def prepare_metadata_for_writing(metadata_df):
     # on Windows, make sure the paths are written with / separators
     path_cols = [col for col in ('subdir', 'rel_path') if col in metadata_df.columns]
     for col in path_cols:
-        metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, '/')
+        with warnings.catch_warnings():
+            # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
+            # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
+            # See also: https://stackoverflow.com/q/74057367/859591
+            warnings.filterwarnings(
+                "ignore",
+                category=FutureWarning,
+                message=(
+                    ".*will attempt to set the values inplace instead of always setting a new array. "
+                    "To retain the old behavior, use either.*"
+                ),
+            )
+            metadata_df.loc[:, col] = metadata_df[col].str.replace(os.sep, '/')
     staff_cols, other_cols = [], []
     for col in metadata_df.columns:
         if re.match(r"^staff_(\d+)", col):
