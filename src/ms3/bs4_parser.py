@@ -743,7 +743,7 @@ class _MSCX_bs4(LoggedClass):
         if self._prelims is None:
             if self.soup is None:
                 self.make_writeable()
-            self._prelims = Prelims(self.soup)
+            self._prelims = Prelims(self.soup, name=self.logger.name)
         return self._prelims
 
     @property
@@ -1084,7 +1084,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             self.logger.warning(f"The onset {mn_onset} is bigger than the last possible onset of MN {mn} which is {right_boundary}")
         return mc, mc_onset
 
-    def get_texts(self) -> Dict[str, str]:
+    def get_texts(self, only_header: bool = True) -> Dict[str, str]:
         """Process <Text> nodes (normally attached to <Staff id="1">)."""
         texts = defaultdict(set)
         tags = self.soup.find_all('Text')
@@ -1101,6 +1101,8 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
             elif style == 'Instrument Name (Part)':
                 style = 'part_name_text'
             else:
+                if only_header:
+                    continue
                 style = 'text'
             texts[style].add(txt)
         return {st: '; '.join(txt) for st, txt in texts.items()}
@@ -1232,6 +1234,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
                               'min_name': fifths2name(min_tpc, min_midi, logger=self.logger)}
         for staff, max_tpc, max_midi in notes.loc[staff_groups.idxmax(), ['staff', 'tpc', 'midi', ]].itertuples(name=None, index=False):
             if staff in self.staff2drum_map:
+                # no ambitus for drum parts
                 continue
             ambitus[staff]['max_midi'] = int(max_midi)
             ambitus[staff]['max_name'] = fifths2name(max_tpc, max_midi, logger=self.logger)
@@ -1239,15 +1242,20 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
         for part, part_dict in data['parts'].items():
             for id in part_dict['staves']:
                 part_dict[f"staff_{id}_ambitus"] = ambitus[id] if id in ambitus else {}
-        ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values()]
-        mimi, mina, mami, mana = zip(*ambitus_tuples)
-        min_midi, max_midi = min(mimi), max(mami)
-        data['ambitus'] = {
-                            'min_midi': min_midi,
-                            'min_name': mina[mimi.index(min_midi)],
-                            'max_midi': max_midi,
-                            'max_name': mana[mami.index(max_midi)],
-                          }
+        ambitus_tuples = [tuple(amb_dict.values()) for amb_dict in ambitus.values() if amb_dict != {}]
+        if len(ambitus_tuples) == 0:
+            self.logger.info(f"The score does not seem to contain any pitched events. No indication of ambitus possible.")
+            data['ambitus'] = {}
+        else:
+            # computing global ambitus
+            mimi, mina, mami, mana = zip(*ambitus_tuples)
+            min_midi, max_midi = min(mimi), max(mami)
+            data['ambitus'] = {
+                                'min_midi': min_midi,
+                                'min_name': mina[mimi.index(min_midi)],
+                                'max_midi': max_midi,
+                                'max_name': mana[mami.index(max_midi)],
+                              }
         return data
 
     @property
@@ -2053,8 +2061,8 @@ class Prelims(LoggedClass):
     key2style = dict(zip(keys, styles))
     style2key = dict(zip(styles, keys))
 
-    def __init__(self, soup: bs4.BeautifulSoup):
-        super().__init__('Prelims')
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Prelims', logger_cfg)
         self.soup = soup
         first_measure = soup.find('Measure')
         try:
@@ -2071,8 +2079,13 @@ class Prelims(LoggedClass):
         for text_tag in self.vbox.find_all('Text'):
             style = text_tag.find('style')
             if style is not None:
-                key = self.style2key[str(style.string)]
-                tag_dict[key] = text_tag
+                identifier = str(style.string)
+                if identifier in self.style2key:
+                    key = self.style2key[identifier]
+                    tag_dict[key] = text_tag
+                else:
+                    self.logger.info(f"Score contains a non-default text field '{identifier}' in the header that "
+                                     f"can only be amended or removed manually.")
         return tag_dict
 
     @property
@@ -2105,9 +2118,11 @@ class Prelims(LoggedClass):
         clean_tag.append(style_tag)
         text_tag = self.soup.new_tag('text')
         # turn the new value into child nodes of an HTML <p> tag (in case it contains HTML markup)
-        text_contents = bs4.BeautifulSoup(new_value, 'html').find('p').contents
-        for tag in text_contents:
-            text_tag.append(copy(tag))
+        value_as_paragraph = bs4.BeautifulSoup(new_value, 'lxml').find('p')
+        if value_as_paragraph is not None:
+            text_contents = value_as_paragraph.contents
+            for tag in text_contents:
+                text_tag.append(copy(tag))
         clean_tag.append(text_tag)
         text_tags = self.text_tags
         if existing_value is None:

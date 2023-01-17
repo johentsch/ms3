@@ -335,9 +335,13 @@ f"After jumping from MC {mc} to {marker}, the music is supposed to play until la
                 jump_to_mc, end_of_jump_mc = jump2marker(mc, jumpb, until)
                 if not pd.isnull(jump_to_mc):
                     previous_value = self.next[mc]
-                    self.next[mc] = [jump_to_mc]
-                    #print(self.logger, f"Included backward jump from MC {mc} to the {jumpb} in MC {jump_to_mc}.")
-                    self.logger.debug(f"Replacing next value {previous_value} of MC {mc} with the {jumpb} in MC {jump_to_mc}.")
+                    if end_of_jump_mc == mc:
+                        self.next[mc] = [jump_to_mc] + previous_value
+                        self.logger.debug(f"Backward jump to '{jumpb}' (MC {jump_to_mc}) with 'until {until}' resolving to the current MC {mc}: "
+                                          f"Prepended {jump_to_mc} to the 'next' value {previous_value} rather than replacing it.")
+                    else:
+                        self.next[mc] = [jump_to_mc]
+                        self.logger.debug(f"Replacing 'next' value {previous_value} of MC {mc} with the '{jumpb}' in MC {jump_to_mc}.")
                 else:
                     self.logger.debug(f"Could not include backward jump from MC {mc}.")
                 if not pd.isnull(jumpf):

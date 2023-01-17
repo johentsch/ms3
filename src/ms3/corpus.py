@@ -2682,7 +2682,7 @@ class Corpus(LoggedClass):
                                        choose: Literal['all', 'auto', 'ask'] = 'all',
                                        write_empty_values: bool = False,
                                        remove_unused_fields: bool = False,
-                                       write_text_fields: bool = True,
+                                       write_text_fields: bool = False,
                                        ) -> List[File]:
         """ Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.
 
@@ -2695,6 +2695,9 @@ class Corpus(LoggedClass):
                 will be set to ''.
             remove_unused_fields:
                 If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.
+            write_text_fields:
+                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,
+                ``lyricist_text``, and ``part_name_text`` into the score headers.
 
         Returns:
             List of File objects of those scores of which the XML structure has been modified.

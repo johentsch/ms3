@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 1.1.2
+=============
+
+**ms3 requires Python 3.10**
+
+* Refines the new "writing score headers" functionality and makes it non-default. User needs to
+  set ``ms3 metadata --prelims`` which replaces the flag ``--ignore`` that had been introduced in 1.1.1.
+* A couple of bug fixes, including a very important one regarding conversion of fifths introduced with b0ce8a1d
+
 Version 1.1.1
 =============
 
