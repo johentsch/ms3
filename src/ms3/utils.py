@@ -3569,7 +3569,7 @@ def write_markdown(metadata_df: pd.DataFrame, file_path: str) -> None:
     else:
         msg = 'Created'
         lines = []
-    # in case the README.rst exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
+    # in case the README.md exists, everything from the line including '# Overview' (or last line otherwise) is overwritten
     with open(file_path, 'w', encoding='utf-8') as f:
         for line in lines:
             if '# Overview' in line:
