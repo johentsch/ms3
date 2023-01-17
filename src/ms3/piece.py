@@ -1538,7 +1538,8 @@ class Piece(LoggedClass):
             else:
                 row_dict = {column: str(value) for column, value in row_dict.items() if value != '' and not pd.isnull(value)}
             to_be_updated = {field: value for field, value in row_dict.items()
-                             if field not in current_metadata or current_metadata[field] != value}
+                             if (field not in current_metadata and value != '') or \
+                                (field in current_metadata and current_metadata[field] != value)}
             fields_to_be_created = [field for field in to_be_updated.keys() if field not in current_metadata]
             metadata_fields, text_fields = {}, {}
             for field, value in to_be_updated.items():
