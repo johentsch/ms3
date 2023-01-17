@@ -32,7 +32,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.1.1'
+MS3_VERSION = '1.1.2'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -1248,7 +1248,7 @@ def fifths2acc(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]
         fifths = int(float(fifths))
     except TypeError:
         return cast2collection(coll=fifths, func=fifths2acc)
-    acc = fifths // 7
+    acc = (fifths + 1) // 7
     return abs(acc) * 'b' if acc < 0 else acc * '#'
 
 
@@ -1455,8 +1455,8 @@ def _fifths2str(fifths: int,
     Returns:
 
     """
-    fifths += 1
     acc = fifths2acc(fifths)
+    fifths += 1
     if inverted:
         return steps[fifths % 7] + acc
     return acc + steps[fifths % 7]
