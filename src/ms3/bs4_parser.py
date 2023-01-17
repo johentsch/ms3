@@ -743,7 +743,7 @@ class _MSCX_bs4(LoggedClass):
         if self._prelims is None:
             if self.soup is None:
                 self.make_writeable()
-            self._prelims = Prelims(self.soup)
+            self._prelims = Prelims(self.soup, name=self.logger.name)
         return self._prelims
 
     @property
@@ -2061,8 +2061,8 @@ class Prelims(LoggedClass):
     key2style = dict(zip(keys, styles))
     style2key = dict(zip(styles, keys))
 
-    def __init__(self, soup: bs4.BeautifulSoup):
-        super().__init__('Prelims')
+    def __init__(self, soup: bs4.BeautifulSoup, **logger_cfg):
+        super().__init__('Prelims', logger_cfg)
         self.soup = soup
         first_measure = soup.find('Measure')
         try:
@@ -2079,8 +2079,13 @@ class Prelims(LoggedClass):
         for text_tag in self.vbox.find_all('Text'):
             style = text_tag.find('style')
             if style is not None:
-                key = self.style2key[str(style.string)]
-                tag_dict[key] = text_tag
+                identifier = str(style.string)
+                if identifier in self.style2key:
+                    key = self.style2key[identifier]
+                    tag_dict[key] = text_tag
+                else:
+                    self.logger.info(f"Score contains a non-default text field '{identifier}' in the header that "
+                                     f"can only be amended or removed manually.")
         return tag_dict
 
     @property
