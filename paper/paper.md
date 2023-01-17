@@ -1,5 +1,5 @@
 ---
-title: 'ms3: A parser for MuseScore files, serving as data factory for annotated music corpora.'
+title: 'ms3: A parser for MuseScore files, serving as data factory for annotated music corpora'
 tags:
   - python
   - music
@@ -20,7 +20,7 @@ authors:
 affiliations:
  - name: École Polytechnique Fédérale de Lausanne, Switzerland
    index: 1
-date: 13 October 2022
+date: 17 January 2023
 bibliography: paper.bib
 ---
 
