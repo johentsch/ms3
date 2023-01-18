@@ -2495,6 +2495,24 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+
+def text_tag2str(tag: bs4.Tag) -> str:
+    """Transforms a <text> tag into a string that potentially includes written-out HTML tags."""
+    components = []
+    for c in tag.contents:
+        if isinstance(c, NavigableString):
+            components.append(c)
+        elif c.name == 'sym':
+            sym = c.string
+            if sym in NOTE_SYMBOL_MAP:
+                components.append(NOTE_SYMBOL_MAP[sym])
+        else:
+            # <i></i> or other text markup within the string
+            components.append(str(c))
+    txt = ''.join(components)
+    return txt
+
+
 def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     """Takes the <Text> from a MuseScore file's header and returns its style and string."""
     sty_tag = tag.find('style')
@@ -2503,16 +2521,5 @@ def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     if txt_tag is None:
         txt = ''
     else:
-        components = []
-        for c in txt_tag.contents:
-            if isinstance(c, NavigableString):
-                components.append(c)
-            elif c.name == 'sym':
-                sym = c.string
-                if sym in NOTE_SYMBOL_MAP:
-                    components.append(NOTE_SYMBOL_MAP[sym])
-            else:
-                # <i></i> or other text markup within the string
-                components.append(str(c))
-        txt = ''.join(components)
+        txt = text_tag2str(txt_tag)
     return txt, style
