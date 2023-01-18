@@ -75,7 +75,7 @@ import re, sys, warnings
 from copy import copy
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple, Dict, overload, Union
+from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -2190,7 +2190,8 @@ def get_part_info(part_tag):
 
 
 @function_logger
-def make_spanner_cols(df, spanner_types=None):
+def make_spanner_cols(df: pd.DataFrame,
+                      spanner_types: Optional[Collection[str]] = None) -> pd.DataFrame:
     """ From a raw chord list as returned by ``get_chords(spanners=True)``
         create a DataFrame with Spanner IDs for all chords for all spanner
         types they are associated with.
@@ -2207,7 +2208,7 @@ def make_spanner_cols(df, spanner_types=None):
     #### caused some spanners to continue until the end of the piece because endings were missing when selecting based
     #### on the subtype column (endings don't specify subtype). After fixing this, there were still mistakes, particularly for slurs, because:
     #### 1. endings can be missing, 2. endings can occur in a different voice than they should, 3. endings can be
-    #### expressed with different values then the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
+    #### expressed with different values than the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
     #### Therefore, the new algorithm ends spanners simply after their given duration.
 
     cols = {
@@ -2220,12 +2221,27 @@ def make_spanner_cols(df, spanner_types=None):
     # nxt = beginning of spanner & indication of its duration
     # (prv = ending of spanner & negative duration supposed to match nxt)
 
-    def get_spanner_ids(spanner_type, subtype=None):
+    def get_spanner_ids(spanner_type: str,
+                        subtype: Optional[str] = None) -> Dict[str, List[Union[str|Literal[pd.NA]]]]:
+        """
+
+        Args:
+            spanner_type: Create one or several columns expressing all <Spanner type=``spanner_type``> tags.
+            subtype:
+                Defaults to None. If at least one spanner includes a <subtype> tag, the function will call itself
+                for every subtype and create column names of the form spanner_type:subtype
+
+        Returns:
+            {column_name -> [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective
+            spanner's span. In the case of Slurs, however, this is true only for rows with events occurring in the
+            same voice as the spanner.
+        """
+        nonlocal df
         if spanner_type == 'Slur':
-            f_cols = ['Chord/' + cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
+            spanner_duration_cols = ['Chord/' + cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
             type_col = 'Chord/' + cols['type']
         else:
-            f_cols = [cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
+            spanner_duration_cols = [cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
             type_col = cols['type']
 
         subtype_col = f"Spanner/{spanner_type}/subtype"
@@ -2236,14 +2252,14 @@ def make_spanner_cols(df, spanner_types=None):
             return dict(ChainMap(*results))
 
         # select rows corresponding to spanner_type
-        sel = df[type_col] == spanner_type
+        boolean_selector = df[type_col] == spanner_type
         # then select only beginnings
-        existing = [c for c in f_cols if c in df.columns]
-        sel &= df[existing].notna().any(axis=1)
+        existing = [col for col in spanner_duration_cols if col in df.columns]
+        boolean_selector &= df[existing].notna().any(axis=1)
         if subtype is not None:
-            sel &= df[subtype_col] == subtype
-        features = pd.DataFrame(index=df.index, columns=f_cols)
-        features.loc[sel, existing] = df.loc[sel, existing]
+            boolean_selector &= df[subtype_col] == subtype
+        duration_df = pd.DataFrame(index=df.index, columns=spanner_duration_cols)
+        duration_df.loc[boolean_selector, existing] = df.loc[boolean_selector, existing]
         with warnings.catch_warnings():
             # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
             # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
@@ -2256,9 +2272,9 @@ def make_spanner_cols(df, spanner_types=None):
                     "To retain the old behavior, use either.*"
                 ),
             )
-            features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-            features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
-        features = pd.concat([df[['mc', 'mc_onset', 'staff']], features], axis=1)
+            duration_df.iloc[:, 0] = duration_df.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
+            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+        time_and_duration_df = pd.concat([df[['mc', 'mc_onset', 'staff']], duration_df], axis=1)
 
         current_id = -1
         column_name = spanner_type
@@ -2267,17 +2283,17 @@ def make_spanner_cols(df, spanner_types=None):
         distinguish_voices = spanner_type in ['Slur', 'Trill']
         if distinguish_voices:
             # slurs need to be ended by the same voice, there can be several going on in parallel in different voices
-            features.insert(3, 'voice', df.voice)
-            staff_stacks = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
+            time_and_duration_df.insert(3, 'voice', df.voice)
+            one_stack_per_layer = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
         else:
             # For all other spanners, endings can be encoded in any of the 4 voices
-            staff_stacks = {i: {} for i in df.staff.unique()}
-        # staff_stacks contains for every possible layer a dictionary  {ID -> (end_mc, end_f)};
+            one_stack_per_layer = {i: {} for i in df.staff.unique()}
+        # one_stack_per_layer contains for every possible layer a dictionary  {ID -> (end_mc, end_f)};
         # going through chords chronologically, output all "open" IDs for the current layer until they are closed, i.e.
         # removed from the stack
 
-        def spanner_ids(row, distinguish_voices=False):
-            nonlocal staff_stacks, current_id
+        def row2active_ids(row) -> Union[str|Literal[pd.NA]]:
+            nonlocal one_stack_per_layer, current_id, distinguish_voices
             if distinguish_voices:
                 mc, mc_onset, staff, voice, nxt_m, nxt_f = row
                 layer = (staff, voice)
@@ -2288,19 +2304,19 @@ def make_spanner_cols(df, spanner_types=None):
             beginning = nxt_m > 0 or nxt_f != 0
             if beginning:
                 current_id += 1
-                staff_stacks[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
-            for id, (end_mc, end_f) in tuple(staff_stacks[layer].items()):
+                one_stack_per_layer[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
+            for layer_id, (end_mc, end_f) in tuple(one_stack_per_layer[layer].items()):
                 if end_mc < mc or (end_mc == mc and end_f < mc_onset):
-                    del(staff_stacks[layer][id])
-            val = ', '.join(str(i) for i in staff_stacks[layer].keys())
+                    del(one_stack_per_layer[layer][layer_id])
+            val = ', '.join(str(i) for i in one_stack_per_layer[layer].keys())
             return val if val != '' else pd.NA
 
 
         # create the ID column for the currently selected spanner (sub)type
-        res = {column_name: [spanner_ids(row, distinguish_voices=distinguish_voices) for row in features.values]}
+        res = {column_name: [row2active_ids(row) for row in time_and_duration_df.values]}
         ### With the new algorithm, remaining 'open' spanners result from no further event occurring in the respective layer
         ### after the end of the last spanner.
-        # open_ids = {layer: d for layer, d in staff_stacks.items() if len(d) > 0}
+        # open_ids = {layer: d for layer, d in one_stack_per_layer.items() if len(d) > 0}
         # if len(open_ids) > 0:
         #     logger.warning(f"At least one of the spanners of type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype} "
         #                    f"has not been closed: {open_ids}")
