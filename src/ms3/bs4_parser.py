@@ -342,6 +342,36 @@ class _MSCX_bs4(LoggedClass):
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             event_list.append(event)
+                            for text_tag in event_node.find_all('text'):
+                                parent_name = text_tag.parent.name
+                                text = text_tag2str(text_tag)
+                                if parent_name == 'Lyrics':
+                                    lyrics_tag = text_tag.parent
+                                    no_tag = lyrics_tag.find('no')
+                                    if no_tag is None:
+                                        verse = 1
+                                    else:
+                                        verse_string = no_tag.string
+                                        verse = int(verse_string) + 1
+                                    column_name = f"lyrics_{verse}"
+                                    syllabic_tag = lyrics_tag.find('syllabic')
+                                    if syllabic_tag is not None:
+                                        match syllabic_tag.string:
+                                            case 'begin':
+                                                text = text + '-'
+                                            case 'middle':
+                                                text = '-' + text + '-'
+                                            case 'end':
+                                                text = '-' + text
+                                            case other:
+                                                logger.warning(f"<syllabic> tag came with the value '{syllabic_tag.string}', not begin|middle|end.")
+
+                                else:
+                                    column_name = parent_name + '_text'
+                                if column_name in event:
+                                    self.logger.warning(f"Event already contained a '{column_name}': {event[column_name]}")
+                                else:
+                                    event[column_name] = text
 
                         if not self.read_only:
                             remember = {'name': event_name,
@@ -861,11 +891,10 @@ class _MSCX_bs4(LoggedClass):
         """
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
-                'syllabic': 'Chord/Lyrics/syllabic',
-                'verses' : 'Chord/Lyrics/no',
                 'articulation': 'Chord/Articulation/subtype',
                 'dynamics': 'Dynamic/subtype',
-                'system_text': 'SystemText/text',
+                'system_text': 'SystemText_text',
+                'staff_text': 'StaffText_text',
                 'tremolo': 'Chord/Tremolo/subtype'}
         main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
                      'tremolo', 'nominal_duration', 'scalar', 'chord_id']
@@ -914,42 +943,22 @@ class _MSCX_bs4(LoggedClass):
             df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations) # replace string values by fractions
         new_cols = {}
         if params['lyrics']:
-            if 'verses' in df.columns:
-                verses = pd.to_numeric(df.verses).astype('Int64')
-                verses.loc[df.lyrics.notna()] = verses[df.lyrics.notna()].fillna(0)
-                verses += 1
-                n_verses = verses.max()
-                if n_verses > 1:
-                    self.logger.warning(f"Detected lyrics with {n_verses} verses. Unfortunately, only the last "
-                                   f"one (for each chord) can currently be extracted.")
-                verse_range = range(1, n_verses + 1)
-                lyr_cols = [f"lyrics:{verse}" for verse in verse_range]
-                columns = [df.lyrics.where(verses == verse, pd.NA).rename(col_name) for verse, col_name in enumerate(lyr_cols, 1)]
-            else:
-                lyr_cols = ['lyrics:1']
-                columns = [df.lyrics.rename('lyrics:1')] if 'lyrics' in df.columns else []
-            main_cols.extend(lyr_cols)
-            if 'syllabic' in df.columns:
-                # turn the 'syllabic' column into the typical dashs
-                empty = pd.Series(index=df.index, dtype='string')
-                for col in columns:
-                    syl_start, syl_mid, syl_end = [empty.where(col.isna() | (df.syllabic != which), '-').fillna('')
-                                                   for which in ['begin', 'middle', 'end']]
-                    col = syl_end + syl_mid + col + syl_mid + syl_start
-            df = pd.concat([df] + columns, axis=1)
+            column_pattern = r"(lyrics_(\d+))"
+            if df.columns.str.match(column_pattern).any():
+                column_names: pd.DataFrame = df.columns.str.extract(column_pattern)
+                column_names = column_names.dropna()
+                column_names = column_names.sort_values(1)
+                column_names = column_names[0].to_list()
+                main_cols.extend(column_names)
         if params['dynamics']:
             main_cols.append('dynamics')
         if params['articulation']:
             main_cols.append('articulation')
         if params['staff_text']:
             main_cols.append('staff_text')
-            text_cols = ['StaffText/text', 'StaffText/text/b', 'StaffText/text/i']
-            existing_cols = [c for c in text_cols if c in df.columns]
-            if len(existing_cols) > 0:
-                new_cols['staff_text'] = df[existing_cols].fillna('').sum(axis=1).replace('', pd.NA)
         if params['system_text']:
             main_cols.append('system_text')
-        if params['tempo']:
+        if params['tempo'] and 'Tempo/tempo' in df.columns:
             main_cols.extend(['tempo', 'qpm'])
             text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
             existing_cols = [c for c in text_cols if c in df.columns]
@@ -1262,7 +1271,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
     def version(self):
         return str(self.soup.find('programVersion').string)
 
-    def add_standard_cols(self, df):
+    def add_standard_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """Ensures that the DataFrame's first columns are ['mc', 'mn', ('volta'), 'timesig', 'mc_offset']"""
         ml_columns = ['mn', 'timesig', 'mc_offset']
         if self.has_voltas:
