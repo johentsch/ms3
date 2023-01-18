@@ -2274,7 +2274,15 @@ def make_spanner_cols(df: pd.DataFrame,
             )
             duration_df.iloc[:, 0] = duration_df.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
             duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(frac)          # nxt_f
-        time_and_duration_df = pd.concat([df[['mc', 'mc_onset', 'staff']], duration_df], axis=1)
+        custom_text_col = f"Spanner/{spanner_type}/beginText"
+        add_custom_text_cols = custom_text_col in df and df[custom_text_col].notna().any()
+        if add_custom_text_cols:
+            custom_texts = df[custom_text_col]
+            concat_this = [df[['mc', 'mc_onset', 'staff']], duration_df, custom_texts]
+            custom_text2ids = {text: [] for text in custom_texts.dropna().unique()}
+        else:
+            concat_this = [df[['mc', 'mc_onset', 'staff']], duration_df]
+        time_and_duration_df = pd.concat(concat_this, axis=1)
 
         current_id = -1
         column_name = spanner_type
@@ -2293,18 +2301,26 @@ def make_spanner_cols(df: pd.DataFrame,
         # removed from the stack
 
         def row2active_ids(row) -> Union[str|Literal[pd.NA]]:
-            nonlocal one_stack_per_layer, current_id, distinguish_voices
+            nonlocal one_stack_per_layer, current_id, distinguish_voices, custom_text2ids
             if distinguish_voices:
-                mc, mc_onset, staff, voice, nxt_m, nxt_f = row
+                if add_custom_text_cols:
+                    mc, mc_onset, staff, voice, nxt_m, nxt_f, custom_text = row
+                else:
+                    mc, mc_onset, staff, voice, nxt_m, nxt_f = row
                 layer = (staff, voice)
             else:
-                mc, mc_onset, staff, nxt_m, nxt_f = row
+                if add_custom_text_cols:
+                    mc, mc_onset, staff, nxt_m, nxt_f, custom_text = row
+                else:
+                    mc, mc_onset, staff, nxt_m, nxt_f = row
                 layer = staff
 
             beginning = nxt_m > 0 or nxt_f != 0
             if beginning:
                 current_id += 1
                 one_stack_per_layer[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
+                if add_custom_text_cols and not pd.isnull(custom_text):
+                    custom_text2ids[custom_text].append(str(current_id))
             for layer_id, (end_mc, end_f) in tuple(one_stack_per_layer[layer].items()):
                 if end_mc < mc or (end_mc == mc and end_f < mc_onset):
                     del(one_stack_per_layer[layer][layer_id])
@@ -2320,6 +2336,17 @@ def make_spanner_cols(df: pd.DataFrame,
         # if len(open_ids) > 0:
         #     logger.warning(f"At least one of the spanners of type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype} "
         #                    f"has not been closed: {open_ids}")
+        if not add_custom_text_cols:
+            return res
+        if not any(len(ids) > 0 for ids in custom_text2ids.values()):
+            logger.warning(f"None of the {column_name} IDs have been attributed to one of the custom texts {custom_text2ids.keys()}.")
+            return res
+        split_ids = [[] if pd.isnull(value) else value.split(', ') for value in res[column_name]]
+        for text, relevant_ids in custom_text2ids.items():
+            custom_column_name = f"{column_name}_{text}"
+            subselected_ids = [[ID for ID in relevant_ids if ID in ids] for ids in split_ids]
+            custom_column = [pd.NA if len(ids) == 0 else ', '.join(ids) for ids in subselected_ids]
+            res[custom_column_name] = custom_column
         return res
 
     type_col = cols['type']
