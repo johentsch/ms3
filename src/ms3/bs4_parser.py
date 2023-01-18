@@ -75,7 +75,8 @@ import re, sys, warnings
 from copy import copy
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection
+from itertools import zip_longest
+from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection, Hashable
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -341,7 +342,13 @@ class _MSCX_bs4(LoggedClass):
                                 event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
-                            event_list.append(event)
+                            if event_name == 'FiguredBass':
+                                components, duration = process_figbass(event_node)
+                                if len(components) > 0:
+                                    figbass_cols = {f"figbass_level_{i}": comp for i, comp in enumerate(components, 1)}
+                                    event.update(figbass_cols)
+                                    if duration is not None:
+                                        event['figbass_duration'] = duration
                             for text_tag in event_node.find_all('text'):
                                 parent_name = text_tag.parent.name
                                 text = text_tag2str(text_tag)
@@ -372,6 +379,7 @@ class _MSCX_bs4(LoggedClass):
                                     self.logger.warning(f"Event already contained a '{column_name}': {event[column_name]}")
                                 else:
                                     event[column_name] = text
+                            event_list.append(event)
 
                         if not self.read_only:
                             remember = {'name': event_name,
@@ -2575,3 +2583,99 @@ def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     else:
         txt = text_tag2str(txt_tag)
     return txt, style
+
+
+DEFAULT_FIGBASS_SYMBOLS = {
+    '0': '',
+    '1': 'bb',
+    '2': 'b',
+    '3': 'h',
+    '4': '#',
+    '5': '##',
+    '6': '+',
+    '7': '\\',
+    '8': '/',
+    '9': '',
+    '10': '(',
+    '11': ')',
+    '12': '[',
+    '13': ']',
+    '14': '0',
+    '15': '0+',
+}
+
+DEFAULT_FIGBASS_BRACKETS = {
+    '0': '',
+    '1': '(',
+    '2': ')',
+    '3': '[',
+    '4': ']',
+    '5': '0',
+    '6': '0+',
+    '7': '0+',
+    '8': '?',
+    '9': '1',
+    '10': '1+',
+    '11': '1+',
+}
+
+
+def find_tag_get_string(parent_tag: bs4.Tag,
+                        tag_to_find: str,
+                        fallback: Optional[Hashable] = None) -> Tuple[Optional[bs4.Tag], Optional[Union[str, Hashable]]]:
+    found = parent_tag.find(tag_to_find)
+    if found is None:
+        return None, fallback
+    return found, str(found.string)
+
+
+def get_figbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
+    symbol_map = DEFAULT_FIGBASS_SYMBOLS
+    prefix_tag, prefix = find_tag_get_string(item_tag, 'prefix', fallback='')
+    if prefix != '':
+        prefix = symbol_map[prefix]
+    suffix_tag, suffix = find_tag_get_string(item_tag, 'suffix', fallback='')
+    if suffix != '':
+        suffix = symbol_map[suffix]
+    return prefix, suffix
+
+
+def figbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
+    digit_tag, digit = find_tag_get_string(item_tag, 'digit', fallback='')
+    prefix, suffix = get_figbass_symbols(item_tag)
+    brackets_tag = item_tag.find('brackets')
+    if brackets_tag:
+        result = ''
+        bracket_attributes = ('b0', 'b1', 'b2', 'b3', 'b4')  # {'before_prefix', 'before_digit', 'after_digit', 'after_suffix', 'after_b3')
+        components = (prefix, digit, suffix)
+        for attr, component in zip_longest(bracket_attributes, components, fillvalue=''):
+            bracket_code = brackets_tag[attr]
+            result += DEFAULT_FIGBASS_BRACKETS[bracket_code] + component
+    else:
+        result = prefix + digit + suffix
+    cont_tag, continuation_line = find_tag_get_string(item_tag, 'continuationLine', '0')
+    cont = int(continuation_line)
+    if cont > 2:
+        cont = 2
+    return result, cont
+
+
+def process_figbass(figbass_tag: bs4.Tag) -> Union[List[Tuple[str, int]], Optional[frac]]:
+    """Turns a <FiguredBass> tag into a (string, continuation_line_length) tuple."""
+    ticks_tag = figbass_tag.find('ticks')
+    if ticks_tag is None:
+        duration = None
+    else:
+        duration = frac(ticks_tag.string)
+    components = []
+    for item_tag in figbass_tag.find_all('FiguredBassItem'):
+        components.append(figbass_item(item_tag))
+    if len(components) == 0:
+        text_tag, text = find_tag_get_string(figbass_tag, 'text')
+        if text is not None:
+            for level in text.split('\n'):
+                begin, end = re.search('(_*)$', level).span()
+                continuation_line_length = end - begin
+                cont = 2 if continuation_line_length > 2 else continuation_line_length
+                components.append((level, cont))
+    return components, duration
