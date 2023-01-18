@@ -2321,9 +2321,9 @@ def make_spanner_cols(df: pd.DataFrame,
                 one_stack_per_layer[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
                 if add_custom_text_cols and not pd.isnull(custom_text):
                     custom_text2ids[custom_text].append(str(current_id))
-            for layer_id, (end_mc, end_f) in tuple(one_stack_per_layer[layer].items()):
-                if end_mc < mc or (end_mc == mc and end_f < mc_onset):
-                    del(one_stack_per_layer[layer][layer_id])
+            for active_id, (end_mc, end_f) in tuple(one_stack_per_layer[layer].items()):
+                if end_mc < mc or (end_mc == mc and end_f <= mc_onset):
+                    del(one_stack_per_layer[layer][active_id])
             val = ', '.join(str(i) for i in one_stack_per_layer[layer].keys())
             return val if val != '' else pd.NA
 
