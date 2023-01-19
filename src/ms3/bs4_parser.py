@@ -2619,7 +2619,12 @@ DEFAULT_THOROUGHBASS_BRACKETS = {
     '11': '1+',
 }
 
-
+@overload
+def find_tag_get_string(parent_tag: bs4.Tag, tag_to_find: str, fallback: Literal[None]) -> Tuple[Optional[bs4.Tag], Optional[str]]:
+    ...
+@overload
+def find_tag_get_string(parent_tag: bs4.Tag, tag_to_find: str, fallback: Hashable) -> Tuple[Optional[bs4.Tag], Optional[Hashable]]:
+    ...
 def find_tag_get_string(parent_tag: bs4.Tag,
                         tag_to_find: str,
                         fallback: Optional[Hashable] = None) -> Tuple[Optional[bs4.Tag], Optional[Union[str, Hashable]]]:
@@ -2630,7 +2635,8 @@ def find_tag_get_string(parent_tag: bs4.Tag,
 
 
 def get_thoroughbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
-    symbol_map = DEFAULT_THOROUGHBASS_SYMBOLS
+    """Returns the prefix and suffix of a <FiguredBassItem> tag if present, empty strings otherwise."""
+    symbol_map = DEFAULT_THOROUGHBASS_SYMBOLS  # possibly allow for other mappings if need comes up
     prefix_tag, prefix = find_tag_get_string(item_tag, 'prefix', fallback='')
     if prefix != '':
         prefix = symbol_map[prefix]
@@ -2640,28 +2646,28 @@ def get_thoroughbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
     return prefix, suffix
 
 
-def thoroughbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
+def thoroughbass_item(item_tag: bs4.Tag) -> str:
+    """Turns a <FiguredBassItem> tag into a string by concatenating brackets, prefix, digit and suffix."""
     digit_tag, digit = find_tag_get_string(item_tag, 'digit', fallback='')
     prefix, suffix = get_thoroughbass_symbols(item_tag)
+    bracket_symbol_map = DEFAULT_THOROUGHBASS_BRACKETS  # possibly allow for other mappings if need comes up
     brackets_tag = item_tag.find('brackets')
     if brackets_tag:
         result = ''
         bracket_attributes = ('b0', 'b1', 'b2', 'b3', 'b4')  # {'before_prefix', 'before_digit', 'after_digit', 'after_suffix', 'after_b3')
         components = (prefix, digit, suffix)
-        for attr, component in zip_longest(bracket_attributes, components, fillvalue=''):
-            bracket_code = brackets_tag[attr]
-            result += DEFAULT_THOROUGHBASS_BRACKETS[bracket_code] + component
+        for bracket_attribute, component in zip_longest(bracket_attributes, components, fillvalue=''):
+            bracket_code = brackets_tag[bracket_attribute]
+            result += bracket_symbol_map[bracket_code] + component
     else:
         result = prefix + digit + suffix
-    cont_tag, continuation_line = find_tag_get_string(item_tag, 'continuationLine', '0')
-    cont = int(continuation_line)
-    if cont > 2:
-        cont = 2
-    return result, cont
+    cont_tag, cont_value = find_tag_get_string(item_tag, 'continuationLine', 0)
+    continuation_line = min(int(cont_value), 2) * '_'  # more than two underscores result in the same behaviour as 2
+    return result + continuation_line
 
 
-def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Union[List[Tuple[str, int]], Optional[frac]]:
-    """Turns a <FiguredBass> tag into a (string, continuation_line_length) tuple."""
+def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[frac]]:
+    """Turns a <FiguredBass> tag into a list of components strings, one per level, and duration."""
     ticks_tag = thoroughbass_tag.find('ticks')
     if ticks_tag is None:
         duration = None
@@ -2673,9 +2679,10 @@ def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Union[List[Tuple[str, int
     if len(components) == 0:
         text_tag, text = find_tag_get_string(thoroughbass_tag, 'text')
         if text is not None:
-            for level in text.split('\n'):
-                begin, end = re.search('(_*)$', level).span()
-                continuation_line_length = end - begin
-                cont = 2 if continuation_line_length > 2 else continuation_line_length
-                components.append((level, cont))
+            components = text.split('\n')
+            # for level in text.split('\n'):
+            #     begin, end = re.search('(_*)$', level).span()
+            #     continuation_line_length = end - begin
+            #     cont = 2 if continuation_line_length > 2 else continuation_line_length
+            #     components.append((level, cont))
     return components, duration
