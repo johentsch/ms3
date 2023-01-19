@@ -343,12 +343,12 @@ class _MSCX_bs4(LoggedClass):
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
                             if event_name == 'FiguredBass':
-                                components, duration = process_figbass(event_node)
+                                components, duration = process_thoroughbass(event_node)
                                 if len(components) > 0:
-                                    figbass_cols = {f"figbass_level_{i}": comp for i, comp in enumerate(components, 1)}
-                                    event.update(figbass_cols)
+                                    thoroughbass_cols = {f"thoroughbass_level_{i}": comp for i, comp in enumerate(components, 1)}
+                                    event.update(thoroughbass_cols)
                                     if duration is not None:
-                                        event['figbass_duration'] = duration
+                                        event['thoroughbass_duration'] = duration
                             for text_tag in event_node.find_all('text'):
                                 parent_name = text_tag.parent.name
                                 text = text_tag2str(text_tag)
@@ -2585,7 +2585,7 @@ def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     return txt, style
 
 
-DEFAULT_FIGBASS_SYMBOLS = {
+DEFAULT_THOROUGHBASS_SYMBOLS = {
     '0': '',
     '1': 'bb',
     '2': 'b',
@@ -2604,7 +2604,7 @@ DEFAULT_FIGBASS_SYMBOLS = {
     '15': '0+',
 }
 
-DEFAULT_FIGBASS_BRACKETS = {
+DEFAULT_THOROUGHBASS_BRACKETS = {
     '0': '',
     '1': '(',
     '2': ')',
@@ -2629,8 +2629,8 @@ def find_tag_get_string(parent_tag: bs4.Tag,
     return found, str(found.string)
 
 
-def get_figbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
-    symbol_map = DEFAULT_FIGBASS_SYMBOLS
+def get_thoroughbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
+    symbol_map = DEFAULT_THOROUGHBASS_SYMBOLS
     prefix_tag, prefix = find_tag_get_string(item_tag, 'prefix', fallback='')
     if prefix != '':
         prefix = symbol_map[prefix]
@@ -2640,9 +2640,9 @@ def get_figbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
     return prefix, suffix
 
 
-def figbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
+def thoroughbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
     digit_tag, digit = find_tag_get_string(item_tag, 'digit', fallback='')
-    prefix, suffix = get_figbass_symbols(item_tag)
+    prefix, suffix = get_thoroughbass_symbols(item_tag)
     brackets_tag = item_tag.find('brackets')
     if brackets_tag:
         result = ''
@@ -2650,7 +2650,7 @@ def figbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
         components = (prefix, digit, suffix)
         for attr, component in zip_longest(bracket_attributes, components, fillvalue=''):
             bracket_code = brackets_tag[attr]
-            result += DEFAULT_FIGBASS_BRACKETS[bracket_code] + component
+            result += DEFAULT_THOROUGHBASS_BRACKETS[bracket_code] + component
     else:
         result = prefix + digit + suffix
     cont_tag, continuation_line = find_tag_get_string(item_tag, 'continuationLine', '0')
@@ -2660,18 +2660,18 @@ def figbass_item(item_tag: bs4.Tag) -> Tuple[str, int]:
     return result, cont
 
 
-def process_figbass(figbass_tag: bs4.Tag) -> Union[List[Tuple[str, int]], Optional[frac]]:
+def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Union[List[Tuple[str, int]], Optional[frac]]:
     """Turns a <FiguredBass> tag into a (string, continuation_line_length) tuple."""
-    ticks_tag = figbass_tag.find('ticks')
+    ticks_tag = thoroughbass_tag.find('ticks')
     if ticks_tag is None:
         duration = None
     else:
         duration = frac(ticks_tag.string)
     components = []
-    for item_tag in figbass_tag.find_all('FiguredBassItem'):
-        components.append(figbass_item(item_tag))
+    for item_tag in thoroughbass_tag.find_all('FiguredBassItem'):
+        components.append(thoroughbass_item(item_tag))
     if len(components) == 0:
-        text_tag, text = find_tag_get_string(figbass_tag, 'text')
+        text_tag, text = find_tag_get_string(thoroughbass_tag, 'text')
         if text is not None:
             for level in text.split('\n'):
                 begin, end = re.search('(_*)$', level).span()
