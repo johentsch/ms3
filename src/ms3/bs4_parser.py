@@ -860,7 +860,7 @@ class _MSCX_bs4(LoggedClass):
     def get_chords(self,
                    staff: Optional[int] = None,
                    voice: Optional[Literal[1,2,3,4]] = None,
-                   mode: = Literal['auto', 'all', 'strict'],
+                   mode: Literal['auto', 'all', 'strict'] = 'auto',
                    lyrics: bool = False,
                    dynamics: bool = False,
                    articulation: bool = False,
@@ -905,8 +905,8 @@ class _MSCX_bs4(LoggedClass):
                      'tremolo', 'nominal_duration', 'scalar', 'chord_id']
         if self.has_voltas:
             main_cols.insert(2, 'volta')
-        sel = self._events.event == 'Chord'
-        aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners']
+        selector = self._events.event == 'Chord'
+        aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners', 'thoroughbass']
         if mode == 'all':
             params = {p: True for p in aspects}
         else:
@@ -918,23 +918,24 @@ class _MSCX_bs4(LoggedClass):
             'spanners': 'Spanner',
             'staff_text': 'StaffText',
             'system_text': 'SystemText',
-            'tempo': 'Tempo'
+            'tempo': 'Tempo',
+            'thoroughbass': 'FiguredBass',
         }
         selectors = {param: self._events.event == event_name for param, event_name in param2event.items()}
         if mode == 'auto':
-            for param, selector in selectors.items():
-                if not params[param] and selector.any():
+            for param, boolean_mask in selectors.items():
+                if not params[param] and boolean_mask.any():
                     params[param] = True
-        for param, selector in selectors.items():
+        for param, boolean_mask in selectors.items():
             if params[param]:
-                sel |= selector
+                selector |= boolean_mask
         if staff:
-            sel &= self._events.staff == staff
+            selector &= self._events.staff == staff
         if voice:
-            sel &=  self._events.voice == voice
-        df = self.add_standard_cols(self._events[sel])
+            selector &=  self._events.voice == voice
+        df = self.add_standard_cols(self._events[selector])
         if 'chord_id' in df.columns:
-            df = df.astype({'chord_id': 'Int64' if df.chord_id.isna().any() else int})
+            df = df.astype({'chord_id': 'Int64'})
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
 
         if mode == 'auto':
@@ -978,6 +979,13 @@ class _MSCX_bs4(LoggedClass):
                 tempo_text = symbols + tempo_text
             new_cols['tempo'] = tempo_text
             new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+        if params['thoroughbass'] and 'thoroughbass_level_1' in df.columns:
+            tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
+            if 'thoroughbass_duration' in df.columns:
+                tb_columns = ['thoroughbass_duration'] + tb_level_columns
+            else:
+                tb_columns = tb_level_columns
+            main_cols.extend(tb_columns)
         for col in main_cols:
             if (col not in df.columns) and (col not in new_cols):
                 new_cols[col] = pd.Series(index=df.index, dtype='object')
