@@ -684,7 +684,7 @@ class _MSCX_bs4(LoggedClass):
         """ Get the raw :ref:`notes` without adding quarterbeat columns.
 
         Args:
-            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
+            recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._nl) == 0:
             self.make_standard_notelist()
@@ -857,44 +857,41 @@ class _MSCX_bs4(LoggedClass):
 
 
 
-    def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, dynamics=False, articulation=False,
-                   staff_text=False, system_text=False, tempo=False, spanners=False, **kwargs):
-        """ Shortcut for ``MSCX.parsed.get_chords()``.
-        Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
+    def get_chords(self,
+                   staff: Optional[int] = None,
+                   voice: Optional[Literal[1,2,3,4]] = None,
+                   mode: = Literal['auto', 'all', 'strict'],
+                   lyrics: bool = False,
+                   dynamics: bool = False,
+                   articulation: bool = False,
+                   staff_text: bool = False,
+                   system_text: bool = False,
+                   tempo: bool = False,
+                   spanners: bool = False,
+                   thoroughbass: bool = False,
+                   **kwargs) -> pd.DataFrame:
+        """ Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
         unprocessed ones.
 
-        Parameters
-        ----------
-        staff : :obj:`int`
-            Get information from a particular staff only (1 = upper staff)
-        voice : :obj:`int`
-            Get information from a particular voice only (1 = only the first layer of every staff)
-        mode : {'auto', 'all', 'strict'}, optional
-            | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
-              DataFrame has no empty columns except for those parameters that are set to True.
-            | 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            | 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
-        lyrics : :obj:`bool`, optional
-            Include lyrics.
-        dynamics : :obj:`bool`, optional
-            Include dynamic markings such as f or p.
-        articulation : :obj:`bool`, optional
-            Include articulation such as arpeggios.
-        spanners : :obj:`bool`, optional
-            Include spanners such as slurs, 8va lines, pedal lines etc.
-        staff_text : :obj:`bool`, optional
-            Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
-        system_text : :obj:`bool`, optional
-            Include system text such as movement titles.
-        tempo : :obj:`bool`, optional
-            Include tempo markings.
-        **kwargs : :obj:`bool`, optional
-            Set a particular keyword to True in order to include all columns from the _events DataFrame
-            whose names include that keyword. Column names include the tag names from the MSCX source code.
+        Args:
+            staff: Get information from a particular staff only (1 = upper staff)
+            voice: Get information from a particular voice only (1 = only the first layer of every staff)
+            mode:
+                | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+                  DataFrame has no empty columns except for those parameters that are set to True.
+                | 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
+                | 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+            lyrics: Include lyrics.
+            dynamics: Include dynamic markings such as f or p.
+            articulation: Include articulation such as arpeggios.
+            staff_text: Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
+            system_text: Include system text such as movement titles.
+            tempo: Include tempo markings.
+            spanners: Include spanners such as slurs, 8va lines, pedal lines etc.
+            thoroughbass: Include thoroughbass figures' levels and durations.
+            **kwargs:
 
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
+        Returns:
             DataFrame representing all <Chord> tags in the score with the selected features.
         """
         cols = {'nominal_duration': 'Chord/durationType',
