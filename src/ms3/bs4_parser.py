@@ -899,7 +899,7 @@ class _MSCX_bs4(LoggedClass):
                 'system_text': 'SystemText_text',
                 'staff_text': 'StaffText_text',
                 'tremolo': 'Chord/Tremolo/subtype'}
-        main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
+        main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
                      'tremolo', 'nominal_duration', 'scalar', 'chord_id']
         if self.has_voltas:
             main_cols.insert(2, 'volta')
