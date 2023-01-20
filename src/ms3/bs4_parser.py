@@ -440,7 +440,7 @@ class _MSCX_bs4(LoggedClass):
 
 
     def chords(self,
-               mode: Literal['auto','strict','all'] = 'auto',
+               mode: Literal['auto','strict'] = 'auto',
                interval_index: bool = False,
                unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
@@ -458,8 +458,6 @@ class _MSCX_bs4(LoggedClass):
                 (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
                 markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
                 'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
-                markers not occurring in the score.
             interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
@@ -860,7 +858,7 @@ class _MSCX_bs4(LoggedClass):
     def get_chords(self,
                    staff: Optional[int] = None,
                    voice: Optional[Literal[1,2,3,4]] = None,
-                   mode: Literal['auto', 'all', 'strict'] = 'auto',
+                   mode: Literal['auto', 'strict'] = 'auto',
                    lyrics: bool = False,
                    dynamics: bool = False,
                    articulation: bool = False,
@@ -879,8 +877,8 @@ class _MSCX_bs4(LoggedClass):
             mode:
                 | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
                   DataFrame has no empty columns except for those parameters that are set to True.
-                | 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-                | 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
+                | 'strict': Create columns for exactly those parameters that are set to True, regardless whether they occur in the score
+                  or not (in which case the column will be empty).
             lyrics: Include lyrics.
             dynamics: Include dynamic markings such as f or p.
             articulation: Include articulation such as arpeggios.
@@ -956,6 +954,8 @@ class _MSCX_bs4(LoggedClass):
                 column_names = column_names.sort_values(1)
                 column_names = column_names[0].to_list()
                 main_cols.extend(column_names)
+            else:
+                main_cols.append('lyrics_1')
         if params['dynamics']:
             main_cols.append('dynamics')
         if params['articulation']:
@@ -964,27 +964,31 @@ class _MSCX_bs4(LoggedClass):
             main_cols.append('staff_text')
         if params['system_text']:
             main_cols.append('system_text')
-        if params['tempo'] and 'Tempo/tempo' in df.columns:
+        if params['tempo']:
             main_cols.extend(['tempo', 'qpm'])
-            text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
-            existing_cols = [c for c in text_cols if c in df.columns]
-            tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
-            if 'Tempo/text/sym' in df.columns:
-                replace_symbols = defaultdict(lambda: '')
-                replace_symbols.update(NOTE_SYMBOL_MAP)
-                symbols = df['Tempo/text/sym'].str.split(expand=True)\
-                                              .apply(lambda S: S.str.strip()\
-                                              .map(replace_symbols))\
-                                              .sum(axis=1)
-                tempo_text = symbols + tempo_text
-            new_cols['tempo'] = tempo_text
-            new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
-        if params['thoroughbass'] and 'thoroughbass_level_1' in df.columns:
-            tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
-            if 'thoroughbass_duration' in df.columns:
-                tb_columns = ['thoroughbass_duration'] + tb_level_columns
+            if 'Tempo/tempo' in df.columns:
+                text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
+                existing_cols = [c for c in text_cols if c in df.columns]
+                tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
+                if 'Tempo/text/sym' in df.columns:
+                    replace_symbols = defaultdict(lambda: '')
+                    replace_symbols.update(NOTE_SYMBOL_MAP)
+                    symbols = df['Tempo/text/sym'].str.split(expand=True)\
+                                                  .apply(lambda S: S.str.strip()\
+                                                  .map(replace_symbols))\
+                                                  .sum(axis=1)
+                    tempo_text = symbols + tempo_text
+                new_cols['tempo'] = tempo_text
+                new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+        if params['thoroughbass']:
+            if 'thoroughbass_level_1' in df.columns:
+                tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
+                if 'thoroughbass_duration' in df.columns:
+                    tb_columns = ['thoroughbass_duration'] + tb_level_columns
+                else:
+                    tb_columns = tb_level_columns
             else:
-                tb_columns = tb_level_columns
+                tb_columns = ['thoroughbass_duration', 'thoroughbass_level_1']
             main_cols.extend(tb_columns)
         for col in main_cols:
             if (col not in df.columns) and (col not in new_cols):
