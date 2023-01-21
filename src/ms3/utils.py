@@ -2386,7 +2386,34 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
         assert before[1] == after[1], f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
     return df
 
+def merge_chords_and_notes(chords_table: pd.DataFrame,
+                           notes_table: pd.DataFrame) -> pd.DataFrame:
+    """Performs an outer join between a chords table and a notes table, based on the column 'chord_id'. If the chords
+    come with an 'event' column, all chord events matched with at least one note will be renamed to 'Note'.
+    Markup displayed in individual rows ('Dynamic', 'Spanner', 'StaffText', 'SystemText', 'Tempo', 'FiguredBass'),
+    are/remain placed before the note(s) with the same onset.
+    Markup showing up in a Chord event's row (e.g. a Spanner ID) will be duplicated for each note pertaining to that chord,
+    i.e., only for notes in the same staff and voice.
 
+    Args:
+        chords_table:
+        notes_table:
+
+    Returns:
+        Merged DataFrame.
+    """
+    notes_columns = ['tied', 'tpc', 'midi', 'name', 'octave', 'chord_id'] # 'gracenote', 'tremolo' would be contained in chords already
+    present_columns = [col for col in notes_columns if col in notes_table]
+    assert 'chord_id' in present_columns, f"Notes table does not come with a 'chord_id' column needed for merging: {notes_tabls.columns}"
+    notes = notes_table[present_columns].astype({'chord_id': 'Int64'})
+    amend_events = 'event' in chords_table
+    merged = pd.merge(chords_table, notes, on='chord_id', how='outer', indicator=amend_events)
+    merged = sort_note_list(merged)
+    if amend_events:
+        matches_mask = merged._merge == 'both'
+        merged.loc[matches_mask, 'event'] = 'Note'
+        merged.drop(columns='_merge', inplace=True)
+    return merged
 
 def metadata2series(d: dict) -> pd.Series:
     """ Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
@@ -3005,6 +3032,7 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
     -------
 
     """
+    df = df.copy()
     is_grace = df[duration_col] == 0
     grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
     has_nan = df[midi_col].isna().any()
