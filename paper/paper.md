@@ -40,9 +40,9 @@ contents as sets of tabular files.
 
 # Statement of need
 
-Music scores represent relations between sounding events by graphical means. Music notation software therefore is very
-much concerned with the aesthetically pleasing and easy-to-read rendering of symbols in line with the commonplace
-notational conventions [@Read1979_MusicNotationManual; @Ross2001_ArtMusicEngraving]; and much less so with the explicit
+Music scores represent relations between sounding events by graphical means. Music notation software therefore is
+often concerned with problems of layout and easy-to-read rendering of symbols in line with the multitude of
+notational conventions [@Read1979_MusicNotationManual; @Ross2001_ArtMusicEngraving]; rather than with the explicit
 encoding of the musical relations themselves.
 For example, the Free and Open Source Software [MuseScore](https://musescore.org/) provides a full-featured yet
 intuitive interface for engraving music, but its native XML format does not explicitly encode the temporal positions of
@@ -61,7 +61,7 @@ into a score arbitrary textual labels, to then have `ms3` extract them with thei
 analysis. It comes with a commandline interface that makes its data extraction, translocation, and validation
 functionalities accessible for productive every-day workflows.
 
-`ms3` has been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus
+`ms3` has already been used for creating several datasets, namely version 2 of the Annotated Beethoven Corpus
 [@Neuwirth2018_AnnotatedBeethovenCorpus], the Annotated Mozart Sonatas [@Hentschel2021_AnnotatedMozartSonatas],
 and an annotated corpus of 19th century piano music [@Hentschelunderreview_AnnotatedCorpusTonal]. Moreover,
 the library is at the heart of a semi-automated annotation workflow running on GitHub
