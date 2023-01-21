@@ -75,7 +75,8 @@ import re, sys, warnings
 from copy import copy
 from fractions import Fraction as frac
 from collections import defaultdict, ChainMap # for merging dictionaries
-from typing import Literal, Optional, List, Tuple, Dict, overload, Union
+from itertools import zip_longest
+from typing import Literal, Optional, List, Tuple, Dict, overload, Union, Collection, Hashable
 from functools import lru_cache
 
 import bs4  # python -m pip install beautifulsoup4 lxml
@@ -341,6 +342,43 @@ class _MSCX_bs4(LoggedClass):
                                 event.update(recurse_node(event_node, prepend=event_name))
                             else:
                                 event.update(recurse_node(event_node, prepend=event_name))
+                            if event_name == 'FiguredBass':
+                                components, duration = process_thoroughbass(event_node)
+                                if len(components) > 0:
+                                    thoroughbass_cols = {f"thoroughbass_level_{i}": comp for i, comp in enumerate(components, 1)}
+                                    event.update(thoroughbass_cols)
+                                    if duration is not None:
+                                        event['thoroughbass_duration'] = duration
+                            for text_tag in event_node.find_all('text'):
+                                parent_name = text_tag.parent.name
+                                text = text_tag2str(text_tag)
+                                if parent_name == 'Lyrics':
+                                    lyrics_tag = text_tag.parent
+                                    no_tag = lyrics_tag.find('no')
+                                    if no_tag is None:
+                                        verse = 1
+                                    else:
+                                        verse_string = no_tag.string
+                                        verse = int(verse_string) + 1
+                                    column_name = f"lyrics_{verse}"
+                                    syllabic_tag = lyrics_tag.find('syllabic')
+                                    if syllabic_tag is not None:
+                                        match syllabic_tag.string:
+                                            case 'begin':
+                                                text = text + '-'
+                                            case 'middle':
+                                                text = '-' + text + '-'
+                                            case 'end':
+                                                text = '-' + text
+                                            case other:
+                                                logger.warning(f"<syllabic> tag came with the value '{syllabic_tag.string}', not begin|middle|end.")
+
+                                else:
+                                    column_name = parent_name + '_text'
+                                if column_name in event:
+                                    self.logger.warning(f"Event already contained a '{column_name}': {event[column_name]}")
+                                else:
+                                    event[column_name] = text
                             event_list.append(event)
 
                         if not self.read_only:
@@ -402,7 +440,7 @@ class _MSCX_bs4(LoggedClass):
 
 
     def chords(self,
-               mode: Literal['auto','strict','all'] = 'auto',
+               mode: Literal['auto','strict'] = 'auto',
                interval_index: bool = False,
                unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
@@ -420,8 +458,6 @@ class _MSCX_bs4(LoggedClass):
                 (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
                 markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
                 'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
-                markers not occurring in the score.
             interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
@@ -646,7 +682,7 @@ class _MSCX_bs4(LoggedClass):
         """ Get the raw :ref:`notes` without adding quarterbeat columns.
 
         Args:
-            recompute:  By default, the measures are cached. Pass True to enforce recomputing anew.
+            recompute:  By default, the notes are cached. Pass True to enforce recomputing anew.
         """
         if recompute or len(self._nl) == 0:
             self.make_standard_notelist()
@@ -819,60 +855,56 @@ class _MSCX_bs4(LoggedClass):
 
 
 
-    def get_chords(self, staff=None, voice=None, mode='auto', lyrics=False, dynamics=False, articulation=False,
-                   staff_text=False, system_text=False, tempo=False, spanners=False, **kwargs):
-        """ Shortcut for ``MSCX.parsed.get_chords()``.
-        Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
+    def get_chords(self,
+                   staff: Optional[int] = None,
+                   voice: Optional[Literal[1,2,3,4]] = None,
+                   mode: Literal['auto', 'strict'] = 'auto',
+                   lyrics: bool = False,
+                   dynamics: bool = False,
+                   articulation: bool = False,
+                   staff_text: bool = False,
+                   system_text: bool = False,
+                   tempo: bool = False,
+                   spanners: bool = False,
+                   thoroughbass: bool = False,
+                   **kwargs) -> pd.DataFrame:
+        """ Retrieve a customized chord lists, e.g. one including less of the processed features or additional,
         unprocessed ones.
 
-        Parameters
-        ----------
-        staff : :obj:`int`
-            Get information from a particular staff only (1 = upper staff)
-        voice : :obj:`int`
-            Get information from a particular voice only (1 = only the first layer of every staff)
-        mode : {'auto', 'all', 'strict'}, optional
-            | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
-              DataFrame has no empty columns except for those parameters that are set to True.
-            | 'all': Columns for all aspects are created, even if they don't occur in the score (e.g. lyrics).
-            | 'strict': Create columns for exactly those parameters that are set to True, regardless which aspects occur in the score.
-        lyrics : :obj:`bool`, optional
-            Include lyrics.
-        dynamics : :obj:`bool`, optional
-            Include dynamic markings such as f or p.
-        articulation : :obj:`bool`, optional
-            Include articulation such as arpeggios.
-        spanners : :obj:`bool`, optional
-            Include spanners such as slurs, 8va lines, pedal lines etc.
-        staff_text : :obj:`bool`, optional
-            Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
-        system_text : :obj:`bool`, optional
-            Include system text such as movement titles.
-        tempo : :obj:`bool`, optional
-            Include tempo markings.
-        **kwargs : :obj:`bool`, optional
-            Set a particular keyword to True in order to include all columns from the _events DataFrame
-            whose names include that keyword. Column names include the tag names from the MSCX source code.
+        Args:
+            staff: Get information from a particular staff only (1 = upper staff)
+            voice: Get information from a particular voice only (1 = only the first layer of every staff)
+            mode:
+                | Defaults to 'auto', meaning that those aspects are automatically included that occur in the score; the resulting
+                  DataFrame has no empty columns except for those parameters that are set to True.
+                | 'strict': Create columns for exactly those parameters that are set to True, regardless whether they occur in the score
+                  or not (in which case the column will be empty).
+            lyrics: Include lyrics.
+            dynamics: Include dynamic markings such as f or p.
+            articulation: Include articulation such as arpeggios.
+            staff_text: Include expression text such as 'dolce' and free-hand staff text such as 'div.'.
+            system_text: Include system text such as movement titles.
+            tempo: Include tempo markings.
+            spanners: Include spanners such as slurs, 8va lines, pedal lines etc.
+            thoroughbass: Include thoroughbass figures' levels and durations.
+            **kwargs:
 
-        Returns
-        -------
-        :obj:`pandas.DataFrame`
+        Returns:
             DataFrame representing all <Chord> tags in the score with the selected features.
         """
         cols = {'nominal_duration': 'Chord/durationType',
                 'lyrics': 'Chord/Lyrics/text',
-                'syllabic': 'Chord/Lyrics/syllabic',
-                'verses' : 'Chord/Lyrics/no',
                 'articulation': 'Chord/Articulation/subtype',
                 'dynamics': 'Dynamic/subtype',
-                'system_text': 'SystemText/text',
+                'system_text': 'SystemText_text',
+                'staff_text': 'StaffText_text',
                 'tremolo': 'Chord/Tremolo/subtype'}
-        main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
+        main_cols = ['mc', 'mn', 'mc_onset', 'mn_onset', 'event', 'timesig', 'staff', 'voice', 'duration', 'gracenote',
                      'tremolo', 'nominal_duration', 'scalar', 'chord_id']
         if self.has_voltas:
             main_cols.insert(2, 'volta')
-        sel = self._events.event == 'Chord'
-        aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners']
+        selector = self._events.event == 'Chord'
+        aspects = ['lyrics', 'dynamics', 'articulation', 'staff_text', 'system_text', 'tempo', 'spanners', 'thoroughbass']
         if mode == 'all':
             params = {p: True for p in aspects}
         else:
@@ -884,23 +916,24 @@ class _MSCX_bs4(LoggedClass):
             'spanners': 'Spanner',
             'staff_text': 'StaffText',
             'system_text': 'SystemText',
-            'tempo': 'Tempo'
+            'tempo': 'Tempo',
+            'thoroughbass': 'FiguredBass',
         }
         selectors = {param: self._events.event == event_name for param, event_name in param2event.items()}
         if mode == 'auto':
-            for param, selector in selectors.items():
-                if not params[param] and selector.any():
+            for param, boolean_mask in selectors.items():
+                if not params[param] and boolean_mask.any():
                     params[param] = True
-        for param, selector in selectors.items():
+        for param, boolean_mask in selectors.items():
             if params[param]:
-                sel |= selector
+                selector |= boolean_mask
         if staff:
-            sel &= self._events.staff == staff
+            selector &= self._events.staff == staff
         if voice:
-            sel &=  self._events.voice == voice
-        df = self.add_standard_cols(self._events[sel])
+            selector &=  self._events.voice == voice
+        df = self.add_standard_cols(self._events[selector])
         if 'chord_id' in df.columns:
-            df = df.astype({'chord_id': 'Int64' if df.chord_id.isna().any() else int})
+            df = df.astype({'chord_id': 'Int64'})
         df.rename(columns={v: k for k, v in cols.items() if v in df.columns}, inplace=True)
 
         if mode == 'auto':
@@ -914,56 +947,49 @@ class _MSCX_bs4(LoggedClass):
             df.loc[:, 'nominal_duration'] = df.nominal_duration.map(self.durations) # replace string values by fractions
         new_cols = {}
         if params['lyrics']:
-            if 'verses' in df.columns:
-                verses = pd.to_numeric(df.verses).astype('Int64')
-                verses.loc[df.lyrics.notna()] = verses[df.lyrics.notna()].fillna(0)
-                verses += 1
-                n_verses = verses.max()
-                if n_verses > 1:
-                    self.logger.warning(f"Detected lyrics with {n_verses} verses. Unfortunately, only the last "
-                                   f"one (for each chord) can currently be extracted.")
-                verse_range = range(1, n_verses + 1)
-                lyr_cols = [f"lyrics:{verse}" for verse in verse_range]
-                columns = [df.lyrics.where(verses == verse, pd.NA).rename(col_name) for verse, col_name in enumerate(lyr_cols, 1)]
+            column_pattern = r"(lyrics_(\d+))"
+            if df.columns.str.match(column_pattern).any():
+                column_names: pd.DataFrame = df.columns.str.extract(column_pattern)
+                column_names = column_names.dropna()
+                column_names = column_names.sort_values(1)
+                column_names = column_names[0].to_list()
+                main_cols.extend(column_names)
             else:
-                lyr_cols = ['lyrics:1']
-                columns = [df.lyrics.rename('lyrics:1')] if 'lyrics' in df.columns else []
-            main_cols.extend(lyr_cols)
-            if 'syllabic' in df.columns:
-                # turn the 'syllabic' column into the typical dashs
-                empty = pd.Series(index=df.index, dtype='string')
-                for col in columns:
-                    syl_start, syl_mid, syl_end = [empty.where(col.isna() | (df.syllabic != which), '-').fillna('')
-                                                   for which in ['begin', 'middle', 'end']]
-                    col = syl_end + syl_mid + col + syl_mid + syl_start
-            df = pd.concat([df] + columns, axis=1)
+                main_cols.append('lyrics_1')
         if params['dynamics']:
             main_cols.append('dynamics')
         if params['articulation']:
             main_cols.append('articulation')
         if params['staff_text']:
             main_cols.append('staff_text')
-            text_cols = ['StaffText/text', 'StaffText/text/b', 'StaffText/text/i']
-            existing_cols = [c for c in text_cols if c in df.columns]
-            if len(existing_cols) > 0:
-                new_cols['staff_text'] = df[existing_cols].fillna('').sum(axis=1).replace('', pd.NA)
         if params['system_text']:
             main_cols.append('system_text')
         if params['tempo']:
             main_cols.extend(['tempo', 'qpm'])
-            text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
-            existing_cols = [c for c in text_cols if c in df.columns]
-            tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
-            if 'Tempo/text/sym' in df.columns:
-                replace_symbols = defaultdict(lambda: '')
-                replace_symbols.update(NOTE_SYMBOL_MAP)
-                symbols = df['Tempo/text/sym'].str.split(expand=True)\
-                                              .apply(lambda S: S.str.strip()\
-                                              .map(replace_symbols))\
-                                              .sum(axis=1)
-                tempo_text = symbols + tempo_text
-            new_cols['tempo'] = tempo_text
-            new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+            if 'Tempo/tempo' in df.columns:
+                text_cols = ['Tempo/text', 'Tempo/text/b', 'Tempo/text/i']
+                existing_cols = [c for c in text_cols if c in df.columns]
+                tempo_text = df[existing_cols].apply(lambda S: S.str.replace(r"(/ |& )", '', regex=True)).fillna('').sum(axis=1).replace('', pd.NA)
+                if 'Tempo/text/sym' in df.columns:
+                    replace_symbols = defaultdict(lambda: '')
+                    replace_symbols.update(NOTE_SYMBOL_MAP)
+                    symbols = df['Tempo/text/sym'].str.split(expand=True)\
+                                                  .apply(lambda S: S.str.strip()\
+                                                  .map(replace_symbols))\
+                                                  .sum(axis=1)
+                    tempo_text = symbols + tempo_text
+                new_cols['tempo'] = tempo_text
+                new_cols['qpm'] = (df['Tempo/tempo'].astype(float) * 60).round().astype('Int64')
+        if params['thoroughbass']:
+            if 'thoroughbass_level_1' in df.columns:
+                tb_level_columns = [col for col in df.columns if col.startswith('thoroughbass_level')]
+                if 'thoroughbass_duration' in df.columns:
+                    tb_columns = ['thoroughbass_duration'] + tb_level_columns
+                else:
+                    tb_columns = tb_level_columns
+            else:
+                tb_columns = ['thoroughbass_duration', 'thoroughbass_level_1']
+            main_cols.extend(tb_columns)
         for col in main_cols:
             if (col not in df.columns) and (col not in new_cols):
                 new_cols[col] = pd.Series(index=df.index, dtype='object')
@@ -1262,7 +1288,7 @@ The first ending MC {mc} is being used. Suppress this warning by using disambigu
     def version(self):
         return str(self.soup.find('programVersion').string)
 
-    def add_standard_cols(self, df):
+    def add_standard_cols(self, df: pd.DataFrame) -> pd.DataFrame:
         """Ensures that the DataFrame's first columns are ['mc', 'mn', ('volta'), 'timesig', 'mc_offset']"""
         ml_columns = ['mn', 'timesig', 'mc_offset']
         if self.has_voltas:
@@ -2181,7 +2207,8 @@ def get_part_info(part_tag):
 
 
 @function_logger
-def make_spanner_cols(df, spanner_types=None):
+def make_spanner_cols(df: pd.DataFrame,
+                      spanner_types: Optional[Collection[str]] = None) -> pd.DataFrame:
     """ From a raw chord list as returned by ``get_chords(spanners=True)``
         create a DataFrame with Spanner IDs for all chords for all spanner
         types they are associated with.
@@ -2198,7 +2225,7 @@ def make_spanner_cols(df, spanner_types=None):
     #### caused some spanners to continue until the end of the piece because endings were missing when selecting based
     #### on the subtype column (endings don't specify subtype). After fixing this, there were still mistakes, particularly for slurs, because:
     #### 1. endings can be missing, 2. endings can occur in a different voice than they should, 3. endings can be
-    #### expressed with different values then the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
+    #### expressed with different values than the beginning (all three cases found in ms3/old_tests/MS3/stabat_03_coloured.mscx)
     #### Therefore, the new algorithm ends spanners simply after their given duration.
 
     cols = {
@@ -2211,12 +2238,27 @@ def make_spanner_cols(df, spanner_types=None):
     # nxt = beginning of spanner & indication of its duration
     # (prv = ending of spanner & negative duration supposed to match nxt)
 
-    def get_spanner_ids(spanner_type, subtype=None):
+    def get_spanner_ids(spanner_type: str,
+                        subtype: Optional[str] = None) -> Dict[str, List[Union[str|Literal[pd.NA]]]]:
+        """
+
+        Args:
+            spanner_type: Create one or several columns expressing all <Spanner type=``spanner_type``> tags.
+            subtype:
+                Defaults to None. If at least one spanner includes a <subtype> tag, the function will call itself
+                for every subtype and create column names of the form spanner_type:subtype
+
+        Returns:
+            {column_name -> [IDs]} dictionary. IDs start at 0 and appear in every row that falls within the respective
+            spanner's span. In the case of Slurs, however, this is true only for rows with events occurring in the
+            same voice as the spanner.
+        """
+        nonlocal df
         if spanner_type == 'Slur':
-            f_cols = ['Chord/' + cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
+            spanner_duration_cols = ['Chord/' + cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
             type_col = 'Chord/' + cols['type']
         else:
-            f_cols = [cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
+            spanner_duration_cols = [cols[c] for c in ['nxt_m', 'nxt_f']]  ##, 'prv_m', 'prv_f']]
             type_col = cols['type']
 
         subtype_col = f"Spanner/{spanner_type}/subtype"
@@ -2227,14 +2269,14 @@ def make_spanner_cols(df, spanner_types=None):
             return dict(ChainMap(*results))
 
         # select rows corresponding to spanner_type
-        sel = df[type_col] == spanner_type
+        boolean_selector = df[type_col] == spanner_type
         # then select only beginnings
-        existing = [c for c in f_cols if c in df.columns]
-        sel &= df[existing].notna().any(axis=1)
+        existing = [col for col in spanner_duration_cols if col in df.columns]
+        boolean_selector &= df[existing].notna().any(axis=1)
         if subtype is not None:
-            sel &= df[subtype_col] == subtype
-        features = pd.DataFrame(index=df.index, columns=f_cols)
-        features.loc[sel, existing] = df.loc[sel, existing]
+            boolean_selector &= df[subtype_col] == subtype
+        duration_df = pd.DataFrame(index=df.index, columns=spanner_duration_cols)
+        duration_df.loc[boolean_selector, existing] = df.loc[boolean_selector, existing]
         with warnings.catch_warnings():
             # Setting values in-place is fine, ignore the warning in Pandas >= 1.5.0
             # This can be removed, if Pandas 1.5.0 does not need to be supported any longer.
@@ -2247,9 +2289,17 @@ def make_spanner_cols(df, spanner_types=None):
                     "To retain the old behavior, use either.*"
                 ),
             )
-            features.iloc[:, 0] = features.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
-            features.iloc[:, 1] = features.iloc[:, 1].fillna(0).map(frac)          # nxt_f
-        features = pd.concat([df[['mc', 'mc_onset', 'staff']], features], axis=1)
+            duration_df.iloc[:, 0] = duration_df.iloc[:, 0].fillna(0).astype(int).abs()  # nxt_m
+            duration_df.iloc[:, 1] = duration_df.iloc[:, 1].fillna(0).map(frac)          # nxt_f
+        custom_text_col = f"Spanner/{spanner_type}/beginText"
+        add_custom_text_cols = custom_text_col in df and df[custom_text_col].notna().any()
+        if add_custom_text_cols:
+            custom_texts = df[custom_text_col]
+            concat_this = [df[['mc', 'mc_onset', 'staff']], duration_df, custom_texts]
+            custom_text2ids = {text: [] for text in custom_texts.dropna().unique()}
+        else:
+            concat_this = [df[['mc', 'mc_onset', 'staff']], duration_df]
+        time_and_duration_df = pd.concat(concat_this, axis=1)
 
         current_id = -1
         column_name = spanner_type
@@ -2258,43 +2308,62 @@ def make_spanner_cols(df, spanner_types=None):
         distinguish_voices = spanner_type in ['Slur', 'Trill']
         if distinguish_voices:
             # slurs need to be ended by the same voice, there can be several going on in parallel in different voices
-            features.insert(3, 'voice', df.voice)
-            staff_stacks = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
+            time_and_duration_df.insert(3, 'voice', df.voice)
+            one_stack_per_layer = {(i, v): {} for i in df.staff.unique() for v in range(1, 5)}
         else:
             # For all other spanners, endings can be encoded in any of the 4 voices
-            staff_stacks = {i: {} for i in df.staff.unique()}
-        # staff_stacks contains for every possible layer a dictionary  {ID -> (end_mc, end_f)};
+            one_stack_per_layer = {i: {} for i in df.staff.unique()}
+        # one_stack_per_layer contains for every possible layer a dictionary  {ID -> (end_mc, end_f)};
         # going through chords chronologically, output all "open" IDs for the current layer until they are closed, i.e.
         # removed from the stack
 
-        def spanner_ids(row, distinguish_voices=False):
-            nonlocal staff_stacks, current_id
+        def row2active_ids(row) -> Union[str|Literal[pd.NA]]:
+            nonlocal one_stack_per_layer, current_id, distinguish_voices, custom_text2ids
             if distinguish_voices:
-                mc, mc_onset, staff, voice, nxt_m, nxt_f = row
+                if add_custom_text_cols:
+                    mc, mc_onset, staff, voice, nxt_m, nxt_f, custom_text = row
+                else:
+                    mc, mc_onset, staff, voice, nxt_m, nxt_f = row
                 layer = (staff, voice)
             else:
-                mc, mc_onset, staff, nxt_m, nxt_f = row
+                if add_custom_text_cols:
+                    mc, mc_onset, staff, nxt_m, nxt_f, custom_text = row
+                else:
+                    mc, mc_onset, staff, nxt_m, nxt_f = row
                 layer = staff
 
             beginning = nxt_m > 0 or nxt_f != 0
             if beginning:
                 current_id += 1
-                staff_stacks[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
-            for id, (end_mc, end_f) in tuple(staff_stacks[layer].items()):
-                if end_mc < mc or (end_mc == mc and end_f < mc_onset):
-                    del(staff_stacks[layer][id])
-            val = ', '.join(str(i) for i in staff_stacks[layer].keys())
+                one_stack_per_layer[layer][current_id] = (mc + nxt_m, mc_onset + nxt_f)
+                if add_custom_text_cols and not pd.isnull(custom_text):
+                    custom_text2ids[custom_text].append(str(current_id))
+            for active_id, (end_mc, end_f) in tuple(one_stack_per_layer[layer].items()):
+                if end_mc < mc or (end_mc == mc and end_f <= mc_onset):
+                    del(one_stack_per_layer[layer][active_id])
+            val = ', '.join(str(i) for i in one_stack_per_layer[layer].keys())
             return val if val != '' else pd.NA
 
 
         # create the ID column for the currently selected spanner (sub)type
-        res = {column_name: [spanner_ids(row, distinguish_voices=distinguish_voices) for row in features.values]}
+        res = {column_name: [row2active_ids(row) for row in time_and_duration_df.values]}
         ### With the new algorithm, remaining 'open' spanners result from no further event occurring in the respective layer
         ### after the end of the last spanner.
-        # open_ids = {layer: d for layer, d in staff_stacks.items() if len(d) > 0}
+        # open_ids = {layer: d for layer, d in one_stack_per_layer.items() if len(d) > 0}
         # if len(open_ids) > 0:
         #     logger.warning(f"At least one of the spanners of type {spanner_type}{'' if subtype is None else ', subtype: ' + subtype} "
         #                    f"has not been closed: {open_ids}")
+        if not add_custom_text_cols:
+            return res
+        if not any(len(ids) > 0 for ids in custom_text2ids.values()):
+            logger.warning(f"None of the {column_name} IDs have been attributed to one of the custom texts {custom_text2ids.keys()}.")
+            return res
+        split_ids = [[] if pd.isnull(value) else value.split(', ') for value in res[column_name]]
+        for text, relevant_ids in custom_text2ids.items():
+            custom_column_name = f"{column_name}_{text}"
+            subselected_ids = [[ID for ID in relevant_ids if ID in ids] for ids in split_ids]
+            custom_column = [pd.NA if len(ids) == 0 else ', '.join(ids) for ids in subselected_ids]
+            res[custom_column_name] = custom_column
         return res
 
     type_col = cols['type']
@@ -2495,6 +2564,24 @@ def bs4_to_mscx(soup):
     first_tag = soup.find()
     return initial_tag + format_node(first_tag, indent=0)
 
+
+def text_tag2str(tag: bs4.Tag) -> str:
+    """Transforms a <text> tag into a string that potentially includes written-out HTML tags."""
+    components = []
+    for c in tag.contents:
+        if isinstance(c, NavigableString):
+            components.append(c)
+        elif c.name == 'sym':
+            sym = c.string
+            if sym in NOTE_SYMBOL_MAP:
+                components.append(NOTE_SYMBOL_MAP[sym])
+        else:
+            # <i></i> or other text markup within the string
+            components.append(str(c))
+    txt = ''.join(components)
+    return txt
+
+
 def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     """Takes the <Text> from a MuseScore file's header and returns its style and string."""
     sty_tag = tag.find('style')
@@ -2503,16 +2590,108 @@ def tag2text(tag: bs4.Tag) -> Tuple[str, str]:
     if txt_tag is None:
         txt = ''
     else:
-        components = []
-        for c in txt_tag.contents:
-            if isinstance(c, NavigableString):
-                components.append(c)
-            elif c.name == 'sym':
-                sym = c.string
-                if sym in NOTE_SYMBOL_MAP:
-                    components.append(NOTE_SYMBOL_MAP[sym])
-            else:
-                # <i></i> or other text markup within the string
-                components.append(str(c))
-        txt = ''.join(components)
+        txt = text_tag2str(txt_tag)
     return txt, style
+
+
+DEFAULT_THOROUGHBASS_SYMBOLS = {
+    '0': '',
+    '1': 'bb',
+    '2': 'b',
+    '3': 'h',
+    '4': '#',
+    '5': '##',
+    '6': '+',
+    '7': '\\',
+    '8': '/',
+    '9': '',
+    '10': '(',
+    '11': ')',
+    '12': '[',
+    '13': ']',
+    '14': '0',
+    '15': '0+',
+}
+
+DEFAULT_THOROUGHBASS_BRACKETS = {
+    '0': '',
+    '1': '(',
+    '2': ')',
+    '3': '[',
+    '4': ']',
+    '5': '0',
+    '6': '0+',
+    '7': '0+',
+    '8': '?',
+    '9': '1',
+    '10': '1+',
+    '11': '1+',
+}
+
+@overload
+def find_tag_get_string(parent_tag: bs4.Tag, tag_to_find: str, fallback: Literal[None]) -> Tuple[Optional[bs4.Tag], Optional[str]]:
+    ...
+@overload
+def find_tag_get_string(parent_tag: bs4.Tag, tag_to_find: str, fallback: Hashable) -> Tuple[Optional[bs4.Tag], Optional[Hashable]]:
+    ...
+def find_tag_get_string(parent_tag: bs4.Tag,
+                        tag_to_find: str,
+                        fallback: Optional[Hashable] = None) -> Tuple[Optional[bs4.Tag], Optional[Union[str, Hashable]]]:
+    found = parent_tag.find(tag_to_find)
+    if found is None:
+        return None, fallback
+    return found, str(found.string)
+
+
+def get_thoroughbass_symbols(item_tag: bs4.Tag) -> Tuple[str, str]:
+    """Returns the prefix and suffix of a <FiguredBassItem> tag if present, empty strings otherwise."""
+    symbol_map = DEFAULT_THOROUGHBASS_SYMBOLS  # possibly allow for other mappings if need comes up
+    prefix_tag, prefix = find_tag_get_string(item_tag, 'prefix', fallback='')
+    if prefix != '':
+        prefix = symbol_map[prefix]
+    suffix_tag, suffix = find_tag_get_string(item_tag, 'suffix', fallback='')
+    if suffix != '':
+        suffix = symbol_map[suffix]
+    return prefix, suffix
+
+
+def thoroughbass_item(item_tag: bs4.Tag) -> str:
+    """Turns a <FiguredBassItem> tag into a string by concatenating brackets, prefix, digit and suffix."""
+    digit_tag, digit = find_tag_get_string(item_tag, 'digit', fallback='')
+    prefix, suffix = get_thoroughbass_symbols(item_tag)
+    bracket_symbol_map = DEFAULT_THOROUGHBASS_BRACKETS  # possibly allow for other mappings if need comes up
+    brackets_tag = item_tag.find('brackets')
+    if brackets_tag:
+        result = ''
+        bracket_attributes = ('b0', 'b1', 'b2', 'b3', 'b4')  # {'before_prefix', 'before_digit', 'after_digit', 'after_suffix', 'after_b3')
+        components = (prefix, digit, suffix)
+        for bracket_attribute, component in zip_longest(bracket_attributes, components, fillvalue=''):
+            bracket_code = brackets_tag[bracket_attribute]
+            result += bracket_symbol_map[bracket_code] + component
+    else:
+        result = prefix + digit + suffix
+    cont_tag, cont_value = find_tag_get_string(item_tag, 'continuationLine', 0)
+    continuation_line = min(int(cont_value), 2) * '_'  # more than two underscores result in the same behaviour as 2
+    return result + continuation_line
+
+
+def process_thoroughbass(thoroughbass_tag: bs4.Tag) -> Tuple[List[str], Optional[frac]]:
+    """Turns a <FiguredBass> tag into a list of components strings, one per level, and duration."""
+    ticks_tag = thoroughbass_tag.find('ticks')
+    if ticks_tag is None:
+        duration = None
+    else:
+        duration = frac(ticks_tag.string)
+    components = []
+    for item_tag in thoroughbass_tag.find_all('FiguredBassItem'):
+        components.append(thoroughbass_item(item_tag))
+    if len(components) == 0:
+        text_tag, text = find_tag_get_string(thoroughbass_tag, 'text')
+        if text is not None:
+            components = text.split('\n')
+            # for level in text.split('\n'):
+            #     begin, end = re.search('(_*)$', level).span()
+            #     continuation_line_length = end - begin
+            #     cont = 2 if continuation_line_length > 2 else continuation_line_length
+            #     components.append((level, cont))
+    return components, duration

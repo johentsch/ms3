@@ -198,7 +198,7 @@ class MSCX(LoggedClass):
         return cadences
 
     def chords(self,
-               mode: Literal['auto','strict','all'] = 'auto',
+               mode: Literal['auto','strict'] = 'auto',
                interval_index: bool = False,
                unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
@@ -216,8 +216,6 @@ class MSCX(LoggedClass):
                 (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
                 markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
                 'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
-                markers not occurring in the score.
             interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
