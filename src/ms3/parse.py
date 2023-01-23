@@ -703,6 +703,23 @@ class Parse(LoggedClass):
                                flat=flat,
                                include_empty=include_empty)
 
+    def get_facet(self,
+                   facet: ScoreFacet,
+                   view_name: Optional[str] = None,
+                   choose: Literal['auto', 'ask'] = 'auto',
+                   unfold: bool = False,
+                   interval_index: bool = False,
+                   concatenate: bool = True,
+                   ) -> Union[Dict[str, FileDataframeTuple], pd.DataFrame]:
+        """Retrieves exactly one DataFrame per piece, if available."""
+        return self._aggregate_corpus_data('get_facet',
+                                           facet=facet,
+                                           view_name=view_name,
+                                           choose=choose,
+                                           unfold=unfold,
+                                           interval_index=interval_index,
+                                           concatenate=concatenate,
+                                           )
 
     def get_facets(self,
                    facets: ScoreFacets = None,
@@ -1185,13 +1202,17 @@ class Parse(LoggedClass):
                                ):
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name):
-            corpus_method= getattr(corpus, method)
+            corpus_method = getattr(corpus, method)
+            if method == 'get_facet':
+                kwargs['concatenate'] = False
             corpus_result = corpus_method(view_name=view_name, **kwargs)
             for fname, piece_result in corpus_result.items():
+                if method == 'get_facet':
+                    piece_result = [piece_result]
                 result[(corpus_name, fname)] = piece_result
         if concatenate:
             keys, dataframes = [], []
-            flat = kwargs['flat']
+            flat = 'flat' not in kwargs or kwargs['flat']
             if flat:
                 add_index_level = any(len(piece_result) > 1 for piece_result in result.values())
             else:

@@ -78,7 +78,7 @@ class Piece(LoggedClass):
 
     def all_facets_present(self, view_name: Optional[str] = None,
                            selected_facets: Optional[Facets] = None) -> bool:
-        """ Checks if parsed files have been detected for all selected facets under the active or indicated view.
+        """ Checks if parsed TSV files have been detected for all selected facets under the active or indicated view.
 
         Args:
             view_name: Name of the view to check.

@@ -1681,6 +1681,8 @@ class Corpus(LoggedClass):
         """
         rows = [piece.metadata() for fname, piece in self.iter_pieces(view_name)]
         metadata = pd.DataFrame(rows)
+        if len(metadata) == 0:
+            return metadata
         metadata = enforce_fname_index_for_metadata(metadata)
         return column_order(metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
         # tsv_metadata, score_metadata = None, None
