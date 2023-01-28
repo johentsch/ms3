@@ -185,6 +185,11 @@ class Corpus(LoggedClass):
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
     @property
+    def fnames(self) -> List[str]:
+        """All fnames including those of scores that are not listed in metadata.tsv"""
+        return self.get_all_fnames()
+
+    @property
     def ix2file(self) -> dict:
         return dict(enumerate(self.files))
 
@@ -1634,7 +1639,7 @@ class Corpus(LoggedClass):
 
     def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
         if fnames is None:
-            fnames = self.get_all_fnames()
+            fnames = self.fnames
         elif isinstance(fnames, str):
             fnames = [fnames]
         fnames = sorted(fnames, key=len, reverse=True)
