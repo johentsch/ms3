@@ -359,6 +359,9 @@ class Parse(LoggedClass):
         # self.corpus_paths[key] = directory
         # self.look_for_ignored_warnings(directory, key)
 
+    def add_detached_annotations(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`insert_detached_labels`."""
+        raise AttributeError(f"Method not in use any more. Use Parse.insert_detached_labels().")
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
