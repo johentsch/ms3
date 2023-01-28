@@ -742,7 +742,7 @@ def _convert_kwargs(kwargs):
     return convert(**kwargs)
 
 @function_logger
-def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
@@ -750,7 +750,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
     ----------
     directory : :obj:`str`
         Directory in which to look for files to convert.
-    paths : :obj:`list` of `dir`
+    file_paths : :obj:`list` of `dir`
         List of file paths to convert. These are not filtered by any means.
     target_dir : :obj:`str`
         Directory where to store converted files. Defaults to ``directory``
@@ -764,9 +764,9 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
     """
     MS = get_musescore(ms, logger=logger)
     assert MS is not None, f"MuseScore not found: {ms}"
-    assert any(arg is not None for arg in (directory, paths)), "Pass at least a directory or one path."
-    if isinstance(paths, str):
-        paths = [paths]
+    assert any(arg is not None for arg in (directory, file_paths)), "Pass at least a directory or one path."
+    if isinstance(file_paths, str):
+        file_paths = [file_paths]
     if target_extension[0] == '.':
         target_extension = target_extension[1:]
     conversion_params = []
@@ -783,9 +783,9 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
         subdir_file_tuples = chain(subdir_file_tuples,
                                    scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive,
                                                   subdirs=True, exclude_files_only=True, logger=logger))
-    if paths is not None:
+    if file_paths is not None:
         subdir_file_tuples = chain(subdir_file_tuples,
-                                   (os.path.split(resolve_dir(path)) for path in paths))
+                                   (os.path.split(resolve_dir(path)) for path in file_paths))
     for subdir, file in subdir_file_tuples:
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
@@ -2706,9 +2706,9 @@ def path2type(path):
     if fext.lower() in SCORE_EXTENSIONS:
         logger.debug(f"Recognized file extension '{fext}' as score.")
         return 'scores'
-    comp2type = path_component2file_type_map()
+    component2type = path_component2file_type_map()
     def find_components(s):
-        res = [comp for comp in comp2type.keys() if comp in s]
+        res = [comp for comp in component2type.keys() if comp in s]
         return res, len(res)
     if os.path.isfile(path):
         # give preference to folder names before file names
@@ -2724,27 +2724,29 @@ def path2type(path):
         logger.debug(f"Type could not be inferred from path '{path}'.")
         return 'unknown'
     if n_found == 1:
-        typ = comp2type[found_components[0]]
+        typ = component2type[found_components[0]]
         logger.debug(f"Path '{path}' recognized as {typ}.")
         return typ
     else:
         shortened_path = path
         while len(shortened_path) > 0:
             shortened_path, base = os.path.split(shortened_path)
-            for comp in comp2type.keys():
+            for comp in component2type.keys():
                 if comp in base:
-                    typ = comp2type[comp]
+                    typ = component2type[comp]
                     logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
         return 'other'
 
 
+@lru_cache()
 def path_component2file_type_map() -> dict:
     comp2type = {comp: comp for comp in STANDARD_NAMES}
     comp2type['MS3'] = 'scores'
     comp2type['harmonies'] = 'expanded'
     comp2type['output'] = 'labels'
+    comp2type['infer'] = 'labels'
     return comp2type
 
 def file_type2path_component_map() -> dict:
@@ -2795,6 +2797,7 @@ def resolve_dir(d):
     """
     if d is None:
         return None
+    d = str(d)
     if '~' in d:
         return os.path.expanduser(d)
     return os.path.abspath(d)
@@ -4517,17 +4520,30 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
 class File:
     """Storing path and file name information for one file."""
     ix: int
+    """Index integer (ID)"""
     type: str
+    """Recognized type ∈ :attr:`ms3._typing.Facet`"""
     file: str
+    """File name including extension."""
     fname: str
+    """fname excluding the suffix (after registering the file with a :obj:`Piece`)."""
     fext: str
+    """File extensions."""
     subdir: str
+    """Directory relative to the corpus path (e.g. './MS3')."""
     corpus_path: str
+    """Absolute path of the file's parent directory that is considered as corpus directory."""
     rel_path: str
+    """File path relative to the corpus path. Equivalent to <subdir>/<file>."""
     full_path: str
+    """Absolute file path."""
     directory: str
+    """Absolute folder path where the file is located."""
     suffix: str
+    """Upon registering the File with a :obj:`Piece`, if the current fname has a suffix compared to the Piece's fname, 
+    suffix is removed from the File object's fname field and added to the suffix field."""
     commit_sha: str = ''
+    """The the file has been retrieved from a particular git revision, this is set to the revision's hash."""
 
     def __repr__(self):
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
@@ -4876,18 +4892,38 @@ def unpack_json_paths(paths: Collection[str]) -> None:
 
 
 @function_logger
-def resolve_paths_argument(paths: Collection[str]) -> Collection[str]:
+def resolve_paths_argument(paths: Union[str, Collection[str]],
+                           files: bool = True) -> List[str]:
+    """ Makes sure that the given path(s) exists(s) and filters out those that don't.
+
+    Args:
+        paths: One or several paths given as strings.
+        files: By default, only file paths are returned. Set to False to return only folders.
+
+    Returns:
+
+    """
     if isinstance(paths, str):
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
-    not_a_file = [p for p in paths if not os.path.isfile(p)]
-    if len(not_a_file) > 0:
-        if len(not_a_file) == 1:
-            msg = f"No existing file at {not_a_file[0]}."
-        else:
-            msg = f"These are not paths of existing files: {not_a_file}"
-        logger.warning(msg)
-        resolved_paths = [p for p in paths if os.path.isfile(p)]
+    if files:
+        not_a_file = [p for p in paths if not os.path.isfile(p)]
+        if len(not_a_file) > 0:
+            if len(not_a_file) == 1:
+                msg = f"No existing file at {not_a_file[0]}."
+            else:
+                msg = f"These are not paths of existing files: {not_a_file}"
+            logger.warning(msg)
+            resolved_paths = [p for p in paths if os.path.isfile(p)]
+    else:
+        not_a_folder = [p for p in paths if not os.path.isdir(p)]
+        if len(not_a_folder) > 0:
+            if len(not_a_folder) == 1:
+                msg = f"{not_a_folder[0]} is not a path to an existing folder."
+            else:
+                msg = f"These are not paths of existing folders: {not_a_folder}"
+            logger.warning(msg)
+            resolved_paths = [p for p in paths if os.path.isdir(p)]
     return resolved_paths
 
 @function_logger
