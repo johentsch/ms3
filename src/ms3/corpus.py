@@ -1,4 +1,5 @@
 from functools import lru_cache
+from glob import glob
 from logging import Logger
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional
 
@@ -99,7 +100,7 @@ class Corpus(LoggedClass):
                                                        include_convertible=include_convertible,
                                                        include_tsv=include_tsv,
                                                        exclude_review=exclude_review,
-                                                       paths=paths,
+                                                       file_paths=paths,
                                                        file_re=file_re,
                                                        folder_re=folder_re,
                                                        exclude_re=exclude_re,
@@ -177,10 +178,7 @@ class Corpus(LoggedClass):
         self.create_pieces()
         self.look_for_ignored_warnings()
         self.register_files_with_pieces()
-        # self.look_for_ignored_warnings(directory, key=top_level)
-        # if len(mscx_files) > 0:
-        #     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
-        #                         f"\n{mscx_files}", extra={"message_id": (7, top_level)})
+
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -266,6 +264,17 @@ class Corpus(LoggedClass):
     @property
     def n_annotations(self):
         return len(self.ix2annotations)
+
+    def add_dir(self, directory: str) -> FileList:
+        """Add additional files pertaining to the already existing fnames of the corpus.
+
+        If you want to use a directory with other pieces, create another :obj:`Corpus` object or combine several
+        corpora in a :obj:`Parse` object.
+        """
+        directory = resolve_dir(directory)
+        all_file_paths = glob(os.path.join(directory, '**'))
+        added = self.add_file_paths(all_file_paths)
+        self.logger.debug(f"{len(added)} files added to the corpus.")
 
     def cadences(self,
                     view_name: Optional[str] = None,
@@ -476,6 +485,15 @@ class Corpus(LoggedClass):
         return file_count.sum()
 
     def add_file_paths(self, paths: Collection[str]) -> FileList:
+        """Iterates through the given paths, converts those that correspond to parseable files to :obj:`File` objects
+        (trying to infer their type from the path), and appends those to :attr:`files`.
+
+        Args:
+            paths: File paths that are to be registered with this Corpus object.
+
+        Returns:
+            A list of :obj:`File` objects corresponding to parseable files (based on their extensions).
+        """
         resolved_paths = resolve_paths_argument(paths, logger=self.logger)
         if len(resolved_paths) == 0:
             return
@@ -493,10 +511,11 @@ class Corpus(LoggedClass):
                 continue
             current_subdir = os.path.relpath(current_path, self.corpus_path)
             rel_path = os.path.join(current_subdir, file)
-            if current_subdir.startswith('..'):
-                self.logger.warning(f"The file {rel_path} is lies outside the corpus folder {self.corpus_path}. "
-                                    f"This may lead to invalid relative paths in the metadata.tsv.")
             file_type = path2type(full_path, logger=self.logger)
+            if current_subdir.startswith('..') and file_type == 'scores':
+                self.logger.warning(f"The score {rel_path} lies outside the corpus folder {self.corpus_path}. "
+                                    f"In case this is the only score detected for fname '{file_name}', this will result in "
+                                    f"an invalid relative path in the metadata.tsv file, i.e. one that will not exist on other systems.")
             F = File(
                 ix=len(self.files),
                 type=file_type,
@@ -1637,7 +1656,20 @@ class Corpus(LoggedClass):
             self.logger.info(f"None of the {target} TSV files have been parsed successfully.")
 
 
-    def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
+    def register_files_with_pieces(self,
+                                   files: Optional[FileList] = None,
+                                   fnames: Optional[Union[Collection[str], str]] = None) -> None:
+        """Iterates through the ``files`` and tries to match it with the ``fnames`` and registered matched
+        :obj:`File` objects with the corresponding :obj:`Piece` objects (unless already registered).
+
+        By default, the method uses this object's :attr:`files` and :attr:`fnames`. To match with a Piece, the file name
+        (without extension) needs to start with the Piece's ``fname``; otherwise, it will be stored under
+        :attr:`ix2orphan_file`.
+
+        Args:
+            files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.
+            fnames: Fnames of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
+        """
         if fnames is None:
             fnames = self.fnames
         elif isinstance(fnames, str):
