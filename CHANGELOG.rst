@@ -2,6 +2,47 @@
 Changelog
 =========
 
+Version 1.2.0
+=============
+
+**ms3 requires Python 3.10**
+
+Extraction of all lyrics
+------------------------
+
+This version enables the extraction of lyrics with all verses. Previously, only the last verse's syllable for any
+given position was extracted. The lyrics now can be found in `lyrics_[verse]` columns in the chords facet,
+where `lyrics_1` corresponds to the first or only verse.
+
+Extraction of figured bass
+--------------------------
+
+Figured bass labels can now be found in the chords facet tables. Score that include at least one figure will have a
+``thoroughbass_duration`` column and each layer of figures comes in a separate ``thoroughbass_layer_#`` column.
+For example, if all stacks of figures have only layer, there will be only the column ``thoroughbass_layer_1``.
+
+Extraction of custom-named spanners
+-----------------------------------
+
+Spanners with adjusted "Begin text" property get their own columns in the chords tables, containing the relevant subselection of IDs.
+For example, if a score contains normal ``8va`` spanners and others where the "Begin text" has been set to ``custom``,
+all IDs will be combined in the column ``Ottava:8va`` as before, but the subset pertaining to the custom spanners is
+additionally shown in the column ``Ottava:8va_custom``.
+
+Including and excluding paths
+-----------------------------
+
+It is now possible to specify specific directories to be included or excluded from a view, not only folder names.
+
+New methods and properties
+--------------------------
+
+* ``Parse.get_facet()`` (singular)
+* ``Corpus.fnames``
+* ``Corpus.add_dir()``
+* first version of ``utils.merge_chords_and_notes()``
+
+
 Version 1.1.2
 =============
 
