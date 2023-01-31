@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 1.2.1
+=============
+
+* enables hiding the info prints in operations.insert_labels_into_score()
+* adds `filter_other_fnames` argument to Corpus.add_dir()
+
 Version 1.2.0
 =============
 
