@@ -2923,33 +2923,34 @@ def scale_degree2name(sd, localkey, globalkey):
 
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=False):
-    """ Generator of file names in ``directory``.
+def scan_directory(directory: str,
+                   file_re: str = r".*",
+                   folder_re: str = r".*",
+                   exclude_re: str = r"^(\.|_)",
+                   recursive: bool = True,
+                   subdirs: bool = False,
+                   progress: bool = False,
+                   exclude_files_only: bool = False,
+                   return_metadata: bool = False) -> Iterator[Union[str, Tuple[str, str]]]:
+    """ Generator of filtered file paths in ``directory``.
 
-    Parameters
-    ----------
-    dir : :obj:`str`
-        Directory to be scanned for files.
-    file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
-        Regular expressions for filtering certain file names or folder names.
-        The regEx are checked with search(), not match(), allowing for fuzzy search.
-    recursive : :obj:`bool`, optional
-        By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-    subdirs : :obj:`bool`, optional
-        By default, full file paths are returned. Pass True to return (path, name) tuples instead.
-    progress : :obj:`bool`, optional
-        By default, the scanning process is shown. Pass False to prevent.
-    exclude_files_only : :obj:`bool`, optional
-        By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
-    return_metadata: :obj:`bool`, optional
-        Independent of file_re, files called 'metadata.tsv' are always yielded.
+    Args:
+        directory: Directory to be scanned for files.
+        file_re, folder_re:
+            Regular expressions for filtering certain file names or folder names.
+            The regEx are checked with search(), not match(), allowing for fuzzy search.
+        exclude_re:
+            Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.
+        recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.
+        progress: Pass True to display the progress (useful for large directories).
+        exclude_files_only:
+            By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
+        return_metadata:
+            If set to True, 'metadata.tsv' are always yielded regardless of ``file_re``.
 
-
-    Yields
-    ------
-    :obj:`str`
-        Full path.
-
+    Yields:
+        Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.
     """
     if file_re is None:
         file_re = r".*"

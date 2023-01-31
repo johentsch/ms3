@@ -26,7 +26,8 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, store_csvw_jsonld
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
+    store_csvw_jsonld, scan_directory
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -265,16 +266,47 @@ class Corpus(LoggedClass):
     def n_annotations(self):
         return len(self.ix2annotations)
 
-    def add_dir(self, directory: str) -> FileList:
+    def add_dir(self,
+                directory: str,
+                filter_other_fnames: bool = False,
+                file_re: str = r".*",
+                folder_re: str = r".*",
+                exclude_re: str = r"^(\.|_)",
+                ) -> FileList:
         """Add additional files pertaining to the already existing fnames of the corpus.
 
         If you want to use a directory with other pieces, create another :obj:`Corpus` object or combine several
         corpora in a :obj:`Parse` object.
+
+        Args:
+            directory:
+                Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus's
+                fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
+            filter_other_fnames:
+                Set to True if you want to filter out all fnames that were not matched up with one of the added files.
+                This can be useful if you're loading TSV files with labels and want to parse only the scores for which
+                you have added labels.
+            file_re, folder_re:
+                Regular expressions for filtering certain file names or folder names.
+                The regEx are checked with search(), not match(), allowing for fuzzy search.
+            exclude_re:
+                Exclude files and folders containing this regular expression.
+
+        Returns:
+            List of :obj:`File` objects pertaining to the matched, newly added paths.
         """
         directory = resolve_dir(directory)
-        all_file_paths = glob(os.path.join(directory, '**'))
-        added = self.add_file_paths(all_file_paths)
-        self.logger.debug(f"{len(added)} files added to the corpus.")
+        all_file_paths = list(scan_directory(directory,
+                                             file_re=file_re,
+                                             folder_re=folder_re,
+                                             exclude_re=exclude_re))
+        added_files = self.add_file_paths(all_file_paths)
+        self.logger.debug(f"{len(added_files)} files added to the corpus.")
+        if filter_other_fnames:
+            new_view = self.view.copy()
+            new_view.include('fnames', *(re.escape(f.fname) for f in added_files))
+            self.set_view(new_view)
+        return added_files
 
     def cadences(self,
                     view_name: Optional[str] = None,
@@ -513,7 +545,7 @@ class Corpus(LoggedClass):
             rel_path = os.path.join(current_subdir, file)
             file_type = path2type(full_path, logger=self.logger)
             if current_subdir.startswith('..') and file_type == 'scores':
-                self.logger.warning(f"The score {rel_path} lies outside the corpus folder {self.corpus_path}. "
+                self.logger.info(f"The score {rel_path} lies outside the corpus folder {self.corpus_path}. "
                                     f"In case this is the only score detected for fname '{file_name}', this will result in "
                                     f"an invalid relative path in the metadata.tsv file, i.e. one that will not exist on other systems.")
             F = File(
