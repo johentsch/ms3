@@ -225,6 +225,14 @@ class Parse(LoggedClass):
     def add_corpus(self,
                    directory: str,
                    corpus_name: Optional[str] = None,
+                   only_metadata_fnames: Optional[bool] = None,
+                   include_convertible: Optional[bool] = None,
+                   include_tsv: Optional[bool] = None,
+                   exclude_review: Optional[bool] = None,
+                   file_re: Optional[Union[str, re.Pattern]] = None,
+                   folder_re: Optional[Union[str, re.Pattern]] = None,
+                   exclude_re: Optional[Union[str, re.Pattern]] = None,
+                   paths: Optional[Collection[str]] = None,
                    **logger_cfg) -> None:
         """
         This method creates a :class:`~.corpus.Corpus` object which scans the directory ``directory`` for parseable files.
@@ -249,8 +257,22 @@ class Parse(LoggedClass):
         if corpus_name is None:
             corpus_name = os.path.basename(directory).strip(r"\/")
         logger_cfg['name'] = self.logger.name + '.' + corpus_name.replace('.', '')
+        view_params = any(param is not None for param in (paths, file_re, folder_re, exclude_re, only_metadata_fnames, include_tsv, exclude_review, include_convertible))
+        if view_params:
+            initial_view = create_view_from_parameters(only_metadata_fnames=only_metadata_fnames,
+                                                       include_convertible=include_convertible,
+                                                       include_tsv=include_tsv,
+                                                       exclude_review=exclude_review,
+                                                       file_paths=paths,
+                                                       file_re=file_re,
+                                                       folder_re=folder_re,
+                                                       exclude_re=exclude_re,
+                                                       level=self.logger.getEffectiveLevel())
+            self._views[initial_view.name] = initial_view
+        else:
+            initial_view = self.get_view()
         try:
-            corpus = Corpus(directory=directory, view=self.get_view(), ms=self.ms, **logger_cfg)
+            corpus = Corpus(directory=directory, view=initial_view, labels_cfg=self.labels_cfg, ms=self.ms, **logger_cfg)
         except AssertionError:
             self.logger.debug(f"{directory} contains no parseable files.")
             return
@@ -275,6 +297,14 @@ class Parse(LoggedClass):
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
+                only_metadata_fnames: Optional[bool] = None,
+                include_convertible: Optional[bool] = None,
+                include_tsv: Optional[bool] = None,
+                exclude_review: Optional[bool] = None,
+                file_re: Optional[Union[str, re.Pattern]] = None,
+                folder_re: Optional[Union[str, re.Pattern]] = None,
+                exclude_re: Optional[Union[str, re.Pattern]] = None,
+                paths: Optional[Collection[str]] = None,
                 **logger_cfg) -> None:
         """
         This method decides if the directory ``directory`` contains several corpora or if it is a corpus
@@ -295,9 +325,15 @@ class Parse(LoggedClass):
         if not os.path.isdir(directory):
             self.logger.warning(f"{directory} is not an existing directory.")
             return
-
+        L = locals()
+        arguments = ('only_metadata_fnames', 'include_convertible', 'include_tsv', 'exclude_review', 'file_re', 'folder_re', 'exclude_re', 'paths')
+        corpus_config = {arg: L[arg] for arg in arguments if L[arg] is not None}
+        if 'level' not in logger_cfg:
+            logger_cfg['level'] = self.logger.getEffectiveLevel()
+        corpus_config.update(logger_cfg)
         if not recursive:
-            self.add_corpus(directory, **logger_cfg)
+            self.add_corpus(directory=directory,
+                            **corpus_config)
             return
 
         # new corpus/corpora to be added
@@ -305,11 +341,13 @@ class Parse(LoggedClass):
         n_corpora = len(subdir_corpora)
         if n_corpora == 0:
             self.logger.debug(f"Treating {directory} as corpus.")
-            self.add_corpus(directory, **logger_cfg)
+            self.add_corpus(directory,
+                            **corpus_config)
         else:
             self.logger.debug(f"{n_corpora} individual corpora detected in {directory}.")
             for corpus_path in subdir_corpora:
-                self.add_corpus(corpus_path, **logger_cfg)
+                self.add_corpus(corpus_path,
+                                **corpus_config)
 
 
     def add_files(self, file_paths: Union[str, Collection[str]], corpus_name: Optional[str] = None) -> None:
