@@ -21,6 +21,8 @@ from .view import View, DefaultView
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
 
+    _deprecated_elements = ["get_dataframe"]
+
     def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.name = fname
@@ -591,11 +593,6 @@ class Piece(LoggedClass):
         return [(file, score) for file, score in parsed_scores if score.mscx.changed]
 
 
-    def get_dataframe(self, *args, **kwargs) -> None:
-        """Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`."""
-        raise AttributeError(f"Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, "
-                             f"_.extract_facet() to retrieve a freshly extracted DataFrame, "
-                             f"or _.get_facet() to retrieve either, according to availability.")
 
 
     def get_facets(self,
@@ -1642,3 +1639,8 @@ class Piece(LoggedClass):
         return written_paths
 
 
+    def get_dataframe(self, *args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`."""
+        raise DeprecationWarning(f"Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, "
+                             f"_.extract_facet() to retrieve a freshly extracted DataFrame, "
+                             f"or _.get_facet() to retrieve either, according to availability.")

@@ -20,6 +20,19 @@ class Parse(LoggedClass):
     Class for creating one or several :class:`~.corpus.Corpus` objects and performing actions on all of them.
     """
 
+    _deprecated_elements = [
+        "parsed_mscx",
+        "parsed_tsv",
+        "add_detached_annotations",
+        "count_annotation_layers",
+        "count_labels",
+        "get_lists",
+        "parse_mscx",
+        "pieces",
+        "store_scores",
+        "update_metadata",
+    ]
+
     def __init__(self,
                  directory: Optional[Union[str, Collection[str]]] = None,
                  recursive: bool = True,
@@ -176,15 +189,7 @@ class Parse(LoggedClass):
         return sum(corpus.n_unparsed_tsvs for _, corpus in self)
 
 
-    @property
-    def parsed_mscx(self) -> pd.DataFrame:
-        """Deprecated property. Replaced by :attr:`n_parsed_scores`"""
-        raise AttributeError(f"Property has been renamed to n_parsed_scores.")
 
-    @property
-    def parsed_tsv(self) -> pd.DataFrame:
-        """Deprecated property. Replaced by :attr:`n_parsed_tsvs`"""
-        raise AttributeError(f"Property has been renamed to n_parsed_tsvs.")
 
     @property
     def view(self) -> View:
@@ -264,104 +269,9 @@ class Parse(LoggedClass):
                                     f"was replaced by {directory}")
         self.corpus_paths[corpus_name] = directory
         self.corpus_objects[corpus_name] = corpus
-        # convertible = self.ms is not None
-        # if file_re is None:
-        #     file_re = Score._make_extension_regex(tsv=True, convertible=convertible)
-        # if exclude_re is None:
-        #     exclude_re = r'(^(\.|_|concatenated_)|_reviewed)'
-        # directory = resolve_dir(directory)
-        # self.last_scanned_dir = directory
-        # if key is None:
-        #     key = os.path.basename(directory)
-        # if key not in self.files:
-        #     self.logger.debug(f"Adding {directory} as new corpus with key '{key}'.")
-        #     self.files[key] = []
-        #     self.corpus_paths[key] = resolve_dir(directory)
-        # else:
-        #     self.logger.info(f"Adding {directory} to existing corpus with key '{key}'.")
-        #
-        # top_level_folders, top_level_files = first_level_files_and_subdirs(directory)
-        # self.logger.debug(f"Top level folders: {top_level_folders}\nTop level files: {top_level_files}")
-        #
-        # added_ids = []
-        #
-        # # look for scores
-        # scores_folder = None
-        # if 'scores' in kwargs and kwargs['scores'] in top_level_folders:
-        #     scores_folder = kwargs['scores']
-        # elif 'MS3' in top_level_folders:
-        #     scores_folder = 'MS3'
-        # elif 'scores' in top_level_folders:
-        #     scores_folder = 'scores'
-        # else:
-        #     msg = f"No scores folder found among {top_level_folders}."
-        #     if 'scores' not in kwargs:
-        #         msg += " If one of them has MuseScore files, indicate it by passing scores='scores_folder'."
-        #     self.logger.info(msg)
-        # if scores_folder is not None:
-        #     score_re = Score._make_extension_regex(convertible=convertible)
-        #     scores_path = os.path.join(directory, scores_folder)
-        #     score_paths = sorted(scan_directory(scores_path, file_re=score_re, recursive=recursive))
-        #     score_ids = self.add_files(paths=score_paths, key=key)
-        #     added_ids += score_ids
-        #     score_fnames = self._get_unambiguous_fnames_from_ids(score_ids, key=key)
-        #
-        #     for fname, id in score_fnames.items():
-        #         piece = self._get_piece(key, fname)
-        #         piece.type2file_info['score'] = self.id2file_info[id]
-        #         self.id2piece_id[id] = (key, fname)
-        #         # if fname in self.corpus2fname2score[key]:
-        #         #     if self.corpus2fname2score[key][fname] == id:
-        #         #         self.debug(f"'{fname} had already been matched to {id}.")
-        #         #     else:
-        #         #         self.warning(f"'{fname} had already been matched to {self.corpus2fname2score[key][fname]}")
-        #     self.corpus2fname2score[key].update(score_fnames)
-        #
-        # # look for metadata
-        # if 'metadata.tsv' in top_level_files:
-        #     default_metadata_path = os.path.join(directory, 'metadata.tsv')
-        #     self.logger.debug(f"'metadata.tsv' was detected and added.")
-        #     added_ids += self.add_files(paths=default_metadata_path, key=key)
-        #     metadata_id = added_ids[-1]
-        #     self.parse_tsv(ids=[metadata_id])
-        #     metadata_tsv = self._parsed_tsv[metadata_id]
-        #     metadata_fnames = metadata_tsv.fnames
-        # else:
-        #     metadata_id = None
-        #
-        #
-        #
-        # return
-        # paths = sorted(
-        #     scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,
-        #                    recursive=recursive, logger=self.logger))
-        # if len(paths) == 0:
-        #     self.logger.info(f"No matching files found in {directory}.")
-        #     return
-        # added_ids = self.add_files(paths=paths, key=key)
-        # if len(added_ids) == 0:
-        #     self.logger.debug(f"No files from {directory} have been added.")
-        #     return
-        # _, first_i = added_ids[0]
-        # if 'metadata.tsv' in self.files[key][first_i:]:
-        #     self.logger.debug(f"Found metadata.tsv for corpus '{key}'.")
-        # elif 'metadata.tsv' in self.files[key]:
-        #     self.logger.debug(f"Had already found metadata.tsv for corpus '{key}'.")
-        # else:
-        #     # if no metadata have been found (e.g. because excluded via file_re), add them if they're there
-        #     default_metadata_path = os.path.join(directory, 'metadata.tsv')
-        #     if os.path.isfile(default_metadata_path):
-        #         self.logger.info(f"'metadata.tsv' was detected and automatically added for corpus '{key}'.")
-        #         metadata_id = self.add_files(paths=default_metadata_path, key=key)
-        #         added_ids += metadata_id
-        #     else:
-        #         self.logger.info(f"No metadata found for corpus '{key}'.")
-        # self.corpus_paths[key] = directory
-        # self.look_for_ignored_warnings(directory, key)
 
-    def add_detached_annotations(self, *args, **kwargs):
-        """Deprecated method. Replaced by :meth:`insert_detached_labels`."""
-        raise AttributeError(f"Method not in use any more. Use Parse.insert_detached_labels().")
+
+
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
@@ -765,9 +675,7 @@ class Parse(LoggedClass):
                                            include_empty=include_empty
                                            )
 
-    def get_lists(self, *args, **kwargs):
-        """Deprecated method. Replaced by :meth:`get_facets`."""
-        raise AttributeError(f"Method get_lists() not in use any more. Use Parse.get_facets() instead.")
+
 
 
     def get_piece(self, corpus_name: str, fname: str) -> Piece:
@@ -850,71 +758,7 @@ class Parse(LoggedClass):
         if return_str:
             return msg
         print(msg)
-        # ids = list(self._iterids(keys))
-        # info = f"{len(ids)} files.\n"
-        # if subdirs:
-        #     exts = self.count_extensions(keys, per_subdir=True)
-        #     for key, subdir_exts in exts.items():
-        #         info += key + '\n'
-        #         for line in pretty_dict(subdir_exts).split('\n'):
-        #             info += '    ' + line + '\n'
-        # else:
-        #     exts = self.count_extensions(keys, per_key=True)
-        #     info += pretty_dict(exts, heading='EXTENSIONS')
-        # parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]
-        # parsed_mscx = len(parsed_mscx_ids)
-        # ext_counts = self.count_extensions(keys, per_key=False)
-        # others = len(self._score_ids(opposite=True))
-        # mscx = len(self._score_ids())
-        # by_conversion = len(self._score_ids(native=False))
-        # if parsed_mscx > 0:
-        #
-        #     if parsed_mscx == mscx:
-        #         info += f"\n\nAll {mscx} MSCX files have been parsed."
-        #     else:
-        #         info += f"\n\n{parsed_mscx}/{mscx} MSCX files have been parsed."
-        #     annotated = sum(True for id in parsed_mscx_ids if id in self._annotations)
-        #     if annotated == mscx:
-        #         info += f"\n\nThey all have annotations attached."
-        #     else:
-        #         info += f"\n\n{annotated} of them have annotations attached."
-        #     if annotated > 0:
-        #         layers = self.count_annotation_layers(keys, which='attached', per_key=True)
-        #         info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #
-        #     detached = sum(True for id in parsed_mscx_ids if self._parsed_mscx[id].has_detached_annotations)
-        #     if detached > 0:
-        #         info += f"\n\n{detached} of them have detached annotations:"
-        #         layers = self.count_annotation_layers(keys, which='detached', per_key=True)
-        #         try:
-        #             info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #         except:
-        #             print(layers)
-        #             raise
-        # elif '.mscx' in ext_counts:
-        #     if mscx > 0:
-        #         info += f"\n\nNone of the {mscx} score files have been parsed."
-        #         if by_conversion > 0 and self.ms is None:
-        #             info += f"\n{by_conversion} files would need to be converted, for which you need to set the 'ms' property to your MuseScore 3 executable."
-        # if self.ms is not None:
-        #     info += "\n\nMuseScore 3 executable has been found."
-        #
-        #
-        # parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]
-        # parsed_tsv = len(parsed_tsv_ids)
-        # if parsed_tsv > 0:
-        #     annotations = sum(True for id in parsed_tsv_ids if id in self._annotations)
-        #     if parsed_tsv == others:
-        #         info += f"\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
-        #     else:
-        #         info += f"\n\n{parsed_tsv}/{others} tabular files have been parsed, {annotations} of them as Annotations object(s)."
-        #     if annotations > 0:
-        #         layers = self.count_annotation_layers(keys, which='tsv', per_key=True)
-        #         info += f"\n{pretty_dict(layers, heading='ANNOTATION LAYERS')}"
-        #
-        # if return_str:
-        #     return info
-        # print(info)
+
 
     def insert_detached_labels(self,
                                view_name: Optional[str] = None,
@@ -1340,108 +1184,6 @@ class Parse(LoggedClass):
             raise AttributeError(f"'{view_name}' is not an existing view. Use _.get_view('{view_name}') to create it.")
 
 
-#
-#
-#     def count_annotation_layers(self, keys=None, which='attached', per_key=False):
-#         """ Counts the labels for each annotation layer defined as (staff, voice, harmony_layer).
-#         By default, only labels attached to a score are counted.
-#
-#         Parameters
-#         ----------
-#         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-#             Key(s) for which to count annotation layers.  By default, all keys are selected.
-#         which : {'attached', 'detached', 'tsv'}, optional
-#             'attached': Counts layers from annotations attached to a score.
-#             'detached': Counts layers from annotations that are in a Score object, but detached from the score.
-#             'tsv': Counts layers from Annotation objects that have been loaded from or into annotation tables.
-#         per_key : :obj:`bool`, optional
-#             If set to True, the results are returned as a dict {key: Counter}, otherwise the counts are summed up in one Counter.
-#             If ``which='detached'``, the keys are keys from Score objects, otherwise they are keys from this Parse object.
-#
-#         Returns
-#         -------
-#         :obj:`dict` or :obj:`collections.Counter`
-#             By default, the function returns a Counter of labels for every annotation layer (staff, voice, harmony_layer)
-#             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
-#         """
-#         res_dict = defaultdict(Counter)
-#
-#         if which == 'detached':
-#             for id in self._iterids(keys, only_detached_annotations=True):
-#                 for key, annotations in self._parsed_mscx[id]._detached_annotations.items():
-#                     if key != 'annotations':
-#                         _, layers = annotations.annotation_layers
-#                         layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
-#                                        layers.to_dict().items()}
-#                         res_dict[key].update(layers_dict)
-#         elif which in ['attached', 'tsv']:
-#             for key, i in self._iterids(keys):
-#                 if (key, i) in self._annotations:
-#                     ext = self.fexts[key][i]
-#                     if (which == 'attached' and ext == '.mscx') or (which == 'tsv' and ext != '.mscx'):
-#                         _, layers = self._annotations[(key, i)].annotation_layers
-#                         layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in
-#                                        layers.to_dict().items()}
-#                         res_dict[key].update(layers_dict)
-#         else:
-#             self.logger.error(f"Parameter 'which' needs to be one of {{'attached', 'detached', 'tsv'}}, not {which}.")
-#             return {} if per_key else pd.Series()
-#
-#
-#         def make_series(counts):
-#             if len(counts) == 0:
-#                 return pd.Series()
-#             data = counts.values()
-#             ks = list(counts.keys())
-#             #levels = len(ks[0])
-#             names = ['staff', 'voice', 'harmony_layer', 'color'] #<[:levels]
-#             ix = pd.MultiIndex.from_tuples(ks, names=names)
-#             return pd.Series(data, ix)
-#
-#         if per_key:
-#             res = {k: make_series(v) for k, v in res_dict.items()}
-#         else:
-#             res = make_series(sum(res_dict.values(), Counter()))
-#         if len(res) == 0:
-#             self.logger.info("No annotations found. Maybe no scores have been parsed using parse_scores()?")
-#         return res
-#
-#
-#
-#
-#
-#
-#     def count_labels(self, keys=None, per_key=False):
-#         """ Count label types.
-#
-#         Parameters
-#         ----------
-#         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-#             Key(s) for which to count label types.  By default, all keys are selected.
-#         per_key : :obj:`bool`, optional
-#             If set to True, the results are returned as a dict {key: Counter},
-#             otherwise the counts are summed up in one Counter.
-#
-#         Returns
-#         -------
-#         :obj:`dict` or :obj:`collections.Counter`
-#             By default, the function returns a Counter of label types.
-#             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.
-#         """
-#         annotated = [id for id in self._iterids(keys) if id in self._annotations]
-#         res_dict = defaultdict(Counter)
-#         for key, i in annotated:
-#             res_dict[key].update(self._annotations[(key, i)].harmony_layer_counts)
-#         if len(res_dict) == 0:
-#             if len(self._parsed_mscx) == 0:
-#                 self.logger.error("No scores have been parsed so far. Use parse_scores().")
-#             else:
-#                 self.logger.info("None of the scores contain annotations.")
-#         if per_key:
-#             return {k: dict(v) for k, v in res_dict.items()}
-#         return dict(sum(res_dict.values(), Counter()))
-#
-
     def detach_labels(self,
                       view_name: Optional[str] = None,
                       force: bool = False,
@@ -1595,9 +1337,6 @@ class Parse(LoggedClass):
         self.parse_scores(level=level, parallel=parallel, only_new=only_new, labels_cfg=labels_cfg, view_name=view_name)
         self.parse_tsv(view_name=view_name, level=level, cols=cols, infer_types=infer_types, only_new=only_new, **kwargs)
 
-    def parse_mscx(self, *args, **kwargs):
-        """Deprecated method. Replaced by :meth:`parse_scores`."""
-        raise AttributeError(f"Method not in use any more. Use Parse.parse_scores().")
 
     def parse_scores(self,
                      level: str = None,
@@ -1692,501 +1431,6 @@ class Parse(LoggedClass):
                              **kwargs)
 
 
-    # def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):
-    #     """ Takes the ID of an annotation table, and parses the same file's previous version at ``revision_specifier``.
-    #
-    #     Parameters
-    #     ----------
-    #     tsv_id
-    #         ID of the TSV file containing an annotation table, for which to parse a previous version.
-    #     revision_specifier : :obj:`str`
-    #         String used by git.Repo.commit() to find the desired git revision.
-    #         Can be a long or short SHA, git tag, branch name, or relative specifier such as 'HEAD~1'.
-    #
-    #     Returns
-    #     -------
-    #     ID
-    #         (key, i) of the newly added annotation table.
-    #     """
-    #     key, i = tsv_id
-    #     corpus_path = self.corpus_paths[key]
-    #     try:
-    #         repo = Repo(corpus_path, search_parent_directories=True)
-    #     except InvalidGitRepositoryError:
-    #         self.logger.error(f"{corpus_path} seems not to be (part of) a git repository.")
-    #         return
-    #     try:
-    #         git_repo = repo.remote("origin").url
-    #     except ValueError:
-    #         git_repo = os.path.basename()
-    #     try:
-    #         commit = repo.commit(revision_specifier)
-    #         commit_sha = commit.hexsha
-    #         short_sha = commit_sha[:7]
-    #         commit_info = f"{short_sha} with message '{commit.message}'"
-    #     except BadName:
-    #         self.logger.error(f"{revision_specifier} does not resolve to a commit for repo {git_repo}.")
-    #         return
-    #     tsv_type = self._tsv_types[tsv_id]
-    #     tsv_path = self.full_paths[key][i]
-    #     rel_path = os.path.relpath(tsv_path, corpus_path)
-    #     new_directory = os.path.join(corpus_path, short_sha)
-    #     new_path = os.path.join(new_directory, self.files[key][i])
-    #     if new_path in self.full_paths[key]:
-    #         existing_i = self.full_paths[key].index(new_path)
-    #         existing_tsv_type = self._tsv_types[(key, existing_i)]
-    #         if tsv_type == existing_tsv_type:
-    #             self.logger.error(f"Had already loaded a {tsv_type} table for commit {commit_info} of repo {git_repo}.")
-    #             return
-    #     if not tsv_type in ('labels', 'expanded'):
-    #         raise NotImplementedError(f"Currently, only annotations are to be loaded from a git revision but {rel_path} is a {tsv_type}.")
-    #     try:
-    #         targetfile = commit.tree / rel_path
-    #     except KeyError:
-    #         # if the file was not found, try and see if at the time of the git revision the folder was still called 'harmonies'
-    #         if tsv_type == 'expanded':
-    #             folder, tsv_name = os.path.split(rel_path)
-    #             if folder != 'harmonies':
-    #                 old_rel_path = os.path.join('harmonies', tsv_name)
-    #                 try:
-    #                     targetfile = commit.tree / old_rel_path
-    #                     self.logger.debug(f"{rel_path} did not exist at commit {commit_info}, using {old_rel_path} instead.")
-    #                     rel_path = old_rel_path
-    #                 except KeyError:
-    #                     self.logger.error(f"Neither {rel_path} nor its older version {old_rel_path} existed at commit {commit_info}.")
-    #                     return
-    #         else:
-    #             self.logger.error(f"{rel_path} did not exist at commit {commit_info}.")
-    #             return
-    #     self.logger.info(f"Successfully loaded {rel_path} from {commit_info}.")
-    #     try:
-    #         with io.BytesIO(targetfile.data_stream.read()) as f:
-    #             df = load_tsv(f)
-    #     except Exception:
-    #         self.logger.error(f"Parsing {rel_path} @ commit {commit_info} failed with the following error:\n{sys.exc_info()[1]}")
-    #         return
-    #     new_id = self._handle_path(new_path, key, skip_checks=True)
-    #     self._parsed_tsv[new_id] = df
-    #     self._dataframes[tsv_type][new_id] = df
-    #     self._tsv_types[new_id] = tsv_type
-    #     logger_cfg = dict(self.logger_cfg)
-    #     logger_cfg['name'] = self.logger_names[(key, i)]
-    #     if tsv_id in self._annotations:
-    #         anno_obj = self._annotations[tsv_id] # get Annotation object's settings from the existing one
-    #         cols = anno_obj.cols
-    #         infer_types = anno_obj.regex_dict
-    #     else:
-    #         cols = dict(label='label')
-    #         infer_types = None
-    #     self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,
-    #                                         **logger_cfg)
-    #     self.logger.debug(
-    #         f"{rel_path} successfully parsed from commit {short_sha}.")
-    #     return new_id
-    #
-    #
-    # def pieces(self, parsed_only=False):
-    #     pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]
-    #     result = pd.concat(pieces_dfs, keys=self.keys())
-    #     result.index.names = ['key', 'metadata_row']
-    #     return result
-
-    #
-    # def store_scores(self, keys=None, ids=None, root_dir=None, folder='.', suffix='', overwrite=False, simulate=False):
-    #     """ Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.
-    #
-    #     Parameters
-    #     ----------
-    #     keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional
-    #         Key(s) for which to count file extensions.  By default, all keys are selected.
-    #     ids : :obj:`~collections.abc.Collection`
-    #         If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.
-    #     root_dir : :obj:`str`, optional
-    #         Defaults to None, meaning that the original root directory is used that was added to the Parse object.
-    #         Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-    #         ``root_dir`` is ignored.
-    #     folder : :obj:`str`
-    #         Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-    #         If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-    #         the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-    #         it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-    #     suffix : :obj:`str`, optional
-    #         Suffix to append to the original file name.
-    #     overwrite : :obj:`bool`, optional
-    #         Pass True to overwrite existing files.
-    #     simulate : :obj:`bool`, optional
-    #         Pass True if no files are to be written.
-    #
-    #     Returns
-    #     -------
-    #
-    #     """
-    #     if ids is None:
-    #         ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]
-    #     paths = []
-    #     for key, i in ids:
-    #         new_path = self._store_scores(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)
-    #         if new_path is not None:
-    #             if new_path in paths:
-    #                 modus = 'would have' if simulate else 'has'
-    #                 self.logger.info(f"The score at {new_path} {modus} been overwritten.")
-    #             else:
-    #                 paths.append(new_path)
-    #     if simulate:
-    #         return list(set(paths))
-    #
-    #
-
-    #
-    #
-    # def _collect_annotations_objects_references(self, keys=None, ids=None):
-    #     """ Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). """
-    #     if ids is None:
-    #         ids = list(self._iterids(keys, only_parsed_mscx=True))
-    #     updated = {}
-    #     for id in ids:
-    #         if id in self._parsed_mscx:
-    #             score = self._parsed_mscx[id]
-    #             if score is not None:
-    #                 if 'annotations' in score:
-    #                     updated[id] = score.annotations
-    #                 elif id in self._annotations:
-    #                     del (self._annotations[id])
-    #             else:
-    #                 del (self._parsed_mscx[id])
-    #     self._annotations.update(updated)
-    #
-    #
-    # def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):
-    #     """Iterator through IDs for a given set of keys.
-    #
-    #     Parameters
-    #     ----------
-    #     keys
-    #     only_parsed_mscx
-    #     only_attached_annotations
-    #     only_detached_annotations
-    #
-    #     Yields
-    #     ------
-    #     :obj:`tuple`
-    #         (str, int)
-    #
-    #     """
-    #     keys = self._treat_key_param(keys)
-    #     for key in sorted(keys):
-    #         for id in make_id_tuples(key, len(self.fnames[key])):
-    #             if only_parsed_mscx  or only_attached_annotations or only_detached_annotations:
-    #                 if id not in self._parsed_mscx:
-    #                     continue
-    #                 if only_attached_annotations:
-    #                     if 'annotations' in self._parsed_mscx[id]:
-    #                         pass
-    #                     else:
-    #                         continue
-    #                 elif only_detached_annotations:
-    #                     if self._parsed_mscx[id].has_detached_annotations:
-    #                         pass
-    #                     else:
-    #                         continue
-    #             elif only_parsed_tsv:
-    #                 if id in self._parsed_tsv:
-    #                     pass
-    #                 else:
-    #                     continue
-    #
-    #             yield id
-    #
-    # def _iter_subdir_selectors(self, keys=None, ids=None):
-    #     """ Iterate through the specified ids grouped by subdirs.
-    #
-    #     Yields
-    #     ------
-    #     :obj:`tuple`
-    #         (key: str, subdir: str, ixs: list) tuples. IDs can be created by combining key with each i in ixs.
-    #         The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.
-    #
-    #     """
-    #     grouped_ids = self._make_grouped_ids(keys, ids)
-    #     for k, ixs in grouped_ids.items():
-    #         subdirs = self.subdirs[k]
-    #         for subdir in sorted(set(iter_selection(subdirs, ixs))):
-    #             yield k, subdir, [i for i in ixs if subdirs[i] == subdir]
-    #
-    #
-    #
-    #
-    # def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):
-    #     """Performs a single parse and returns the resulting Score object or None."""
-    #     path = self.full_paths[key][i]
-    #     file = self.files[key][i]
-    #     self.logger.debug(f"Attempting to parse {file}")
-    #     try:
-    #         logger_cfg['name'] = self.logger_names[(key, i)]
-    #         score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=self.ms)
-    #         if score is None:
-    #             self.logger.debug(f"Encountered errors when parsing {file}")
-    #         else:
-    #             self.logger.debug(f"Successfully parsed {file}")
-    #         return score
-    #     except (KeyboardInterrupt, SystemExit):
-    #         self.logger.info("Process aborted.")
-    #         raise
-    #     except:
-    #         self.logger.error(f"Unable to parse {path} due to the following exception:\n" + traceback.format_exc())
-    #         return None
-    #
-    #
-    # def _score_ids(self, keys=None, score_extensions=None, native=True, convertible=True, opposite=False):
-    #     """ Return IDs of all detected scores with particular file extensions, or all others if ``opposite==True``.
-    #
-    #     Parameters
-    #     ----------
-    #     keys : :obj:`str` or :obj:`collections.abc.Iterable`, optional
-    #         Only get IDs for particular keys.
-    #     score_extensions : :obj:`collections.abc.Collection`, optional
-    #         Get IDs for files with the given extensions (each starting with a dot). If this parameter is defined,
-    #         ``native```and ``convertible`` are being ignored.
-    #     native : :obj:`bool`, optional
-    #         If ``score_extensions`` is not set, ``native=True`` selects all scores that ms3 can parse without using
-    #         a MuseScore 3 executable.
-    #     convertible : :obj:`bool`, optional
-    #         If ``score_extensions`` is not set, ``convertible=True`` selects all scores that ms3 can parse as long as
-    #         a MuseScore 3 executable is defined.
-    #     opposite : :obj:`bool`, optional
-    #         Pass True if you want to get the IDs of all the scores that do NOT have the specified extensions.
-    #
-    #     Returns
-    #     -------
-    #     :obj:`list`
-    #         A list of IDs.
-    #
-    #     """
-    #     if score_extensions is None:
-    #         score_extensions = []
-    #         if native:
-    #             score_extensions.extend(Score.native_formats)
-    #         if convertible:
-    #             score_extensions.extend(Score.convertible_formats)
-    #     if opposite:
-    #         return [(k, i) for k, i in self._iterids(keys) if self.fexts[k][i][1:].lower() not in score_extensions]
-    #     return [(k, i) for k, i in self._iterids(keys) if self.fexts[k][i][1:].lower() in score_extensions]
-    #
-    #
-    #
-    # def _store_scores(self, key, i, folder, suffix='', root_dir=None, overwrite=False, simulate=False):
-    #     """ Creates a MuseScore 3 file from the Score object at the given ID (key, i).
-    #
-    #     Parameters
-    #     ----------
-    #     key, i : (:obj:`str`, :obj:`int`)
-    #         ID from which to construct the new path and filename.
-    #     root_dir : :obj:`str`, optional
-    #         Defaults to None, meaning that the original root directory is used that was added to the Parse object.
-    #         Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,
-    #         ``root_dir`` is ignored.
-    #     folder : :obj:`str`
-    #         Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.
-    #         If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,
-    #         the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn't,
-    #         it is created only once, relative to ``root_dir``, and the relative tree structure is build below.
-    #     suffix : :obj:`str`, optional
-    #         Suffix to append to the original file name.
-    #     overwrite : :obj:`bool`, optional
-    #         Pass True to overwrite existing files.
-    #     simulate : :obj:`bool`, optional
-    #         Pass True if no files are to be written.
-    #
-    #     Returns
-    #     -------
-    #     :obj:`str`
-    #         Path of the stored file.
-    #
-    #     """
-    #
-    #     id = (key, i)
-    #     logger = self.id_logger(id)
-    #     fname = self.fnames[key][i]
-    #
-    #     if id not in self._parsed_mscx:
-    #         logger.error(f"No Score object found. Call parse_scores() first.")
-    #         return
-    #     path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
-    #     if path is None:
-    #         return
-    #
-    #     fname = fname + suffix + '.mscx'
-    #     file_path = os.path.join(path, fname)
-    #     if os.path.isfile(file_path):
-    #         if simulate:
-    #             if overwrite:
-    #                 logger.warning(f"Would have overwritten {file_path}.")
-    #                 return
-    #             logger.warning(f"Would have skipped {file_path}.")
-    #             return
-    #         elif not overwrite:
-    #             logger.warning(f"Skipped {file_path}.")
-    #             return
-    #     if simulate:
-    #         logger.debug(f"Would have written score to {file_path}.")
-    #     else:
-    #         os.makedirs(path, exist_ok=True)
-    #         self._parsed_mscx[id].store_scores(file_path)
-    #         logger.debug(f"Score written to {file_path}.")
-    #
-    #     return file_path
-    #
-    #
-    # def _store_tsv(self, df, key, i, folder, suffix='', root_dir=None, what='DataFrame', simulate=False):
-    #     """ Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.
-    #
-    #     Parameters
-    #     ----------
-    #     df : :obj:`pandas.DataFrame`
-    #         DataFrame to store as a TSV.
-    #     key, i : (:obj:`str`, :obj:`int`)
-    #         ID from which to construct the new path and filename.
-    #     folder, root_dir : :obj:`str`
-    #         Parameters passed to :py:meth:`_calculate_path`.
-    #     suffix : :obj:`str`, optional
-    #         Suffix to append to the original file name.
-    #     what : :obj:`str`, optional
-    #         Descriptor, what the DataFrame contains for more informative log message.
-    #     simulate : :obj:`bool`, optional
-    #         Pass True if no files are to be written.
-    #
-    #     Returns
-    #     -------
-    #     :obj:`str`
-    #         Path of the stored file.
-    #
-    #     """
-    #     tsv_logger = self.id_logger((key, i))
-    #
-    #     if df is None:
-    #         tsv_logger.debug(f"No DataFrame for {what}.")
-    #         return
-    #     path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)
-    #     if path is None:
-    #         return
-    #
-    #     fname = self.fnames[key][i] + suffix + ".tsv"
-    #     file_path = os.path.join(path, fname)
-    #     if simulate:
-    #         tsv_logger.debug(f"Would have written {what} to {file_path}.")
-    #     else:
-    #         tsv_logger.debug(f"Writing {what} to {file_path}.")
-    #         write_tsv(df, file_path, logger=tsv_logger)
-    #     return file_path
-    #
-    #
-    #
-    # def _treat_key_param(self, keys):
-    #     if keys is None:
-    #         keys = list(self.full_paths.keys())
-    #     elif isinstance(keys, str):
-    #         keys = [keys]
-    #     return [k for k in sorted(set(keys)) if k in self.files]
-    #
-    #
-    # def _treat_harmony_layer_param(self, harmony_layer):
-    #     if harmony_layer is None:
-    #         return None
-    #     all_types = {str(k): k for k in self.count_labels().keys()}
-    #     if isinstance(harmony_layer, int) or isinstance(harmony_layer, str):
-    #         harmony_layer = [harmony_layer]
-    #     lt = [str(t) for t in harmony_layer]
-    #     def matches_any_type(user_input):
-    #         return any(True for t in all_types if user_input in t)
-    #     def get_matches(user_input):
-    #         return [t for t in all_types if user_input in t]
-    #
-    #     not_found = [t for t in lt if not matches_any_type(t)]
-    #     if len(not_found) > 0:
-    #         plural = len(not_found) > 1
-    #         plural_s = 's' if plural else ''
-    #         self.logger.warning(
-    #             f"No labels found with {'these' if plural else 'this'} label{plural_s} harmony_layer{plural_s}: {', '.join(not_found)}")
-    #     return [all_types[t] for user_input in lt for t in get_matches(user_input)]
-    #
-    # def update_metadata(self, allow_suffix=False):
-    #     """Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns
-    #     the IDs of those that have been changed.
-    #
-    #     Parameters
-    #     ----------
-    #     allow_suffix : :obj:`bool`, optional
-    #         If set to True, this would also update the metadata for currently parsed MuseScore files
-    #         corresponding to the columns 'rel_paths' and 'fnames' + [ANY SUFFIX]. For example,
-    #         the row ('MS3', 'bwv846') would also update the metadata of 'MS3/bwv846_reviewed.mscx'.
-    #
-    #     Returns
-    #     -------
-    #     :obj:`list`
-    #         IDs of the parsed MuseScore files whose metadata has been updated.
-    #     """
-    #     metadata_dfs = self.metadata_tsv()
-    #     if len(metadata_dfs) > 0:
-    #         metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys())
-    #     else:
-    #         metadata = self._metadata
-    #     if len(metadata) == 0:
-    #         self.logger.debug("No parsed metadata found.")
-    #         return
-    #     old = metadata
-    #     if old.index.names != ['rel_paths', 'fnames']:
-    #         try:
-    #             old = old.set_index(['rel_paths', 'fnames'])
-    #         except KeyError:
-    #             self.logger.warning(f"Parsed metadata do not contain the columns 'rel_paths' and 'fnames' "
-    #                                 f"needed to match information on identical files.")
-    #             return []
-    #     new = self.metadata(from_tsv=False).set_index(['rel_paths', 'fnames'])
-    #     excluded_cols = ['ambitus', 'annotated_key', 'KeySig', 'label_count', 'last_mc', 'last_mn', 'musescore',
-    #                      'TimeSig', 'length_qb', 'length_qb_unfolded', 'all_notes_qb', 'n_onsets', 'n_onset_positions']
-    #     old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != 'staff'])
-    #
-    #     parsed = old.index.map(lambda i: i in new.index)
-    #     relevant = old.loc[parsed, old_cols]
-    #     updates = defaultdict(dict)
-    #     for i, row in relevant.iterrows():
-    #         new_row = new.loc[i]
-    #         for j, val in row[row.notna()].iteritems():
-    #             val = str(val)
-    #             if j not in new_row or str(new_row[j]) != val:
-    #                 updates[i][j] = val
-    #
-    #     l = len(updates)
-    #     ids = []
-    #     if l > 0:
-    #         for (rel_path, fname), new_dict in updates.items():
-    #             matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)
-    #             match_ids = [id for id in matches.keys() if id in self._parsed_mscx]
-    #             n_files_to_update = len(match_ids)
-    #             if n_files_to_update == 0:
-    #                 self.logger.debug(
-    #                     f"rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.")
-    #                 continue
-    #             for id in match_ids:
-    #                 for name, val in new_dict.items():
-    #                     self._parsed_mscx[id].mscx.parsed.metatags[name] = val
-    #                 self._parsed_mscx[id].mscx.parsed.update_metadata()
-    #                 self.id_logger(id).debug(f"Updated with {new_dict}")
-    #                 ids.append(id)
-    #
-    #         self.logger.info(f"{l} files updated.")
-    #     else:
-    #         self.logger.info("Nothing to update.")
-    #     return ids
-    #
-    #
-    # def __getstate__(self):
-    #     """ Override the method of superclass """
-    #     return self.__dict__
-
-
-
-
     def __getitem__(self, item) -> Corpus:
         if isinstance(item, str):
             return self.get_corpus(item)
@@ -2211,152 +1455,52 @@ class Parse(LoggedClass):
         """Show the :meth:`info` under the active view."""
         return self.info(return_str=True)
 
-    # def _get_unambiguous_fnames_from_ids(self, score_ids, key):
-    #
-    #     file_info = [self.id2file_info[id] for id in score_ids]
-    #     score_names = [F.fname for F in file_info]
-    #     score_name_set = set(score_names)
-    #     if len(score_names) == len(score_name_set):
-    #         return dict(zip(score_names, score_ids))
-    #     more_than_one = {name: [] for name, cnt in Counter(score_names).items() if cnt > 1}
-    #     result = {} # fname -> score_id
-    #     for F in file_info:
-    #         if F.fname in more_than_one:
-    #             more_than_one[F.fname].append(F)
-    #         else:
-    #             result[F.fname] = F.id
-    #     for name, files in more_than_one.items():
-    #         choice_between_n = len(files)
-    #         df = pd.DataFrame.from_dict({F.id: dict(subdir=F.subdir, fext=F.fext, subdir_len=len(F.subdir)) for F in files}, orient='index')
-    #         self.logger.debug(f"Trying to disambiguate between these {choice_between_n} with the same fname '{name}':\n{df}")
-    #         shortest_subdir_length = df.subdir_len.min()
-    #         shortest_length_selector = (df.subdir_len == shortest_subdir_length)
-    #         n_have_shortest_length = shortest_length_selector.sum()
-    #         # checking if the shortest path contains only 1 file and pick that
-    #         if n_have_shortest_length == 1:
-    #             id = df.subdir_len.idxmin()
-    #             picked = df.loc[id]
-    #             self.logger.info(f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one with the shortest subdir '{picked.subdir}' was selected.")
-    #             result[name] = id
-    #             continue
-    #         # otherwise, check if there is only a single MSCX or otherwise MSCZ file and pick that
-    #         fexts = df.fext.value_counts()
-    #         if '.mscx' in fexts:
-    #             if fexts['.mscx'] == 1:
-    #                 picked = df[df.fext == '.mscx'].iloc[0]
-    #                 id = picked.name
-    #                 self.logger.info(f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one contained in '{picked.subdir}' was selected because it is the only "
-    #                                  f"one in MSCX format.")
-    #                 result[name] = id
-    #                 continue
-    #         elif '.mscz' in fexts and fexts['.mscz'] == 1:
-    #             picked = df[df.fext == '.mscz'].iloc[0]
-    #             id = picked.name
-    #             self.logger.info(
-    #                 f"In order to pick one from the {choice_between_n} scores with fname '{name}', the one contained in '{picked.subdir}' was selected because it is the only "
-    #                 f"one in MuseScore format.")
-    #             result[name] = id
-    #             continue
-    #         # otherwise, check if the shortest path contains only a single MSCX or MSCZ file as a last resort
-    #         if n_have_shortest_length < choice_between_n:
-    #             df = df[shortest_length_selector]
-    #             self.logger.debug(f"Picking those from the shortest subdir has reduced the choice to {n_have_shortest_length}:\n{df}.")
-    #         else:
-    #             self.logger.warning(f"Unable to pick one of the available scores for fname '{name}', it will be disregarded until disambiguated:\n{df}")
-    #             continue
-    #         if '.mscx' in df.fext.values and fexts['.mscx'] == 1:
-    #             pick_ext = '.mscx'
-    #         elif '.mscz' in df.fext.values and fexts['.mscz'] == 1:
-    #             pick_ext = '.mscz'
-    #         else:
-    #             self.logger.warning(f"Unable to pick one of the available scores for fname '{name}', it will be disregarded until disambiguated:\n{df}")
-    #             continue
-    #         picked = df[df.fext == pick_ext].iloc[0]
-    #         id = picked.name
-    #         self.logger.info(
-    #             f"In order to pick one from the {choice_between_n} scores with fname '{name}', the '{pick_ext}' one contained in '{picked.subdir}' was selected because it is the only "
-    #             f"one in that format contained in the shortest subdir.")
-    #         result[name] = id
-    #     return result
 
+    @property
+    def parsed_mscx(self, *args, **kwargs) -> pd.DataFrame:
+        """Deprecated property. Replaced by :attr:`n_parsed_scores`"""
+        raise DeprecationWarning(f"Property has been renamed to n_parsed_scores.")
+
+    @property
+    def parsed_tsv(self, *args, **kwargs) -> pd.DataFrame:
+        """Deprecated property. Replaced by :attr:`n_parsed_tsvs`"""
+        raise DeprecationWarning(f"Property has been renamed to n_parsed_tsvs.")
+
+    def add_detached_annotations(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`insert_detached_labels`."""
+        raise DeprecationWarning(f"Method not in use any more. Use Parse.insert_detached_labels().")
+
+    def count_annotation_layers(self, *args, **kwargs):
+        """Deprecated method."""
+        raise DeprecationWarning(f"Method not in use any more.")
+
+    def count_labels(self, *args, **kwargs):
+        """Deprecated method."""
+        raise DeprecationWarning(f"Method not in use any more.")
+
+    def get_lists(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`get_facets`."""
+        raise DeprecationWarning(f"Method get_lists() not in use any more. Use Parse.get_facets() instead.")
+
+    def parse_mscx(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`parse_scores`."""
+        raise DeprecationWarning(f"Method not in use any more. Use Parse.parse_scores().")
+
+    def pieces(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`info`."""
+        raise DeprecationWarning("This method is deprecated. To view pieces, call Corpus.info() or Corpus.info('all'). "
+                                 "A DataFrame showing all detected files is available under the property Corpus.files_df")
+
+    def store_scores(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`store_parsed_scores`."""
+        raise DeprecationWarning(f"Method not in use any more. Use Parse.store_parsed_scores().")
+
+    def update_metadata(self, * args, **kwargs):
+        """Deprecated method. Replaced by :meth:`update_score_metadata_from_tsv`."""
+        raise DeprecationWarning(f"Method not in use any more. Use Parse.update_score_metadata_from_tsv().")
 
 ########################################################################################################################
 ########################################################################################################################
 ################################################# End of Parse() ########################################################
 ########################################################################################################################
 ########################################################################################################################
-
-
-########################################################################################################################
-########################################################################################################################
-################################################# End of View() ########################################################
-########################################################################################################################
-########################################################################################################################
-#
-# class PieceView(View):
-#
-#     def __init__(self,
-#                  view: View,
-#                  fname: str):
-#         self.view = view  # parent View object
-#         self.p = view.p
-#         self.key = view.key
-#         self.fname = fname
-#         logger_cfg = self.p.logger_cfg
-#         logger_cfg['name'] = f"{self.view.logger.name}.{self.fname}"
-#         super(Parse, self).__init__(subclass='Piece', logger_cfg=logger_cfg)  # initialize loggers
-#         matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])
-#         if len(matches) != 1:
-#             raise ValueError(f"{len(matches)} fnames match {fname} for key {self.key}")
-#         self.matches = matches[fname]
-#         self.score_available = 'scores' in self.matches
-#         self.measures_available = self.score_available or 'measures' in self.matches
-#
-#
-#
-#     @lru_cache()
-#     def get_dataframe(self, what: Literal['measures', 'notes', 'rests', 'labels', 'expanded', 'events', 'chords', 'metadata', 'form_labels'],
-#                       unfold: bool = False,
-#                       quarterbeats: bool = False,
-#                       interval_index: bool = False,
-#                       disambiguation: str = 'auto',
-#                       prefer_score: bool = True,
-#                       return_file_info: bool = False) -> pd.DataFrame:
-#         """ Retrieves one DataFrame for the piece.
-#
-#         Args:
-#             what: What kind of DataFrame to retrieve.
-#             unfold: Pass True to unfold repeats.
-#             quarterbeats:
-#             interval_index:
-#             disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.
-#             prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.
-#             return_file_info: Pass True if the method should also return a :obj:`namedtuple` with information on the DataFrame
-#                 being returned. It comes with the fields "id", "full_path", "suffix", "fext", "subdir", "i_str" where the
-#                 latter is the ID's second component as a string.
-#
-#         Returns:
-#             The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.
-#
-#         Raises:
-#             FileNotFoundError: If no DataFrame of the requested type is available
-#         """
-#         available = list(self.p._dataframes.keys())
-#         if what not in available:
-#             raise ValueError(f"what='{what}' is an invalid argument. Pass one of {available}.")
-#         if self.score_available and (prefer_score or what not in self.matches):
-#             file_info = disambiguate(self.matches['scores'], disambiguation=disambiguation)
-#             score = self.p[file_info.id]
-#             df = score.mscx.__getattribute__(what)()
-#         elif what in self.matches:
-#             file_info = disambiguate(self.matches[what], disambiguation=disambiguation)
-#             df = self.p[file_info.id]
-#         else:
-#             raise FileNotFoundError(f"No {what} available for {self.key} -> {self.fname}")
-#         if any((unfold, quarterbeats, interval_index)):
-#             measures = self.get_dataframe('measures', prefer_score=prefer_score)
-#             df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,
-#                                    interval_index=interval_index, logger=self.logger)[0]
-#         if return_file_info:
-#             return df, file_info
-#         return df

@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
 from inspect import stack
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -81,6 +81,10 @@ class LoggedClass():
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
+
+    _deprecated_elements: List[str] = []
+    """Methods and properties named here will be removed from the object's tab completion."""
+
     def __init__(self, subclass, logger_cfg={}):
         old_code_warnings = []
         if 'logger_cfg' in logger_cfg:
@@ -121,6 +125,13 @@ class LoggedClass():
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
         self.logger = get_logger(**self.logger_cfg)
+
+    def __dir__(self) -> Iterable[str]:
+        if len(self._deprecated_elements) == 0:
+            return super().__dir__()
+        elements = super().__dir__()
+        return sorted(element for element in elements if element not in self._deprecated_elements)
+
 
 
 

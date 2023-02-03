@@ -2569,11 +2569,6 @@ class Corpus(LoggedClass):
         return list(self._pieces.keys())
 
 
-    def pieces(self, parsed_only=False):
-        raise AttributeError("This method is deprecated. To view pieces, call Corpus.info() or Corpus.info('all'). "
-                             "A DataFrame showing all detected files is available under the property Corpus.files_df")
-
-
     def store_extracted_facets(self,
                                view_name: Optional[str] = None,
                                root_dir: Optional[str] = None,
