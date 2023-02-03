@@ -1453,7 +1453,7 @@ def _fifths2str(fifths: int,
         inverted: By default, return accidental + step. Pass True to get step + accidental instead.
 
     Returns:
-
+        Accidentals + step from ``steps`` or, if inverted, step + accidentals.
     """
     acc = fifths2acc(fifths)
     fifths += 1
@@ -1476,20 +1476,16 @@ def get_ms_version(mscx_file):
 
 
 @function_logger
-def get_musescore(MS):
-    """ Tests whether a MuseScore executable can be found on the system.
+def get_musescore(MS: Union[str, Literal['auto', 'win', 'mac']] = 'auto') -> Optional[str]:
+    """Tests whether a MuseScore executable can be found on the system.
     Uses: test_binary()
 
-    Parameters
-    ----------
-    MS : :obj:`str`
-        A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
 
-    Returns
-    -------
-    :obj:`str`
+    Args:
+        MS: A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
+
+    Returns:
         Path to the executable if found or None.
-
     """
     if MS is None:
         return MS

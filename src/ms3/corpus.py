@@ -226,7 +226,13 @@ class Corpus(LoggedClass):
 
     @ms.setter
     def ms(self, ms):
-        self._ms = get_musescore(ms, logger=self.logger)
+        executable = get_musescore(ms, logger=self.logger)
+        if executable is None:
+            raise FileNotFoundError(f"'{ms}' did not lead me to a MuseScore executable.")
+        if executable is not None:
+            self._ms = executable
+            for _, piece in self.__iter__():
+                piece._ms = executable
 
     @property
     def n_detected(self):
