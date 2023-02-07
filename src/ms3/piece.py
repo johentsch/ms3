@@ -974,7 +974,12 @@ class Piece(LoggedClass):
                 files = [selected]
             if n_unparsed > 0:
                 plural = 'files' if n_unparsed > 1 else 'file'
-                self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
+                try:
+                    self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
+                except AttributeError:
+                    if self.logger is None:
+                        raise RuntimeError("The logger is None. This happens when __getstate__ is called. Did you use copy()?")
+                    raise
             parsed_files = [(file, self._get_transformed_facet_at_ix(ix=file.ix, unfold=unfold, interval_index=interval_index)) for file in files if file.ix in self.ix2parsed]
             parsed_files = [(file, df) for file, df in parsed_files if df is not None]
             n_parsed = len(parsed_files)
