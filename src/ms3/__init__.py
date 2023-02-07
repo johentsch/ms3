@@ -24,6 +24,7 @@ from .piece import Piece
 from .corpus import Corpus
 from .utils import *
 from .transformations import *
+from .operations import *
 from .logger import config_logger
 
 _ = config_logger("ms3", level='w')

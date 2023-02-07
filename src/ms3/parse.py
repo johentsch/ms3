@@ -20,17 +20,17 @@ class Parse(LoggedClass):
     Class for creating one or several :class:`~.corpus.Corpus` objects and performing actions on all of them.
     """
 
-    def __init__(self, 
+    def __init__(self,
                  directory: Optional[Union[str, Collection[str]]] = None,
-                 recursive: bool = True, 
-                 only_metadata_fnames: bool = True, 
+                 recursive: bool = True,
+                 only_metadata_fnames: bool = True,
                  include_convertible: bool = False,
-                 include_tsv: bool = True, 
+                 include_tsv: bool = True,
                  exclude_review: bool = True,
                  file_re: Optional[Union[str, re.Pattern]] = None,
-                 folder_re: Optional[Union[str, re.Pattern]] = None, 
+                 folder_re: Optional[Union[str, re.Pattern]] = None,
                  exclude_re: Optional[Union[str, re.Pattern]] = None,
-                 paths: Optional[Collection[str]] = None,
+                 file_paths: Optional[Collection[str]] = None,
                  labels_cfg: dict = {},
                  ms=None,
                  **logger_cfg):
@@ -53,7 +53,7 @@ class Parse(LoggedClass):
             file_re: Pass a regular expression if you want to create a view filtering out all files that do not contain it.
             folder_re: Pass a regular expression if you want to create a view filtering out all folders that do not contain it.
             exclude_re: Pass a regular expression if you want to create a view filtering out all files or folders that contain it.
-            paths:
+            file_paths:
                 If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.
                 Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that
                 either contains a 'metadata.tsv' file or is a git. This parameter is deprecated and ``file_re`` should be used instead.
@@ -84,7 +84,7 @@ class Parse(LoggedClass):
                                                    include_convertible=include_convertible,
                                                    include_tsv=include_tsv,
                                                    exclude_review=exclude_review,
-                                                   paths=paths,
+                                                   file_paths=file_paths,
                                                    file_re=file_re,
                                                    folder_re=folder_re,
                                                    exclude_re=exclude_re,
@@ -120,8 +120,8 @@ class Parse(LoggedClass):
                 directory = [directory]
             for d in directory:
                 self.add_dir(directory=d, recursive=recursive)
-        if paths is not None:
-            self.add_files(paths)
+        if file_paths is not None:
+            self.add_files(file_paths)
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
 
@@ -359,6 +359,9 @@ class Parse(LoggedClass):
         # self.corpus_paths[key] = directory
         # self.look_for_ignored_warnings(directory, key)
 
+    def add_detached_annotations(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`insert_detached_labels`."""
+        raise AttributeError(f"Method not in use any more. Use Parse.insert_detached_labels().")
 
     def add_dir(self, directory: str,
                 recursive: bool = True,
@@ -399,7 +402,7 @@ class Parse(LoggedClass):
                 self.add_corpus(corpus_path, **logger_cfg)
 
 
-    def add_files(self, paths: Union[str, Collection[str]], corpus_name: Optional[str] = None) -> None:
+    def add_files(self, file_paths: Union[str, Collection[str]], corpus_name: Optional[str] = None) -> None:
         """
         Deprecated: To deal with particular files only, use :meth:`add_corpus` passing the directory containing them and
         configure the :class`~.view.View` accordingly. This method here does it for you but easily leads to unexpected behaviour.
@@ -407,7 +410,7 @@ class Parse(LoggedClass):
         on some higher level or in folders for which :class:`~.corpus.Corpus` objects have already been created.
 
         Args:
-            paths: Collection of file paths. Only existing files can be added.
+            file_paths: Collection of file paths. Only existing files can be added.
             corpus_name:
 
                 * By default, I will try to attribute the files to existing :class:`~.corpus.Corpus` objects based on their paths. This makes sense only when new files have
@@ -420,7 +423,7 @@ class Parse(LoggedClass):
                   from other directories, it will lead to invalid relative paths that work only on your system. If you're adding files that have been created after the Corpus object
                   has, you can leave this parameter empty; paths will be attributed to the existing corpora automatically.
         """
-        resolved_paths = resolve_paths_argument(paths, logger=self.logger)
+        resolved_paths = resolve_paths_argument(file_paths, logger=self.logger)
         if len(resolved_paths) == 0:
             return
         if corpus_name is None:
@@ -435,8 +438,8 @@ class Parse(LoggedClass):
                         break
                 if part_of is None:
                     no_parent.append(path)
-            for corpus_name, paths in add_to_existing.items():
-                self.get_corpus(corpus_name).add_file_paths(paths)
+            for corpus_name, file_paths in add_to_existing.items():
+                self.get_corpus(corpus_name).add_file_paths(file_paths)
             if len(no_parent) > 0:
                 # paths are expected to be contained in one and the same corpus directory
                 first_path = no_parent[0]
@@ -445,7 +448,7 @@ class Parse(LoggedClass):
                     raise ValueError(f"No parent of {first_path} has been recognized as a corpus by being a git or containing a 'metadata.tsv'. Use _.add_corpus()")
                 self.add_corpus(directory)
         elif corpus_name in self.corpus_paths:
-            self.get_corpus(corpus_name).add_file_paths(paths)
+            self.get_corpus(corpus_name).add_file_paths(file_paths)
         else:
             # find the path according to the corpus_name
             first_path = resolved_paths[0]
@@ -703,6 +706,23 @@ class Parse(LoggedClass):
                                flat=flat,
                                include_empty=include_empty)
 
+    def get_facet(self,
+                   facet: ScoreFacet,
+                   view_name: Optional[str] = None,
+                   choose: Literal['auto', 'ask'] = 'auto',
+                   unfold: bool = False,
+                   interval_index: bool = False,
+                   concatenate: bool = True,
+                   ) -> Union[Dict[str, FileDataframeTuple], pd.DataFrame]:
+        """Retrieves exactly one DataFrame per piece, if available."""
+        return self._aggregate_corpus_data('get_facet',
+                                           facet=facet,
+                                           view_name=view_name,
+                                           choose=choose,
+                                           unfold=unfold,
+                                           interval_index=interval_index,
+                                           concatenate=concatenate,
+                                           )
 
     def get_facets(self,
                    facets: ScoreFacets = None,
@@ -1185,13 +1205,17 @@ class Parse(LoggedClass):
                                ):
         result = {}
         for corpus_name, corpus in self.iter_corpora(view_name):
-            corpus_method= getattr(corpus, method)
+            corpus_method = getattr(corpus, method)
+            if method == 'get_facet':
+                kwargs['concatenate'] = False
             corpus_result = corpus_method(view_name=view_name, **kwargs)
             for fname, piece_result in corpus_result.items():
+                if method == 'get_facet':
+                    piece_result = [piece_result]
                 result[(corpus_name, fname)] = piece_result
         if concatenate:
             keys, dataframes = [], []
-            flat = kwargs['flat']
+            flat = 'flat' not in kwargs or kwargs['flat']
             if flat:
                 add_index_level = any(len(piece_result) > 1 for piece_result in result.values())
             else:
@@ -1530,12 +1554,21 @@ class Parse(LoggedClass):
         """ Stores all parsed scores under this view as MuseScore 3 files.
 
         Args:
-            view_name:
+            view_name: Name of another view if another than the current one is to be used.
             only_changed:
                 By default, only scores that have been modified since parsing are written. Set to False to store
                 all scores regardless.
-            root_dir:
+            root_dir: Directory where to re-build the sub-directory tree of the :obj:`Corpus` in question.
             folder:
+                Different behaviours are available. Note that only the third option ensures that file paths are distinct for
+                files that have identical fnames but are located in different subdirectories of the same corpus.
+
+                * If ``folder`` is None (default), the files' type will be appended to the ``root_dir``.
+                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.
+                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file's subdir.
+                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.
+                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the
+                  ``root_dir``.
             suffix: Suffix to append to the original file name.
             overwrite: Pass True to overwrite existing files.
             simulate: Set to True if no files are to be written.

@@ -128,7 +128,7 @@ def convert_cmd(args):
     out_dir = os.getcwd() if args.out is None else resolve_dir(args.out)
     ms = 'auto' if args.musescore is None else args.musescore
     convert_folder(directory=args.dir,
-                   paths=args.files,
+                   file_paths=args.files,
                    target_dir=out_dir,
                    extensions=args.extensions,
                    target_extension=args.format,
@@ -145,7 +145,7 @@ def empty(args):
         'level': args.level,
         'path': args.log,
     }
-    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, paths=args.file, **logger_cfg)
+    p = Parse(args.dir, recursive=not args.nonrecursive, file_re=args.regex, exclude_re=args.exclude, file_paths=args.file, **logger_cfg)
     p.parse_scores(parallel=False)
     p.detach_labels()
     p.logger.info(f"Overview of the removed labels:\n{p.count_annotation_layers(which='detached').to_string()}")
@@ -415,23 +415,23 @@ Parse('{args.dir}',
      file_re={file_re_str},
      folder_re={folder_re_str},
      exclude_re={exclude_re_str},
-     paths={args.files},
+     file_paths={args.files},
      labels_cfg={labels_cfg},
      ms={ms_str},
      **{logger_cfg})
 """)
     parse_obj = Parse(args.dir,
-                 recursive=not args.nonrecursive,
-                 only_metadata_fnames=not args.all,
-                 include_convertible=ms is not None,
-                 exclude_review=not args.reviewed,
-                 file_re=args.include,
-                 folder_re=args.folders,
-                 exclude_re=args.exclude,
-                 paths=args.files,
-                 labels_cfg=labels_cfg,
-                 ms=ms,
-                 **logger_cfg)
+                      recursive=not args.nonrecursive,
+                      only_metadata_fnames=not args.all,
+                      include_convertible=ms is not None,
+                      exclude_review=not args.reviewed,
+                      file_re=args.include,
+                      folder_re=args.folders,
+                      exclude_re=args.exclude,
+                      file_paths=args.files,
+                      labels_cfg=labels_cfg,
+                      ms=ms,
+                      **logger_cfg)
     if parse_scores:
         mode = "ONE AFTER THE OTHER" if args.iterative else "IN PARALLEL"
         print(f"PARSING SCORES {mode}...")
@@ -513,9 +513,14 @@ def get_arg_parser():
     extract_args.add_argument('-F', '--form_labels', metavar='folder', nargs='?', const='../form_labels',
                                 help="Folder where to store TSV files with all form labels.")
     extract_args.add_argument('-E', '--events', metavar='folder', nargs='?', const='../events',
-                                help="Folder where to store TSV files with all events (notes, rests, articulation, etc.) without further processing.")
+                                help="Folder where to store TSV files with all events (chords, rests, articulation, etc.) without further processing.")
     extract_args.add_argument('-C', '--chords', metavar='folder', nargs='?', const='../chords',
-                                help="Folder where to store TSV files with <chord> tags, i.e. groups of notes in the same voice with identical onset and duration. The tables include lyrics, slurs, and other markup.")
+                                help="Folder where to store TSV files with <chord> tags, "
+                                     "i.e. groups of notes in the same voice with identical onset and duration. "
+                                     "The tables include lyrics, dynamics, articulation, staff- and system texts, tempo marking, spanners, and thoroughbass figures.")
+    extract_args.add_argument('-J', '--joined_chords', metavar='folder', nargs='?', const='../chords',
+                              help="Like -C except that all Chords are substituted with the actual Notes they contain. This is useful, for example, "
+                                   "for relating slurs to the notes they group, or bass figures to their bass notes. ")
     extract_args.add_argument('-D', '--metadata', metavar='suffix', nargs='?', const='',
                                 help="Set -D to update the 'metadata.tsv' files of the respective corpora with the parsed scores. "
                                      "Add a suffix if you want to update 'metadata{suffix}.tsv' instead.")
@@ -670,7 +675,9 @@ In particular, check DCML harmony labels for syntactic correctness.""", parents=
     transform_parser.add_argument('-E', '--events', action='store_true',
                                 help="Concatenate events TSVs (notes, rests, articulation, etc.) for all selected pieces (use ms3 extract -E to create those).")
     transform_parser.add_argument('-C', '--chords', action='store_true',
-                                help="Concatenate harmony chords TSVs (lyrics, slurs, and other markup) for all selected pieces (use ms3 extract -C to create those).")
+                                help="Concatenate chords TSVs (<chord> tags group notes in the same voice with identical onset and duration) including "
+                                     "lyrics, dynamics, articulation, staff- and system texts, tempo marking, spanners, and thoroughbass figures, "
+                                     "for all selected pieces (use ms3 extract -C to create those).")
     transform_parser.add_argument('-D', '--metadata', action='store_true',
                                 help="Output 'concatenated_metadata.tsv' with one row per selected piece.")
     transform_parser.add_argument('-s', '--suffix', nargs='*', metavar='SUFFIX',

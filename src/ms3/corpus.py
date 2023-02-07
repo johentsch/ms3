@@ -1,4 +1,5 @@
 from functools import lru_cache
+from glob import glob
 from logging import Logger
 from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional
 
@@ -25,7 +26,8 @@ from .utils import File, column_order, get_musescore, get_path_component, group_
     pretty_dict, resolve_dir, \
     update_labels_cfg, write_metadata, write_tsv, available_views2str, prepare_metadata_for_writing, \
     files2disambiguation_dict, ask_user_to_choose, resolve_paths_argument, make_file_path, resolve_facets_param, check_argument_against_literal_type, LATEST_MUSESCORE_VERSION, \
-    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, store_csvw_jsonld
+    convert, string2identifier, write_markdown, parse_ignored_warnings_file, parse_tsv_file_at_git_revision, disambiguate_files, enforce_fname_index_for_metadata, \
+    store_csvw_jsonld, scan_directory
 from .view import DefaultView, View, create_view_from_parameters
 
 
@@ -99,7 +101,7 @@ class Corpus(LoggedClass):
                                                        include_convertible=include_convertible,
                                                        include_tsv=include_tsv,
                                                        exclude_review=exclude_review,
-                                                       paths=paths,
+                                                       file_paths=paths,
                                                        file_re=file_re,
                                                        folder_re=folder_re,
                                                        exclude_re=exclude_re,
@@ -177,12 +179,14 @@ class Corpus(LoggedClass):
         self.create_pieces()
         self.look_for_ignored_warnings()
         self.register_files_with_pieces()
-        # self.look_for_ignored_warnings(directory, key=top_level)
-        # if len(mscx_files) > 0:
-        #     self.logger.warning(f"The following MSCX files are lying on the top level '{top_level}' and have not been registered (call with recursive=False to add them):"
-        #                         f"\n{mscx_files}", extra={"message_id": (7, top_level)})
+
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
     #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+
+    @property
+    def fnames(self) -> List[str]:
+        """All fnames including those of scores that are not listed in metadata.tsv"""
+        return self.get_all_fnames()
 
     @property
     def ix2file(self) -> dict:
@@ -261,6 +265,48 @@ class Corpus(LoggedClass):
     @property
     def n_annotations(self):
         return len(self.ix2annotations)
+
+    def add_dir(self,
+                directory: str,
+                filter_other_fnames: bool = False,
+                file_re: str = r".*",
+                folder_re: str = r".*",
+                exclude_re: str = r"^(\.|_)",
+                ) -> FileList:
+        """Add additional files pertaining to the already existing fnames of the corpus.
+
+        If you want to use a directory with other pieces, create another :obj:`Corpus` object or combine several
+        corpora in a :obj:`Parse` object.
+
+        Args:
+            directory:
+                Directory to scan for parseable (score or TSV) files. Only those that begin with one of the corpus's
+                fnames will be matched and registered, the others will be kept under :attr:`ix2orphan_file`.
+            filter_other_fnames:
+                Set to True if you want to filter out all fnames that were not matched up with one of the added files.
+                This can be useful if you're loading TSV files with labels and want to parse only the scores for which
+                you have added labels.
+            file_re, folder_re:
+                Regular expressions for filtering certain file names or folder names.
+                The regEx are checked with search(), not match(), allowing for fuzzy search.
+            exclude_re:
+                Exclude files and folders containing this regular expression.
+
+        Returns:
+            List of :obj:`File` objects pertaining to the matched, newly added paths.
+        """
+        directory = resolve_dir(directory)
+        all_file_paths = list(scan_directory(directory,
+                                             file_re=file_re,
+                                             folder_re=folder_re,
+                                             exclude_re=exclude_re))
+        added_files = self.add_file_paths(all_file_paths)
+        self.logger.debug(f"{len(added_files)} files added to the corpus.")
+        if filter_other_fnames:
+            new_view = self.view.copy()
+            new_view.include('fnames', *(re.escape(f.fname) for f in added_files))
+            self.set_view(new_view)
+        return added_files
 
     def cadences(self,
                     view_name: Optional[str] = None,
@@ -471,6 +517,15 @@ class Corpus(LoggedClass):
         return file_count.sum()
 
     def add_file_paths(self, paths: Collection[str]) -> FileList:
+        """Iterates through the given paths, converts those that correspond to parseable files to :obj:`File` objects
+        (trying to infer their type from the path), and appends those to :attr:`files`.
+
+        Args:
+            paths: File paths that are to be registered with this Corpus object.
+
+        Returns:
+            A list of :obj:`File` objects corresponding to parseable files (based on their extensions).
+        """
         resolved_paths = resolve_paths_argument(paths, logger=self.logger)
         if len(resolved_paths) == 0:
             return
@@ -488,10 +543,11 @@ class Corpus(LoggedClass):
                 continue
             current_subdir = os.path.relpath(current_path, self.corpus_path)
             rel_path = os.path.join(current_subdir, file)
-            if current_subdir.startswith('..'):
-                self.logger.warning(f"The file {rel_path} is lies outside the corpus folder {self.corpus_path}. "
-                                    f"This may lead to invalid relative paths in the metadata.tsv.")
             file_type = path2type(full_path, logger=self.logger)
+            if current_subdir.startswith('..') and file_type == 'scores':
+                self.logger.info(f"The score {rel_path} lies outside the corpus folder {self.corpus_path}. "
+                                    f"In case this is the only score detected for fname '{file_name}', this will result in "
+                                    f"an invalid relative path in the metadata.tsv file, i.e. one that will not exist on other systems.")
             F = File(
                 ix=len(self.files),
                 type=file_type,
@@ -1632,9 +1688,22 @@ class Corpus(LoggedClass):
             self.logger.info(f"None of the {target} TSV files have been parsed successfully.")
 
 
-    def register_files_with_pieces(self, files: Optional[FileList] = None, fnames: Union[Collection[str], str] = None) -> None:
+    def register_files_with_pieces(self,
+                                   files: Optional[FileList] = None,
+                                   fnames: Optional[Union[Collection[str], str]] = None) -> None:
+        """Iterates through the ``files`` and tries to match it with the ``fnames`` and registered matched
+        :obj:`File` objects with the corresponding :obj:`Piece` objects (unless already registered).
+
+        By default, the method uses this object's :attr:`files` and :attr:`fnames`. To match with a Piece, the file name
+        (without extension) needs to start with the Piece's ``fname``; otherwise, it will be stored under
+        :attr:`ix2orphan_file`.
+
+        Args:
+            files: :obj:`File` objects to register with the corresponding :obj:`Piece` objects based on their file names.
+            fnames: Fnames of the pieces that the files are to be matched to. Those that don't match any will be stored under :attr:`ix2orphan_file`.
+        """
         if fnames is None:
-            fnames = self.get_all_fnames()
+            fnames = self.fnames
         elif isinstance(fnames, str):
             fnames = [fnames]
         fnames = sorted(fnames, key=len, reverse=True)
@@ -1681,6 +1750,8 @@ class Corpus(LoggedClass):
         """
         rows = [piece.metadata() for fname, piece in self.iter_pieces(view_name)]
         metadata = pd.DataFrame(rows)
+        if len(metadata) == 0:
+            return metadata
         metadata = enforce_fname_index_for_metadata(metadata)
         return column_order(metadata, METADATA_COLUMN_ORDER, sort=False).sort_index()
         # tsv_metadata, score_metadata = None, None
