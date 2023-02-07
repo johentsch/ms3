@@ -2,8 +2,19 @@
 Changelog
 =========
 
+Version 1.2.2
+=============
+
+**ms3 requires Python 3.10**
+
+* removes deprecated elements from tab completion
+* enables view settings when adding new corpora to Parse object
+* small stuff
+
 Version 1.2.1
 =============
+
+**ms3 requires Python 3.10**
 
 * enables hiding the info prints in operations.insert_labels_into_score()
 * adds `filter_other_fnames` argument to Corpus.add_dir()
