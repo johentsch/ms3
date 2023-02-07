@@ -27,6 +27,7 @@ class Parse(LoggedClass):
         "count_annotation_layers",
         "count_labels",
         "get_lists",
+        "iter",
         "parse_mscx",
         "pieces",
         "store_scores",
@@ -1525,6 +1526,10 @@ class Parse(LoggedClass):
     def get_lists(self, *args, **kwargs):
         """Deprecated method. Replaced by :meth:`get_facets`."""
         raise DeprecationWarning(f"Method get_lists() not in use any more. Use Parse.get_facets() instead.")
+
+    def iter(self, *args, **kwargs):
+        """Deprecated method. Replaced by :meth:`ms3.corpus.Corpus.iter_facets`."""
+        raise DeprecationWarning(f"Method iter() not in use any more. Use Corpus.iter_facets() instead.")
 
     def parse_mscx(self, *args, **kwargs):
         """Deprecated method. Replaced by :meth:`parse_scores`."""
