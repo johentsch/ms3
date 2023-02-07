@@ -681,7 +681,7 @@ def convert_to_ms4(old, new, MS='mscore'):
         if version is None:
             msg = f"{MS} is not MuseScore 4.x.x."
         else:
-            msg = f"{MS3} is MuseScore {version}, not 4. Try convert()."
+            msg = f"{MS} is MuseScore {version}, not 4. Try convert()."
         raise RuntimeError(msg)
     old_path, old_file = os.path.split(old)
     old_fname, old_ext = os.path.splitext(old_file)
@@ -1191,12 +1191,13 @@ def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple:
     ...
 def add_collections(left: Union[pd.Series, NDArray, list, tuple],
                     right: Collection,
-                    dtype: Dtype = str):
+                    dtype: Dtype = 'string') -> Union[pd.Series, NDArray, list, tuple]:
+    """Zip-adds together the strings (by default) contained in two collections regardless of their types (think of adding
+    two columns together element-wise). Pass another ``dtype`` if you want the values to be converted to another
+    datatype before adding them together.
+    """
     if isinstance(left, pd.Series) and isinstance(right, pd.Series):
-        try:
-            return left + right
-        except TypeError:
-            return left.astype(dtype) + right.astype(dtype)
+        left.astype(dtype) + right.astype(dtype)
     result_series = pd.Series(left, dtype=dtype) + pd.Series(right, dtype=dtype)
     try:
         return left.__class__(result_series.to_list())
@@ -1218,7 +1219,16 @@ def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple:
 def cast2collection(coll: Union[pd.Series, NDArray, list, tuple], func: Callable, *args, **kwargs) -> Union[pd.Series, NDArray, list, tuple]:
     if isinstance(coll, pd.Series):
         return transform(coll, func, *args, **kwargs)
-    result_series = func(pd.Series(coll), *args, **kwargs)
+    with warnings.catch_warnings():
+        # pandas developers doing their most annoying thing >:(
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*The default dtype for empty Series.*"
+            ),
+        )
+        result_series = func(pd.Series(coll), *args, **kwargs)
     try:
         return coll.__class__(result_series.to_list())
     except TypeError:
@@ -1296,33 +1306,38 @@ def fifths2iv(fifths: int,
     return quality + int_num
 
 @overload
-def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> str:
+def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> Optional[str]:
     ...
 @overload
-def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> pd.Series:
+def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> Optional[pd.Series]:
     ...
 @overload
-def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> NDArray[str]:
+def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> Optional[NDArray[str]]:
     ...
 @overload
-def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> List[str]:
+def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> Optional[List[str]]:
     ...
 @overload
-def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Tuple[str]:
+def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Optional[Tuple[str]]:
     ...
 def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
              ms: bool = False,
-             minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+             minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
     """ Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
 
     Args:
-        tpc:
-        ms:
-        minor:
+        tpc: Tonal pitch class(es) to turn into a note name.
+        ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14
+        minor: Pass True if the string is to be returned as lowercase.
 
     Returns:
 
     """
+    try:
+        if pd.isnull(tpc):
+            return tpc
+    except ValueError:
+        pass
     if isinstance(tpc, pd.Series):
         return cast2collection(coll=tpc, func=tpc2name, ms=ms, minor=minor)
     try:
@@ -1337,40 +1352,40 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     return f"{note_names[ix]}{acc_str}"
 
 @overload
-def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> str:
+def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> Optional[str]:
     ...
 @overload
-def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> pd.Series:
+def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> Optional[pd.Series]:
     ...
 @overload
-def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> NDArray[str]:
+def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> Optional[NDArray[str]]:
     ...
 @overload
-def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> List[str]:
+def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> Optional[List[str]]:
     ...
 @overload
-def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Tuple[str]:
+def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Optional[Tuple[str]]:
     ...
 @function_logger
 def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
                 midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
                 ms: bool = False,
-                minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ Return note name of a stack of fifths such that
-       0 = C, -1 = F, -2 = Bb, 1 = G etc.
+                minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """Return note name of a stack of fifths such that
+       0 = C, -1 = F, -2 = Bb, 1 = G etc. This is a wrapper of :func:`tpc2name`, that additionally accepts the argument
+       ``midi`` which allows for adding octave information.
 
-    Parameters
-    ----------
-    fifths : :obj:`int`
-        Tonal pitch class to turn into a note name.
-    midi : :obj:`int`
-        In order to include the octave into the note name,
-        pass the corresponding MIDI pitch.
-    ms : :obj:`bool`, optional
-        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
-    minor : :obj:`bool`, optional
-        Pass True if the string is to be returned as lowercase.
+    Args:
+        fifths: Tonal pitch class(es) to turn into a note name.
+        midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).
+        ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
+        minor: Pass True if the string is to be returned as lowercase.
     """
+    try:
+        if pd.isnull(fifths):
+            return fifths
+    except ValueError:
+        pass
     try:
         fifths = int(float(fifths))
     except TypeError:
@@ -1378,7 +1393,7 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
         if midi is None:
             return names
         octaves = midi2octave(midi, fifths)
-        return add_collections(names, octaves)
+        return add_collections(names, octaves, dtype='string')
     name = tpc2name(fifths, ms=ms, minor=minor)
     if midi is None:
         return name
@@ -2400,7 +2415,7 @@ def merge_chords_and_notes(chords_table: pd.DataFrame,
     """
     notes_columns = ['tied', 'tpc', 'midi', 'name', 'octave', 'chord_id'] # 'gracenote', 'tremolo' would be contained in chords already
     present_columns = [col for col in notes_columns if col in notes_table]
-    assert 'chord_id' in present_columns, f"Notes table does not come with a 'chord_id' column needed for merging: {notes_tabls.columns}"
+    assert 'chord_id' in present_columns, f"Notes table does not come with a 'chord_id' column needed for merging: {notes_table.columns}"
     notes = notes_table[present_columns].astype({'chord_id': 'Int64'})
     amend_events = 'event' in chords_table
     merged = pd.merge(chords_table, notes, on='chord_id', how='outer', indicator=amend_events)
@@ -3285,7 +3300,16 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             else:
                 param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
-    res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
+    with warnings.catch_warnings():
+        # pandas developers doing their most annoying thing >:(
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*The default dtype for empty Series.*"
+            ),
+        )
+        res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
 
 @function_logger
