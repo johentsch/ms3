@@ -1972,7 +1972,8 @@ TSV_DTYPES = {
     'tpc': 'Int64',
     'voice': 'Int64',
     'voices': 'Int64',
-    'volta': 'Int64'
+    'volta': 'Int64',
+    'volta_mcs': object,
 }
 
 def load_tsv(path,
