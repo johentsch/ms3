@@ -24,7 +24,7 @@ def gather_extract_params(args):
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords))
               if arg]
-    if args.metadata is not None:
+    if args.metadata:
         params.append('metadata')
     return params
 
@@ -215,17 +215,18 @@ def metadata(args, parse_obj: Optional[Parse] = None):
 
 
 def transform(args, parse_obj: Optional[Parse] = None):
-    suffixes = make_suffixes(args, include_metadata=True)
-    if parse_obj is None:
-        p = make_parse_obj(args, parse_tsv=True)
-    else:
-        p = parse_obj
+    logger = get_logger('ms3.transform', level=args.level)
     params = gather_extract_params(args)
-    print(params)
     if len(params) == 0:
         print(
             "Pass at least one of the following arguments: -M (measures), -N (notes), -R (rests), -L (labels), -X (expanded), -F (form_labels), -E (events), -C (chords), -D (metadata)")
         return
+    suffixes = make_suffixes(args, include_metadata=True)
+    if parse_obj is None:
+        p = make_parse_obj(args, parse_tsv=True, facets=params)
+    else:
+        p = parse_obj
+
 
     for param in params:
         sfx = suffixes.get(f"{param}_suffix", '')
@@ -239,11 +240,14 @@ def transform(args, parse_obj: Optional[Parse] = None):
         else:
             df = p.get_facets(param, flat=True, interval_index=args.interval_index, unfold=args.unfold)
         df = df.reset_index(drop=False)
+        if df is None or len(df.index) == 0:
+            logger.info(f"No {param} data found. Maybe you haven't run ms3 extract?")
+            continue
         if args.test:
-            p.logger.info(f"Would have written {path}.")
+            logger.info(f"Would have written {path}.")
         else:
             write_tsv(df, path)
-            p.logger.info(f"{path} written.")
+            logger.info(f"{path} written.")
 
 
 def update_cmd(args, parse_obj: Optional[Parse] = None):
@@ -390,7 +394,7 @@ def review_cmd(args,
 
 
 
-def make_parse_obj(args, parse_scores=False, parse_tsv=False):
+def make_parse_obj(args, parse_scores=False, parse_tsv=False, facets=None):
     labels_cfg = {}
     if hasattr(args, 'positioning'):
         labels_cfg['positioning'] = args.positioning
@@ -432,6 +436,8 @@ Parse('{args.dir}',
                       labels_cfg=labels_cfg,
                       ms=ms,
                       **logger_cfg)
+    if facets is not None:
+        parse_obj.view.include('facets', *facets)
     if parse_scores:
         mode = "ONE AFTER THE OTHER" if args.iterative else "IN PARALLEL"
         print(f"PARSING SCORES {mode}...")
