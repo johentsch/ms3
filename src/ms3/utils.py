@@ -4490,7 +4490,7 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
     """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
         'notes': ['tpc', 'midi'],
-        'events': ['event'],
+        'events': ['Chord/durationType', 'Rest/durationType'],
         'chords': ['chord_id'],
         'rests': ['nominal_duration'],
         'expanded': ['numeral'],
