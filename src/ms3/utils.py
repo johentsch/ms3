@@ -2042,7 +2042,8 @@ def load_tsv(path,
 
 @lru_cache()
 def tsv_column2datatype():
-    mapping = {
+    mapping = defaultdict(lambda: 'string')
+    mapping.update({
         'Int64': 'integer',
         str: 'string',
         'string': 'string',
@@ -2052,7 +2053,7 @@ def tsv_column2datatype():
         safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
         safe_int: 'integer',
         str2inttuple: {"base": "string", "format": r"\(-?\d+, ?-?\d+\)"},
-    }
+    })
     column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
     column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
     return column2datatype
