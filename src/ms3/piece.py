@@ -720,6 +720,7 @@ class Piece(LoggedClass):
     def get_facet(self,
                   facet: ScoreFacet,
                   view_name: Optional[str] = None,
+                  force: bool = False,
                   choose: Literal['auto', 'ask'] = 'auto',
                   unfold: bool = False,
                   interval_index: bool = False) -> FileDataframeTupleMaybe:
@@ -731,7 +732,7 @@ class Piece(LoggedClass):
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.get_facets(facets=facet,
                                   view_name=view_name,
-                                  force=True,
+                                  force=force,
                                   choose=choose,
                                   unfold=unfold,
                                   interval_index=interval_index,
