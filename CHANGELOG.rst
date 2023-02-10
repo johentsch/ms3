@@ -2,6 +2,18 @@
 Changelog
 =========
 
+Version 1.2.3
+=============
+
+**ms3 requires Python 3.10**
+
+* Piece.get_facet() gets parameter 'force' which defaults to False (analogous to the other methods),
+  in order to avoid unsolicited score parsing.
+* improves `ms3 transform`:
+  * parse only facets to be concatenated (rather than all TSV files)
+  * do not accidentally output metadata if not requested
+* prevents including 'volta_mcs' in metadata of pieces that don't have voltas
+
 Version 1.2.2
 =============
 
