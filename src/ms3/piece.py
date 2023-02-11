@@ -521,7 +521,21 @@ class Piece(LoggedClass):
             result[key] = len(parsed)
         return result
 
-    def count_detected(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
+    def count_detected(self,
+                       include_empty: bool = False,
+                       view_name: Optional[str] = None,
+                       prefix: bool = False) -> Dict[str, int]:
+        """ Count how many files per facet have been detected.
+
+        Args:
+            include_empty:
+                By default, facets without files are not included in the dict. Pass True to include zero counts.
+            view_name:
+            prefix: Pass True if you want the facets prefixed with 'detected_'.
+
+        Returns:
+            {facet -> count of detected files}
+        """
         result = {}
         for facet, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
             key = 'detected_' + facet if prefix else facet

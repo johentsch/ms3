@@ -1,10 +1,8 @@
 from functools import lru_cache
-from glob import glob
 from logging import Logger
-from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional
+from typing import Literal, Collection, Dict, List, Union, Tuple, Iterator, Optional, Set
 
-import io
-import sys, os, re
+import os, re
 from itertools import zip_longest
 import pathos.multiprocessing as mp
 from collections import Counter, defaultdict
@@ -1127,14 +1125,14 @@ class Corpus(LoggedClass):
         return self._pieces[fname]
 
 
-    def get_present_facets(self, view_name: Optional[str] = None):
+    def get_present_facets(self, view_name: Optional[str] = None) -> List[str]:
         view = self.get_view(view_name)
         selected_fnames = []
         if view.fnames_in_metadata:
             selected_fnames.extend(self.fnames_in_metadata(self.metadata_ix))
         if view.fnames_not_in_metadata:
             selected_fnames.extend(self.fnames_not_in_metadata())
-        result = set()
+        result: Set[str] = set()
         for fname, piece in self:
             detected_facets = piece.count_detected(include_empty=False, prefix=False)
             result.update(detected_facets.keys())
@@ -1349,6 +1347,9 @@ class Corpus(LoggedClass):
                 selected_facets = selected_facets.intersection(set(view.selected_facets))
                 selected_facets = tuple(selected_facets)
             for fname, piece in view.filter_by_token('fnames', self):
+                if len(piece.count_detected()) == 0:
+                    # no facets to show, probably due to other filters; do not include in 'fnames' filter counts
+                    continue
                 metadata_check = not differentiate_by_presence_in_metadata or fname in selected_fnames
                 facet_check = not filter_incomplete_facets or piece.all_facets_present(view_name=view_name,
                                                                                        selected_facets=selected_facets)

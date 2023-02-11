@@ -625,6 +625,7 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                                 exclude_re=None,
                                 level=None
                                 ) -> View:
+    """From the arguments of an __init__ method, create either a DefaultView or a custom view."""
     no_legacy_params = all(param is None for param in (file_paths, file_re, folder_re, exclude_re))
     all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
     if no_legacy_params and all_default:
