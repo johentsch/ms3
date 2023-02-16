@@ -884,6 +884,8 @@ class Piece(LoggedClass):
                    view_name: Optional[str] = None,
                    choose: Literal['auto', 'ask'] = 'auto',
                    git_revision: Optional[str] = None,
+                   unfold: bool = False,
+                   interval_index: bool = False
                    ) -> FileParsedTupleMaybe:
         """ Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.
 
@@ -904,7 +906,9 @@ class Piece(LoggedClass):
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
                                     choose=choose,
-                                    flat=True)
+                                    flat=True,
+                                    unfold=unfold,
+                                    interval_index=interval_index)
         if len(files) == 0:
             file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
             if file is None:
@@ -1059,6 +1063,8 @@ class Piece(LoggedClass):
                        facet: TSVtype,
                        view_name: Optional[str] = None,
                        choose: Literal['auto', 'ask'] = 'auto',
+                       unfold: bool = False,
+                       interval_index: bool = False
                        ) -> FileDataframeTupleMaybe:
         facets = argument_and_literal_type2list(facet, TSVtype, logger=self.logger)
         assert len(facet) == 1, f"Pass exactly one valid TSV type {TSVtype.__args__} or use _.get_parsed_tsvs()"
