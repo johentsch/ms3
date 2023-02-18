@@ -72,7 +72,7 @@ Installation
 ============
 
 ms3 requires Python >= 3.10 (type ``python3 --version`` to check). Once you have switched to a virtual environment
-that has Python 3.10 installed you can pip-install the library via one of the two commands:
+that has Python 3.10 installed you can pip-install the library via one of the two commands::
 
     python3 -m pip install ms3
     pip install ms3

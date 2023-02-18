@@ -32,7 +32,7 @@ from pytablewriter import MarkdownTableWriter
 from .logger import function_logger, update_cfg, LogCapturer
 from ._typing import FileDict, Facet, ViewDict, FileDataframeTupleMaybe
 
-MS3_VERSION = '1.1.2'
+MS3_VERSION = '1.2.4'
 LATEST_MUSESCORE_VERSION = '3.6.2'
 COMPUTED_METADATA_COLUMNS = ['TimeSig', 'KeySig', 'last_mc', 'last_mn', 'length_qb', 'last_mc_unfolded', 'last_mn_unfolded', 'length_qb_unfolded',
                          'volta_mcs', 'all_notes_qb', 'n_onsets', 'n_onset_positions',
@@ -681,7 +681,7 @@ def convert_to_ms4(old, new, MS='mscore'):
         if version is None:
             msg = f"{MS} is not MuseScore 4.x.x."
         else:
-            msg = f"{MS3} is MuseScore {version}, not 4. Try convert()."
+            msg = f"{MS} is MuseScore {version}, not 4. Try convert()."
         raise RuntimeError(msg)
     old_path, old_file = os.path.split(old)
     old_fname, old_ext = os.path.splitext(old_file)
@@ -742,7 +742,7 @@ def _convert_kwargs(kwargs):
     return convert(**kwargs)
 
 @function_logger
-def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
+def convert_folder(directory=None, file_paths=None, target_dir=None, extensions=[], target_extension='mscx', regex='.*', suffix=None, recursive=True,
                    ms='mscore', overwrite=False, parallel=False):
     """ Convert all files in `dir` that have one of the `extensions` to .mscx format using the executable `MS`.
 
@@ -750,7 +750,7 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
     ----------
     directory : :obj:`str`
         Directory in which to look for files to convert.
-    paths : :obj:`list` of `dir`
+    file_paths : :obj:`list` of `dir`
         List of file paths to convert. These are not filtered by any means.
     target_dir : :obj:`str`
         Directory where to store converted files. Defaults to ``directory``
@@ -764,9 +764,9 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
     """
     MS = get_musescore(ms, logger=logger)
     assert MS is not None, f"MuseScore not found: {ms}"
-    assert any(arg is not None for arg in (directory, paths)), "Pass at least a directory or one path."
-    if isinstance(paths, str):
-        paths = [paths]
+    assert any(arg is not None for arg in (directory, file_paths)), "Pass at least a directory or one path."
+    if isinstance(file_paths, str):
+        file_paths = [file_paths]
     if target_extension[0] == '.':
         target_extension = target_extension[1:]
     conversion_params = []
@@ -783,9 +783,9 @@ def convert_folder(directory=None, paths=None, target_dir=None, extensions=[], t
         subdir_file_tuples = chain(subdir_file_tuples,
                                    scan_directory(directory, file_re=regex, exclude_re=exclude_re, recursive=recursive,
                                                   subdirs=True, exclude_files_only=True, logger=logger))
-    if paths is not None:
+    if file_paths is not None:
         subdir_file_tuples = chain(subdir_file_tuples,
-                                   (os.path.split(resolve_dir(path)) for path in paths))
+                                   (os.path.split(resolve_dir(path)) for path in file_paths))
     for subdir, file in subdir_file_tuples:
         if subdir in new_dirs:
             new_subdir = new_dirs[subdir]
@@ -1191,12 +1191,13 @@ def add_collections(left: tuple, right: Collection, dtype: Dtype) -> tuple:
     ...
 def add_collections(left: Union[pd.Series, NDArray, list, tuple],
                     right: Collection,
-                    dtype: Dtype = str):
+                    dtype: Dtype = 'string') -> Union[pd.Series, NDArray, list, tuple]:
+    """Zip-adds together the strings (by default) contained in two collections regardless of their types (think of adding
+    two columns together element-wise). Pass another ``dtype`` if you want the values to be converted to another
+    datatype before adding them together.
+    """
     if isinstance(left, pd.Series) and isinstance(right, pd.Series):
-        try:
-            return left + right
-        except TypeError:
-            return left.astype(dtype) + right.astype(dtype)
+        left.astype(dtype) + right.astype(dtype)
     result_series = pd.Series(left, dtype=dtype) + pd.Series(right, dtype=dtype)
     try:
         return left.__class__(result_series.to_list())
@@ -1218,7 +1219,16 @@ def cast2collection(coll: tuple, func: Callable, *args, **kwargs) -> tuple:
 def cast2collection(coll: Union[pd.Series, NDArray, list, tuple], func: Callable, *args, **kwargs) -> Union[pd.Series, NDArray, list, tuple]:
     if isinstance(coll, pd.Series):
         return transform(coll, func, *args, **kwargs)
-    result_series = func(pd.Series(coll), *args, **kwargs)
+    with warnings.catch_warnings():
+        # pandas developers doing their most annoying thing >:(
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*The default dtype for empty Series.*"
+            ),
+        )
+        result_series = func(pd.Series(coll), *args, **kwargs)
     try:
         return coll.__class__(result_series.to_list())
     except TypeError:
@@ -1296,33 +1306,38 @@ def fifths2iv(fifths: int,
     return quality + int_num
 
 @overload
-def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> str:
+def tpc2name(tpc: int, ms: bool = False, minor: bool = False) -> Optional[str]:
     ...
 @overload
-def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> pd.Series:
+def tpc2name(tpc: pd.Series, ms: bool = False, minor: bool = False) -> Optional[pd.Series]:
     ...
 @overload
-def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> NDArray[str]:
+def tpc2name(tpc: NDArray[int], ms: bool = False, minor: bool = False) -> Optional[NDArray[str]]:
     ...
 @overload
-def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> List[str]:
+def tpc2name(tpc: List[int], ms: bool = False, minor: bool = False) -> Optional[List[str]]:
     ...
 @overload
-def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Tuple[str]:
+def tpc2name(tpc:  Tuple[int], ms: bool = False, minor: bool = False) -> Optional[Tuple[str]]:
     ...
 def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
              ms: bool = False,
-             minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
+             minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
     """ Turn a tonal pitch class (TPC) into a name or perform the operation on a collection of integers.
 
     Args:
-        tpc:
-        ms:
-        minor:
+        tpc: Tonal pitch class(es) to turn into a note name.
+        ms: Pass True if ``tpc`` is a MuseScore TPC, i.e. C = 14
+        minor: Pass True if the string is to be returned as lowercase.
 
     Returns:
 
     """
+    try:
+        if pd.isnull(tpc):
+            return tpc
+    except ValueError:
+        pass
     if isinstance(tpc, pd.Series):
         return cast2collection(coll=tpc, func=tpc2name, ms=ms, minor=minor)
     try:
@@ -1337,40 +1352,40 @@ def tpc2name(tpc: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
     return f"{note_names[ix]}{acc_str}"
 
 @overload
-def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> str:
+def fifths2name(fifths: int, midi: Optional[int], ms: bool, minor: bool) -> Optional[str]:
     ...
 @overload
-def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> pd.Series:
+def fifths2name(fifths: pd.Series, midi: Optional[pd.Series], ms: bool, minor: bool) -> Optional[pd.Series]:
     ...
 @overload
-def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> NDArray[str]:
+def fifths2name(fifths: NDArray[int], midi: Optional[NDArray[int]], ms: bool, minor: bool) -> Optional[NDArray[str]]:
     ...
 @overload
-def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> List[str]:
+def fifths2name(fifths: List[int], midi: Optional[List[int]], ms: bool, minor: bool) -> Optional[List[str]]:
     ...
 @overload
-def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Tuple[str]:
+def fifths2name(fifths: Tuple[int], midi: Optional[Tuple[int]], ms: bool, minor: bool) -> Optional[Tuple[str]]:
     ...
 @function_logger
 def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int]],
                 midi: Optional[Union[int, pd.Series, NDArray[int], List[int], Tuple[int]]] = None,
                 ms: bool = False,
-                minor: bool = False) -> Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]:
-    """ Return note name of a stack of fifths such that
-       0 = C, -1 = F, -2 = Bb, 1 = G etc.
+                minor: bool = False) -> Optional[Union[str, pd.Series, NDArray[str], List[str], Tuple[str]]]:
+    """Return note name of a stack of fifths such that
+       0 = C, -1 = F, -2 = Bb, 1 = G etc. This is a wrapper of :func:`tpc2name`, that additionally accepts the argument
+       ``midi`` which allows for adding octave information.
 
-    Parameters
-    ----------
-    fifths : :obj:`int`
-        Tonal pitch class to turn into a note name.
-    midi : :obj:`int`
-        In order to include the octave into the note name,
-        pass the corresponding MIDI pitch.
-    ms : :obj:`bool`, optional
-        Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
-    minor : :obj:`bool`, optional
-        Pass True if the string is to be returned as lowercase.
+    Args:
+        fifths: Tonal pitch class(es) to turn into a note name.
+        midi: In order to include the octave into the note name, pass the corresponding MIDI pitch(es).
+        ms: Pass True if ``fifths`` is a MuseScore TPC, i.e. C = 14
+        minor: Pass True if the string is to be returned as lowercase.
     """
+    try:
+        if pd.isnull(fifths):
+            return fifths
+    except ValueError:
+        pass
     try:
         fifths = int(float(fifths))
     except TypeError:
@@ -1378,7 +1393,7 @@ def fifths2name(fifths: Union[int, pd.Series, NDArray[int], List[int], Tuple[int
         if midi is None:
             return names
         octaves = midi2octave(midi, fifths)
-        return add_collections(names, octaves)
+        return add_collections(names, octaves, dtype='string')
     name = tpc2name(fifths, ms=ms, minor=minor)
     if midi is None:
         return name
@@ -1453,7 +1468,7 @@ def _fifths2str(fifths: int,
         inverted: By default, return accidental + step. Pass True to get step + accidental instead.
 
     Returns:
-
+        Accidentals + step from ``steps`` or, if inverted, step + accidentals.
     """
     acc = fifths2acc(fifths)
     fifths += 1
@@ -1476,20 +1491,16 @@ def get_ms_version(mscx_file):
 
 
 @function_logger
-def get_musescore(MS):
-    """ Tests whether a MuseScore executable can be found on the system.
+def get_musescore(MS: Union[str, Literal['auto', 'win', 'mac']] = 'auto') -> Optional[str]:
+    """Tests whether a MuseScore executable can be found on the system.
     Uses: test_binary()
 
-    Parameters
-    ----------
-    MS : :obj:`str`
-        A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
 
-    Returns
-    -------
-    :obj:`str`
+    Args:
+        MS: A path to the executable, installed command, or one of the keywords {'auto', 'win', 'mac'}
+
+    Returns:
         Path to the executable if found or None.
-
     """
     if MS is None:
         return MS
@@ -1961,7 +1972,8 @@ TSV_DTYPES = {
     'tpc': 'Int64',
     'voice': 'Int64',
     'voices': 'Int64',
-    'volta': 'Int64'
+    'volta': 'Int64',
+    'volta_mcs': object,
 }
 
 def load_tsv(path,
@@ -2030,7 +2042,8 @@ def load_tsv(path,
 
 @lru_cache()
 def tsv_column2datatype():
-    mapping = {
+    mapping = defaultdict(lambda: 'string')
+    mapping.update({
         'Int64': 'integer',
         str: 'string',
         'string': 'string',
@@ -2040,7 +2053,7 @@ def tsv_column2datatype():
         safe_frac: {"base": "string", "format": r"-?\d+(?:\/\d+)?"},
         safe_int: 'integer',
         str2inttuple: {"base": "string", "format": r"\(-?\d+, ?-?\d+\)"},
-    }
+    })
     column2datatype = {col: mapping[dtype] for col, dtype in TSV_COLUMN_CONVERTERS.items()}
     column2datatype.update({col: mapping[dtype] for col, dtype in TSV_DTYPES.items()})
     return column2datatype
@@ -2386,7 +2399,34 @@ def merge_ties(df, return_dropped=False, perform_checks=True):
         assert before[1] == after[1], f"Error while merging ties. Before:\n{before}\nAfter:\n{after}"
     return df
 
+def merge_chords_and_notes(chords_table: pd.DataFrame,
+                           notes_table: pd.DataFrame) -> pd.DataFrame:
+    """Performs an outer join between a chords table and a notes table, based on the column 'chord_id'. If the chords
+    come with an 'event' column, all chord events matched with at least one note will be renamed to 'Note'.
+    Markup displayed in individual rows ('Dynamic', 'Spanner', 'StaffText', 'SystemText', 'Tempo', 'FiguredBass'),
+    are/remain placed before the note(s) with the same onset.
+    Markup showing up in a Chord event's row (e.g. a Spanner ID) will be duplicated for each note pertaining to that chord,
+    i.e., only for notes in the same staff and voice.
 
+    Args:
+        chords_table:
+        notes_table:
+
+    Returns:
+        Merged DataFrame.
+    """
+    notes_columns = ['tied', 'tpc', 'midi', 'name', 'octave', 'chord_id'] # 'gracenote', 'tremolo' would be contained in chords already
+    present_columns = [col for col in notes_columns if col in notes_table]
+    assert 'chord_id' in present_columns, f"Notes table does not come with a 'chord_id' column needed for merging: {notes_table.columns}"
+    notes = notes_table[present_columns].astype({'chord_id': 'Int64'})
+    amend_events = 'event' in chords_table
+    merged = pd.merge(chords_table, notes, on='chord_id', how='outer', indicator=amend_events)
+    merged = sort_note_list(merged)
+    if amend_events:
+        matches_mask = merged._merge == 'both'
+        merged.loc[matches_mask, 'event'] = 'Note'
+        merged.drop(columns='_merge', inplace=True)
+    return merged
 
 def metadata2series(d: dict) -> pd.Series:
     """ Turns a metadata dict into a pd.Series() (for storing in a DataFrame)
@@ -2679,9 +2719,9 @@ def path2type(path):
     if fext.lower() in SCORE_EXTENSIONS:
         logger.debug(f"Recognized file extension '{fext}' as score.")
         return 'scores'
-    comp2type = path_component2file_type_map()
+    component2type = path_component2file_type_map()
     def find_components(s):
-        res = [comp for comp in comp2type.keys() if comp in s]
+        res = [comp for comp in component2type.keys() if comp in s]
         return res, len(res)
     if os.path.isfile(path):
         # give preference to folder names before file names
@@ -2697,27 +2737,29 @@ def path2type(path):
         logger.debug(f"Type could not be inferred from path '{path}'.")
         return 'unknown'
     if n_found == 1:
-        typ = comp2type[found_components[0]]
+        typ = component2type[found_components[0]]
         logger.debug(f"Path '{path}' recognized as {typ}.")
         return typ
     else:
         shortened_path = path
         while len(shortened_path) > 0:
             shortened_path, base = os.path.split(shortened_path)
-            for comp in comp2type.keys():
+            for comp in component2type.keys():
                 if comp in base:
-                    typ = comp2type[comp]
+                    typ = component2type[comp]
                     logger.debug(f"Multiple components ({', '.join(found_components)}) found in path '{path}'. Chose the last one: {typ}")
                     return typ
         logger.warning(f"Components {', '.join(found_components)} found in path '{path}', but not in one of its constituents.")
         return 'other'
 
 
+@lru_cache()
 def path_component2file_type_map() -> dict:
     comp2type = {comp: comp for comp in STANDARD_NAMES}
     comp2type['MS3'] = 'scores'
     comp2type['harmonies'] = 'expanded'
     comp2type['output'] = 'labels'
+    comp2type['infer'] = 'labels'
     return comp2type
 
 def file_type2path_component_map() -> dict:
@@ -2768,6 +2810,7 @@ def resolve_dir(d):
     """
     if d is None:
         return None
+    d = str(d)
     if '~' in d:
         return os.path.expanduser(d)
     return os.path.abspath(d)
@@ -2893,33 +2936,34 @@ def scale_degree2name(sd, localkey, globalkey):
 
 
 @function_logger
-def scan_directory(directory, file_re=r".*", folder_re=r".*", exclude_re=r"^(\.|_)", recursive=True, subdirs=False, progress=False, exclude_files_only=False, return_metadata=False):
-    """ Generator of file names in ``directory``.
+def scan_directory(directory: str,
+                   file_re: str = r".*",
+                   folder_re: str = r".*",
+                   exclude_re: str = r"^(\.|_)",
+                   recursive: bool = True,
+                   subdirs: bool = False,
+                   progress: bool = False,
+                   exclude_files_only: bool = False,
+                   return_metadata: bool = False) -> Iterator[Union[str, Tuple[str, str]]]:
+    """ Generator of filtered file paths in ``directory``.
 
-    Parameters
-    ----------
-    dir : :obj:`str`
-        Directory to be scanned for files.
-    file_re, folder_re : :obj:`str` or :obj:`re.Pattern`, optional
-        Regular expressions for filtering certain file names or folder names.
-        The regEx are checked with search(), not match(), allowing for fuzzy search.
-    recursive : :obj:`bool`, optional
-        By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
-    subdirs : :obj:`bool`, optional
-        By default, full file paths are returned. Pass True to return (path, name) tuples instead.
-    progress : :obj:`bool`, optional
-        By default, the scanning process is shown. Pass False to prevent.
-    exclude_files_only : :obj:`bool`, optional
-        By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
-    return_metadata: :obj:`bool`, optional
-        Independent of file_re, files called 'metadata.tsv' are always yielded.
+    Args:
+        directory: Directory to be scanned for files.
+        file_re, folder_re:
+            Regular expressions for filtering certain file names or folder names.
+            The regEx are checked with search(), not match(), allowing for fuzzy search.
+        exclude_re:
+            Exclude files and folders (unless ``exclude_files_only=True``) containing this regular expression.
+        recursive: By default, sub-directories are recursively scanned. Pass False to scan only ``dir``.
+        subdirs: By default, full file paths are returned. Pass True to return (path, name) tuples instead.
+        progress: Pass True to display the progress (useful for large directories).
+        exclude_files_only:
+            By default, ``exclude_re`` excludes files and folder. Pass True to exclude only files matching the regEx.
+        return_metadata:
+            If set to True, 'metadata.tsv' are always yielded regardless of ``file_re``.
 
-
-    Yields
-    ------
-    :obj:`str`
-        Full path.
-
+    Yields:
+        Full file path or, if ``subdirs=True``, (path, file_name) pairs in random order.
     """
     if file_re is None:
         file_re = r".*"
@@ -3005,6 +3049,7 @@ def sort_note_list(df, mc_col='mc', mc_onset_col='mc_onset', midi_col='midi', du
     -------
 
     """
+    df = df.copy()
     is_grace = df[duration_col] == 0
     grace_ix = {k: v.to_numpy() for k, v in df[is_grace].groupby([mc_col, mc_onset_col]).groups.items()}
     has_nan = df[midi_col].isna().any()
@@ -3257,7 +3302,16 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
             else:
                 param_tuples = list(df[list(param2col)].itertuples(index=False, name=None))
             result_dict = {t: func(*t, **kwargs) for t in set(param_tuples)}
-    res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
+    with warnings.catch_warnings():
+        # pandas developers doing their most annoying thing >:(
+        warnings.filterwarnings(
+            "ignore",
+            category=FutureWarning,
+            message=(
+                ".*The default dtype for empty Series.*"
+            ),
+        )
+        res = pd.Series([result_dict[t] for t in param_tuples], index=df.index)
     return res
 
 @function_logger
@@ -4437,7 +4491,7 @@ def infer_tsv_type(df: pd.DataFrame) -> Optional[str]:
     """Infers the contents of a DataFrame from the presence of particular columns."""
     type2cols = {
         'notes': ['tpc', 'midi'],
-        'events': ['event'],
+        'events': ['Chord/durationType', 'Rest/durationType'],
         'chords': ['chord_id'],
         'rests': ['nominal_duration'],
         'expanded': ['numeral'],
@@ -4489,17 +4543,30 @@ def reduce_dataframe_duration_to_first_row(df: pd.DataFrame) -> pd.DataFrame:
 class File:
     """Storing path and file name information for one file."""
     ix: int
+    """Index integer (ID)"""
     type: str
+    """Recognized type ∈ :attr:`ms3._typing.Facet`"""
     file: str
+    """File name including extension."""
     fname: str
+    """fname excluding the suffix (after registering the file with a :obj:`Piece`)."""
     fext: str
+    """File extensions."""
     subdir: str
+    """Directory relative to the corpus path (e.g. './MS3')."""
     corpus_path: str
+    """Absolute path of the file's parent directory that is considered as corpus directory."""
     rel_path: str
+    """File path relative to the corpus path. Equivalent to <subdir>/<file>."""
     full_path: str
+    """Absolute file path."""
     directory: str
+    """Absolute folder path where the file is located."""
     suffix: str
+    """Upon registering the File with a :obj:`Piece`, if the current fname has a suffix compared to the Piece's fname, 
+    suffix is removed from the File object's fname field and added to the suffix field."""
     commit_sha: str = ''
+    """The the file has been retrieved from a particular git revision, this is set to the revision's hash."""
 
     def __repr__(self):
         suffix = '' if self.suffix == '' else f", suffix: {self.suffix}."
@@ -4848,18 +4915,38 @@ def unpack_json_paths(paths: Collection[str]) -> None:
 
 
 @function_logger
-def resolve_paths_argument(paths: Collection[str]) -> Collection[str]:
+def resolve_paths_argument(paths: Union[str, Collection[str]],
+                           files: bool = True) -> List[str]:
+    """ Makes sure that the given path(s) exists(s) and filters out those that don't.
+
+    Args:
+        paths: One or several paths given as strings.
+        files: By default, only file paths are returned. Set to False to return only folders.
+
+    Returns:
+
+    """
     if isinstance(paths, str):
         paths = [paths]
     resolved_paths = [resolve_dir(p) for p in paths]
-    not_a_file = [p for p in paths if not os.path.isfile(p)]
-    if len(not_a_file) > 0:
-        if len(not_a_file) == 1:
-            msg = f"No existing file at {not_a_file[0]}."
-        else:
-            msg = f"These are not paths of existing files: {not_a_file}"
-        logger.warning(msg)
-        resolved_paths = [p for p in paths if os.path.isfile(p)]
+    if files:
+        not_a_file = [p for p in paths if not os.path.isfile(p)]
+        if len(not_a_file) > 0:
+            if len(not_a_file) == 1:
+                msg = f"No existing file at {not_a_file[0]}."
+            else:
+                msg = f"These are not paths of existing files: {not_a_file}"
+            logger.warning(msg)
+            resolved_paths = [p for p in paths if os.path.isfile(p)]
+    else:
+        not_a_folder = [p for p in paths if not os.path.isdir(p)]
+        if len(not_a_folder) > 0:
+            if len(not_a_folder) == 1:
+                msg = f"{not_a_folder[0]} is not a path to an existing folder."
+            else:
+                msg = f"These are not paths of existing folders: {not_a_folder}"
+            logger.warning(msg)
+            resolved_paths = [p for p in paths if os.path.isdir(p)]
     return resolved_paths
 
 @function_logger

@@ -73,7 +73,7 @@
 import os, re
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile as Temp
-from typing import Literal, Optional, Collection, Dict, Tuple
+from typing import Literal, Optional, Collection, Tuple
 
 import pandas as pd
 
@@ -91,6 +91,8 @@ class MSCX(LoggedClass):
     :obj:`Score` object and exposed as ``Score.mscx``.
     An object is only created if a score was successfully parsed.
     """
+
+    _deprecated_elements = ["output_mscx"]
 
     def __init__(self, mscx_src, read_only=False, parser='bs4', labels_cfg={}, parent_score=None, **logger_cfg):
         """ Object for interacting with the XML structure of a MuseScore 3 file.
@@ -198,7 +200,7 @@ class MSCX(LoggedClass):
         return cadences
 
     def chords(self,
-               mode: Literal['auto','strict','all'] = 'auto',
+               mode: Literal['auto','strict'] = 'auto',
                interval_index: bool = False,
                unfold: bool = False) -> Optional[pd.DataFrame]:
         """ DataFrame of :ref:`chords` representing all <Chord> tags contained in the MuseScore file
@@ -216,8 +218,6 @@ class MSCX(LoggedClass):
                 (e.g. slurs, 8va lines, pedal lines). This results in NaN values in the column 'chord_id' for those
                 markers that are not part of a <Chord> tag, e.g. <Dynamic>, <StaffText>, or <Tempo>. To prevent that, pass
                 'strict', meaning that only <Chords> are included, i.e. the column 'chord_id' will have no empty values.
-                Set to 'all' for 'auto' behaviour, but additionally creating empty columns even for those performance
-                markers not occurring in the score.
             interval_index:  Pass True to replace the default :obj:`~pandas.RangeIndex` by an :obj:`~pandas.IntervalIndex`.
 
         Returns:
@@ -1692,10 +1692,6 @@ Use one of the existing keys or load a new set with the method load_annotations(
             if key != 'annotations':
                 self[key].update_logger_cfg({'name': self.logger_names[new_key]})
 
-    def output_mscx(*args, **kwargs) -> None:
-        """Deprecated method. Replaced by :meth:`store_score`."""
-        raise AttributeError(f"Method not in use any more. Use Score.store_score() to write the score to an MSCX file.")
-
 
     def store_score(self, filepath):
         """ Store the current :obj:`MSCX` object attached to this score as uncompressed MuseScore file.
@@ -1903,6 +1899,12 @@ Use one of the existing keys or load a new set with the method load_annotations(
     #         self.__dict__[key] = value
     #     else:
     #         self._annotations[key] = value
+
+    def output_mscx(*args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`store_score`."""
+        raise DeprecationWarning(f"Method not in use any more. Use Score.store_score() to write the score to an MSCX file.")
+
+
 
 
 ########################################################################################################################

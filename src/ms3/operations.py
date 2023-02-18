@@ -1,31 +1,75 @@
-from typing import Literal, Optional, Tuple, Dict, List
+from typing import Literal, Optional, Tuple, Dict, List, Union
 
-from ms3 import Parse
+from ms3 import Parse, Corpus
 from ms3._typing import AnnotationsFacet
 from ms3.utils import capture_parse_logs, LATEST_MUSESCORE_VERSION, pretty_dict, check_argument_against_literal_type
 from ms3.logger import get_logger, temporarily_suppress_warnings, function_logger
 
-def insert_labels_into_score(parse_obj: Parse,
+def insert_labels_into_score(ms3_object: Union[Parse, Corpus],
                              facet: AnnotationsFacet,
                              ask_for_input: bool = True,
                              replace: bool = True,
+                             staff: int = None,
+                             voice: Optional[Literal[1, 2, 3, 4]] = None,
+                             harmony_layer: Optional[Literal[0, 1, 2]] = None,
+                             check_for_clashes: bool = True,
+                             print_info: bool = True,
                              ) -> None:
+    """ Write labels into the <Harmony> tags of the corresponding MuseScore files.
+
+    Args:
+        ms3_object: A Corpus or Parse object including the corresponding files.
+        facet: Which kind of labels to pick ('labels', 'expanded', or 'unknown').
+        ask_for_input:
+            What to do if more than one TSV or MuseScore file is detected for a particular fname. By default, the user is asked for input.
+            Pass False to prevent that and pick the files with the shortest relative paths instead.
+        replace: By default, any existing labels are removed from the scores. Pass False to leave them in, which may lead to clashes.
+        staff
+            If you pass a staff ID, the labels will be attached to that staff where 1 is the upper stuff.
+            By default, the staves indicated in the 'staff' column of :obj:`ms3.annotations.Annotations.df`
+            will be used, or, if such a column is not present, labels will be inserted under the lowest staff -1.
+        voice
+            If you pass the ID of a notational layer (where 1 is the upper voice, blue in MuseScore),
+            the labels will be attached to that one.
+            By default, the notational layers indicated in the 'voice' column of
+            :obj:`ms3.annotations.Annotations.df` will be used, 
+            or, if such a column is not present, labels will be inserted for voice 1.
+        harmony_layer
+            | By default, the labels are written to the layer specified as an integer in the column ``harmony_layer``.
+            | Pass an integer to select a particular layer:
+            | * 0 to attach them as absolute ('guitar') chords, meaning that when opened next time,
+            |   MuseScore will split and encode those beginning with a note name ( resulting in ms3-internal harmony_layer 3).
+            | * 1 the labels are written into the staff's layer for Roman Numeral Analysis.
+            | * 2 to have MuseScore interpret them as Nashville Numbers
+        check_for_clashes
+            By default, warnings are thrown when there already exists a label at a position (and in a notational
+            layer) where a new one is attached. Pass False to deactivate these warnings.
+        print_info:
+            By default, the ms3_object is displayed before and after parsing. Pass False to prevent this,
+            for example when the object has many, many files.
+    """
     logger = get_logger('ms3.add')
     facet = check_argument_against_literal_type(facet, AnnotationsFacet, logger=logger)
-    parse_obj.view.include('facets', 'scores', facet)
-    parse_obj.disambiguate_facet(facet, ask_for_input=ask_for_input)
-    parse_obj.disambiguate_facet('scores', ask_for_input=ask_for_input)
-    parse_obj.view.fnames_with_incomplete_facets = False
-    print("PARSING...")
-    parse_obj.parse(parallel=False)
+    ms3_object.view.include('facets', 'scores', facet)
+    ms3_object.disambiguate_facet(facet, ask_for_input=ask_for_input)
+    ms3_object.disambiguate_facet('scores', ask_for_input=ask_for_input)
+    ms3_object.view.fnames_with_incomplete_facets = False
+    obj_name = type(ms3_object).__name__.upper()
+    if print_info:
+        print(f"VIEW ON THE {obj_name} BEFORE PARSING:")
+        ms3_object.info()
+    print(f"PARSING SCORES...")
+    ms3_object.parse(parallel=False)
     if replace:
         print("REMOVING LABELS FROM PARSED SCORES...")
-        parse_obj.detach_labels()
+        ms3_object.detach_labels()
     print("INSERTING LABELS INTO SCORES...")
-    parse_obj.load_facet_into_scores(facet)
-    parse_obj.insert_detached_labels()
-    print(f"PARSE OBJECT AFTER THE OPERATION:")
-    parse_obj.info()
+    ms3_object.load_facet_into_scores(facet)
+    ms3_object.insert_detached_labels(staff=staff, voice=voice, harmony_layer=harmony_layer, check_for_clashes=check_for_clashes)
+    if print_info:
+        print(f"{obj_name} OBJECT AFTER THE OPERATION:")
+        ms3_object.info()
+    print("DONE INSERTING.")
 
 def extract(parse_obj: Parse,
             root_dir: Optional[str] = None,
@@ -144,19 +188,19 @@ def compare(parse_obj: Parse,
                              detached_is_newer=flip)
 
 
-def store_scores(parse_obj: Parse,
+def store_scores(ms3_object: Union[Parse, Corpus],
                  only_changed: bool = True,
                  root_dir: Optional[str] = None,
                  folder: str = 'reviewed',
                  suffix: str = '_reviewed',
                  overwrite: bool = True,
                  simulate=False) -> Dict[str, List[str]]:
-    return parse_obj.store_parsed_scores(only_changed=only_changed,
-                                  root_dir=root_dir,
-                                  folder=folder,
-                                  suffix=suffix,
-                                  overwrite=overwrite,
-                                  simulate=simulate)
+    return ms3_object.store_parsed_scores(only_changed=only_changed,
+                                          root_dir=root_dir,
+                                          folder=folder,
+                                          suffix=suffix,
+                                          overwrite=overwrite,
+                                          simulate=simulate)
 
 
 def update(parse_obj: Parse,
@@ -189,7 +233,7 @@ def update(parse_obj: Parse,
                                                      suffix=suffix,
                                                      overwrite=overwrite)
                 filtered_view = corpus.view.copy()
-                filtered_view.update_config(paths=up2date_paths)
+                filtered_view.update_config(file_paths=up2date_paths)
                 corpus.set_view(filtered_view)
                 corpus.info()
                 corpus.parse_scores()

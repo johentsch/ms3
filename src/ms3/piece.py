@@ -21,6 +21,8 @@ from .view import View, DefaultView
 class Piece(LoggedClass):
     """Wrapper around :class:`~.score.Score` for associating it with parsed TSV files"""
 
+    _deprecated_elements = ["get_dataframe"]
+
     def __init__(self, fname: str, view: View = None, logger_cfg={}, ms=None):
         super().__init__(subclass='Piece', logger_cfg=logger_cfg)
         self.name = fname
@@ -78,7 +80,7 @@ class Piece(LoggedClass):
 
     def all_facets_present(self, view_name: Optional[str] = None,
                            selected_facets: Optional[Facets] = None) -> bool:
-        """ Checks if parsed files have been detected for all selected facets under the active or indicated view.
+        """ Checks if parsed TSV files have been detected for all selected facets under the active or indicated view.
 
         Args:
             view_name: Name of the view to check.
@@ -519,7 +521,21 @@ class Piece(LoggedClass):
             result[key] = len(parsed)
         return result
 
-    def count_detected(self, include_empty=False, view_name: Optional[str] = None, prefix: bool = False) -> Dict[str, int]:
+    def count_detected(self,
+                       include_empty: bool = False,
+                       view_name: Optional[str] = None,
+                       prefix: bool = False) -> Dict[str, int]:
+        """ Count how many files per facet have been detected.
+
+        Args:
+            include_empty:
+                By default, facets without files are not included in the dict. Pass True to include zero counts.
+            view_name:
+            prefix: Pass True if you want the facets prefixed with 'detected_'.
+
+        Returns:
+            {facet -> count of detected files}
+        """
         result = {}
         for facet, files in self.iter_facet2files(view_name=view_name, include_empty=include_empty):
             key = 'detected_' + facet if prefix else facet
@@ -591,11 +607,6 @@ class Piece(LoggedClass):
         return [(file, score) for file, score in parsed_scores if score.mscx.changed]
 
 
-    def get_dataframe(self, *args, **kwargs) -> None:
-        """Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`."""
-        raise AttributeError(f"Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, "
-                             f"_.extract_facet() to retrieve a freshly extracted DataFrame, "
-                             f"or _.get_facet() to retrieve either, according to availability.")
 
 
     def get_facets(self,
@@ -723,6 +734,7 @@ class Piece(LoggedClass):
     def get_facet(self,
                   facet: ScoreFacet,
                   view_name: Optional[str] = None,
+                  force: bool = False,
                   choose: Literal['auto', 'ask'] = 'auto',
                   unfold: bool = False,
                   interval_index: bool = False) -> FileDataframeTupleMaybe:
@@ -734,7 +746,7 @@ class Piece(LoggedClass):
         assert choose != 'all', "If you want to choose='all', use _.extract_facets() (plural)."
         df_list = self.get_facets(facets=facet,
                                   view_name=view_name,
-                                  force=True,
+                                  force=force,
                                   choose=choose,
                                   unfold=unfold,
                                   interval_index=interval_index,
@@ -872,6 +884,8 @@ class Piece(LoggedClass):
                    view_name: Optional[str] = None,
                    choose: Literal['auto', 'ask'] = 'auto',
                    git_revision: Optional[str] = None,
+                   unfold: bool = False,
+                   interval_index: bool = False
                    ) -> FileParsedTupleMaybe:
         """ Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.
 
@@ -892,7 +906,9 @@ class Piece(LoggedClass):
         files = self.get_all_parsed(facets=facet,
                                     view_name=view_name,
                                     choose=choose,
-                                    flat=True)
+                                    flat=True,
+                                    unfold=unfold,
+                                    interval_index=interval_index)
         if len(files) == 0:
             file = self.get_file(facet, view_name=view_name, parsed=False, choose=choose)
             if file is None:
@@ -977,7 +993,12 @@ class Piece(LoggedClass):
                 files = [selected]
             if n_unparsed > 0:
                 plural = 'files' if n_unparsed > 1 else 'file'
-                self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
+                try:
+                    self.logger.debug(f"Disregarded {n_unparsed} unparsed {facet} {plural}. Set force=True to automatically parse.")
+                except AttributeError:
+                    if self.logger is None:
+                        raise RuntimeError("The logger is None. This happens when __getstate__ is called. Did you use copy()?")
+                    raise
             parsed_files = [(file, self._get_transformed_facet_at_ix(ix=file.ix, unfold=unfold, interval_index=interval_index)) for file in files if file.ix in self.ix2parsed]
             parsed_files = [(file, df) for file, df in parsed_files if df is not None]
             n_parsed = len(parsed_files)
@@ -1042,6 +1063,8 @@ class Piece(LoggedClass):
                        facet: TSVtype,
                        view_name: Optional[str] = None,
                        choose: Literal['auto', 'ask'] = 'auto',
+                       unfold: bool = False,
+                       interval_index: bool = False
                        ) -> FileDataframeTupleMaybe:
         facets = argument_and_literal_type2list(facet, TSVtype, logger=self.logger)
         assert len(facet) == 1, f"Pass exactly one valid TSV type {TSVtype.__args__} or use _.get_parsed_tsvs()"
@@ -1642,3 +1665,8 @@ class Piece(LoggedClass):
         return written_paths
 
 
+    def get_dataframe(self, *args, **kwargs) -> None:
+        """Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`."""
+        raise DeprecationWarning(f"Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, "
+                             f"_.extract_facet() to retrieve a freshly extracted DataFrame, "
+                             f"or _.get_facet() to retrieve either, according to availability.")

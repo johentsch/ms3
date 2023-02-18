@@ -10,7 +10,7 @@ import numpy.typing as npt
 
 from .score import Score
 from ._typing import FileList, Category, Categories
-from .utils import File, unpack_json_paths, resolve_paths_argument
+from .utils import File, unpack_json_paths, resolve_paths_argument, resolve_dir
 from .logger import LoggedClass
 
 
@@ -30,9 +30,10 @@ class View(LoggedClass):
         'files',
         'suffixes',
         'facets',
+        'paths',
     )
     available_facets = ('scores',) + Score.dataframe_types + ('unknown',)
-    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet'),
+    singular2category: Dict[str, Category] = dict(zip(('corpus', 'folder', 'fname', 'file', 'suffix', 'facet', 'path'),
                                    categories))
     tsv_regex = re.compile(r"\.tsv$", re.IGNORECASE)
     convertible_regex = Score.make_extension_regex(native=False, convertible=True, tsv=False)
@@ -60,7 +61,7 @@ class View(LoggedClass):
         To inspect, you can use the method :meth:`filtering_report`
         """
         self._discarded_items: Dict[str, Set[str]] = defaultdict(set)
-        self._discarded_file_criteria: dict[Literal['subdir', 'file', 'suffix'], Counter] = defaultdict(Counter)
+        self._discarded_file_criteria: dict[Literal['subdir', 'file', 'suffix', 'path'], Counter] = defaultdict(Counter)
         """{criterion -> {excluded_name -> n_excluded}} dict for keeping track of which file was discarded based on which criterion.
         """
         # booleans
@@ -94,6 +95,15 @@ class View(LoggedClass):
             raise ValueError(msg)
         self._name = new_name
 
+    @property
+    def only_metadata_fnames(self) -> bool:
+        return self.fnames_in_metadata and not self.fnames_not_in_metadata
+
+    @only_metadata_fnames.setter
+    def only_metadata_fnames(self, value):
+        self.fnames_in_metadata = True
+        self.fnames_not_in_metadata = False
+
     def is_default(self,
                    relax_for_cli: bool = False) -> bool:
         """Checks includes and excludes that may influence the selection of fnames. Returns True if the settings
@@ -104,7 +114,8 @@ class View(LoggedClass):
             'suffixes': 0,
             'folders': 0,
             'fnames': 0,
-            'files': 0
+            'files': 0,
+            'paths': 0
         }
         if relax_for_cli:
             if self.exclude_review:
@@ -151,17 +162,40 @@ class View(LoggedClass):
 
     def update_config(self,
                       view_name: Optional[str] = None,
-                      only_metadata: bool = None,
-                      include_convertible: bool = None,
-                      include_tsv: bool = None,
-                      exclude_review: bool = None,
-                      paths=None,
-                      file_re=None,
-                      folder_re=None,
-                      exclude_re=None,
-                     **logger_cfg):
-        for param, value in zip(('view_name', 'only_metadata', 'include_convertible', 'include_tsv', 'exclude_review'),
-                                (view_name, only_metadata, include_convertible, include_tsv, exclude_review)
+                      only_metadata_fnames: Optional[bool] = None,
+                      include_convertible: Optional[bool] = None,
+                      include_tsv: Optional[bool] = None,
+                      exclude_review: Optional[bool] = None,
+                      file_paths: Optional[Union[str, Collection[str]]] = None,
+                      file_re: Optional[str] = None,
+                      folder_re: Optional[str] = None,
+                      exclude_re: Optional[str] = None,
+                      folder_paths: Optional[Union[str, Collection[str]]] = None,
+                      **logger_cfg):
+        """Update the configuration of the View. This is a shorthand for issuing several calls to :meth:`include` and
+        :meth:`exclude` at once.
+
+        Args:
+            view_name: New name of the view.
+            only_metadata_fnames: Whether or not fnames that are not included in a metadata.tsv should be excluded.
+            include_convertible: Whether or not scores that need conversion via MuseScore before parsing should be included.
+            include_tsv: Whether or not TSV files should be included.
+            exclude_review: Whether or not files and folder that include 'review' should be excluded.
+            file_paths:
+                The exact file names will be extracted and used as exclusive filter, that is, all files that do not have
+                one of these file names will be excluded. This is regardless of eventual relative or absolute paths included
+                in the argument.
+            file_re: Include only files whose file name includes this regular expression.
+            folder_re: Include only files from folders whose name includes this regular expression.
+            exclude_re: Exclude all file and folders whose name includes this regular expression.
+            folder_paths: Include only files from these folders.
+            **logger_cfg:
+
+        Returns:
+
+        """
+        for param, value in zip(('view_name', 'only_metadata_fnames', 'include_convertible', 'include_tsv', 'exclude_review'),
+                                (view_name, only_metadata_fnames, include_convertible, include_tsv, exclude_review)
                                 ):
             if value is None:
                 continue
@@ -175,12 +209,16 @@ class View(LoggedClass):
             self.include('folders', folder_re)
         if exclude_re is not None:
             self.exclude(('files', 'folders'), exclude_re)
-        if paths is not None:
-            resolved_paths = resolve_paths_argument(paths)
+        if file_paths is not None:
+            resolved_paths = resolve_paths_argument(file_paths)
             if len(resolved_paths) > 0:
                 unpack_json_paths(resolved_paths)
-                regexes = [re.escape(os.path.basename(p)) for p in paths]
+                regexes = [re.escape(os.path.basename(p)) for p in resolved_paths]
                 self.include('files', *regexes)
+        if folder_paths is not None:
+            resolved_paths = resolve_paths_argument(file_paths, files=False)
+            if len(resolved_paths) > 0:
+                self.include('paths', *resolved_paths)
         if len(logger_cfg) > 0:
             self.change_logger_cfg(**logger_cfg)
 
@@ -223,6 +261,15 @@ class View(LoggedClass):
     def check_token(self, category: Category, token: str) -> bool:
         """Checks if a string pertaining to a certain category should be included in the view or not."""
         category = self.resolve_category(category)
+        if category == 'paths':
+            path = resolve_dir(token)
+            if os.path.isfile(path):
+                path = os.path.dirname(path)
+            if any(path.startswith(excluded_path) for excluded_path in self.excluding['paths']):
+                return False
+            if len(self.including['paths']) == 0:
+                return True
+            return any(path.startswith(included_path) for included_path in self.including['paths'])
         if any(re.search(rgx, token) is not None for rgx in self.excluding[category]):
             return False
         if len(self.including[category]) == 0:
@@ -242,6 +289,8 @@ class View(LoggedClass):
         """
         if file.full_path in self.excluded_file_paths:
             return False, 'file'
+        if not self.check_token('paths', file.directory):
+            return False, 'directory'
         category2file_component = dict(zip((('folders', 'subdir'), ('files', 'file'), ('suffixes', 'suffix')),
                                            (file.subdir, file.file, file.suffix)
                                            ))
@@ -465,8 +514,11 @@ class View(LoggedClass):
 
     def include(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
+        if 'paths' in categories:
+            paths = [resolve_dir(rgx) for rgx in regex]
         for what_to_include in categories:
-            for rgx in regex:
+            regex_or_paths = paths if what_to_include == 'paths' else regex
+            for rgx in regex_or_paths:
                 if rgx not in self.including[what_to_include]:
                     self.including[what_to_include].append(rgx)
             if what_to_include == 'facets':
@@ -475,8 +527,11 @@ class View(LoggedClass):
 
     def exclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
+        if 'paths' in categories:
+            paths = [resolve_dir(rgx) for rgx in regex]
         for what_to_exclude in categories:
-            for rgx in regex:
+            regex_or_paths = paths if what_to_exclude == 'paths' else regex
+            for rgx in regex_or_paths:
                 if rgx not in self.excluding[what_to_exclude]:
                     self.excluding[what_to_exclude].append(rgx)
             if what_to_exclude == 'facets':
@@ -484,8 +539,11 @@ class View(LoggedClass):
 
     def uninclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
+        if 'paths' in categories:
+            paths = [resolve_dir(rgx) for rgx in regex]
         for what_to_uninclude in categories:
-            for rgx in regex:
+            regex_or_paths = paths if what_to_uninclude == 'paths' else regex
+            for rgx in regex_or_paths:
                 try:
                     self.including[what_to_uninclude].remove(rgx)
                 except ValueError:
@@ -494,8 +552,11 @@ class View(LoggedClass):
 
     def unexclude(self, categories: Categories, *regex: Union[str, re.Pattern]):
         categories = self.resolve_categories(categories)
+        if 'paths' in categories:
+            paths = [resolve_dir(rgx) for rgx in regex]
         for what_to_unexclude in categories:
-            for rgx in regex:
+            regex_or_paths = paths if what_to_unexclude == 'paths' else regex
+            for rgx in regex_or_paths:
                 try:
                     self.excluding[what_to_unexclude].remove(rgx)
                 except ValueError:
@@ -558,13 +619,14 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                                 include_convertible: bool = False,
                                 include_tsv: bool = True,
                                 exclude_review: bool = True,
-                                paths=None, 
-                                file_re=None, 
-                                folder_re=None, 
+                                file_paths=None,
+                                file_re=None,
+                                folder_re=None,
                                 exclude_re=None,
                                 level=None
                                 ) -> View:
-    no_legacy_params = all(param is None for param in (paths, file_re, folder_re, exclude_re)) 
+    """From the arguments of an __init__ method, create either a DefaultView or a custom view."""
+    no_legacy_params = all(param is None for param in (file_paths, file_re, folder_re, exclude_re))
     all_default = only_metadata_fnames and include_tsv and exclude_review and not include_convertible
     if no_legacy_params and all_default:
         return DefaultView(level=level)
@@ -576,7 +638,7 @@ def create_view_from_parameters(only_metadata_fnames: bool = True,
                 exclude_review=exclude_review,
                 level=level
                 )
-    view.update_config(paths=paths,
+    view.update_config(file_paths=file_paths,
                        file_re=file_re,
                        folder_re=folder_re,
                        exclude_re=exclude_re)

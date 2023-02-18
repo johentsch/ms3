@@ -10,13 +10,15 @@ AnnotationsFacet: TypeAlias = Literal['expanded', 'labels']
 CorpusFnameTuple = Tuple[str, str]
 FileDict: TypeAlias = Dict[str, 'File']
 FileList: TypeAlias = List['File']
-Category: TypeAlias = Literal['corpora',
-                              'folders',
-                              'fnames',
-                              'files',
-                              'suffixes',
-                              'facets'
-                                ]
+Category: TypeAlias = Literal[
+    'corpora',
+    'folders',
+    'fnames',
+    'files',
+    'suffixes',
+    'facets',
+    'paths'
+]
 Categories: TypeAlias = Union[Category, Collection[Category]]
 ParsedFile: TypeAlias = Union['Score', pd.DataFrame]
 DataframeDict: TypeAlias = Dict[str, pd.DataFrame]

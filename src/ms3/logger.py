@@ -3,7 +3,7 @@ from contextlib import contextmanager
 from functools import wraps
 from enum import Enum, unique
 from inspect import stack
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 
 LEVELS = {
     'DEBUG': logging.DEBUG,
@@ -81,21 +81,31 @@ class LoggedClass():
     paths, files, fnames, fexts, logger_names : :obj:`dict`
         Dictionaries for keeping track of file information handled by .
     """
+
+    _deprecated_elements: List[str] = []
+    """Methods and properties named here will be removed from the object's tab completion."""
+
     def __init__(self, subclass, logger_cfg={}):
+        old_code_warnings = []
         if 'logger_cfg' in logger_cfg:
-            old_code_warning = True
+            old_code_warnings.append('logger_cfg')
             logger_cfg = logger_cfg['logger_cfg']
-        else:
-            old_code_warning = False
+        if 'key' in logger_cfg:
+            old_code_warnings.append('key')
+            del(logger_cfg['key'])
         self.logger_cfg: dict = dict(logger_cfg)
         if 'name' not in self.logger_cfg or self.logger_cfg['name'] is None:
             name = subclass if subclass == 'ms3' else 'ms3.' + subclass
             self.logger_cfg['name'] = name
         self.logger_names: dict = {}
         self.logger: logging.Logger = get_logger(**self.logger_cfg)
-        if old_code_warning:
-            self.logger.warning(f"You are using old code that initiated a '{subclass}' object with the argument 'logger_cfg'. "
-                                f"New code passes the logger config as **kwargs.")
+        if len(old_code_warnings) > 0:
+            if 'logger_cfg' in old_code_warnings:
+                self.logger.warning(f"You are using old code that initiated a '{subclass}' object with the argument 'logger_cfg'. "
+                                    f"New code passes the logger config as **kwargs.")
+            if 'key' in old_code_warnings:
+                self.logger.warning(f"You are using old code that initiated a '{subclass}' object with the argument 'key'. "
+                                    f"Since version 1.0.0, ms3 does not use this argument to match files anymore and you will probably see get errors in the following.")
         self.logger_names['class'] = self.logger.name
 
     def change_logger_cfg(self, level):
@@ -115,6 +125,13 @@ class LoggedClass():
         """ Restore the reference to the root logger. """
         self.__dict__.update(state)
         self.logger = get_logger(**self.logger_cfg)
+
+    def __dir__(self) -> Iterable[str]:
+        if len(self._deprecated_elements) == 0:
+            return super().__dir__()
+        elements = super().__dir__()
+        return sorted(element for element in elements if element not in self._deprecated_elements)
+
 
 
 
@@ -361,6 +378,7 @@ def resolve_dir(d):
     """
     if d is None:
         return None
+    d = str(d)
     if '~' in d:
         return os.path.expanduser(d)
     return os.path.abspath(d)
