@@ -998,7 +998,11 @@ def segment_by_criterion(df: pd.DataFrame, boolean_mask: Union[pd.Series, np.arr
     """
     if 'quarterbeats' not in df.columns:
         raise TypeError("DataFrame is missing the column 'quarterbeats'")
-    offset_dict = dict(end=df.index.right.max())
+    try:
+        offset_dict = dict(end=df.index.right.max())
+    except AttributeError:
+        logger.warning(f"DataFrame index does not consist of one level that is an IntervalIndex:\n{df.index[:3]}")
+        raise
     df = df[boolean_mask].reset_index(drop=True)
     if 'duration_qb' in df.columns:
         df = df.drop(columns='duration_qb')
