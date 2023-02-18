@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 1.2.4
+=============
+
+* segment_by_criterion warns if not IntervalIndex is present d2602617
+* adds missing arguments 'unfold' and 'interval_index' to Piece.get_parsed() 71f8c3e4
+* when iterating through pieces, skip fnames that don't have any files under the current view fdce948f
+
+
 Version 1.2.3
 =============
 
