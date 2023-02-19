@@ -1,18 +1,18 @@
-======
-Manual
-======
+==========
+Old Manual
+==========
 
 .. figure:: ms3_architecture.png
     :alt: The archicture of ms3
 
 This page is a detailed guide for using ms3 for different tasks. It supposes you are working in an interactive Python
 interpreter such as IPython, Jupyter, Google Colab, or just the console.
+:ref:`corpss` `Corpss structure`_ :ref:`Corpss structure`
 
 
 Good to know
 ============
 
-.. _corpus_structure:
 
 Corpus structure
 ----------------

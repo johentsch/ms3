@@ -2354,7 +2354,7 @@ def make_spanner_cols(df: pd.DataFrame,
         if not add_custom_text_cols:
             return res
         if not any(len(ids) > 0 for ids in custom_text2ids.values()):
-            logger.warning(f"None of the {column_name} IDs have been attributed to one of the custom texts {custom_text2ids.keys()}.")
+            logger.warning(f"None of the {column_name} IDs have been attributed to one of the custom texts {list(custom_text2ids.keys())}.")
             return res
         split_ids = [[] if pd.isnull(value) else value.split(', ') for value in res[column_name]]
         for text, relevant_ids in custom_text2ids.items():

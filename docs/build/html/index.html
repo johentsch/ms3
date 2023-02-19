@@ -1,6 +1,4 @@
 
-
-
 <!DOCTYPE html>
 
 <html lang="en">
@@ -8,66 +6,392 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
-    <title>ms3 - Parsing MuseScore 3 and 4 &#8212; ms3 1.1.2 documentation</title>
+    <title>ms3 - Parsing MuseScore 3 and 4 &#8212; ms3 1.2.4.post0.dev2+gf30d960 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="_static/styles/bootstrap.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2">
+
     <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="_static/cloud.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
-    
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="_static/thebelab.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94">
+
     <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="_static/doctools.js"></script>
     <script src="_static/sphinx_highlight.js"></script>
-
-    
-    
-     
-        <script src="_static/jquery.cookie.js"></script>
-    
-
-    
-     
-        <script src="_static/cloud.base.js"></script>
-    
-
-    
-     
-        <script src="_static/cloud.js"></script>
-    
-
+    <script src="_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Installing ms3" href="install.html" /> 
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head><body>
-    <div class="relbar-top">
-        
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-        <li class="right" >
-          <a href="install.html" title="Installing ms3"
-             accesskey="N">next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3 1.1.2 documentation</a> &#187;</li>
+    <link rel="next" title="Installing ms3" href="install.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
 
-        <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3 and 4</a></li> 
-      </ul>
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
     </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fa-solid fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="#">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">ms3 1.2.4.post0.dev2+gf30d960 documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+        <div class="navbar-end-item navbar-persistent--container">
+          
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+        </div>
+      
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  
+    <div class="navbar-persistent--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
     </div>
   
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
             
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <div class="sidebar-start-items sidebar-primary__section">
+    <div class="sidebar-start-items__item">
+<h3><a href="#">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+    <div class="sidebar-start-items__item">
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="install.html"
+                          title="next chapter">Installing ms3</a></p>
+  </div>
+    </div>
+    <div class="sidebar-start-items__item">
+<div class="tocsection sourcelink">
+    <a href="_sources/index.rst.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+    </div>
+    <div class="sidebar-start-items__item">
+<div id="searchbox"></div>
+    </div>
+  </div>
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+  
+  <div id="rtd-footer-container"></div>
+
+      </div>
+      <main id="main-content" class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
   <p><img alt="GitHub" src="https://img.shields.io/github/license/johentsch/ms3?color=%230000ff" /> <img alt="PyPI" src="https://img.shields.io/pypi/v/ms3?color=%2300" /> <img alt="GitHub Release Date" src="https://img.shields.io/github/release-date/johentsch/ms3" />  <img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/johentsch/ms3" /></p>
 <section id="ms3-parsing-musescore-3-and-4">
-<h1>ms3 - Parsing MuseScore 3 and 4<a class="headerlink" href="#ms3-parsing-musescore-3-and-4" title="Permalink to this heading">¶</a></h1>
+<h1>ms3 - Parsing MuseScore 3 and 4<a class="headerlink" href="#ms3-parsing-musescore-3-and-4" title="Permalink to this heading">#</a></h1>
 <p>Welcome to <strong>ms3</strong>, a Python library for parsing <a class="reference external" href="https://musescore.org/en/download">MuseScore</a> files. It</p>
 <ul class="simple">
 <li><p>parses MuseScore 3 and 4 files, i.e.</p>
@@ -114,26 +438,26 @@
 <p>View the <a class="reference external" href="https://johentsch.github.io/ms3/">full documentation here</a>.</p>
 <p>For a demo video (using an old, pre-1.0.0 version) on YouTube, <a class="reference external" href="https://youtu.be/UBY3wuIS4wc">click here</a></p>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">¶</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
 <p>ms3 requires Python &gt;= 3.10 (type <code class="docutils literal notranslate"><span class="pre">python3</span> <span class="pre">--version</span></code> to check). Once you have switched to a virtual environment
 that has Python 3.10 installed you can pip-install the library via one of the two commands:</p>
-<blockquote>
-<div><p>python3 -m pip install ms3
-pip install ms3</p>
-</div></blockquote>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python3</span> <span class="o">-</span><span class="n">m</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">ms3</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">ms3</span>
+</pre></div>
+</div>
 <p>If successful, the installation will make the <code class="docutils literal notranslate"><span class="pre">ms3</span></code> commands available in your PATH (try by typing <code class="docutils literal notranslate"><span class="pre">ms3</span></code>).</p>
 </section>
 <section id="quick-demo">
-<h2>Quick demo<a class="headerlink" href="#quick-demo" title="Permalink to this heading">¶</a></h2>
+<h2>Quick demo<a class="headerlink" href="#quick-demo" title="Permalink to this heading">#</a></h2>
 <section id="parsing-a-single-score">
-<h3>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this heading">¶</a></h3>
+<h3>Parsing a single score<a class="headerlink" href="#parsing-a-single-score" title="Permalink to this heading">#</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ms3</span>
 <span class="n">score</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Score</span><span class="p">(</span><span class="s1">&#39;musescore_file.mscz&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
 <section id="parsing-a-corpus">
-<h3>Parsing a corpus<a class="headerlink" href="#parsing-a-corpus" title="Permalink to this heading">¶</a></h3>
+<h3>Parsing a corpus<a class="headerlink" href="#parsing-a-corpus" title="Permalink to this heading">#</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ms3</span>
 <span class="n">corpus</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Corpus</span><span class="p">(</span><span class="s1">&#39;score_directory&#39;</span><span class="p">)</span>
 <span class="n">corpus</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
@@ -141,7 +465,7 @@ pip install ms3</p>
 </div>
 </section>
 <section id="parsing-several-corpora">
-<h3>Parsing several corpora<a class="headerlink" href="#parsing-several-corpora" title="Permalink to this heading">¶</a></h3>
+<h3>Parsing several corpora<a class="headerlink" href="#parsing-several-corpora" title="Permalink to this heading">#</a></h3>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">ms3</span>
 <span class="n">corpora</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Parse</span><span class="p">(</span><span class="s1">&#39;my_research_corpora&#39;</span><span class="p">)</span>
 <span class="n">corpora</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
@@ -150,339 +474,70 @@ pip install ms3</p>
 </section>
 </section>
 <section id="acknowledgements">
-<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this heading">¶</a></h2>
+<h2>Acknowledgements<a class="headerlink" href="#acknowledgements" title="Permalink to this heading">#</a></h2>
 <p>Development of this software tool was supported by the Swiss National Science Foundation within the project “Distant
 Listening – The Development of Harmony over Three Centuries (1700–2000)” (Grant no. 182811). This project is being
 conducted at the Latour Chair in Digital and Cognitive Musicology, generously funded by Mr. Claude Latour.</p>
 <p>The Python package has been set up using <a class="reference external" href="https://pyscaffold.org/">PyScaffold</a> 3.2.3.</p>
 </section>
 <section id="table-of-contents">
-<h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Permalink to this heading">¶</a></h2>
+<h2>Table of Contents<a class="headerlink" href="#table-of-contents" title="Permalink to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="install.html#unix-based-systems">Unix-based systems</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="install.html#using-python-3-10">Using Python &gt;= 3.10</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install.html#installing-via-pip">Installing via <code class="docutils literal notranslate"><span class="pre">pip</span></code></a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="install.html#unix-based-systems">Unix-based systems</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quick.html#parsing-a-single-score-working-with-the-score-object">Parsing a single score: Working with the Score object</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#creating-a-score-object">Creating a Score object</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#storing-the-labels">Storing the labels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#removing-annotation-labels">Removing annotation labels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#storing-the-changed-score">Storing the changed score</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#adding-labels-to-score">Adding labels to score</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#accessing-score-information">Accessing score information</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="quick.html#parsing-multiple-scores">Parsing multiple scores</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#loading">Loading</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#parsing">Parsing</a></li>
-<li class="toctree-l3"><a class="reference internal" href="quick.html#extracting-score-information">Extracting score information</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="quick.html#to-run-this-notebook">To run this notebook</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quick.html#setup">Setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quick.html#parsing-multiple-scores-at-once">Parsing multiple scores at once</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="manual.html#good-to-know">Good to know</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#corpus-structure">Corpus structure</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#keys-and-ids">Keys and IDs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#label-types">Label types</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#measure-counts-mc-vs-measure-numbers-mn">Measure counts (MC) vs. measure numbers (MN)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#onset-positions">Onset positions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#read-only-mode">Read-only mode</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#stacks-of-fifths-intervals">Stacks-of-fifths intervals</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#voltas">Voltas</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="manual.html#tables-with-score-information">Tables with score information</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#measures">Measures</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#notes">Notes</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#rests">Rests</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#notes-and-rests">Notes and Rests</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#chords">Chords</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#labels">Labels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#expanded">Expanded</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#cadences">Cadences</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#form-labels">Form labels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#events">Events</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="manual.html#parsing">Parsing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#parsing-a-single-score">Parsing a single score</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#parsing-multiple-scores">Parsing multiple scores</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="manual.html#extracting-score-information">Extracting score information</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#using-the-commandline">Using the commandline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#extracting-score-information-manually">Extracting score information manually</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="manual.html#column-names">Column Names</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#general-columns">General Columns</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id26">Measures</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id32">Notes and Rests</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id39">Chords</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id52">Labels</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#id57">Expanded</a></li>
-<li class="toctree-l3"><a class="reference internal" href="manual.html#metadata">Metadata</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#good-to-know">Good to know</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#f-a4-4">6        F#          A4         #4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#tables-with-score-information">Tables with score information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#parsing">Parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#extracting-score-information">Extracting score information</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#column-names">Column Names</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#this-note-is-being-tied-to-that-is-it-does-not-represent-an-onset-instead-it-adds-to-the-duration-of-a-previous-note-on-the-same-pitch-and-ends-it">-1       This note is being tied to. That is, it does not represent an
+onset, instead it adds to the duration of a previous note on the
+same pitch and ends it.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#label-encoded-in-musescore-s-chord-layer-add-text-chord-symbol-or-c-k-that-does-start-with-a-note-name-i-e-musescore-did-recognize-it-as-an-absolute-chord-and-encoded-its-root-and-bass-note-as-numerical-values">3               Label encoded in MuseScore’s chord layer (Add-&gt;Text-&gt;Chord
+Symbol, or [C]+K) that does start with a note name, i.e.
+MuseScore did recognize it as an absolute chord and encoded its
+root (and bass note) as numerical values.</a></li>
+<li class="toctree-l2"><a class="reference internal" href="manual.html#pc-plagal">PC      plagal</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.parse">The Parse class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.parse.Parse"><code class="docutils literal notranslate"><span class="pre">Parse</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.corpus">The Corpus class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.corpus.Corpus"><code class="docutils literal notranslate"><span class="pre">Corpus</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.corpus.parse_musescore_file"><code class="docutils literal notranslate"><span class="pre">parse_musescore_file()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.piece">The Piece class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.piece.Piece"><code class="docutils literal notranslate"><span class="pre">Piece</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.view">The View class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.view.empty_counts"><code class="docutils literal notranslate"><span class="pre">empty_counts()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.view.View"><code class="docutils literal notranslate"><span class="pre">View</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.view.DefaultView"><code class="docutils literal notranslate"><span class="pre">DefaultView</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-score-class">The Score class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.score.Score"><code class="docutils literal notranslate"><span class="pre">Score</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#the-mscx-class">The MSCX class</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.annotations">The Annotations class</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.annotations.Annotations"><code class="docutils literal notranslate"><span class="pre">Annotations</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.bs4_parser">The BeautifulSoup parser</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser._MSCX_bs4"><code class="docutils literal notranslate"><span class="pre">_MSCX_bs4</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.Metatags"><code class="docutils literal notranslate"><span class="pre">Metatags</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.Style"><code class="docutils literal notranslate"><span class="pre">Style</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.Prelims"><code class="docutils literal notranslate"><span class="pre">Prelims</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.get_duration_event"><code class="docutils literal notranslate"><span class="pre">get_duration_event()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.get_part_info"><code class="docutils literal notranslate"><span class="pre">get_part_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.make_spanner_cols"><code class="docutils literal notranslate"><span class="pre">make_spanner_cols()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.safe_update"><code class="docutils literal notranslate"><span class="pre">safe_update()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.recurse_node"><code class="docutils literal notranslate"><span class="pre">recurse_node()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.decode_harmony_tag"><code class="docutils literal notranslate"><span class="pre">decode_harmony_tag()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.make_oneliner"><code class="docutils literal notranslate"><span class="pre">make_oneliner()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.format_node"><code class="docutils literal notranslate"><span class="pre">format_node()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.bs4_to_mscx"><code class="docutils literal notranslate"><span class="pre">bs4_to_mscx()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.bs4_parser.tag2text"><code class="docutils literal notranslate"><span class="pre">tag2text()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.expand_dcml">The expand_dcml module</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.SliceMaker"><code class="docutils literal notranslate"><span class="pre">SliceMaker</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.expand_labels"><code class="docutils literal notranslate"><span class="pre">expand_labels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.extract_features_from_labels"><code class="docutils literal notranslate"><span class="pre">extract_features_from_labels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.split_labels"><code class="docutils literal notranslate"><span class="pre">split_labels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.features2type"><code class="docutils literal notranslate"><span class="pre">features2type()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.replace_special"><code class="docutils literal notranslate"><span class="pre">replace_special()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.merge_changes"><code class="docutils literal notranslate"><span class="pre">merge_changes()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.propagate_keys"><code class="docutils literal notranslate"><span class="pre">propagate_keys()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.expand_dcml.propagate_pedal"><code class="docutils literal notranslate"><span class="pre">propagate_pedal()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.utils">Utils</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.COMPUTED_METADATA_COLUMNS"><code class="docutils literal notranslate"><span class="pre">COMPUTED_METADATA_COLUMNS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.DCML_METADATA_COLUMNS"><code class="docutils literal notranslate"><span class="pre">DCML_METADATA_COLUMNS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.MUSESCORE_METADATA_FIELDS"><code class="docutils literal notranslate"><span class="pre">MUSESCORE_METADATA_FIELDS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.VERSION_COLUMNS"><code class="docutils literal notranslate"><span class="pre">VERSION_COLUMNS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.MUSESCORE_HEADER_FIELDS"><code class="docutils literal notranslate"><span class="pre">MUSESCORE_HEADER_FIELDS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.AUTOMATIC_COLUMNS"><code class="docutils literal notranslate"><span class="pre">AUTOMATIC_COLUMNS</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.METADATA_COLUMN_ORDER"><code class="docutils literal notranslate"><span class="pre">METADATA_COLUMN_ORDER</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.STANDARD_NAMES"><code class="docutils literal notranslate"><span class="pre">STANDARD_NAMES</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.DCML_REGEX"><code class="docutils literal notranslate"><span class="pre">DCML_REGEX</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.DCML_DOUBLE_REGEX"><code class="docutils literal notranslate"><span class="pre">DCML_DOUBLE_REGEX</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.FORM_DETECTION_REGEX"><code class="docutils literal notranslate"><span class="pre">FORM_DETECTION_REGEX</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rgba"><code class="docutils literal notranslate"><span class="pre">rgba</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.map_dict"><code class="docutils literal notranslate"><span class="pre">map_dict</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.assert_all_lines_equal"><code class="docutils literal notranslate"><span class="pre">assert_all_lines_equal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.assert_dfs_equal"><code class="docutils literal notranslate"><span class="pre">assert_dfs_equal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.ambitus2oneliner"><code class="docutils literal notranslate"><span class="pre">ambitus2oneliner()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.changes2list"><code class="docutils literal notranslate"><span class="pre">changes2list()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.changes2tpc"><code class="docutils literal notranslate"><span class="pre">changes2tpc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.check_labels"><code class="docutils literal notranslate"><span class="pre">check_labels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color2rgba"><code class="docutils literal notranslate"><span class="pre">color2rgba()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color_name2format"><code class="docutils literal notranslate"><span class="pre">color_name2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color_name2html"><code class="docutils literal notranslate"><span class="pre">color_name2html()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color_name2rgb"><code class="docutils literal notranslate"><span class="pre">color_name2rgb()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color_name2rgba"><code class="docutils literal notranslate"><span class="pre">color_name2rgba()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.color_params2rgba"><code class="docutils literal notranslate"><span class="pre">color_params2rgba()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.commonprefix"><code class="docutils literal notranslate"><span class="pre">commonprefix()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.compute_mn"><code class="docutils literal notranslate"><span class="pre">compute_mn()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.compute_mn_playthrough"><code class="docutils literal notranslate"><span class="pre">compute_mn_playthrough()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.convert_folder"><code class="docutils literal notranslate"><span class="pre">convert_folder()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.decode_harmonies"><code class="docutils literal notranslate"><span class="pre">decode_harmonies()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.df2md"><code class="docutils literal notranslate"><span class="pre">df2md()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.dict2oneliner"><code class="docutils literal notranslate"><span class="pre">dict2oneliner()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.resolve_form_abbreviations"><code class="docutils literal notranslate"><span class="pre">resolve_form_abbreviations()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.distribute_tokens_over_levels"><code class="docutils literal notranslate"><span class="pre">distribute_tokens_over_levels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.expand_single_form_label"><code class="docutils literal notranslate"><span class="pre">expand_single_form_label()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.expand_form_labels"><code class="docutils literal notranslate"><span class="pre">expand_form_labels()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2acc"><code class="docutils literal notranslate"><span class="pre">fifths2acc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2iv"><code class="docutils literal notranslate"><span class="pre">fifths2iv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.tpc2name"><code class="docutils literal notranslate"><span class="pre">tpc2name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2name"><code class="docutils literal notranslate"><span class="pre">fifths2name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2pc"><code class="docutils literal notranslate"><span class="pre">fifths2pc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2rn"><code class="docutils literal notranslate"><span class="pre">fifths2rn()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.fifths2sd"><code class="docutils literal notranslate"><span class="pre">fifths2sd()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.get_musescore"><code class="docutils literal notranslate"><span class="pre">get_musescore()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.get_path_component"><code class="docutils literal notranslate"><span class="pre">get_path_component()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.group_id_tuples"><code class="docutils literal notranslate"><span class="pre">group_id_tuples()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.html2format"><code class="docutils literal notranslate"><span class="pre">html2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.html_color2format"><code class="docutils literal notranslate"><span class="pre">html_color2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.html_color2name"><code class="docutils literal notranslate"><span class="pre">html_color2name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.html_color2rgb"><code class="docutils literal notranslate"><span class="pre">html_color2rgb()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.html_color2rgba"><code class="docutils literal notranslate"><span class="pre">html_color2rgba()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.interval_overlap"><code class="docutils literal notranslate"><span class="pre">interval_overlap()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.interval_overlap_size"><code class="docutils literal notranslate"><span class="pre">interval_overlap_size()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.is_any_row_equal"><code class="docutils literal notranslate"><span class="pre">is_any_row_equal()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.is_minor_mode"><code class="docutils literal notranslate"><span class="pre">is_minor_mode()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.iter_nested"><code class="docutils literal notranslate"><span class="pre">iter_nested()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.iter_selection"><code class="docutils literal notranslate"><span class="pre">iter_selection()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.first_level_subdirs"><code class="docutils literal notranslate"><span class="pre">first_level_subdirs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.first_level_files_and_subdirs"><code class="docutils literal notranslate"><span class="pre">first_level_files_and_subdirs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.get_first_level_corpora"><code class="docutils literal notranslate"><span class="pre">get_first_level_corpora()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.join_tsvs"><code class="docutils literal notranslate"><span class="pre">join_tsvs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.parse_interval_index_column"><code class="docutils literal notranslate"><span class="pre">parse_interval_index_column()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.load_tsv"><code class="docutils literal notranslate"><span class="pre">load_tsv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_csvw_jsonld"><code class="docutils literal notranslate"><span class="pre">make_csvw_jsonld()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_continuous_offset_series"><code class="docutils literal notranslate"><span class="pre">make_continuous_offset_series()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_offset_dict_from_measures"><code class="docutils literal notranslate"><span class="pre">make_offset_dict_from_measures()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_id_tuples"><code class="docutils literal notranslate"><span class="pre">make_id_tuples()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_interval_index_from_breaks"><code class="docutils literal notranslate"><span class="pre">make_interval_index_from_breaks()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_name_columns"><code class="docutils literal notranslate"><span class="pre">make_name_columns()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_playthrough2mc"><code class="docutils literal notranslate"><span class="pre">make_playthrough2mc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_playthrough_info"><code class="docutils literal notranslate"><span class="pre">make_playthrough_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.map2elements"><code class="docutils literal notranslate"><span class="pre">map2elements()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.merge_ties"><code class="docutils literal notranslate"><span class="pre">merge_ties()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.metadata2series"><code class="docutils literal notranslate"><span class="pre">metadata2series()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.midi2octave"><code class="docutils literal notranslate"><span class="pre">midi2octave()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.mn2int"><code class="docutils literal notranslate"><span class="pre">mn2int()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.name2format"><code class="docutils literal notranslate"><span class="pre">name2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.name2fifths"><code class="docutils literal notranslate"><span class="pre">name2fifths()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.name2pc"><code class="docutils literal notranslate"><span class="pre">name2pc()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.nan_eq"><code class="docutils literal notranslate"><span class="pre">nan_eq()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.next2sequence"><code class="docutils literal notranslate"><span class="pre">next2sequence()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.no_collections_no_booleans"><code class="docutils literal notranslate"><span class="pre">no_collections_no_booleans()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.parts_info"><code class="docutils literal notranslate"><span class="pre">parts_info()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.path2type"><code class="docutils literal notranslate"><span class="pre">path2type()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.pretty_dict"><code class="docutils literal notranslate"><span class="pre">pretty_dict()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.resolve_dir"><code class="docutils literal notranslate"><span class="pre">resolve_dir()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rgb2format"><code class="docutils literal notranslate"><span class="pre">rgb2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rgb_tuple2format"><code class="docutils literal notranslate"><span class="pre">rgb_tuple2format()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rgb_tuple2html"><code class="docutils literal notranslate"><span class="pre">rgb_tuple2html()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rgb_tuple2name"><code class="docutils literal notranslate"><span class="pre">rgb_tuple2name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.roman_numeral2fifths"><code class="docutils literal notranslate"><span class="pre">roman_numeral2fifths()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.roman_numeral2semitones"><code class="docutils literal notranslate"><span class="pre">roman_numeral2semitones()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.scale_degree2name"><code class="docutils literal notranslate"><span class="pre">scale_degree2name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.scan_directory"><code class="docutils literal notranslate"><span class="pre">scan_directory()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.column_order"><code class="docutils literal notranslate"><span class="pre">column_order()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.sort_note_list"><code class="docutils literal notranslate"><span class="pre">sort_note_list()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.sort_tpcs"><code class="docutils literal notranslate"><span class="pre">sort_tpcs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.split_alternatives"><code class="docutils literal notranslate"><span class="pre">split_alternatives()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.split_note_name"><code class="docutils literal notranslate"><span class="pre">split_note_name()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.split_scale_degree"><code class="docutils literal notranslate"><span class="pre">split_scale_degree()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.transform"><code class="docutils literal notranslate"><span class="pre">transform()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.adjacency_groups"><code class="docutils literal notranslate"><span class="pre">adjacency_groups()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.unfold_measures_table"><code class="docutils literal notranslate"><span class="pre">unfold_measures_table()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.unfold_repeats"><code class="docutils literal notranslate"><span class="pre">unfold_repeats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.capture_parse_logs"><code class="docutils literal notranslate"><span class="pre">capture_parse_logs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.write_metadata"><code class="docutils literal notranslate"><span class="pre">write_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.enforce_fname_index_for_metadata"><code class="docutils literal notranslate"><span class="pre">enforce_fname_index_for_metadata()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.write_markdown"><code class="docutils literal notranslate"><span class="pre">write_markdown()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.write_tsv"><code class="docutils literal notranslate"><span class="pre">write_tsv()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.abs2rel_key"><code class="docutils literal notranslate"><span class="pre">abs2rel_key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.rel2abs_key"><code class="docutils literal notranslate"><span class="pre">rel2abs_key()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_interval_index_from_durations"><code class="docutils literal notranslate"><span class="pre">make_interval_index_from_durations()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.replace_index_by_intervals"><code class="docutils literal notranslate"><span class="pre">replace_index_by_intervals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.boolean_mode_col2strings"><code class="docutils literal notranslate"><span class="pre">boolean_mode_col2strings()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.replace_boolean_mode_by_strings"><code class="docutils literal notranslate"><span class="pre">replace_boolean_mode_by_strings()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.resolve_relative_keys"><code class="docutils literal notranslate"><span class="pre">resolve_relative_keys()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.series_is_minor"><code class="docutils literal notranslate"><span class="pre">series_is_minor()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.str_is_minor"><code class="docutils literal notranslate"><span class="pre">str_is_minor()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.transpose_changes"><code class="docutils literal notranslate"><span class="pre">transpose_changes()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.features2tpcs"><code class="docutils literal notranslate"><span class="pre">features2tpcs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.path2parent_corpus"><code class="docutils literal notranslate"><span class="pre">path2parent_corpus()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.chord2tpcs"><code class="docutils literal notranslate"><span class="pre">chord2tpcs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.transpose"><code class="docutils literal notranslate"><span class="pre">transpose()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.ignored_warnings2dict"><code class="docutils literal notranslate"><span class="pre">ignored_warnings2dict()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.parse_ignored_warnings_file"><code class="docutils literal notranslate"><span class="pre">parse_ignored_warnings_file()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.overlapping_chunk_per_interval"><code class="docutils literal notranslate"><span class="pre">overlapping_chunk_per_interval()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.infer_tsv_type"><code class="docutils literal notranslate"><span class="pre">infer_tsv_type()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.reduce_dataframe_duration_to_first_row"><code class="docutils literal notranslate"><span class="pre">reduce_dataframe_duration_to_first_row()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.File"><code class="docutils literal notranslate"><span class="pre">File</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.ask_user_to_choose"><code class="docutils literal notranslate"><span class="pre">ask_user_to_choose()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.disambiguate_files"><code class="docutils literal notranslate"><span class="pre">disambiguate_files()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.files2disambiguation_dict"><code class="docutils literal notranslate"><span class="pre">files2disambiguation_dict()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.literal_type2tuple"><code class="docutils literal notranslate"><span class="pre">literal_type2tuple()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.argument_and_literal_type2list"><code class="docutils literal notranslate"><span class="pre">argument_and_literal_type2list()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.resolve_facets_param"><code class="docutils literal notranslate"><span class="pre">resolve_facets_param()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.unpack_json_paths"><code class="docutils literal notranslate"><span class="pre">unpack_json_paths()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.compute_path_from_file"><code class="docutils literal notranslate"><span class="pre">compute_path_from_file()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.make_file_path"><code class="docutils literal notranslate"><span class="pre">make_file_path()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.string2identifier"><code class="docutils literal notranslate"><span class="pre">string2identifier()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.utils.parse_tsv_file_at_git_revision"><code class="docutils literal notranslate"><span class="pre">parse_tsv_file_at_git_revision()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.transformations">Transformations</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.make_note_name_and_octave_columns"><code class="docutils literal notranslate"><span class="pre">make_note_name_and_octave_columns()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.add_quarterbeats_col"><code class="docutils literal notranslate"><span class="pre">add_quarterbeats_col()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.add_weighted_grace_durations"><code class="docutils literal notranslate"><span class="pre">add_weighted_grace_durations()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.compute_chord_tones"><code class="docutils literal notranslate"><span class="pre">compute_chord_tones()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.dfs2quarterbeats"><code class="docutils literal notranslate"><span class="pre">dfs2quarterbeats()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.get_chord_sequences"><code class="docutils literal notranslate"><span class="pre">get_chord_sequences()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.group_annotations_by_features"><code class="docutils literal notranslate"><span class="pre">group_annotations_by_features()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.labels2global_tonic"><code class="docutils literal notranslate"><span class="pre">labels2global_tonic()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.make_gantt_data"><code class="docutils literal notranslate"><span class="pre">make_gantt_data()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.notes2pcvs"><code class="docutils literal notranslate"><span class="pre">notes2pcvs()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.resolve_all_relative_numerals"><code class="docutils literal notranslate"><span class="pre">resolve_all_relative_numerals()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.segment_by_adjacency_groups"><code class="docutils literal notranslate"><span class="pre">segment_by_adjacency_groups()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.segment_by_criterion"><code class="docutils literal notranslate"><span class="pre">segment_by_criterion()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.segment_by_interval_index"><code class="docutils literal notranslate"><span class="pre">segment_by_interval_index()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.slice_df"><code class="docutils literal notranslate"><span class="pre">slice_df()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transform_multiple"><code class="docutils literal notranslate"><span class="pre">transform_multiple()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transform_annotations"><code class="docutils literal notranslate"><span class="pre">transform_annotations()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transpose_notes_to_localkey"><code class="docutils literal notranslate"><span class="pre">transpose_notes_to_localkey()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transform_columns"><code class="docutils literal notranslate"><span class="pre">transform_columns()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transform_note_columns"><code class="docutils literal notranslate"><span class="pre">transform_note_columns()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#ms3.transformations.transpose_chord_tones_by_localkey"><code class="docutils literal notranslate"><span class="pre">transpose_chord_tones_by_localkey()</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#the-commandline-interface">The commandline interface</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#Positional Arguments">Positional Arguments</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#options">options</a></li>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#Sub-commands:">Sub-commands:</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="reference.html#developing-a-new-parser">Developing a new parser</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="reference.html#methods">Methods</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.parse">The Parse class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.corpus">The Corpus class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.piece">The Piece class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.view">The View class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#the-score-class">The Score class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.annotations">The Annotations class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.bs4_parser">The BeautifulSoup parser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.expand_dcml">The expand_dcml module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.utils">Utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#module-ms3.transformations">Transformations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#the-commandline-interface">The commandline interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reference.html#developing-a-new-parser">Developing a new parser</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
 <li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-2-4">Version 1.2.4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-2-3">Version 1.2.3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-2-2">Version 1.2.2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-2-1">Version 1.2.1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-2-0">Version 1.2.0</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-1-2">Version 1.1.2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-1-1">Version 1.1.1</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-1-0">Version 1.1.0</a></li>
-<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-0-4">Version 1.0.4</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#new-features">New features</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#changes-to-the-interface">Changes to the interface</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#changes-to-the-outputs">Changes to the outputs</a></li>
-<li class="toctree-l3"><a class="reference internal" href="changelog.html#other-changes">Other changes</a></li>
-</ul>
-</li>
+<li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-0-4">Version 1.0.4</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-0-3">Version 1.0.3</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-0-2">Version 1.0.2</a></li>
 <li class="toctree-l2"><a class="reference internal" href="changelog.html#version-1-0-1">Version 1.0.1</a></li>
@@ -511,7 +566,7 @@ conducted at the Latour Chair in Digital and Cognitive Musicology, generously fu
 </div>
 </section>
 <section id="indices-and-tables">
-<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">¶</a></h2>
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this heading">#</a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
 <li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
@@ -521,92 +576,153 @@ conducted at the Latour Chair in Digital and Cognitive Musicology, generously fu
 </section>
 
 
-            <div class="clearer"></div>
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<div class="sphinx-toc sphinxglobaltoc">
-<h3><a href="#">Table of Contents</a></h3>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="quick.html">Quick Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="manual.html">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="reference.html">Developers' Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
-<li class="toctree-l1"><a class="reference internal" href="authors.html">Authors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="changelog.html">Changelog</a></li>
-</ul>
-</div>
-  <div class="sphinxnext">
-    <h4>Next page</h4>
-    <p class="topless"><a href="install.html"
-                          title="Next page">&rarr; Installing ms3</a></p>
-  </div>
-  <div role="note" aria-label="source link">
-    <h3>This Page</h3>
-    <ul class="this-page-menu">
-      <li><a href="_sources/index.rst.txt"
-            rel="nofollow">Show Source</a></li>
-    </ul>
-   </div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-        </div>
-      </div>
-    
-    
-        <div class="sidebar-toggle-group no-js">
+            </article>
             
-            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
-                 «
-                <span class="show-for-small">hide menu</span>
-                
-            </button>
-            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
-                
-                <span class="show-for-small">menu</span>
-                <span class="hide-for-small">sidebar</span>
-                 »
-            </button>
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='right-next' id="next-link" href="install.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">Installing ms3</p>
+  </div>
+  <i class="fa-solid fa-angle-right"></i>
+  </a>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div class="tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+</div>
+<nav id="bd-toc-nav" class="page-toc">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#installation">
+   Installation
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#quick-demo">
+   Quick demo
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#parsing-a-single-score">
+     Parsing a single score
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#parsing-a-corpus">
+     Parsing a corpus
+    </a>
+   </li>
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#parsing-several-corpora">
+     Parsing several corpora
+    </a>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#acknowledgements">
+   Acknowledgements
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#table-of-contents">
+   Table of Contents
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#indices-and-tables">
+   Indices and tables
+  </a>
+ </li>
+</ul>
+
+</nav>
+</div>
+
+<div class="toc-item">
+  
+<div id="searchbox"></div>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+<div class="tocsection sourcelink">
+    <a href="_sources/index.rst.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+</div>
+
+            </div>
+          
+          
         </div>
-    
-      <div class="clearer"></div>
-    </div>
-    <div class="relbar-bottom">
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
         
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-        <li class="right" >
-          <a href="install.html" title="Installing ms3"
-             >next</a> &nbsp; &nbsp;</li>
-    <li><a href="#">ms3 1.1.2 documentation</a> &#187;</li>
+      </main>
+    </div>
+  </div>
 
-        <li class="nav-item nav-item-this"><a href="">ms3 - Parsing MuseScore 3 and 4</a></li> 
-      </ul>
-    </div>
-    </div>
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94"></script>
 
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
-    </div>
-    <!-- cloud_sptheme 1.4 -->
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2020, johentsch.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="theme-version">
+    Built with the
+    <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">
+        PyData Sphinx Theme
+    </a>
+    0.12.0.
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
   </body>
 </html>

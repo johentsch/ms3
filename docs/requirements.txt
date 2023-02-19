@@ -1,4 +1,5 @@
 sphinx
-cloud_sptheme
+pydata_sphinx_theme
 sphinx-argparse
 sphinxcontrib-programoutput
+jupyter_sphinx

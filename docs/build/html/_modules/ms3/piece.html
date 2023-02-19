@@ -1,66 +1,376 @@
 
-
-
 <!DOCTYPE html>
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.piece &#8212; ms3 1.1.1 documentation</title>
+    <title>ms3.piece &#8212; ms3 1.2.4.post0.dev2+gf30d960 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/bootstrap.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2">
+
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
-    
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94">
+
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/sphinx_highlight.js"></script>
-
-    
-    
-     
-        <script src="../../_static/jquery.cookie.js"></script>
-    
-
-    
-     
-        <script src="../../_static/cloud.base.js"></script>
-    
-
-    
-     
-        <script src="../../_static/cloud.js"></script>
-    
-
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/ms3/piece';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head><body>
-    <div class="relbar-top">
-        
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../../genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="../../py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
 
-          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ms3.piece</a></li> 
-      </ul>
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
     </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fa-solid fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="../../index.html">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">ms3 1.2.4.post0.dev2+gf30d960 documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+        <div class="navbar-end-item navbar-persistent--container">
+          
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+        </div>
+      
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  
+    <div class="navbar-persistent--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
     </div>
   
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
             
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <div class="sidebar-start-items sidebar-primary__section">
+    <div class="sidebar-start-items__item">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+    <div class="sidebar-start-items__item">
+    </div>
+    <div class="sidebar-start-items__item">
+    </div>
+    <div class="sidebar-start-items__item">
+<div id="searchbox"></div>
+    </div>
+  </div>
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+  
+  <div id="rtd-footer-container"></div>
+
+      </div>
+      <main id="main-content" class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
   <h1>Source code for ms3.piece</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
@@ -84,6 +394,8 @@
 
 <div class="viewcode-block" id="Piece"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece">[docs]</a><span class="k">class</span> <span class="nc">Piece</span><span class="p">(</span><span class="n">LoggedClass</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Wrapper around :class:`~.score.Score` for associating it with parsed TSV files&quot;&quot;&quot;</span>
+
+    <span class="n">_deprecated_elements</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;get_dataframe&quot;</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">view</span><span class="p">:</span> <span class="n">View</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="p">{},</span> <span class="n">ms</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">subclass</span><span class="o">=</span><span class="s1">&#39;Piece&#39;</span><span class="p">,</span> <span class="n">logger_cfg</span><span class="o">=</span><span class="n">logger_cfg</span><span class="p">)</span>
@@ -142,7 +454,7 @@
 
 <div class="viewcode-block" id="Piece.all_facets_present"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.all_facets_present">[docs]</a>    <span class="k">def</span> <span class="nf">all_facets_present</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                            <span class="n">selected_facets</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Facets</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot; Checks if parsed files have been detected for all selected facets under the active or indicated view.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Checks if parsed TSV files have been detected for all selected facets under the active or indicated view.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            view_name: Name of the view to check.</span>
@@ -583,12 +895,26 @@
             <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parsed</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">result</span>
 
-    <span class="k">def</span> <span class="nf">count_detected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">include_empty</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<div class="viewcode-block" id="Piece.count_detected"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.count_detected">[docs]</a>    <span class="k">def</span> <span class="nf">count_detected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">include_empty</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                       <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">prefix</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Count how many files per facet have been detected.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            include_empty:</span>
+<span class="sd">                By default, facets without files are not included in the dict. Pass True to include zero counts.</span>
+<span class="sd">            view_name:</span>
+<span class="sd">            prefix: Pass True if you want the facets prefixed with &#39;detected_&#39;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            {facet -&gt; count of detected files}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">facet</span><span class="p">,</span> <span class="n">files</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_facet2files</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">):</span>
             <span class="n">key</span> <span class="o">=</span> <span class="s1">&#39;detected_&#39;</span> <span class="o">+</span> <span class="n">facet</span> <span class="k">if</span> <span class="n">prefix</span> <span class="k">else</span> <span class="n">facet</span>
             <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="n">result</span></div>
 
     <span class="k">def</span> <span class="nf">extract_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">facet</span><span class="p">:</span> <span class="n">ScoreFacet</span><span class="p">,</span>
@@ -655,11 +981,6 @@
         <span class="k">return</span> <span class="p">[(</span><span class="n">file</span><span class="p">,</span> <span class="n">score</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">parsed_scores</span> <span class="k">if</span> <span class="n">score</span><span class="o">.</span><span class="n">mscx</span><span class="o">.</span><span class="n">changed</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="Piece.get_dataframe"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.get_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`.&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, &quot;</span>
-                             <span class="sa">f</span><span class="s2">&quot;_.extract_facet() to retrieve a freshly extracted DataFrame, &quot;</span>
-                             <span class="sa">f</span><span class="s2">&quot;or _.get_facet() to retrieve either, according to availability.&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Piece.get_facets"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.get_facets">[docs]</a>    <span class="k">def</span> <span class="nf">get_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -787,6 +1108,7 @@
 <div class="viewcode-block" id="Piece.get_facet"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.get_facet">[docs]</a>    <span class="k">def</span> <span class="nf">get_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                   <span class="n">facet</span><span class="p">:</span> <span class="n">ScoreFacet</span><span class="p">,</span>
                   <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                   <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
                   <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                   <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileDataframeTupleMaybe</span><span class="p">:</span>
@@ -798,7 +1120,7 @@
         <span class="k">assert</span> <span class="n">choose</span> <span class="o">!=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s2">&quot;If you want to choose=&#39;all&#39;, use _.extract_facets() (plural).&quot;</span>
         <span class="n">df_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_facets</span><span class="p">(</span><span class="n">facets</span><span class="o">=</span><span class="n">facet</span><span class="p">,</span>
                                   <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
-                                  <span class="n">force</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                  <span class="n">force</span><span class="o">=</span><span class="n">force</span><span class="p">,</span>
                                   <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">,</span>
                                   <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span>
                                   <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">,</span>
@@ -936,6 +1258,8 @@
                    <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
                    <span class="n">git_revision</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                   <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
                    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileParsedTupleMaybe</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Retrieve exactly one parsed score or TSV file. If none has been parsed, parse one automatically.</span>
 
@@ -956,7 +1280,9 @@
         <span class="n">files</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_all_parsed</span><span class="p">(</span><span class="n">facets</span><span class="o">=</span><span class="n">facet</span><span class="p">,</span>
                                     <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
                                     <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">,</span>
-                                    <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                    <span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                                    <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span>
+                                    <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span><span class="n">facet</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">parsed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1041,7 +1367,12 @@
                 <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">selected</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">n_unparsed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="n">plural</span> <span class="o">=</span> <span class="s1">&#39;files&#39;</span> <span class="k">if</span> <span class="n">n_unparsed</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="s1">&#39;file&#39;</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Disregarded </span><span class="si">{</span><span class="n">n_unparsed</span><span class="si">}</span><span class="s2"> unparsed </span><span class="si">{</span><span class="n">facet</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">plural</span><span class="si">}</span><span class="s2">. Set force=True to automatically parse.&quot;</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Disregarded </span><span class="si">{</span><span class="n">n_unparsed</span><span class="si">}</span><span class="s2"> unparsed </span><span class="si">{</span><span class="n">facet</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">plural</span><span class="si">}</span><span class="s2">. Set force=True to automatically parse.&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;The logger is None. This happens when __getstate__ is called. Did you use copy()?&quot;</span><span class="p">)</span>
+                    <span class="k">raise</span>
             <span class="n">parsed_files</span> <span class="o">=</span> <span class="p">[(</span><span class="n">file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_transformed_facet_at_ix</span><span class="p">(</span><span class="n">ix</span><span class="o">=</span><span class="n">file</span><span class="o">.</span><span class="n">ix</span><span class="p">,</span> <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span> <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">))</span> <span class="k">for</span> <span class="n">file</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">if</span> <span class="n">file</span><span class="o">.</span><span class="n">ix</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ix2parsed</span><span class="p">]</span>
             <span class="n">parsed_files</span> <span class="o">=</span> <span class="p">[(</span><span class="n">file</span><span class="p">,</span> <span class="n">df</span><span class="p">)</span> <span class="k">for</span> <span class="n">file</span><span class="p">,</span> <span class="n">df</span> <span class="ow">in</span> <span class="n">parsed_files</span> <span class="k">if</span> <span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">]</span>
             <span class="n">n_parsed</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parsed_files</span><span class="p">)</span>
@@ -1106,6 +1437,8 @@
                        <span class="n">facet</span><span class="p">:</span> <span class="n">TSVtype</span><span class="p">,</span>
                        <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                        <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                       <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                       <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
                        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FileDataframeTupleMaybe</span><span class="p">:</span>
         <span class="n">facets</span> <span class="o">=</span> <span class="n">argument_and_literal_type2list</span><span class="p">(</span><span class="n">facet</span><span class="p">,</span> <span class="n">TSVtype</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">facet</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Pass exactly one valid TSV type </span><span class="si">{</span><span class="n">TSVtype</span><span class="o">.</span><span class="n">__args__</span><span class="si">}</span><span class="s2"> or use _.get_parsed_tsvs()&quot;</span>
@@ -1565,7 +1898,7 @@
                               <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
                               <span class="n">write_empty_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                               <span class="n">remove_unused_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                              <span class="n">write_text_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                              <span class="n">write_text_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                               <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">File</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
 
@@ -1578,6 +1911,9 @@
 <span class="sd">                will be set to &#39;&#39;.</span>
 <span class="sd">            remove_unused_fields:</span>
 <span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+<span class="sd">            write_text_fields:</span>
+<span class="sd">                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
+<span class="sd">                ``lyricist_text``, and ``part_name_text`` into the score header.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
@@ -1599,7 +1935,8 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">row_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">column</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">column</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">row_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pd</span><span class="o">.</span><span class="n">isnull</span><span class="p">(</span><span class="n">value</span><span class="p">)}</span>
             <span class="n">to_be_updated</span> <span class="o">=</span> <span class="p">{</span><span class="n">field</span><span class="p">:</span> <span class="n">value</span> <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">row_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                             <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current_metadata</span> <span class="ow">or</span> <span class="n">current_metadata</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">!=</span> <span class="n">value</span><span class="p">}</span>
+                             <span class="k">if</span> <span class="p">(</span><span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current_metadata</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">!=</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">or</span> \
+                                <span class="p">(</span><span class="n">field</span> <span class="ow">in</span> <span class="n">current_metadata</span> <span class="ow">and</span> <span class="n">current_metadata</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">!=</span> <span class="n">value</span><span class="p">)}</span>
             <span class="n">fields_to_be_created</span> <span class="o">=</span> <span class="p">[</span><span class="n">field</span> <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">to_be_updated</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">current_metadata</span><span class="p">]</span>
             <span class="n">metadata_fields</span><span class="p">,</span> <span class="n">text_fields</span> <span class="o">=</span> <span class="p">{},</span> <span class="p">{}</span>
             <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">to_be_updated</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
@@ -1699,83 +2036,96 @@
                     <span class="k">continue</span>
                 <span class="n">write_tsv</span><span class="p">(</span><span class="n">new_df</span><span class="p">,</span> <span class="n">tsv_file</span><span class="o">.</span><span class="n">full_path</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
                 <span class="n">written_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tsv_file</span><span class="o">.</span><span class="n">full_path</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">written_paths</span></div></div>
+        <span class="k">return</span> <span class="n">written_paths</span></div>
 
 
+<div class="viewcode-block" id="Piece.get_dataframe"><a class="viewcode-back" href="../../reference.html#ms3.piece.Piece.get_dataframe">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataframe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`get_parsed`, :meth:`extract_facet`, and :meth:`get_facet()`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use _.get_parsed() to retrieve a parsed TSV file, &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;_.extract_facet() to retrieve a freshly extracted DataFrame, &quot;</span>
+                             <span class="sa">f</span><span class="s2">&quot;or _.get_facet() to retrieve either, according to availability.&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 
-            <div class="clearer"></div>
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<div class="sphinx-toc sphinxglobaltoc">
-<h3><a href="../../index.html">Table of Contents</a></h3>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-        </div>
-      </div>
-    
-    
-        <div class="sidebar-toggle-group no-js">
+            </article>
             
-            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
-                 «
-                <span class="show-for-small">hide menu</span>
-                
-            </button>
-            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
-                
-                <span class="show-for-small">menu</span>
-                <span class="hide-for-small">sidebar</span>
-                 »
-            </button>
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div id="searchbox"></div>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+            </div>
+          
+          
         </div>
-    
-      <div class="clearer"></div>
-    </div>
-    <div class="relbar-bottom">
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
         
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../../genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="../../py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+      </main>
+    </div>
+  </div>
 
-          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ms3.piece</a></li> 
-      </ul>
-    </div>
-    </div>
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94"></script>
 
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
-    </div>
-    <!-- cloud_sptheme 1.4 -->
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2020, johentsch.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="theme-version">
+    Built with the
+    <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">
+        PyData Sphinx Theme
+    </a>
+    0.12.0.
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
   </body>
 </html>

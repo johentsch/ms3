@@ -1,66 +1,376 @@
 
-
-
 <!DOCTYPE html>
 
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ms3.parse &#8212; ms3 1.1.1 documentation</title>
+    <title>ms3.parse &#8212; ms3 1.2.4.post0.dev2+gf30d960 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/bootstrap.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2">
+
     <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/cloud.css" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&amp;display=swap" type="text/css" />
-    
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94">
+
     <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
     <script src="../../_static/sphinx_highlight.js"></script>
-
-    
-    
-     
-        <script src="../../_static/jquery.cookie.js"></script>
-    
-
-    
-     
-        <script src="../../_static/cloud.base.js"></script>
-    
-
-    
-     
-        <script src="../../_static/cloud.js"></script>
-    
-
+    <script>DOCUMENTATION_OPTIONS.pagename = '_modules/ms3/parse';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" /> 
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head><body>
-    <div class="relbar-top">
-        
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../../genindex.html" title="General Index"
-             accesskey="I">index</a></li>
-        <li class="right" >
-          <a href="../../py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
 
-          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
-      </ul>
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
     </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fa-solid fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="../../index.html">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">ms3 1.2.4.post0.dev2+gf30d960 documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+        <div class="navbar-end-item navbar-persistent--container">
+          
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+        </div>
+      
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  
+    <div class="navbar-persistent--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
     </div>
   
 
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
-          <div class="body" role="main">
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
             
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <div class="sidebar-start-items sidebar-primary__section">
+    <div class="sidebar-start-items__item">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+    <div class="sidebar-start-items__item">
+    </div>
+    <div class="sidebar-start-items__item">
+    </div>
+    <div class="sidebar-start-items__item">
+<div id="searchbox"></div>
+    </div>
+  </div>
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+  
+  <div id="rtd-footer-container"></div>
+
+      </div>
+      <main id="main-content" class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
   <h1>Source code for ms3.parse</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Iterator</span>
@@ -84,17 +394,31 @@
 <span class="sd">    Class for creating one or several :class:`~.corpus.Corpus` objects and performing actions on all of them.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="Parse.__init__"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+    <span class="n">_deprecated_elements</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s2">&quot;parsed_mscx&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;parsed_tsv&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;add_detached_annotations&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;count_annotation_layers&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;count_labels&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;get_lists&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;iter&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;parse_mscx&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;pieces&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;store_scores&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;update_metadata&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="Parse.__init__"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.__init__">[docs]</a>    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">directory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
-                 <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                 <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                 <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                  <span class="n">include_convertible</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                 <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> 
+                 <span class="n">include_tsv</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                  <span class="n">exclude_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
                  <span class="n">file_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">folder_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">folder_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">exclude_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-                 <span class="n">paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">file_paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                  <span class="n">labels_cfg</span><span class="p">:</span> <span class="nb">dict</span> <span class="o">=</span> <span class="p">{},</span>
                  <span class="n">ms</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="o">**</span><span class="n">logger_cfg</span><span class="p">):</span>
@@ -117,7 +441,7 @@
 <span class="sd">            file_re: Pass a regular expression if you want to create a view filtering out all files that do not contain it.</span>
 <span class="sd">            folder_re: Pass a regular expression if you want to create a view filtering out all folders that do not contain it.</span>
 <span class="sd">            exclude_re: Pass a regular expression if you want to create a view filtering out all files or folders that contain it.</span>
-<span class="sd">            paths:</span>
+<span class="sd">            file_paths:</span>
 <span class="sd">                If ``directory`` is specified, the file names of these paths are used to create a filtering view excluding all other files.</span>
 <span class="sd">                Otherwise, all paths are expected to be part of the same parent corpus which will be inferred from the first path by looking for the first parent directory that</span>
 <span class="sd">                either contains a &#39;metadata.tsv&#39; file or is a git. This parameter is deprecated and ``file_re`` should be used instead.</span>
@@ -148,7 +472,7 @@
                                                    <span class="n">include_convertible</span><span class="o">=</span><span class="n">include_convertible</span><span class="p">,</span>
                                                    <span class="n">include_tsv</span><span class="o">=</span><span class="n">include_tsv</span><span class="p">,</span>
                                                    <span class="n">exclude_review</span><span class="o">=</span><span class="n">exclude_review</span><span class="p">,</span>
-                                                   <span class="n">paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                                                   <span class="n">file_paths</span><span class="o">=</span><span class="n">file_paths</span><span class="p">,</span>
                                                    <span class="n">file_re</span><span class="o">=</span><span class="n">file_re</span><span class="p">,</span>
                                                    <span class="n">folder_re</span><span class="o">=</span><span class="n">folder_re</span><span class="p">,</span>
                                                    <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span>
@@ -184,8 +508,8 @@
                 <span class="n">directory</span> <span class="o">=</span> <span class="p">[</span><span class="n">directory</span><span class="p">]</span>
             <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">directory</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_dir</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">d</span><span class="p">,</span> <span class="n">recursive</span><span class="o">=</span><span class="n">recursive</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">paths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_files</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">file_paths</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_files</span><span class="p">(</span><span class="n">file_paths</span><span class="p">)</span></div>
     <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%% END of __init__() %%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
     <span class="c1">#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#</span>
 
@@ -196,8 +520,14 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ms</span>
 
     <span class="nd">@ms</span><span class="o">.</span><span class="n">setter</span>
-    <span class="k">def</span> <span class="nf">ms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ms</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">ms</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ms</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;win&#39;</span><span class="p">,</span> <span class="s1">&#39;mac&#39;</span><span class="p">]]):</span>
+        <span class="n">executable</span> <span class="o">=</span> <span class="n">get_musescore</span><span class="p">(</span><span class="n">ms</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">executable</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">ms</span><span class="si">}</span><span class="s2">&#39; did not lead me to a MuseScore executable.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">executable</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ms</span> <span class="o">=</span> <span class="n">executable</span>
+            <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="fm">__iter__</span><span class="p">():</span>
+                <span class="n">corpus</span><span class="o">.</span><span class="n">ms</span> <span class="o">=</span> <span class="n">executable</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">n_detected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -240,15 +570,7 @@
         <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">corpus</span><span class="o">.</span><span class="n">n_unparsed_tsvs</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="p">)</span>
 
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">parsed_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_scores`&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_scores.&quot;</span><span class="p">)</span>
 
-    <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">parsed_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_tsvs`&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_tsvs.&quot;</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">View</span><span class="p">:</span>
@@ -284,6 +606,14 @@
 <div class="viewcode-block" id="Parse.add_corpus"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_corpus">[docs]</a>    <span class="k">def</span> <span class="nf">add_corpus</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                    <span class="n">corpus_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">include_convertible</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">include_tsv</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">exclude_review</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">file_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">folder_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">exclude_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                    <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method creates a :class:`~.corpus.Corpus` object which scans the directory ``directory`` for parseable files.</span>
@@ -308,8 +638,22 @@
         <span class="k">if</span> <span class="n">corpus_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">corpus_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;\/&quot;</span><span class="p">)</span>
         <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span> <span class="o">+</span> <span class="n">corpus_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">view_params</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">param</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">file_re</span><span class="p">,</span> <span class="n">folder_re</span><span class="p">,</span> <span class="n">exclude_re</span><span class="p">,</span> <span class="n">only_metadata_fnames</span><span class="p">,</span> <span class="n">include_tsv</span><span class="p">,</span> <span class="n">exclude_review</span><span class="p">,</span> <span class="n">include_convertible</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">view_params</span><span class="p">:</span>
+            <span class="n">initial_view</span> <span class="o">=</span> <span class="n">create_view_from_parameters</span><span class="p">(</span><span class="n">only_metadata_fnames</span><span class="o">=</span><span class="n">only_metadata_fnames</span><span class="p">,</span>
+                                                       <span class="n">include_convertible</span><span class="o">=</span><span class="n">include_convertible</span><span class="p">,</span>
+                                                       <span class="n">include_tsv</span><span class="o">=</span><span class="n">include_tsv</span><span class="p">,</span>
+                                                       <span class="n">exclude_review</span><span class="o">=</span><span class="n">exclude_review</span><span class="p">,</span>
+                                                       <span class="n">file_paths</span><span class="o">=</span><span class="n">paths</span><span class="p">,</span>
+                                                       <span class="n">file_re</span><span class="o">=</span><span class="n">file_re</span><span class="p">,</span>
+                                                       <span class="n">folder_re</span><span class="o">=</span><span class="n">folder_re</span><span class="p">,</span>
+                                                       <span class="n">exclude_re</span><span class="o">=</span><span class="n">exclude_re</span><span class="p">,</span>
+                                                       <span class="n">level</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_views</span><span class="p">[</span><span class="n">initial_view</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">initial_view</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">initial_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">()</span>
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">corpus</span> <span class="o">=</span> <span class="n">Corpus</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_view</span><span class="p">(),</span> <span class="n">ms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
+            <span class="n">corpus</span> <span class="o">=</span> <span class="n">Corpus</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span> <span class="n">view</span><span class="o">=</span><span class="n">initial_view</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">ms</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ms</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">AssertionError</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2"> contains no parseable files.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
@@ -328,104 +672,20 @@
                                     <span class="sa">f</span><span class="s2">&quot;was replaced by </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">corpus_paths</span><span class="p">[</span><span class="n">corpus_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">directory</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">corpus_objects</span><span class="p">[</span><span class="n">corpus_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">corpus</span></div>
-        <span class="c1"># convertible = self.ms is not None</span>
-        <span class="c1"># if file_re is None:</span>
-        <span class="c1">#     file_re = Score._make_extension_regex(tsv=True, convertible=convertible)</span>
-        <span class="c1"># if exclude_re is None:</span>
-        <span class="c1">#     exclude_re = r&#39;(^(\.|_|concatenated_)|_reviewed)&#39;</span>
-        <span class="c1"># directory = resolve_dir(directory)</span>
-        <span class="c1"># self.last_scanned_dir = directory</span>
-        <span class="c1"># if key is None:</span>
-        <span class="c1">#     key = os.path.basename(directory)</span>
-        <span class="c1"># if key not in self.files:</span>
-        <span class="c1">#     self.logger.debug(f&quot;Adding {directory} as new corpus with key &#39;{key}&#39;.&quot;)</span>
-        <span class="c1">#     self.files[key] = []</span>
-        <span class="c1">#     self.corpus_paths[key] = resolve_dir(directory)</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     self.logger.info(f&quot;Adding {directory} to existing corpus with key &#39;{key}&#39;.&quot;)</span>
-        <span class="c1">#</span>
-        <span class="c1"># top_level_folders, top_level_files = first_level_files_and_subdirs(directory)</span>
-        <span class="c1"># self.logger.debug(f&quot;Top level folders: {top_level_folders}\nTop level files: {top_level_files}&quot;)</span>
-        <span class="c1">#</span>
-        <span class="c1"># added_ids = []</span>
-        <span class="c1">#</span>
-        <span class="c1"># # look for scores</span>
-        <span class="c1"># scores_folder = None</span>
-        <span class="c1"># if &#39;scores&#39; in kwargs and kwargs[&#39;scores&#39;] in top_level_folders:</span>
-        <span class="c1">#     scores_folder = kwargs[&#39;scores&#39;]</span>
-        <span class="c1"># elif &#39;MS3&#39; in top_level_folders:</span>
-        <span class="c1">#     scores_folder = &#39;MS3&#39;</span>
-        <span class="c1"># elif &#39;scores&#39; in top_level_folders:</span>
-        <span class="c1">#     scores_folder = &#39;scores&#39;</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     msg = f&quot;No scores folder found among {top_level_folders}.&quot;</span>
-        <span class="c1">#     if &#39;scores&#39; not in kwargs:</span>
-        <span class="c1">#         msg += &quot; If one of them has MuseScore files, indicate it by passing scores=&#39;scores_folder&#39;.&quot;</span>
-        <span class="c1">#     self.logger.info(msg)</span>
-        <span class="c1"># if scores_folder is not None:</span>
-        <span class="c1">#     score_re = Score._make_extension_regex(convertible=convertible)</span>
-        <span class="c1">#     scores_path = os.path.join(directory, scores_folder)</span>
-        <span class="c1">#     score_paths = sorted(scan_directory(scores_path, file_re=score_re, recursive=recursive))</span>
-        <span class="c1">#     score_ids = self.add_files(paths=score_paths, key=key)</span>
-        <span class="c1">#     added_ids += score_ids</span>
-        <span class="c1">#     score_fnames = self._get_unambiguous_fnames_from_ids(score_ids, key=key)</span>
-        <span class="c1">#</span>
-        <span class="c1">#     for fname, id in score_fnames.items():</span>
-        <span class="c1">#         piece = self._get_piece(key, fname)</span>
-        <span class="c1">#         piece.type2file_info[&#39;score&#39;] = self.id2file_info[id]</span>
-        <span class="c1">#         self.id2piece_id[id] = (key, fname)</span>
-        <span class="c1">#         # if fname in self.corpus2fname2score[key]:</span>
-        <span class="c1">#         #     if self.corpus2fname2score[key][fname] == id:</span>
-        <span class="c1">#         #         self.debug(f&quot;&#39;{fname} had already been matched to {id}.&quot;)</span>
-        <span class="c1">#         #     else:</span>
-        <span class="c1">#         #         self.warning(f&quot;&#39;{fname} had already been matched to {self.corpus2fname2score[key][fname]}&quot;)</span>
-        <span class="c1">#     self.corpus2fname2score[key].update(score_fnames)</span>
-        <span class="c1">#</span>
-        <span class="c1"># # look for metadata</span>
-        <span class="c1"># if &#39;metadata.tsv&#39; in top_level_files:</span>
-        <span class="c1">#     default_metadata_path = os.path.join(directory, &#39;metadata.tsv&#39;)</span>
-        <span class="c1">#     self.logger.debug(f&quot;&#39;metadata.tsv&#39; was detected and added.&quot;)</span>
-        <span class="c1">#     added_ids += self.add_files(paths=default_metadata_path, key=key)</span>
-        <span class="c1">#     metadata_id = added_ids[-1]</span>
-        <span class="c1">#     self.parse_tsv(ids=[metadata_id])</span>
-        <span class="c1">#     metadata_tsv = self._parsed_tsv[metadata_id]</span>
-        <span class="c1">#     metadata_fnames = metadata_tsv.fnames</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     metadata_id = None</span>
-        <span class="c1">#</span>
-        <span class="c1">#</span>
-        <span class="c1">#</span>
-        <span class="c1"># return</span>
-        <span class="c1"># paths = sorted(</span>
-        <span class="c1">#     scan_directory(directory, file_re=file_re, folder_re=folder_re, exclude_re=exclude_re,</span>
-        <span class="c1">#                    recursive=recursive, logger=self.logger))</span>
-        <span class="c1"># if len(paths) == 0:</span>
-        <span class="c1">#     self.logger.info(f&quot;No matching files found in {directory}.&quot;)</span>
-        <span class="c1">#     return</span>
-        <span class="c1"># added_ids = self.add_files(paths=paths, key=key)</span>
-        <span class="c1"># if len(added_ids) == 0:</span>
-        <span class="c1">#     self.logger.debug(f&quot;No files from {directory} have been added.&quot;)</span>
-        <span class="c1">#     return</span>
-        <span class="c1"># _, first_i = added_ids[0]</span>
-        <span class="c1"># if &#39;metadata.tsv&#39; in self.files[key][first_i:]:</span>
-        <span class="c1">#     self.logger.debug(f&quot;Found metadata.tsv for corpus &#39;{key}&#39;.&quot;)</span>
-        <span class="c1"># elif &#39;metadata.tsv&#39; in self.files[key]:</span>
-        <span class="c1">#     self.logger.debug(f&quot;Had already found metadata.tsv for corpus &#39;{key}&#39;.&quot;)</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     # if no metadata have been found (e.g. because excluded via file_re), add them if they&#39;re there</span>
-        <span class="c1">#     default_metadata_path = os.path.join(directory, &#39;metadata.tsv&#39;)</span>
-        <span class="c1">#     if os.path.isfile(default_metadata_path):</span>
-        <span class="c1">#         self.logger.info(f&quot;&#39;metadata.tsv&#39; was detected and automatically added for corpus &#39;{key}&#39;.&quot;)</span>
-        <span class="c1">#         metadata_id = self.add_files(paths=default_metadata_path, key=key)</span>
-        <span class="c1">#         added_ids += metadata_id</span>
-        <span class="c1">#     else:</span>
-        <span class="c1">#         self.logger.info(f&quot;No metadata found for corpus &#39;{key}&#39;.&quot;)</span>
-        <span class="c1"># self.corpus_paths[key] = directory</span>
-        <span class="c1"># self.look_for_ignored_warnings(directory, key)</span>
+
+
 
 
 <div class="viewcode-block" id="Parse.add_dir"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_dir">[docs]</a>    <span class="k">def</span> <span class="nf">add_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
                 <span class="n">recursive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="n">only_metadata_fnames</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">include_convertible</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">include_tsv</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">exclude_review</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">file_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">folder_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">exclude_re</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">Pattern</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">paths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        This method decides if the directory ``directory`` contains several corpora or if it is a corpus</span>
@@ -446,9 +706,15 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">directory</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2"> is not an existing directory.&quot;</span><span class="p">)</span>
             <span class="k">return</span>
-
+        <span class="n">L</span> <span class="o">=</span> <span class="nb">locals</span><span class="p">()</span>
+        <span class="n">arguments</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;only_metadata_fnames&#39;</span><span class="p">,</span> <span class="s1">&#39;include_convertible&#39;</span><span class="p">,</span> <span class="s1">&#39;include_tsv&#39;</span><span class="p">,</span> <span class="s1">&#39;exclude_review&#39;</span><span class="p">,</span> <span class="s1">&#39;file_re&#39;</span><span class="p">,</span> <span class="s1">&#39;folder_re&#39;</span><span class="p">,</span> <span class="s1">&#39;exclude_re&#39;</span><span class="p">,</span> <span class="s1">&#39;paths&#39;</span><span class="p">)</span>
+        <span class="n">corpus_config</span> <span class="o">=</span> <span class="p">{</span><span class="n">arg</span><span class="p">:</span> <span class="n">L</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">arguments</span> <span class="k">if</span> <span class="n">L</span><span class="p">[</span><span class="n">arg</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">}</span>
+        <span class="k">if</span> <span class="s1">&#39;level&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">logger_cfg</span><span class="p">:</span>
+            <span class="n">logger_cfg</span><span class="p">[</span><span class="s1">&#39;level&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">getEffectiveLevel</span><span class="p">()</span>
+        <span class="n">corpus_config</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">logger_cfg</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">recursive</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="n">directory</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">corpus_config</span><span class="p">)</span>
             <span class="k">return</span>
 
         <span class="c1"># new corpus/corpora to be added</span>
@@ -456,14 +722,16 @@
         <span class="n">n_corpora</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">subdir_corpora</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">n_corpora</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Treating </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2"> as corpus.&quot;</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span>
+                            <span class="o">**</span><span class="n">corpus_config</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n_corpora</span><span class="si">}</span><span class="s2"> individual corpora detected in </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">corpus_path</span> <span class="ow">in</span> <span class="n">subdir_corpora</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">corpus_path</span><span class="p">,</span> <span class="o">**</span><span class="n">logger_cfg</span><span class="p">)</span></div>
+                <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">corpus_path</span><span class="p">,</span>
+                                <span class="o">**</span><span class="n">corpus_config</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Parse.add_files"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_files">[docs]</a>    <span class="k">def</span> <span class="nf">add_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">corpus_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="Parse.add_files"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_files">[docs]</a>    <span class="k">def</span> <span class="nf">add_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_paths</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">corpus_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Deprecated: To deal with particular files only, use :meth:`add_corpus` passing the directory containing them and</span>
 <span class="sd">        configure the :class`~.view.View` accordingly. This method here does it for you but easily leads to unexpected behaviour.</span>
@@ -471,7 +739,7 @@
 <span class="sd">        on some higher level or in folders for which :class:`~.corpus.Corpus` objects have already been created.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            paths: Collection of file paths. Only existing files can be added.</span>
+<span class="sd">            file_paths: Collection of file paths. Only existing files can be added.</span>
 <span class="sd">            corpus_name:</span>
 
 <span class="sd">                * By default, I will try to attribute the files to existing :class:`~.corpus.Corpus` objects based on their paths. This makes sense only when new files have</span>
@@ -484,7 +752,7 @@
 <span class="sd">                  from other directories, it will lead to invalid relative paths that work only on your system. If you&#39;re adding files that have been created after the Corpus object</span>
 <span class="sd">                  has, you can leave this parameter empty; paths will be attributed to the existing corpora automatically.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">resolved_paths</span> <span class="o">=</span> <span class="n">resolve_paths_argument</span><span class="p">(</span><span class="n">paths</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
+        <span class="n">resolved_paths</span> <span class="o">=</span> <span class="n">resolve_paths_argument</span><span class="p">(</span><span class="n">file_paths</span><span class="p">,</span> <span class="n">logger</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">resolved_paths</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span>
         <span class="k">if</span> <span class="n">corpus_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -499,8 +767,8 @@
                         <span class="k">break</span>
                 <span class="k">if</span> <span class="n">part_of</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">no_parent</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">paths</span> <span class="ow">in</span> <span class="n">add_to_existing</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">corpus_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_file_paths</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">file_paths</span> <span class="ow">in</span> <span class="n">add_to_existing</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">corpus_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_file_paths</span><span class="p">(</span><span class="n">file_paths</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">no_parent</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="c1"># paths are expected to be contained in one and the same corpus directory</span>
                 <span class="n">first_path</span> <span class="o">=</span> <span class="n">no_parent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -509,7 +777,7 @@
                     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No parent of </span><span class="si">{</span><span class="n">first_path</span><span class="si">}</span><span class="s2"> has been recognized as a corpus by being a git or containing a &#39;metadata.tsv&#39;. Use _.add_corpus()&quot;</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">add_corpus</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">corpus_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">corpus_paths</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">corpus_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_file_paths</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">corpus_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_file_paths</span><span class="p">(</span><span class="n">file_paths</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># find the path according to the corpus_name</span>
             <span class="n">first_path</span> <span class="o">=</span> <span class="n">resolved_paths</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -767,6 +1035,23 @@
                                <span class="n">flat</span><span class="o">=</span><span class="n">flat</span><span class="p">,</span>
                                <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Parse.get_facet"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_facet">[docs]</a>    <span class="k">def</span> <span class="nf">get_facet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">facet</span><span class="p">:</span> <span class="n">ScoreFacet</span><span class="p">,</span>
+                   <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span>
+                   <span class="n">unfold</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                   <span class="n">interval_index</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                   <span class="n">concatenate</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+                   <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">FileDataframeTuple</span><span class="p">],</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Retrieves exactly one DataFrame per piece, if available.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aggregate_corpus_data</span><span class="p">(</span><span class="s1">&#39;get_facet&#39;</span><span class="p">,</span>
+                                           <span class="n">facet</span><span class="o">=</span><span class="n">facet</span><span class="p">,</span>
+                                           <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span>
+                                           <span class="n">choose</span><span class="o">=</span><span class="n">choose</span><span class="p">,</span>
+                                           <span class="n">unfold</span><span class="o">=</span><span class="n">unfold</span><span class="p">,</span>
+                                           <span class="n">interval_index</span><span class="o">=</span><span class="n">interval_index</span><span class="p">,</span>
+                                           <span class="n">concatenate</span><span class="o">=</span><span class="n">concatenate</span><span class="p">,</span>
+                                           <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">get_facets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">facets</span><span class="p">:</span> <span class="n">ScoreFacets</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -809,9 +1094,7 @@
                                            <span class="n">include_empty</span><span class="o">=</span><span class="n">include_empty</span>
                                            <span class="p">)</span>
 
-<div class="viewcode-block" id="Parse.get_lists"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_lists">[docs]</a>    <span class="k">def</span> <span class="nf">get_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`get_facets`.&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method get_lists() not in use any more. Use Parse.get_facets() instead.&quot;</span><span class="p">)</span></div>
+
 
 
 <div class="viewcode-block" id="Parse.get_piece"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_piece">[docs]</a>    <span class="k">def</span> <span class="nf">get_piece</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">corpus_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">fname</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Piece</span><span class="p">:</span>
@@ -894,71 +1177,7 @@
         <span class="k">if</span> <span class="n">return_str</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">msg</span>
         <span class="nb">print</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="c1"># ids = list(self._iterids(keys))</span>
-        <span class="c1"># info = f&quot;{len(ids)} files.\n&quot;</span>
-        <span class="c1"># if subdirs:</span>
-        <span class="c1">#     exts = self.count_extensions(keys, per_subdir=True)</span>
-        <span class="c1">#     for key, subdir_exts in exts.items():</span>
-        <span class="c1">#         info += key + &#39;\n&#39;</span>
-        <span class="c1">#         for line in pretty_dict(subdir_exts).split(&#39;\n&#39;):</span>
-        <span class="c1">#             info += &#39;    &#39; + line + &#39;\n&#39;</span>
-        <span class="c1"># else:</span>
-        <span class="c1">#     exts = self.count_extensions(keys, per_key=True)</span>
-        <span class="c1">#     info += pretty_dict(exts, heading=&#39;EXTENSIONS&#39;)</span>
-        <span class="c1"># parsed_mscx_ids = [id for id in ids if id in self._parsed_mscx]</span>
-        <span class="c1"># parsed_mscx = len(parsed_mscx_ids)</span>
-        <span class="c1"># ext_counts = self.count_extensions(keys, per_key=False)</span>
-        <span class="c1"># others = len(self._score_ids(opposite=True))</span>
-        <span class="c1"># mscx = len(self._score_ids())</span>
-        <span class="c1"># by_conversion = len(self._score_ids(native=False))</span>
-        <span class="c1"># if parsed_mscx &gt; 0:</span>
-        <span class="c1">#</span>
-        <span class="c1">#     if parsed_mscx == mscx:</span>
-        <span class="c1">#         info += f&quot;\n\nAll {mscx} MSCX files have been parsed.&quot;</span>
-        <span class="c1">#     else:</span>
-        <span class="c1">#         info += f&quot;\n\n{parsed_mscx}/{mscx} MSCX files have been parsed.&quot;</span>
-        <span class="c1">#     annotated = sum(True for id in parsed_mscx_ids if id in self._annotations)</span>
-        <span class="c1">#     if annotated == mscx:</span>
-        <span class="c1">#         info += f&quot;\n\nThey all have annotations attached.&quot;</span>
-        <span class="c1">#     else:</span>
-        <span class="c1">#         info += f&quot;\n\n{annotated} of them have annotations attached.&quot;</span>
-        <span class="c1">#     if annotated &gt; 0:</span>
-        <span class="c1">#         layers = self.count_annotation_layers(keys, which=&#39;attached&#39;, per_key=True)</span>
-        <span class="c1">#         info += f&quot;\n{pretty_dict(layers, heading=&#39;ANNOTATION LAYERS&#39;)}&quot;</span>
-        <span class="c1">#</span>
-        <span class="c1">#     detached = sum(True for id in parsed_mscx_ids if self._parsed_mscx[id].has_detached_annotations)</span>
-        <span class="c1">#     if detached &gt; 0:</span>
-        <span class="c1">#         info += f&quot;\n\n{detached} of them have detached annotations:&quot;</span>
-        <span class="c1">#         layers = self.count_annotation_layers(keys, which=&#39;detached&#39;, per_key=True)</span>
-        <span class="c1">#         try:</span>
-        <span class="c1">#             info += f&quot;\n{pretty_dict(layers, heading=&#39;ANNOTATION LAYERS&#39;)}&quot;</span>
-        <span class="c1">#         except:</span>
-        <span class="c1">#             print(layers)</span>
-        <span class="c1">#             raise</span>
-        <span class="c1"># elif &#39;.mscx&#39; in ext_counts:</span>
-        <span class="c1">#     if mscx &gt; 0:</span>
-        <span class="c1">#         info += f&quot;\n\nNone of the {mscx} score files have been parsed.&quot;</span>
-        <span class="c1">#         if by_conversion &gt; 0 and self.ms is None:</span>
-        <span class="c1">#             info += f&quot;\n{by_conversion} files would need to be converted, for which you need to set the &#39;ms&#39; property to your MuseScore 3 executable.&quot;</span>
-        <span class="c1"># if self.ms is not None:</span>
-        <span class="c1">#     info += &quot;\n\nMuseScore 3 executable has been found.&quot;</span>
-        <span class="c1">#</span>
-        <span class="c1">#</span>
-        <span class="c1"># parsed_tsv_ids = [id for id in ids if id in self._parsed_tsv]</span>
-        <span class="c1"># parsed_tsv = len(parsed_tsv_ids)</span>
-        <span class="c1"># if parsed_tsv &gt; 0:</span>
-        <span class="c1">#     annotations = sum(True for id in parsed_tsv_ids if id in self._annotations)</span>
-        <span class="c1">#     if parsed_tsv == others:</span>
-        <span class="c1">#         info += f&quot;\n\nAll {others} tabular files have been parsed, {annotations} of them as Annotations object(s).&quot;</span>
-        <span class="c1">#     else:</span>
-        <span class="c1">#         info += f&quot;\n\n{parsed_tsv}/{others} tabular files have been parsed, {annotations} of them as Annotations object(s).&quot;</span>
-        <span class="c1">#     if annotations &gt; 0:</span>
-        <span class="c1">#         layers = self.count_annotation_layers(keys, which=&#39;tsv&#39;, per_key=True)</span>
-        <span class="c1">#         info += f&quot;\n{pretty_dict(layers, heading=&#39;ANNOTATION LAYERS&#39;)}&quot;</span>
-        <span class="c1">#</span>
-        <span class="c1"># if return_str:</span>
-        <span class="c1">#     return info</span>
-        <span class="c1"># print(info)</span>
+
 
 <div class="viewcode-block" id="Parse.insert_detached_labels"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.insert_detached_labels">[docs]</a>    <span class="k">def</span> <span class="nf">insert_detached_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1143,7 +1362,7 @@
                                        <span class="n">choose</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="s1">&#39;ask&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span>
                                        <span class="n">write_empty_values</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
                                        <span class="n">remove_unused_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-                                       <span class="n">write_text_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+                                       <span class="n">write_text_fields</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
                                        <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">File</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Update metadata fields of parsed scores with the values from the corresponding row in metadata.tsv.</span>
 
@@ -1156,6 +1375,9 @@
 <span class="sd">                will be set to &#39;&#39;.</span>
 <span class="sd">            remove_unused_fields:</span>
 <span class="sd">                If set to True, all non-default fields that are not among the columns of metadata.tsv (anymore) are removed.</span>
+<span class="sd">            write_text_fields:</span>
+<span class="sd">                If set to True, ms3 will write updated values from the columns ``title_text``, ``subtitle_text``, ``composer_text``,</span>
+<span class="sd">                ``lyricist_text``, and ``part_name_text`` into the score headers.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            List of File objects of those scores of which the XML structure has been modified.</span>
@@ -1246,13 +1468,17 @@
                                <span class="p">):</span>
         <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">iter_corpora</span><span class="p">(</span><span class="n">view_name</span><span class="p">):</span>
-            <span class="n">corpus_method</span><span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">corpus</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+            <span class="n">corpus_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">corpus</span><span class="p">,</span> <span class="n">method</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;get_facet&#39;</span><span class="p">:</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;concatenate&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
             <span class="n">corpus_result</span> <span class="o">=</span> <span class="n">corpus_method</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">fname</span><span class="p">,</span> <span class="n">piece_result</span> <span class="ow">in</span> <span class="n">corpus_result</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;get_facet&#39;</span><span class="p">:</span>
+                    <span class="n">piece_result</span> <span class="o">=</span> <span class="p">[</span><span class="n">piece_result</span><span class="p">]</span>
                 <span class="n">result</span><span class="p">[(</span><span class="n">corpus_name</span><span class="p">,</span> <span class="n">fname</span><span class="p">)]</span> <span class="o">=</span> <span class="n">piece_result</span>
         <span class="k">if</span> <span class="n">concatenate</span><span class="p">:</span>
             <span class="n">keys</span><span class="p">,</span> <span class="n">dataframes</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
-            <span class="n">flat</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;flat&#39;</span><span class="p">]</span>
+            <span class="n">flat</span> <span class="o">=</span> <span class="s1">&#39;flat&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;flat&#39;</span><span class="p">]</span>
             <span class="k">if</span> <span class="n">flat</span><span class="p">:</span>
                 <span class="n">add_index_level</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">piece_result</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">piece_result</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1377,108 +1603,6 @@
             <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&#39;</span><span class="si">{</span><span class="n">view_name</span><span class="si">}</span><span class="s2">&#39; is not an existing view. Use _.get_view(&#39;</span><span class="si">{</span><span class="n">view_name</span><span class="si">}</span><span class="s2">&#39;) to create it.&quot;</span><span class="p">)</span>
 
 
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#     def count_annotation_layers(self, keys=None, which=&#39;attached&#39;, per_key=False):</span>
-<span class="c1">#         &quot;&quot;&quot; Counts the labels for each annotation layer defined as (staff, voice, harmony_layer).</span>
-<span class="c1">#         By default, only labels attached to a score are counted.</span>
-<span class="c1">#</span>
-<span class="c1">#         Parameters</span>
-<span class="c1">#         ----------</span>
-<span class="c1">#         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
-<span class="c1">#             Key(s) for which to count annotation layers.  By default, all keys are selected.</span>
-<span class="c1">#         which : {&#39;attached&#39;, &#39;detached&#39;, &#39;tsv&#39;}, optional</span>
-<span class="c1">#             &#39;attached&#39;: Counts layers from annotations attached to a score.</span>
-<span class="c1">#             &#39;detached&#39;: Counts layers from annotations that are in a Score object, but detached from the score.</span>
-<span class="c1">#             &#39;tsv&#39;: Counts layers from Annotation objects that have been loaded from or into annotation tables.</span>
-<span class="c1">#         per_key : :obj:`bool`, optional</span>
-<span class="c1">#             If set to True, the results are returned as a dict {key: Counter}, otherwise the counts are summed up in one Counter.</span>
-<span class="c1">#             If ``which=&#39;detached&#39;``, the keys are keys from Score objects, otherwise they are keys from this Parse object.</span>
-<span class="c1">#</span>
-<span class="c1">#         Returns</span>
-<span class="c1">#         -------</span>
-<span class="c1">#         :obj:`dict` or :obj:`collections.Counter`</span>
-<span class="c1">#             By default, the function returns a Counter of labels for every annotation layer (staff, voice, harmony_layer)</span>
-<span class="c1">#             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         res_dict = defaultdict(Counter)</span>
-<span class="c1">#</span>
-<span class="c1">#         if which == &#39;detached&#39;:</span>
-<span class="c1">#             for id in self._iterids(keys, only_detached_annotations=True):</span>
-<span class="c1">#                 for key, annotations in self._parsed_mscx[id]._detached_annotations.items():</span>
-<span class="c1">#                     if key != &#39;annotations&#39;:</span>
-<span class="c1">#                         _, layers = annotations.annotation_layers</span>
-<span class="c1">#                         layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in</span>
-<span class="c1">#                                        layers.to_dict().items()}</span>
-<span class="c1">#                         res_dict[key].update(layers_dict)</span>
-<span class="c1">#         elif which in [&#39;attached&#39;, &#39;tsv&#39;]:</span>
-<span class="c1">#             for key, i in self._iterids(keys):</span>
-<span class="c1">#                 if (key, i) in self._annotations:</span>
-<span class="c1">#                     ext = self.fexts[key][i]</span>
-<span class="c1">#                     if (which == &#39;attached&#39; and ext == &#39;.mscx&#39;) or (which == &#39;tsv&#39; and ext != &#39;.mscx&#39;):</span>
-<span class="c1">#                         _, layers = self._annotations[(key, i)].annotation_layers</span>
-<span class="c1">#                         layers_dict = {tuple(None if pd.isnull(e) else e for e in t): count for t, count in</span>
-<span class="c1">#                                        layers.to_dict().items()}</span>
-<span class="c1">#                         res_dict[key].update(layers_dict)</span>
-<span class="c1">#         else:</span>
-<span class="c1">#             self.logger.error(f&quot;Parameter &#39;which&#39; needs to be one of {{&#39;attached&#39;, &#39;detached&#39;, &#39;tsv&#39;}}, not {which}.&quot;)</span>
-<span class="c1">#             return {} if per_key else pd.Series()</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#         def make_series(counts):</span>
-<span class="c1">#             if len(counts) == 0:</span>
-<span class="c1">#                 return pd.Series()</span>
-<span class="c1">#             data = counts.values()</span>
-<span class="c1">#             ks = list(counts.keys())</span>
-<span class="c1">#             #levels = len(ks[0])</span>
-<span class="c1">#             names = [&#39;staff&#39;, &#39;voice&#39;, &#39;harmony_layer&#39;, &#39;color&#39;] #&lt;[:levels]</span>
-<span class="c1">#             ix = pd.MultiIndex.from_tuples(ks, names=names)</span>
-<span class="c1">#             return pd.Series(data, ix)</span>
-<span class="c1">#</span>
-<span class="c1">#         if per_key:</span>
-<span class="c1">#             res = {k: make_series(v) for k, v in res_dict.items()}</span>
-<span class="c1">#         else:</span>
-<span class="c1">#             res = make_series(sum(res_dict.values(), Counter()))</span>
-<span class="c1">#         if len(res) == 0:</span>
-<span class="c1">#             self.logger.info(&quot;No annotations found. Maybe no scores have been parsed using parse_scores()?&quot;)</span>
-<span class="c1">#         return res</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#     def count_labels(self, keys=None, per_key=False):</span>
-<span class="c1">#         &quot;&quot;&quot; Count label types.</span>
-<span class="c1">#</span>
-<span class="c1">#         Parameters</span>
-<span class="c1">#         ----------</span>
-<span class="c1">#         keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
-<span class="c1">#             Key(s) for which to count label types.  By default, all keys are selected.</span>
-<span class="c1">#         per_key : :obj:`bool`, optional</span>
-<span class="c1">#             If set to True, the results are returned as a dict {key: Counter},</span>
-<span class="c1">#             otherwise the counts are summed up in one Counter.</span>
-<span class="c1">#</span>
-<span class="c1">#         Returns</span>
-<span class="c1">#         -------</span>
-<span class="c1">#         :obj:`dict` or :obj:`collections.Counter`</span>
-<span class="c1">#             By default, the function returns a Counter of label types.</span>
-<span class="c1">#             If ``per_key`` is set to True, a dictionary {key: Counter} is returned, separating the counts.</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         annotated = [id for id in self._iterids(keys) if id in self._annotations]</span>
-<span class="c1">#         res_dict = defaultdict(Counter)</span>
-<span class="c1">#         for key, i in annotated:</span>
-<span class="c1">#             res_dict[key].update(self._annotations[(key, i)].harmony_layer_counts)</span>
-<span class="c1">#         if len(res_dict) == 0:</span>
-<span class="c1">#             if len(self._parsed_mscx) == 0:</span>
-<span class="c1">#                 self.logger.error(&quot;No scores have been parsed so far. Use parse_scores().&quot;)</span>
-<span class="c1">#             else:</span>
-<span class="c1">#                 self.logger.info(&quot;None of the scores contain annotations.&quot;)</span>
-<span class="c1">#         if per_key:</span>
-<span class="c1">#             return {k: dict(v) for k, v in res_dict.items()}</span>
-<span class="c1">#         return dict(sum(res_dict.values(), Counter()))</span>
-<span class="c1">#</span>
-
     <span class="k">def</span> <span class="nf">detach_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">view_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                       <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
@@ -1591,12 +1715,21 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot; Stores all parsed scores under this view as MuseScore 3 files.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            view_name:</span>
+<span class="sd">            view_name: Name of another view if another than the current one is to be used.</span>
 <span class="sd">            only_changed:</span>
 <span class="sd">                By default, only scores that have been modified since parsing are written. Set to False to store</span>
 <span class="sd">                all scores regardless.</span>
-<span class="sd">            root_dir:</span>
+<span class="sd">            root_dir: Directory where to re-build the sub-directory tree of the :obj:`Corpus` in question.</span>
 <span class="sd">            folder:</span>
+<span class="sd">                Different behaviours are available. Note that only the third option ensures that file paths are distinct for</span>
+<span class="sd">                files that have identical fnames but are located in different subdirectories of the same corpus.</span>
+
+<span class="sd">                * If ``folder`` is None (default), the files&#39; type will be appended to the ``root_dir``.</span>
+<span class="sd">                * If ``folder`` is an absolute path, ``root_dir`` will be ignored.</span>
+<span class="sd">                * If ``folder`` is a relative path starting with a dot ``.`` the relative path is appended to the file&#39;s subdir.</span>
+<span class="sd">                  For example, ``..\notes`` will resolve to a sibling directory of the one where the ``file`` is located.</span>
+<span class="sd">                * If ``folder`` is a relative path that does not begin with a dot ``.``, it will be appended to the</span>
+<span class="sd">                  ``root_dir``.</span>
 <span class="sd">            suffix: Suffix to append to the original file name.</span>
 <span class="sd">            overwrite: Pass True to overwrite existing files.</span>
 <span class="sd">            simulate: Set to True if no files are to be written.</span>
@@ -1623,9 +1756,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_scores</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">parallel</span><span class="o">=</span><span class="n">parallel</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="n">labels_cfg</span><span class="o">=</span><span class="n">labels_cfg</span><span class="p">,</span> <span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parse_tsv</span><span class="p">(</span><span class="n">view_name</span><span class="o">=</span><span class="n">view_name</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">level</span><span class="p">,</span> <span class="n">cols</span><span class="o">=</span><span class="n">cols</span><span class="p">,</span> <span class="n">infer_types</span><span class="o">=</span><span class="n">infer_types</span><span class="p">,</span> <span class="n">only_new</span><span class="o">=</span><span class="n">only_new</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Parse.parse_mscx"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`parse_scores`.&quot;&quot;&quot;</span>
-        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.parse_scores().&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Parse.parse_scores"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse_scores">[docs]</a>    <span class="k">def</span> <span class="nf">parse_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                      <span class="n">level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -1720,501 +1850,6 @@
                              <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-    <span class="c1"># def _parse_tsv_from_git_revision(self, tsv_id, revision_specifier):</span>
-    <span class="c1">#     &quot;&quot;&quot; Takes the ID of an annotation table, and parses the same file&#39;s previous version at ``revision_specifier``.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     tsv_id</span>
-    <span class="c1">#         ID of the TSV file containing an annotation table, for which to parse a previous version.</span>
-    <span class="c1">#     revision_specifier : :obj:`str`</span>
-    <span class="c1">#         String used by git.Repo.commit() to find the desired git revision.</span>
-    <span class="c1">#         Can be a long or short SHA, git tag, branch name, or relative specifier such as &#39;HEAD~1&#39;.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#     ID</span>
-    <span class="c1">#         (key, i) of the newly added annotation table.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     key, i = tsv_id</span>
-    <span class="c1">#     corpus_path = self.corpus_paths[key]</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         repo = Repo(corpus_path, search_parent_directories=True)</span>
-    <span class="c1">#     except InvalidGitRepositoryError:</span>
-    <span class="c1">#         self.logger.error(f&quot;{corpus_path} seems not to be (part of) a git repository.&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         git_repo = repo.remote(&quot;origin&quot;).url</span>
-    <span class="c1">#     except ValueError:</span>
-    <span class="c1">#         git_repo = os.path.basename()</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         commit = repo.commit(revision_specifier)</span>
-    <span class="c1">#         commit_sha = commit.hexsha</span>
-    <span class="c1">#         short_sha = commit_sha[:7]</span>
-    <span class="c1">#         commit_info = f&quot;{short_sha} with message &#39;{commit.message}&#39;&quot;</span>
-    <span class="c1">#     except BadName:</span>
-    <span class="c1">#         self.logger.error(f&quot;{revision_specifier} does not resolve to a commit for repo {git_repo}.&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     tsv_type = self._tsv_types[tsv_id]</span>
-    <span class="c1">#     tsv_path = self.full_paths[key][i]</span>
-    <span class="c1">#     rel_path = os.path.relpath(tsv_path, corpus_path)</span>
-    <span class="c1">#     new_directory = os.path.join(corpus_path, short_sha)</span>
-    <span class="c1">#     new_path = os.path.join(new_directory, self.files[key][i])</span>
-    <span class="c1">#     if new_path in self.full_paths[key]:</span>
-    <span class="c1">#         existing_i = self.full_paths[key].index(new_path)</span>
-    <span class="c1">#         existing_tsv_type = self._tsv_types[(key, existing_i)]</span>
-    <span class="c1">#         if tsv_type == existing_tsv_type:</span>
-    <span class="c1">#             self.logger.error(f&quot;Had already loaded a {tsv_type} table for commit {commit_info} of repo {git_repo}.&quot;)</span>
-    <span class="c1">#             return</span>
-    <span class="c1">#     if not tsv_type in (&#39;labels&#39;, &#39;expanded&#39;):</span>
-    <span class="c1">#         raise NotImplementedError(f&quot;Currently, only annotations are to be loaded from a git revision but {rel_path} is a {tsv_type}.&quot;)</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         targetfile = commit.tree / rel_path</span>
-    <span class="c1">#     except KeyError:</span>
-    <span class="c1">#         # if the file was not found, try and see if at the time of the git revision the folder was still called &#39;harmonies&#39;</span>
-    <span class="c1">#         if tsv_type == &#39;expanded&#39;:</span>
-    <span class="c1">#             folder, tsv_name = os.path.split(rel_path)</span>
-    <span class="c1">#             if folder != &#39;harmonies&#39;:</span>
-    <span class="c1">#                 old_rel_path = os.path.join(&#39;harmonies&#39;, tsv_name)</span>
-    <span class="c1">#                 try:</span>
-    <span class="c1">#                     targetfile = commit.tree / old_rel_path</span>
-    <span class="c1">#                     self.logger.debug(f&quot;{rel_path} did not exist at commit {commit_info}, using {old_rel_path} instead.&quot;)</span>
-    <span class="c1">#                     rel_path = old_rel_path</span>
-    <span class="c1">#                 except KeyError:</span>
-    <span class="c1">#                     self.logger.error(f&quot;Neither {rel_path} nor its older version {old_rel_path} existed at commit {commit_info}.&quot;)</span>
-    <span class="c1">#                     return</span>
-    <span class="c1">#         else:</span>
-    <span class="c1">#             self.logger.error(f&quot;{rel_path} did not exist at commit {commit_info}.&quot;)</span>
-    <span class="c1">#             return</span>
-    <span class="c1">#     self.logger.info(f&quot;Successfully loaded {rel_path} from {commit_info}.&quot;)</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         with io.BytesIO(targetfile.data_stream.read()) as f:</span>
-    <span class="c1">#             df = load_tsv(f)</span>
-    <span class="c1">#     except Exception:</span>
-    <span class="c1">#         self.logger.error(f&quot;Parsing {rel_path} @ commit {commit_info} failed with the following error:\n{sys.exc_info()[1]}&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     new_id = self._handle_path(new_path, key, skip_checks=True)</span>
-    <span class="c1">#     self._parsed_tsv[new_id] = df</span>
-    <span class="c1">#     self._dataframes[tsv_type][new_id] = df</span>
-    <span class="c1">#     self._tsv_types[new_id] = tsv_type</span>
-    <span class="c1">#     logger_cfg = dict(self.logger_cfg)</span>
-    <span class="c1">#     logger_cfg[&#39;name&#39;] = self.logger_names[(key, i)]</span>
-    <span class="c1">#     if tsv_id in self._annotations:</span>
-    <span class="c1">#         anno_obj = self._annotations[tsv_id] # get Annotation object&#39;s settings from the existing one</span>
-    <span class="c1">#         cols = anno_obj.cols</span>
-    <span class="c1">#         infer_types = anno_obj.regex_dict</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         cols = dict(label=&#39;label&#39;)</span>
-    <span class="c1">#         infer_types = None</span>
-    <span class="c1">#     self._annotations[new_id] = Annotations(df=df, cols=cols, infer_types=infer_types,</span>
-    <span class="c1">#                                         **logger_cfg)</span>
-    <span class="c1">#     self.logger.debug(</span>
-    <span class="c1">#         f&quot;{rel_path} successfully parsed from commit {short_sha}.&quot;)</span>
-    <span class="c1">#     return new_id</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def pieces(self, parsed_only=False):</span>
-    <span class="c1">#     pieces_dfs = [self[k].pieces(parsed_only=parsed_only) for k in self.keys()]</span>
-    <span class="c1">#     result = pd.concat(pieces_dfs, keys=self.keys())</span>
-    <span class="c1">#     result.index.names = [&#39;key&#39;, &#39;metadata_row&#39;]</span>
-    <span class="c1">#     return result</span>
-
-    <span class="c1">#</span>
-    <span class="c1"># def store_scores(self, keys=None, ids=None, root_dir=None, folder=&#39;.&#39;, suffix=&#39;&#39;, overwrite=False, simulate=False):</span>
-    <span class="c1">#     &quot;&quot;&quot; Stores the parsed MuseScore files in their current state, e.g. after detaching or attaching annotations.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     keys : :obj:`str` or :obj:`~collections.abc.Collection`, optional</span>
-    <span class="c1">#         Key(s) for which to count file extensions.  By default, all keys are selected.</span>
-    <span class="c1">#     ids : :obj:`~collections.abc.Collection`</span>
-    <span class="c1">#         If you pass a collection of IDs, ``keys`` is ignored and only the selected extensions are counted.</span>
-    <span class="c1">#     root_dir : :obj:`str`, optional</span>
-    <span class="c1">#         Defaults to None, meaning that the original root directory is used that was added to the Parse object.</span>
-    <span class="c1">#         Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,</span>
-    <span class="c1">#         ``root_dir`` is ignored.</span>
-    <span class="c1">#     folder : :obj:`str`</span>
-    <span class="c1">#         Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.</span>
-    <span class="c1">#         If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,</span>
-    <span class="c1">#         the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn&#39;t,</span>
-    <span class="c1">#         it is created only once, relative to ``root_dir``, and the relative tree structure is build below.</span>
-    <span class="c1">#     suffix : :obj:`str`, optional</span>
-    <span class="c1">#         Suffix to append to the original file name.</span>
-    <span class="c1">#     overwrite : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True to overwrite existing files.</span>
-    <span class="c1">#     simulate : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True if no files are to be written.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     if ids is None:</span>
-    <span class="c1">#         ids = [id for id in self._iterids(keys) if id in self._parsed_mscx]</span>
-    <span class="c1">#     paths = []</span>
-    <span class="c1">#     for key, i in ids:</span>
-    <span class="c1">#         new_path = self._store_scores(key=key, i=i, folder=folder, suffix=suffix, root_dir=root_dir, overwrite=overwrite, simulate=simulate)</span>
-    <span class="c1">#         if new_path is not None:</span>
-    <span class="c1">#             if new_path in paths:</span>
-    <span class="c1">#                 modus = &#39;would have&#39; if simulate else &#39;has&#39;</span>
-    <span class="c1">#                 self.logger.info(f&quot;The score at {new_path} {modus} been overwritten.&quot;)</span>
-    <span class="c1">#             else:</span>
-    <span class="c1">#                 paths.append(new_path)</span>
-    <span class="c1">#     if simulate:</span>
-    <span class="c1">#         return list(set(paths))</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _collect_annotations_objects_references(self, keys=None, ids=None):</span>
-    <span class="c1">#     &quot;&quot;&quot; Updates the dictionary self._annotations with all parsed Scores that have labels attached (or not any more). &quot;&quot;&quot;</span>
-    <span class="c1">#     if ids is None:</span>
-    <span class="c1">#         ids = list(self._iterids(keys, only_parsed_mscx=True))</span>
-    <span class="c1">#     updated = {}</span>
-    <span class="c1">#     for id in ids:</span>
-    <span class="c1">#         if id in self._parsed_mscx:</span>
-    <span class="c1">#             score = self._parsed_mscx[id]</span>
-    <span class="c1">#             if score is not None:</span>
-    <span class="c1">#                 if &#39;annotations&#39; in score:</span>
-    <span class="c1">#                     updated[id] = score.annotations</span>
-    <span class="c1">#                 elif id in self._annotations:</span>
-    <span class="c1">#                     del (self._annotations[id])</span>
-    <span class="c1">#             else:</span>
-    <span class="c1">#                 del (self._parsed_mscx[id])</span>
-    <span class="c1">#     self._annotations.update(updated)</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _iterids(self, keys=None, only_parsed_mscx=False, only_parsed_tsv=False, only_attached_annotations=False, only_detached_annotations=False):</span>
-    <span class="c1">#     &quot;&quot;&quot;Iterator through IDs for a given set of keys.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     keys</span>
-    <span class="c1">#     only_parsed_mscx</span>
-    <span class="c1">#     only_attached_annotations</span>
-    <span class="c1">#     only_detached_annotations</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Yields</span>
-    <span class="c1">#     ------</span>
-    <span class="c1">#     :obj:`tuple`</span>
-    <span class="c1">#         (str, int)</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     keys = self._treat_key_param(keys)</span>
-    <span class="c1">#     for key in sorted(keys):</span>
-    <span class="c1">#         for id in make_id_tuples(key, len(self.fnames[key])):</span>
-    <span class="c1">#             if only_parsed_mscx  or only_attached_annotations or only_detached_annotations:</span>
-    <span class="c1">#                 if id not in self._parsed_mscx:</span>
-    <span class="c1">#                     continue</span>
-    <span class="c1">#                 if only_attached_annotations:</span>
-    <span class="c1">#                     if &#39;annotations&#39; in self._parsed_mscx[id]:</span>
-    <span class="c1">#                         pass</span>
-    <span class="c1">#                     else:</span>
-    <span class="c1">#                         continue</span>
-    <span class="c1">#                 elif only_detached_annotations:</span>
-    <span class="c1">#                     if self._parsed_mscx[id].has_detached_annotations:</span>
-    <span class="c1">#                         pass</span>
-    <span class="c1">#                     else:</span>
-    <span class="c1">#                         continue</span>
-    <span class="c1">#             elif only_parsed_tsv:</span>
-    <span class="c1">#                 if id in self._parsed_tsv:</span>
-    <span class="c1">#                     pass</span>
-    <span class="c1">#                 else:</span>
-    <span class="c1">#                     continue</span>
-    <span class="c1">#</span>
-    <span class="c1">#             yield id</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _iter_subdir_selectors(self, keys=None, ids=None):</span>
-    <span class="c1">#     &quot;&quot;&quot; Iterate through the specified ids grouped by subdirs.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Yields</span>
-    <span class="c1">#     ------</span>
-    <span class="c1">#     :obj:`tuple`</span>
-    <span class="c1">#         (key: str, subdir: str, ixs: list) tuples. IDs can be created by combining key with each i in ixs.</span>
-    <span class="c1">#         The yielded ``ixs`` are typically used as parameter for ``.utils.iter_selection``.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     grouped_ids = self._make_grouped_ids(keys, ids)</span>
-    <span class="c1">#     for k, ixs in grouped_ids.items():</span>
-    <span class="c1">#         subdirs = self.subdirs[k]</span>
-    <span class="c1">#         for subdir in sorted(set(iter_selection(subdirs, ixs))):</span>
-    <span class="c1">#             yield k, subdir, [i for i in ixs if subdirs[i] == subdir]</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _parse(self, key, i, logger_cfg={}, labels_cfg={}, read_only=False):</span>
-    <span class="c1">#     &quot;&quot;&quot;Performs a single parse and returns the resulting Score object or None.&quot;&quot;&quot;</span>
-    <span class="c1">#     path = self.full_paths[key][i]</span>
-    <span class="c1">#     file = self.files[key][i]</span>
-    <span class="c1">#     self.logger.debug(f&quot;Attempting to parse {file}&quot;)</span>
-    <span class="c1">#     try:</span>
-    <span class="c1">#         logger_cfg[&#39;name&#39;] = self.logger_names[(key, i)]</span>
-    <span class="c1">#         score = Score(path, read_only=read_only, labels_cfg=labels_cfg, logger_cfg=logger_cfg, ms=self.ms)</span>
-    <span class="c1">#         if score is None:</span>
-    <span class="c1">#             self.logger.debug(f&quot;Encountered errors when parsing {file}&quot;)</span>
-    <span class="c1">#         else:</span>
-    <span class="c1">#             self.logger.debug(f&quot;Successfully parsed {file}&quot;)</span>
-    <span class="c1">#         return score</span>
-    <span class="c1">#     except (KeyboardInterrupt, SystemExit):</span>
-    <span class="c1">#         self.logger.info(&quot;Process aborted.&quot;)</span>
-    <span class="c1">#         raise</span>
-    <span class="c1">#     except:</span>
-    <span class="c1">#         self.logger.error(f&quot;Unable to parse {path} due to the following exception:\n&quot; + traceback.format_exc())</span>
-    <span class="c1">#         return None</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _score_ids(self, keys=None, score_extensions=None, native=True, convertible=True, opposite=False):</span>
-    <span class="c1">#     &quot;&quot;&quot; Return IDs of all detected scores with particular file extensions, or all others if ``opposite==True``.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     keys : :obj:`str` or :obj:`collections.abc.Iterable`, optional</span>
-    <span class="c1">#         Only get IDs for particular keys.</span>
-    <span class="c1">#     score_extensions : :obj:`collections.abc.Collection`, optional</span>
-    <span class="c1">#         Get IDs for files with the given extensions (each starting with a dot). If this parameter is defined,</span>
-    <span class="c1">#         ``native```and ``convertible`` are being ignored.</span>
-    <span class="c1">#     native : :obj:`bool`, optional</span>
-    <span class="c1">#         If ``score_extensions`` is not set, ``native=True`` selects all scores that ms3 can parse without using</span>
-    <span class="c1">#         a MuseScore 3 executable.</span>
-    <span class="c1">#     convertible : :obj:`bool`, optional</span>
-    <span class="c1">#         If ``score_extensions`` is not set, ``convertible=True`` selects all scores that ms3 can parse as long as</span>
-    <span class="c1">#         a MuseScore 3 executable is defined.</span>
-    <span class="c1">#     opposite : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True if you want to get the IDs of all the scores that do NOT have the specified extensions.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#     :obj:`list`</span>
-    <span class="c1">#         A list of IDs.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     if score_extensions is None:</span>
-    <span class="c1">#         score_extensions = []</span>
-    <span class="c1">#         if native:</span>
-    <span class="c1">#             score_extensions.extend(Score.native_formats)</span>
-    <span class="c1">#         if convertible:</span>
-    <span class="c1">#             score_extensions.extend(Score.convertible_formats)</span>
-    <span class="c1">#     if opposite:</span>
-    <span class="c1">#         return [(k, i) for k, i in self._iterids(keys) if self.fexts[k][i][1:].lower() not in score_extensions]</span>
-    <span class="c1">#     return [(k, i) for k, i in self._iterids(keys) if self.fexts[k][i][1:].lower() in score_extensions]</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _store_scores(self, key, i, folder, suffix=&#39;&#39;, root_dir=None, overwrite=False, simulate=False):</span>
-    <span class="c1">#     &quot;&quot;&quot; Creates a MuseScore 3 file from the Score object at the given ID (key, i).</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     key, i : (:obj:`str`, :obj:`int`)</span>
-    <span class="c1">#         ID from which to construct the new path and filename.</span>
-    <span class="c1">#     root_dir : :obj:`str`, optional</span>
-    <span class="c1">#         Defaults to None, meaning that the original root directory is used that was added to the Parse object.</span>
-    <span class="c1">#         Otherwise, pass a directory to rebuild the original substructure. If ``folder`` is an absolute path,</span>
-    <span class="c1">#         ``root_dir`` is ignored.</span>
-    <span class="c1">#     folder : :obj:`str`</span>
-    <span class="c1">#         Where to store the file. Can be relative to ``root_dir`` or absolute, in which case ``root_dir`` is ignored.</span>
-    <span class="c1">#         If ``folder`` is relative, the behaviour depends on whether it starts with a dot ``.`` or not: If it does,</span>
-    <span class="c1">#         the folder is created at every end point of the relative tree structure under ``root_dir``. If it doesn&#39;t,</span>
-    <span class="c1">#         it is created only once, relative to ``root_dir``, and the relative tree structure is build below.</span>
-    <span class="c1">#     suffix : :obj:`str`, optional</span>
-    <span class="c1">#         Suffix to append to the original file name.</span>
-    <span class="c1">#     overwrite : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True to overwrite existing files.</span>
-    <span class="c1">#     simulate : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True if no files are to be written.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#     :obj:`str`</span>
-    <span class="c1">#         Path of the stored file.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#</span>
-    <span class="c1">#     id = (key, i)</span>
-    <span class="c1">#     logger = self.id_logger(id)</span>
-    <span class="c1">#     fname = self.fnames[key][i]</span>
-    <span class="c1">#</span>
-    <span class="c1">#     if id not in self._parsed_mscx:</span>
-    <span class="c1">#         logger.error(f&quot;No Score object found. Call parse_scores() first.&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)</span>
-    <span class="c1">#     if path is None:</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#</span>
-    <span class="c1">#     fname = fname + suffix + &#39;.mscx&#39;</span>
-    <span class="c1">#     file_path = os.path.join(path, fname)</span>
-    <span class="c1">#     if os.path.isfile(file_path):</span>
-    <span class="c1">#         if simulate:</span>
-    <span class="c1">#             if overwrite:</span>
-    <span class="c1">#                 logger.warning(f&quot;Would have overwritten {file_path}.&quot;)</span>
-    <span class="c1">#                 return</span>
-    <span class="c1">#             logger.warning(f&quot;Would have skipped {file_path}.&quot;)</span>
-    <span class="c1">#             return</span>
-    <span class="c1">#         elif not overwrite:</span>
-    <span class="c1">#             logger.warning(f&quot;Skipped {file_path}.&quot;)</span>
-    <span class="c1">#             return</span>
-    <span class="c1">#     if simulate:</span>
-    <span class="c1">#         logger.debug(f&quot;Would have written score to {file_path}.&quot;)</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         os.makedirs(path, exist_ok=True)</span>
-    <span class="c1">#         self._parsed_mscx[id].store_scores(file_path)</span>
-    <span class="c1">#         logger.debug(f&quot;Score written to {file_path}.&quot;)</span>
-    <span class="c1">#</span>
-    <span class="c1">#     return file_path</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _store_tsv(self, df, key, i, folder, suffix=&#39;&#39;, root_dir=None, what=&#39;DataFrame&#39;, simulate=False):</span>
-    <span class="c1">#     &quot;&quot;&quot; Stores a given DataFrame by constructing path and file name from a loaded file based on the arguments.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     df : :obj:`pandas.DataFrame`</span>
-    <span class="c1">#         DataFrame to store as a TSV.</span>
-    <span class="c1">#     key, i : (:obj:`str`, :obj:`int`)</span>
-    <span class="c1">#         ID from which to construct the new path and filename.</span>
-    <span class="c1">#     folder, root_dir : :obj:`str`</span>
-    <span class="c1">#         Parameters passed to :py:meth:`_calculate_path`.</span>
-    <span class="c1">#     suffix : :obj:`str`, optional</span>
-    <span class="c1">#         Suffix to append to the original file name.</span>
-    <span class="c1">#     what : :obj:`str`, optional</span>
-    <span class="c1">#         Descriptor, what the DataFrame contains for more informative log message.</span>
-    <span class="c1">#     simulate : :obj:`bool`, optional</span>
-    <span class="c1">#         Pass True if no files are to be written.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#     :obj:`str`</span>
-    <span class="c1">#         Path of the stored file.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     tsv_logger = self.id_logger((key, i))</span>
-    <span class="c1">#</span>
-    <span class="c1">#     if df is None:</span>
-    <span class="c1">#         tsv_logger.debug(f&quot;No DataFrame for {what}.&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     path = self._calculate_path(key=key, i=i, root_dir=root_dir, folder=folder)</span>
-    <span class="c1">#     if path is None:</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#</span>
-    <span class="c1">#     fname = self.fnames[key][i] + suffix + &quot;.tsv&quot;</span>
-    <span class="c1">#     file_path = os.path.join(path, fname)</span>
-    <span class="c1">#     if simulate:</span>
-    <span class="c1">#         tsv_logger.debug(f&quot;Would have written {what} to {file_path}.&quot;)</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         tsv_logger.debug(f&quot;Writing {what} to {file_path}.&quot;)</span>
-    <span class="c1">#         write_tsv(df, file_path, logger=tsv_logger)</span>
-    <span class="c1">#     return file_path</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _treat_key_param(self, keys):</span>
-    <span class="c1">#     if keys is None:</span>
-    <span class="c1">#         keys = list(self.full_paths.keys())</span>
-    <span class="c1">#     elif isinstance(keys, str):</span>
-    <span class="c1">#         keys = [keys]</span>
-    <span class="c1">#     return [k for k in sorted(set(keys)) if k in self.files]</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def _treat_harmony_layer_param(self, harmony_layer):</span>
-    <span class="c1">#     if harmony_layer is None:</span>
-    <span class="c1">#         return None</span>
-    <span class="c1">#     all_types = {str(k): k for k in self.count_labels().keys()}</span>
-    <span class="c1">#     if isinstance(harmony_layer, int) or isinstance(harmony_layer, str):</span>
-    <span class="c1">#         harmony_layer = [harmony_layer]</span>
-    <span class="c1">#     lt = [str(t) for t in harmony_layer]</span>
-    <span class="c1">#     def matches_any_type(user_input):</span>
-    <span class="c1">#         return any(True for t in all_types if user_input in t)</span>
-    <span class="c1">#     def get_matches(user_input):</span>
-    <span class="c1">#         return [t for t in all_types if user_input in t]</span>
-    <span class="c1">#</span>
-    <span class="c1">#     not_found = [t for t in lt if not matches_any_type(t)]</span>
-    <span class="c1">#     if len(not_found) &gt; 0:</span>
-    <span class="c1">#         plural = len(not_found) &gt; 1</span>
-    <span class="c1">#         plural_s = &#39;s&#39; if plural else &#39;&#39;</span>
-    <span class="c1">#         self.logger.warning(</span>
-    <span class="c1">#             f&quot;No labels found with {&#39;these&#39; if plural else &#39;this&#39;} label{plural_s} harmony_layer{plural_s}: {&#39;, &#39;.join(not_found)}&quot;)</span>
-    <span class="c1">#     return [all_types[t] for user_input in lt for t in get_matches(user_input)]</span>
-    <span class="c1">#</span>
-    <span class="c1"># def update_metadata(self, allow_suffix=False):</span>
-    <span class="c1">#     &quot;&quot;&quot;Uses all parsed metadata TSVs to update the information in the corresponding parsed MSCX files and returns</span>
-    <span class="c1">#     the IDs of those that have been changed.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Parameters</span>
-    <span class="c1">#     ----------</span>
-    <span class="c1">#     allow_suffix : :obj:`bool`, optional</span>
-    <span class="c1">#         If set to True, this would also update the metadata for currently parsed MuseScore files</span>
-    <span class="c1">#         corresponding to the columns &#39;rel_paths&#39; and &#39;fnames&#39; + [ANY SUFFIX]. For example,</span>
-    <span class="c1">#         the row (&#39;MS3&#39;, &#39;bwv846&#39;) would also update the metadata of &#39;MS3/bwv846_reviewed.mscx&#39;.</span>
-    <span class="c1">#</span>
-    <span class="c1">#     Returns</span>
-    <span class="c1">#     -------</span>
-    <span class="c1">#     :obj:`list`</span>
-    <span class="c1">#         IDs of the parsed MuseScore files whose metadata has been updated.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     metadata_dfs = self.metadata_tsv()</span>
-    <span class="c1">#     if len(metadata_dfs) &gt; 0:</span>
-    <span class="c1">#         metadata = pd.concat(metadata_dfs.values(), keys=metadata_dfs.keys())</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         metadata = self._metadata</span>
-    <span class="c1">#     if len(metadata) == 0:</span>
-    <span class="c1">#         self.logger.debug(&quot;No parsed metadata found.&quot;)</span>
-    <span class="c1">#         return</span>
-    <span class="c1">#     old = metadata</span>
-    <span class="c1">#     if old.index.names != [&#39;rel_paths&#39;, &#39;fnames&#39;]:</span>
-    <span class="c1">#         try:</span>
-    <span class="c1">#             old = old.set_index([&#39;rel_paths&#39;, &#39;fnames&#39;])</span>
-    <span class="c1">#         except KeyError:</span>
-    <span class="c1">#             self.logger.warning(f&quot;Parsed metadata do not contain the columns &#39;rel_paths&#39; and &#39;fnames&#39; &quot;</span>
-    <span class="c1">#                                 f&quot;needed to match information on identical files.&quot;)</span>
-    <span class="c1">#             return []</span>
-    <span class="c1">#     new = self.metadata(from_tsv=False).set_index([&#39;rel_paths&#39;, &#39;fnames&#39;])</span>
-    <span class="c1">#     excluded_cols = [&#39;ambitus&#39;, &#39;annotated_key&#39;, &#39;KeySig&#39;, &#39;label_count&#39;, &#39;last_mc&#39;, &#39;last_mn&#39;, &#39;musescore&#39;,</span>
-    <span class="c1">#                      &#39;TimeSig&#39;, &#39;length_qb&#39;, &#39;length_qb_unfolded&#39;, &#39;all_notes_qb&#39;, &#39;n_onsets&#39;, &#39;n_onset_positions&#39;]</span>
-    <span class="c1">#     old_cols = sorted([c for c in old.columns if c not in excluded_cols and c[:5] != &#39;staff&#39;])</span>
-    <span class="c1">#</span>
-    <span class="c1">#     parsed = old.index.map(lambda i: i in new.index)</span>
-    <span class="c1">#     relevant = old.loc[parsed, old_cols]</span>
-    <span class="c1">#     updates = defaultdict(dict)</span>
-    <span class="c1">#     for i, row in relevant.iterrows():</span>
-    <span class="c1">#         new_row = new.loc[i]</span>
-    <span class="c1">#         for j, val in row[row.notna()].iteritems():</span>
-    <span class="c1">#             val = str(val)</span>
-    <span class="c1">#             if j not in new_row or str(new_row[j]) != val:</span>
-    <span class="c1">#                 updates[i][j] = val</span>
-    <span class="c1">#</span>
-    <span class="c1">#     l = len(updates)</span>
-    <span class="c1">#     ids = []</span>
-    <span class="c1">#     if l &gt; 0:</span>
-    <span class="c1">#         for (rel_path, fname), new_dict in updates.items():</span>
-    <span class="c1">#             matches = self.fname2ids(fname=fname, rel_path=rel_path, allow_suffix=allow_suffix)</span>
-    <span class="c1">#             match_ids = [id for id in matches.keys() if id in self._parsed_mscx]</span>
-    <span class="c1">#             n_files_to_update = len(match_ids)</span>
-    <span class="c1">#             if n_files_to_update == 0:</span>
-    <span class="c1">#                 self.logger.debug(</span>
-    <span class="c1">#                     f&quot;rel_path={rel_path}, fname={fname} does not correspond to a currently parsed MuseScore file.&quot;)</span>
-    <span class="c1">#                 continue</span>
-    <span class="c1">#             for id in match_ids:</span>
-    <span class="c1">#                 for name, val in new_dict.items():</span>
-    <span class="c1">#                     self._parsed_mscx[id].mscx.parsed.metatags[name] = val</span>
-    <span class="c1">#                 self._parsed_mscx[id].mscx.parsed.update_metadata()</span>
-    <span class="c1">#                 self.id_logger(id).debug(f&quot;Updated with {new_dict}&quot;)</span>
-    <span class="c1">#                 ids.append(id)</span>
-    <span class="c1">#</span>
-    <span class="c1">#         self.logger.info(f&quot;{l} files updated.&quot;)</span>
-    <span class="c1">#     else:</span>
-    <span class="c1">#         self.logger.info(&quot;Nothing to update.&quot;)</span>
-    <span class="c1">#     return ids</span>
-    <span class="c1">#</span>
-    <span class="c1">#</span>
-    <span class="c1"># def __getstate__(self):</span>
-    <span class="c1">#     &quot;&quot;&quot; Override the method of superclass &quot;&quot;&quot;</span>
-    <span class="c1">#     return self.__dict__</span>
-
-
-
-
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Corpus</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_corpus</span><span class="p">(</span><span class="n">item</span><span class="p">)</span>
@@ -2237,231 +1872,143 @@
 
 <div class="viewcode-block" id="Parse.__repr__"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.__repr__">[docs]</a>    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Show the :meth:`info` under the active view.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">return_str</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
-    <span class="c1"># def _get_unambiguous_fnames_from_ids(self, score_ids, key):</span>
-    <span class="c1">#</span>
-    <span class="c1">#     file_info = [self.id2file_info[id] for id in score_ids]</span>
-    <span class="c1">#     score_names = [F.fname for F in file_info]</span>
-    <span class="c1">#     score_name_set = set(score_names)</span>
-    <span class="c1">#     if len(score_names) == len(score_name_set):</span>
-    <span class="c1">#         return dict(zip(score_names, score_ids))</span>
-    <span class="c1">#     more_than_one = {name: [] for name, cnt in Counter(score_names).items() if cnt &gt; 1}</span>
-    <span class="c1">#     result = {} # fname -&gt; score_id</span>
-    <span class="c1">#     for F in file_info:</span>
-    <span class="c1">#         if F.fname in more_than_one:</span>
-    <span class="c1">#             more_than_one[F.fname].append(F)</span>
-    <span class="c1">#         else:</span>
-    <span class="c1">#             result[F.fname] = F.id</span>
-    <span class="c1">#     for name, files in more_than_one.items():</span>
-    <span class="c1">#         choice_between_n = len(files)</span>
-    <span class="c1">#         df = pd.DataFrame.from_dict({F.id: dict(subdir=F.subdir, fext=F.fext, subdir_len=len(F.subdir)) for F in files}, orient=&#39;index&#39;)</span>
-    <span class="c1">#         self.logger.debug(f&quot;Trying to disambiguate between these {choice_between_n} with the same fname &#39;{name}&#39;:\n{df}&quot;)</span>
-    <span class="c1">#         shortest_subdir_length = df.subdir_len.min()</span>
-    <span class="c1">#         shortest_length_selector = (df.subdir_len == shortest_subdir_length)</span>
-    <span class="c1">#         n_have_shortest_length = shortest_length_selector.sum()</span>
-    <span class="c1">#         # checking if the shortest path contains only 1 file and pick that</span>
-    <span class="c1">#         if n_have_shortest_length == 1:</span>
-    <span class="c1">#             id = df.subdir_len.idxmin()</span>
-    <span class="c1">#             picked = df.loc[id]</span>
-    <span class="c1">#             self.logger.info(f&quot;In order to pick one from the {choice_between_n} scores with fname &#39;{name}&#39;, the one with the shortest subdir &#39;{picked.subdir}&#39; was selected.&quot;)</span>
-    <span class="c1">#             result[name] = id</span>
-    <span class="c1">#             continue</span>
-    <span class="c1">#         # otherwise, check if there is only a single MSCX or otherwise MSCZ file and pick that</span>
-    <span class="c1">#         fexts = df.fext.value_counts()</span>
-    <span class="c1">#         if &#39;.mscx&#39; in fexts:</span>
-    <span class="c1">#             if fexts[&#39;.mscx&#39;] == 1:</span>
-    <span class="c1">#                 picked = df[df.fext == &#39;.mscx&#39;].iloc[0]</span>
-    <span class="c1">#                 id = picked.name</span>
-    <span class="c1">#                 self.logger.info(f&quot;In order to pick one from the {choice_between_n} scores with fname &#39;{name}&#39;, the one contained in &#39;{picked.subdir}&#39; was selected because it is the only &quot;</span>
-    <span class="c1">#                                  f&quot;one in MSCX format.&quot;)</span>
-    <span class="c1">#                 result[name] = id</span>
-    <span class="c1">#                 continue</span>
-    <span class="c1">#         elif &#39;.mscz&#39; in fexts and fexts[&#39;.mscz&#39;] == 1:</span>
-    <span class="c1">#             picked = df[df.fext == &#39;.mscz&#39;].iloc[0]</span>
-    <span class="c1">#             id = picked.name</span>
-    <span class="c1">#             self.logger.info(</span>
-    <span class="c1">#                 f&quot;In order to pick one from the {choice_between_n} scores with fname &#39;{name}&#39;, the one contained in &#39;{picked.subdir}&#39; was selected because it is the only &quot;</span>
-    <span class="c1">#                 f&quot;one in MuseScore format.&quot;)</span>
-    <span class="c1">#             result[name] = id</span>
-    <span class="c1">#             continue</span>
-    <span class="c1">#         # otherwise, check if the shortest path contains only a single MSCX or MSCZ file as a last resort</span>
-    <span class="c1">#         if n_have_shortest_length &lt; choice_between_n:</span>
-    <span class="c1">#             df = df[shortest_length_selector]</span>
-    <span class="c1">#             self.logger.debug(f&quot;Picking those from the shortest subdir has reduced the choice to {n_have_shortest_length}:\n{df}.&quot;)</span>
-    <span class="c1">#         else:</span>
-    <span class="c1">#             self.logger.warning(f&quot;Unable to pick one of the available scores for fname &#39;{name}&#39;, it will be disregarded until disambiguated:\n{df}&quot;)</span>
-    <span class="c1">#             continue</span>
-    <span class="c1">#         if &#39;.mscx&#39; in df.fext.values and fexts[&#39;.mscx&#39;] == 1:</span>
-    <span class="c1">#             pick_ext = &#39;.mscx&#39;</span>
-    <span class="c1">#         elif &#39;.mscz&#39; in df.fext.values and fexts[&#39;.mscz&#39;] == 1:</span>
-    <span class="c1">#             pick_ext = &#39;.mscz&#39;</span>
-    <span class="c1">#         else:</span>
-    <span class="c1">#             self.logger.warning(f&quot;Unable to pick one of the available scores for fname &#39;{name}&#39;, it will be disregarded until disambiguated:\n{df}&quot;)</span>
-    <span class="c1">#             continue</span>
-    <span class="c1">#         picked = df[df.fext == pick_ext].iloc[0]</span>
-    <span class="c1">#         id = picked.name</span>
-    <span class="c1">#         self.logger.info(</span>
-    <span class="c1">#             f&quot;In order to pick one from the {choice_between_n} scores with fname &#39;{name}&#39;, the &#39;{pick_ext}&#39; one contained in &#39;{picked.subdir}&#39; was selected because it is the only &quot;</span>
-    <span class="c1">#             f&quot;one in that format contained in the shortest subdir.&quot;)</span>
-    <span class="c1">#         result[name] = id</span>
-    <span class="c1">#     return result</span>
 
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parsed_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_scores`&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_scores.&quot;</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">parsed_tsv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated property. Replaced by :attr:`n_parsed_tsvs`&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Property has been renamed to n_parsed_tsvs.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Parse.add_detached_annotations"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.add_detached_annotations">[docs]</a>    <span class="k">def</span> <span class="nf">add_detached_annotations</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`insert_detached_labels`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.insert_detached_labels().&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.count_annotation_layers"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.count_annotation_layers">[docs]</a>    <span class="k">def</span> <span class="nf">count_annotation_layers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.count_labels"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.count_labels">[docs]</a>    <span class="k">def</span> <span class="nf">count_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.get_lists"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.get_lists">[docs]</a>    <span class="k">def</span> <span class="nf">get_lists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`get_facets`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method get_lists() not in use any more. Use Parse.get_facets() instead.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.iter"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.iter">[docs]</a>    <span class="k">def</span> <span class="nf">iter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`ms3.corpus.Corpus.iter_facets`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method iter() not in use any more. Use Corpus.iter_facets() instead.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.parse_mscx"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.parse_mscx">[docs]</a>    <span class="k">def</span> <span class="nf">parse_mscx</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`parse_scores`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.parse_scores().&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.pieces"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.pieces">[docs]</a>    <span class="k">def</span> <span class="nf">pieces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`info`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="s2">&quot;This method is deprecated. To view pieces, call Corpus.info() or Corpus.info(&#39;all&#39;). &quot;</span>
+                                 <span class="s2">&quot;A DataFrame showing all detected files is available under the property Corpus.files_df&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.store_scores"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.store_scores">[docs]</a>    <span class="k">def</span> <span class="nf">store_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`store_parsed_scores`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.store_parsed_scores().&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Parse.update_metadata"><a class="viewcode-back" href="../../reference.html#ms3.parse.Parse.update_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">update_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span> <span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deprecated method. Replaced by :meth:`update_score_metadata_from_tsv`.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">DeprecationWarning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Method not in use any more. Use Parse.update_score_metadata_from_tsv().&quot;</span><span class="p">)</span></div></div>
 
 <span class="c1">########################################################################################################################</span>
 <span class="c1">########################################################################################################################</span>
 <span class="c1">################################################# End of Parse() ########################################################</span>
 <span class="c1">########################################################################################################################</span>
 <span class="c1">########################################################################################################################</span>
-
-
-<span class="c1">########################################################################################################################</span>
-<span class="c1">########################################################################################################################</span>
-<span class="c1">################################################# End of View() ########################################################</span>
-<span class="c1">########################################################################################################################</span>
-<span class="c1">########################################################################################################################</span>
-<span class="c1">#</span>
-<span class="c1"># class PieceView(View):</span>
-<span class="c1">#</span>
-<span class="c1">#     def __init__(self,</span>
-<span class="c1">#                  view: View,</span>
-<span class="c1">#                  fname: str):</span>
-<span class="c1">#         self.view = view  # parent View object</span>
-<span class="c1">#         self.p = view.p</span>
-<span class="c1">#         self.key = view.key</span>
-<span class="c1">#         self.fname = fname</span>
-<span class="c1">#         logger_cfg = self.p.logger_cfg</span>
-<span class="c1">#         logger_cfg[&#39;name&#39;] = f&quot;{self.view.logger.name}.{self.fname}&quot;</span>
-<span class="c1">#         super(Parse, self).__init__(subclass=&#39;Piece&#39;, logger_cfg=logger_cfg)  # initialize loggers</span>
-<span class="c1">#         matches = view.detect_ids_by_fname(parsed_only=True, names=[fname])</span>
-<span class="c1">#         if len(matches) != 1:</span>
-<span class="c1">#             raise ValueError(f&quot;{len(matches)} fnames match {fname} for key {self.key}&quot;)</span>
-<span class="c1">#         self.matches = matches[fname]</span>
-<span class="c1">#         self.score_available = &#39;scores&#39; in self.matches</span>
-<span class="c1">#         self.measures_available = self.score_available or &#39;measures&#39; in self.matches</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#</span>
-<span class="c1">#     @lru_cache()</span>
-<span class="c1">#     def get_dataframe(self, what: Literal[&#39;measures&#39;, &#39;notes&#39;, &#39;rests&#39;, &#39;labels&#39;, &#39;expanded&#39;, &#39;events&#39;, &#39;chords&#39;, &#39;metadata&#39;, &#39;form_labels&#39;],</span>
-<span class="c1">#                       unfold: bool = False,</span>
-<span class="c1">#                       quarterbeats: bool = False,</span>
-<span class="c1">#                       interval_index: bool = False,</span>
-<span class="c1">#                       disambiguation: str = &#39;auto&#39;,</span>
-<span class="c1">#                       prefer_score: bool = True,</span>
-<span class="c1">#                       return_file_info: bool = False) -&gt; pd.DataFrame:</span>
-<span class="c1">#         &quot;&quot;&quot; Retrieves one DataFrame for the piece.</span>
-<span class="c1">#</span>
-<span class="c1">#         Args:</span>
-<span class="c1">#             what: What kind of DataFrame to retrieve.</span>
-<span class="c1">#             unfold: Pass True to unfold repeats.</span>
-<span class="c1">#             quarterbeats:</span>
-<span class="c1">#             interval_index:</span>
-<span class="c1">#             disambiguation: In case several DataFrames are available in :attr:`.matches`, pass its disambiguation string.</span>
-<span class="c1">#             prefer_score: By default, data from parsed scores is preferred to that from parsed TSVs. Pass False to prefer TSVs.</span>
-<span class="c1">#             return_file_info: Pass True if the method should also return a :obj:`namedtuple` with information on the DataFrame</span>
-<span class="c1">#                 being returned. It comes with the fields &quot;id&quot;, &quot;full_path&quot;, &quot;suffix&quot;, &quot;fext&quot;, &quot;subdir&quot;, &quot;i_str&quot; where the</span>
-<span class="c1">#                 latter is the ID&#39;s second component as a string.</span>
-<span class="c1">#</span>
-<span class="c1">#         Returns:</span>
-<span class="c1">#             The requested DataFrame if available and, if ``return_file_info`` is set to True, a namedtuple with information about its provenance.</span>
-<span class="c1">#</span>
-<span class="c1">#         Raises:</span>
-<span class="c1">#             FileNotFoundError: If no DataFrame of the requested type is available</span>
-<span class="c1">#         &quot;&quot;&quot;</span>
-<span class="c1">#         available = list(self.p._dataframes.keys())</span>
-<span class="c1">#         if what not in available:</span>
-<span class="c1">#             raise ValueError(f&quot;what=&#39;{what}&#39; is an invalid argument. Pass one of {available}.&quot;)</span>
-<span class="c1">#         if self.score_available and (prefer_score or what not in self.matches):</span>
-<span class="c1">#             file_info = disambiguate(self.matches[&#39;scores&#39;], disambiguation=disambiguation)</span>
-<span class="c1">#             score = self.p[file_info.id]</span>
-<span class="c1">#             df = score.mscx.__getattribute__(what)()</span>
-<span class="c1">#         elif what in self.matches:</span>
-<span class="c1">#             file_info = disambiguate(self.matches[what], disambiguation=disambiguation)</span>
-<span class="c1">#             df = self.p[file_info.id]</span>
-<span class="c1">#         else:</span>
-<span class="c1">#             raise FileNotFoundError(f&quot;No {what} available for {self.key} -&gt; {self.fname}&quot;)</span>
-<span class="c1">#         if any((unfold, quarterbeats, interval_index)):</span>
-<span class="c1">#             measures = self.get_dataframe(&#39;measures&#39;, prefer_score=prefer_score)</span>
-<span class="c1">#             df = dfs2quarterbeats([df], measures, unfold=unfold, quarterbeats=quarterbeats,</span>
-<span class="c1">#                                    interval_index=interval_index, logger=self.logger)[0]</span>
-<span class="c1">#         if return_file_info:</span>
-<span class="c1">#             return df, file_info</span>
-<span class="c1">#         return df</span>
 </pre></div>
 
-            <div class="clearer"></div>
-          </div>
-        </div>
-      </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<div class="sphinx-toc sphinxglobaltoc">
-<h3><a href="../../index.html">Table of Contents</a></h3>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="../../search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</div>
-<script>document.getElementById('searchbox').style.display = "block"</script>
-        </div>
-      </div>
-    
-    
-        <div class="sidebar-toggle-group no-js">
+            </article>
             
-            <button class="sidebar-toggle" id="sidebar-hide" title="Hide the sidebar menu">
-                 «
-                <span class="show-for-small">hide menu</span>
-                
-            </button>
-            <button class="sidebar-toggle" id="sidebar-show" title="Show the sidebar menu">
-                
-                <span class="show-for-small">menu</span>
-                <span class="hide-for-small">sidebar</span>
-                 »
-            </button>
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div id="searchbox"></div>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+            </div>
+          
+          
         </div>
-    
-      <div class="clearer"></div>
-    </div>
-    <div class="relbar-bottom">
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
         
-    <div class="related" role="navigation" aria-label="related navigation">
-      <h3>Navigation</h3>
-      <ul>
-        <li class="right" style="margin-right: 10px">
-          <a href="../../genindex.html" title="General Index"
-             >index</a></li>
-        <li class="right" >
-          <a href="../../py-modindex.html" title="Python Module Index"
-             >modules</a> &nbsp; &nbsp;</li>
-    <li><a href="../../index.html">ms3 1.1.1 documentation</a> &#187;</li>
+      </main>
+    </div>
+  </div>
 
-          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
-        <li class="nav-item nav-item-this"><a href="">ms3.parse</a></li> 
-      </ul>
-    </div>
-    </div>
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94"></script>
 
-    <div class="footer" role="contentinfo">
-        &#169; Copyright 2020, johentsch.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 6.1.3.
-    </div>
-    <!-- cloud_sptheme 1.4 -->
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2020, johentsch.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="theme-version">
+    Built with the
+    <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">
+        PyData Sphinx Theme
+    </a>
+    0.12.0.
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
   </body>
 </html>

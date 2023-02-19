@@ -1,0 +1,1575 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Quick ms3 reference &#8212; ms3 1.2.4.post0.dev2+gf30d960 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/bootstrap.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=796348d33e8b1d947c94" rel="stylesheet">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/jupyter-sphinx.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/thebelab.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94">
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94">
+
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/thebelab-helper.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jupyter-widgets/html-manager@^1.0.1/dist/embed-amd.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'build/jupyter_execute/quick';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="../../search.html" method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+    </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fa-solid fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="../../index.html">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">ms3 1.2.4.post0.dev2+gf30d960 documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      
+        <div class="navbar-end-item navbar-persistent--container">
+          
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+        </div>
+      
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  
+    <div class="navbar-persistent--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-toggle="tooltip">
+  <i class="fa-solid fa-magnifying-glass"></i>
+</button>
+    </div>
+  
+
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fa-solid fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../install.html">
+                        Installation
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../quick.html">
+                        Quick Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../manual.html">
+                        Manual
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../reference.html">
+                        Developers' Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../license.html">
+                        License
+                      </a>
+                    </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../authors.html">
+                        Authors
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../changelog.html">
+                        Changelog
+                      </a>
+                    </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <button class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle" title="light/dark" aria-label="light/dark" data-toggle="tooltip">
+    <span class="theme-switch" data-mode="light"><i class="fa-solid fa-sun"></i></span>
+    <span class="theme-switch" data-mode="dark"><i class="fa-solid fa-moon"></i></span>
+    <span class="theme-switch" data-mode="auto"><i class="fa-solid fa-circle-half-stroke"></i></span>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+  <div class="sidebar-start-items sidebar-primary__section">
+    <div class="sidebar-start-items__item">
+<h3><a href="../../index.html">Table of Contents</a></h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../install.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quick.html">Quick Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../manual.html">Manual</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">Developers' Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../authors.html">Authors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../changelog.html">Changelog</a></li>
+</ul>
+
+    </div>
+    <div class="sidebar-start-items__item">
+    </div>
+    <div class="sidebar-start-items__item">
+<div class="tocsection sourcelink">
+    <a href="../../_sources/build/jupyter_execute/quick.ipynb.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+    </div>
+    <div class="sidebar-start-items__item">
+<div id="searchbox"></div>
+    </div>
+  </div>
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+  
+  <div id="rtd-footer-container"></div>
+
+      </div>
+      <main id="main-content" class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
+  <section id="quick-ms3-reference">
+<h1>Quick <code class="docutils literal notranslate"><span class="pre">ms3</span></code> reference<a class="headerlink" href="#quick-ms3-reference" title="Permalink to this heading">#</a></h1>
+<section id="to-run-this-notebook">
+<h2>To run this notebook<a class="headerlink" href="#to-run-this-notebook" title="Permalink to this heading">#</a></h2>
+<ul class="simple">
+<li><p>install ms3 (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">ms3</span></code>)</p></li>
+<li><p>set the <code class="docutils literal notranslate"><span class="pre">DATA_PATH</span></code> to where you want the folder <code class="docutils literal notranslate"><span class="pre">dcml_corpora</span></code> to be created that contains the data</p></li>
+</ul>
+<p>Read about <a class="reference internal" href="../../manual.html#key-and-id"><span class="std std-ref">Keys and IDs</span></a> <a class="reference internal" href="../../manual_old.html#keys-and-ids"><span class="std std-ref">Keys and IDs</span></a></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">DATA_PATH</span> <span class="o">=</span> <span class="s1">&#39;~&#39;</span>
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="setup">
+<h2>Setup<a class="headerlink" href="#setup" title="Permalink to this heading">#</a></h2>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">ms3</span>
+<span class="kn">from</span> <span class="nn">git</span> <span class="kn">import</span> <span class="n">Repo</span>
+
+<span class="n">corpora_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">DATA_PATH</span><span class="p">),</span> <span class="s1">&#39;dcml_corpora&#39;</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">corpora_path</span><span class="p">):</span>
+    <span class="n">repo</span> <span class="o">=</span> <span class="n">Repo</span><span class="p">(</span><span class="n">corpora_path</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">repo</span> <span class="o">=</span> <span class="n">Repo</span><span class="o">.</span><span class="n">clone_from</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s1">&#39;https://github.com/DCMLab/dcml_corpora.git&#39;</span><span class="p">,</span> 
+                <span class="n">to_path</span><span class="o">=</span><span class="n">corpora_path</span><span class="p">,</span> 
+                <span class="n">multi_options</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;--recurse-submodules&#39;</span><span class="p">,</span> <span class="s1">&#39;--shallow-submodules&#39;</span><span class="p">])</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;dcml_corpora @ commit </span><span class="si">{</span><span class="n">repo</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span><span class="o">.</span><span class="n">hexsha</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>dcml_corpora @ commit 9dcde40cba36d31b900ff12852cc557b8cca8221
+</pre></div>
+</div>
+</div>
+</div>
+</section>
+<section id="parsing-multiple-scores-at-once">
+<h2>Parsing multiple scores at once<a class="headerlink" href="#parsing-multiple-scores-at-once" title="Permalink to this heading">#</a></h2>
+<section id="the-corpus-object">
+<h3>The Corpus object<a class="headerlink" href="#the-corpus-object" title="Permalink to this heading">#</a></h3>
+<p>Scores often come grouped into a corpus, so when we want to parse multiple scores, we create a <a class="reference internal" href="../../reference.html#ms3.corpus.Corpus" title="ms3.corpus.Corpus"><span class="xref myst py py-class">Corpus</span></a> object and pass it the directory containing the scores. <code class="docutils literal notranslate"><span class="pre">ms3</span></code> will scan the directory and discover all scores and TSV files that can be potentially parsed:</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">tchaikovsky_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corpora_path</span><span class="p">,</span> <span class="s1">&#39;tchaikovsky_seasons&#39;</span><span class="p">)</span>
+<span class="n">corpus</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Corpus</span><span class="p">(</span><span class="n">tchaikovsky_path</span><span class="p">)</span>
+<span class="n">corpus</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[<span class=" -Color -Color-Bold">default</span>|all]
+Corpus &#39;tchaikovsky_seasons&#39;
+----------------------------
+Location: /home/hentsche/dcml_corpora/tchaikovsky_seasons
+View: This view is called &#39;default&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml), and
+	- excludes review files and folders.
+
+All 12 pieces are listed in &#39;metadata.tsv&#39;:
+
+          scores measures    notes expanded   events   chords
+        detected detected detected detected detected detected
+op37a01        1        1        1        1        1        1
+op37a02        1        1        1        1        1        1
+op37a03        1        1        1        1        1        1
+op37a04        1        1        1        1        1        1
+op37a05        1        1        1        1        1        1
+op37a06        1        1        1        1        1        1
+op37a07        1        1        1        1        1        1
+op37a08        1        1        1        1        1        1
+op37a09        1        1        1        1        1        1
+op37a10        1        1        1        1        1        1
+op37a11        1        1        1        1        1        1
+op37a12        1        1        1        1        1        1
+24/96 files are excluded from this view.
+
+24 files have been excluded based on their subdir.
+</pre></div>
+</div>
+</div>
+</div>
+<p>When inspecting this object,</p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">corpora_path</span> <span class="o">=</span> <span class="s1">&#39;~/corelli&#39;</span>
+<span class="n">corpora</span> <span class="o">=</span> <span class="n">ms3</span><span class="o">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">corpora_path</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s1">&#39;c&#39;</span><span class="p">)</span>
+<span class="n">corpora</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[<span class=" -Color -Color-Bold">default</span>|all]
+All corpora
+-----------
+View: This view is called &#39;default&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml), and
+	- excludes review files and folders.
+
+             has   active   scores measures    notes expanded
+        metadata     view detected detected detected detected
+corpus                                                       
+corelli      yes  default      149      149      149      149
+
+452/1197 files are excluded from this view.
+
+447 files have been excluded based on their subdir.
+5 files have been excluded based on their file name.
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>From here we can use the methods</strong></p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../../reference.html#ms3.parse.Parse.parse_scores" title="ms3.parse.Parse.parse_scores"><span class="xref myst py py-meth">parse_scores()</span></a> to parse all detected scores,</p></li>
+<li><p><a class="reference internal" href="../../reference.html#ms3.parse.Parse.parse_tsv" title="ms3.parse.Parse.parse_tsv"><span class="xref myst py py-meth">parse_tsv()</span></a> to parse all detected TSV files (previously extracted from scores),</p></li>
+<li><p><a class="reference internal" href="../../reference.html#ms3.parse.Parse.parse" title="ms3.parse.Parse.parse"><span class="xref myst py py-meth">parse()</span></a> to parse everything.</p></li>
+</ul>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">corpora</span><span class="o">.</span><span class="n">parse_scores</span><span class="p">()</span>
+<span class="n">corpora</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_plain highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>[<span class=" -Color -Color-Bold">default</span>|all]
+All corpora
+-----------
+View: This view is called &#39;default&#39;. It 
+	- excludes fnames that are not contained in the metadata,
+	- filters out file extensions requiring conversion (such as .xml), and
+	- excludes review files and folders.
+
+             has   active   scores        measures    notes expanded
+        metadata     view detected parsed detected detected detected
+corpus                                                              
+corelli      yes  default      149    149      149      149      149
+
+452/1197 files are excluded from this view.
+
+447 files have been excluded based on their subdir.
+5 files have been excluded based on their file name.
+</pre></div>
+</div>
+</div>
+</div>
+<p><strong>Now we can extract the facets we need from the parsed scores, e.g. information on all measures from all scores:</strong></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">corpora</span><span class="o">.</span><span class="n">get_facet</span><span class="p">(</span><span class="s1">&#39;measures&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>mc</th>
+      <th>mn</th>
+      <th>quarterbeats</th>
+      <th>duration_qb</th>
+      <th>keysig</th>
+      <th>timesig</th>
+      <th>act_dur</th>
+      <th>mc_offset</th>
+      <th>numbering_offset</th>
+      <th>dont_count</th>
+      <th>barline</th>
+      <th>breaks</th>
+      <th>repeats</th>
+      <th>next</th>
+    </tr>
+    <tr>
+      <th>corpus</th>
+      <th>fname</th>
+      <th>i</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="11" valign="top">corelli</th>
+      <th rowspan="5" valign="top">op01n01a</th>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>4.0</td>
+      <td>-1</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>firstMeasure</td>
+      <td>(2,)</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>2</td>
+      <td>2</td>
+      <td>4</td>
+      <td>4.0</td>
+      <td>-1</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>&lt;NA&gt;</td>
+      <td>(3,)</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>3</td>
+      <td>3</td>
+      <td>8</td>
+      <td>4.0</td>
+      <td>-1</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>&lt;NA&gt;</td>
+      <td>(4,)</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>4</td>
+      <td>4</td>
+      <td>12</td>
+      <td>4.0</td>
+      <td>-1</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>&lt;NA&gt;</td>
+      <td>(5,)</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>5</td>
+      <td>5</td>
+      <td>16</td>
+      <td>4.0</td>
+      <td>-1</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>&lt;NA&gt;</td>
+      <td>(6,)</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th rowspan="5" valign="top">op04n12c</th>
+      <th>14</th>
+      <td>15</td>
+      <td>15</td>
+      <td>84</td>
+      <td>6.0</td>
+      <td>2</td>
+      <td>12/8</td>
+      <td>3/2</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>(16,)</td>
+    </tr>
+    <tr>
+      <th>15</th>
+      <td>16</td>
+      <td>16</td>
+      <td>90</td>
+      <td>6.0</td>
+      <td>2</td>
+      <td>12/8</td>
+      <td>3/2</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>(17,)</td>
+    </tr>
+    <tr>
+      <th>16</th>
+      <td>17</td>
+      <td>17</td>
+      <td>96</td>
+      <td>6.0</td>
+      <td>2</td>
+      <td>12/8</td>
+      <td>3/2</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>(18,)</td>
+    </tr>
+    <tr>
+      <th>17</th>
+      <td>18</td>
+      <td>18</td>
+      <td>102</td>
+      <td>6.0</td>
+      <td>2</td>
+      <td>12/8</td>
+      <td>3/2</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>NaN</td>
+      <td>(19,)</td>
+    </tr>
+    <tr>
+      <th>18</th>
+      <td>19</td>
+      <td>19</td>
+      <td>108</td>
+      <td>6.0</td>
+      <td>2</td>
+      <td>12/8</td>
+      <td>3/2</td>
+      <td>0</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>&lt;NA&gt;</td>
+      <td>end</td>
+      <td>(9, -1)</td>
+    </tr>
+  </tbody>
+</table>
+<p>4790 rows × 14 columns</p>
+</div></div></div>
+</div>
+<p><strong>Or we iterate through the corpora and print information on the first 10 notes:</strong></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">corpus_name</span><span class="p">,</span> <span class="n">corpus_object</span> <span class="ow">in</span> <span class="n">corpora</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;First ten measures of </span><span class="si">{</span><span class="n">corpus_name</span><span class="si">}</span><span class="s2">:&quot;</span><span class="p">)</span>
+    <span class="n">display</span><span class="p">(</span><span class="n">corpus_object</span><span class="o">.</span><span class="n">get_facet</span><span class="p">(</span><span class="s1">&#39;notes&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">iloc</span><span class="p">[:</span><span class="mi">10</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output stream highlight-myst-ansi notranslate"><div class="highlight"><pre><span></span>First ten measures of corelli:
+</pre></div>
+</div>
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th>mc</th>
+      <th>mn</th>
+      <th>quarterbeats</th>
+      <th>duration_qb</th>
+      <th>mc_onset</th>
+      <th>mn_onset</th>
+      <th>timesig</th>
+      <th>staff</th>
+      <th>voice</th>
+      <th>duration</th>
+      <th>nominal_duration</th>
+      <th>scalar</th>
+      <th>tied</th>
+      <th>tpc</th>
+      <th>midi</th>
+      <th>name</th>
+      <th>octave</th>
+      <th>chord_id</th>
+    </tr>
+    <tr>
+      <th>fname</th>
+      <th>notes_i</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="10" valign="top">op01n01a</th>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>-1</td>
+      <td>53</td>
+      <td>F3</td>
+      <td>3</td>
+      <td>8</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>-1</td>
+      <td>53</td>
+      <td>F3</td>
+      <td>3</td>
+      <td>14</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>3</td>
+      <td>81</td>
+      <td>A5</td>
+      <td>5</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>0</td>
+      <td>84</td>
+      <td>C6</td>
+      <td>6</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>4/4</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>1</td>
+      <td>55</td>
+      <td>G3</td>
+      <td>3</td>
+      <td>9</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>1</td>
+      <td>55</td>
+      <td>G3</td>
+      <td>3</td>
+      <td>15</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>4/4</td>
+      <td>2</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>1</td>
+      <td>79</td>
+      <td>G5</td>
+      <td>5</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>4/4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>-2</td>
+      <td>82</td>
+      <td>Bb5</td>
+      <td>5</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>0.5</td>
+      <td>1/2</td>
+      <td>1/2</td>
+      <td>4/4</td>
+      <td>3</td>
+      <td>1</td>
+      <td>1/8</td>
+      <td>1/8</td>
+      <td>1</td>
+      <td>&lt;NA&gt;</td>
+      <td>3</td>
+      <td>57</td>
+      <td>A3</td>
+      <td>3</td>
+      <td>10</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>1.5</td>
+      <td>1/2</td>
+      <td>1/2</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>3/8</td>
+      <td>1/4</td>
+      <td>3/2</td>
+      <td>&lt;NA&gt;</td>
+      <td>3</td>
+      <td>57</td>
+      <td>A3</td>
+      <td>3</td>
+      <td>16</td>
+    </tr>
+  </tbody>
+</table>
+</div></div></div>
+</div>
+<p><strong>The available facets are <code class="docutils literal notranslate"><span class="pre">'measures',</span> <span class="pre">'notes',</span> <span class="pre">'rests',</span> <span class="pre">'notes_and_rests',</span> <span class="pre">'labels',</span> <span class="pre">'expanded',</span> <span class="pre">'form_labels',</span> <span class="pre">'cadences',</span> <span class="pre">'events',</span> <span class="pre">'chords'</span></code>.
+We can request several at the same time:</strong></p>
+<div class="cell docutils container">
+<div class="cell_input docutils container">
+<div class="highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">corpora</span><span class="o">.</span><span class="n">get_facets</span><span class="p">([</span><span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;chords&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<div class="cell_output docutils container">
+<div class="output text_html"><div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead th {
+        text-align: right;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th>mc</th>
+      <th>mn</th>
+      <th>quarterbeats</th>
+      <th>duration_qb</th>
+      <th>mc_onset</th>
+      <th>mn_onset</th>
+      <th>timesig</th>
+      <th>staff</th>
+      <th>voice</th>
+      <th>harmony_layer</th>
+      <th>...</th>
+      <th>thoroughbass_duration</th>
+      <th>thoroughbass_level_1</th>
+      <th>thoroughbass_level_2</th>
+      <th>slur</th>
+      <th>thoroughbass_level_3</th>
+      <th>articulation</th>
+      <th>staff_text</th>
+      <th>system_text</th>
+      <th>placement</th>
+      <th>dynamics</th>
+    </tr>
+    <tr>
+      <th>corpus</th>
+      <th>fname</th>
+      <th>facet</th>
+      <th>i</th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th rowspan="11" valign="top">corelli</th>
+      <th rowspan="5" valign="top">op01n01a</th>
+      <th rowspan="5" valign="top">labels</th>
+      <th>0</th>
+      <td>1</td>
+      <td>1</td>
+      <td>0</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>1</td>
+      <td>1</td>
+      <td>1</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>1</td>
+      <td>1</td>
+      <td>2</td>
+      <td>2.0</td>
+      <td>1/2</td>
+      <td>1/2</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>2</td>
+      <td>2</td>
+      <td>4</td>
+      <td>0.5</td>
+      <td>0</td>
+      <td>0</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>2</td>
+      <td>2</td>
+      <td>9/2</td>
+      <td>0.5</td>
+      <td>1/8</td>
+      <td>1/8</td>
+      <td>4/4</td>
+      <td>4</td>
+      <td>1</td>
+      <td>1</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>...</th>
+      <th>...</th>
+      <th>...</th>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+      <td>...</td>
+    </tr>
+    <tr>
+      <th rowspan="5" valign="top">op04n12c</th>
+      <th rowspan="5" valign="top">chords</th>
+      <th>421</th>
+      <td>19</td>
+      <td>19</td>
+      <td>110</td>
+      <td>2.0</td>
+      <td>1/2</td>
+      <td>1/2</td>
+      <td>12/8</td>
+      <td>3</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>422</th>
+      <td>19</td>
+      <td>19</td>
+      <td>108</td>
+      <td>1.0</td>
+      <td>0</td>
+      <td>0</td>
+      <td>12/8</td>
+      <td>4</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>423</th>
+      <td>19</td>
+      <td>19</td>
+      <td>109</td>
+      <td>0.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>12/8</td>
+      <td>4</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>1/4</td>
+      <td>#</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>424</th>
+      <td>19</td>
+      <td>19</td>
+      <td>109</td>
+      <td>1.0</td>
+      <td>1/4</td>
+      <td>1/4</td>
+      <td>12/8</td>
+      <td>4</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+    <tr>
+      <th>425</th>
+      <td>19</td>
+      <td>19</td>
+      <td>110</td>
+      <td>2.0</td>
+      <td>1/2</td>
+      <td>1/2</td>
+      <td>12/8</td>
+      <td>4</td>
+      <td>1</td>
+      <td>NaN</td>
+      <td>...</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+      <td>NaN</td>
+    </tr>
+  </tbody>
+</table>
+<p>95639 rows × 31 columns</p>
+</div></div></div>
+</div>
+</section>
+</section>
+</section>
+
+
+            </article>
+            
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div class="tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+</div>
+<nav id="bd-toc-nav" class="page-toc">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#to-run-this-notebook">
+   To run this notebook
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#setup">
+   Setup
+  </a>
+ </li>
+ <li class="toc-h2 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#parsing-multiple-scores-at-once">
+   Parsing multiple scores at once
+  </a>
+  <ul class="nav section-nav flex-column">
+   <li class="toc-h3 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#the-corpus-object">
+     The Corpus object
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+</nav>
+</div>
+
+<div class="toc-item">
+  
+<div id="searchbox"></div>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+<div class="tocsection sourcelink">
+    <a href="../../_sources/build/jupyter_execute/quick.ipynb.txt">
+        <i class="fa-solid fa-file-lines"></i> Show Source
+    </a>
+</div>
+
+</div>
+
+            </div>
+          
+          
+        </div>
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
+        
+      </main>
+    </div>
+  </div>
+
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=796348d33e8b1d947c94"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=796348d33e8b1d947c94"></script>
+
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2020, johentsch.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    <p class="theme-version">
+    Built with the
+    <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">
+        PyData Sphinx Theme
+    </a>
+    0.12.0.
+</p>
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.3.0.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
+  </body>
+</html>

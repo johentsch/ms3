@@ -65,8 +65,11 @@ sys.path.insert(0, os.path.join(__location__, '../src'))
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo',
               'sphinx.ext.autosummary', 'sphinx.ext.viewcode', 'sphinx.ext.coverage',
               'sphinx.ext.doctest', 'sphinx.ext.ifconfig', 'sphinx.ext.mathjax', 'sphinx.ext.githubpages',
-              'sphinx.ext.napoleon', 'sphinxarg.ext', 'sphinxcontrib.programoutput', 'myst_nb']
+              'sphinx.ext.napoleon', 'sphinxarg.ext', 'sphinxcontrib.programoutput', 'myst_nb', 'jupyter_sphinx']
 # pip install -r requirements.txt
+
+nb_execution_timeout = 120
+nb_execution_excludepatterns = ['*.ipynb']
 
 # Napoleon settings
 napoleon_use_admonition_for_examples = True
@@ -75,7 +78,10 @@ napoleon_use_admonition_for_examples = True
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'myst-nb',
+}
 
 # The encoding of source files.
 # source_encoding = 'utf-8-sig'
@@ -138,9 +144,9 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'cloud'
-# pip install cloud_sptheme
-# view theme options here: https://cloud-sptheme.readthedocs.io/en/latest/cloud_theme.html#list-of-options
+html_theme = 'pydata_sphinx_theme'
+# pip install pydata_sphinx_theme
+# view theme options here: https://pydata-sphinx-theme.readthedocs.io/en/stable/user_guide/
 
 # don't order elements alphabetically
 autodoc_member_order = 'bysource'
@@ -149,17 +155,8 @@ autodoc_member_order = 'bysource'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'lighter_header_decor': True,
-    'shaded_decor': True,
-    'borderless_decor': False,
-    'max_width': '1600px',
-}
 
-############ Settings for alabaster theme
-# html_theme_options = {
-#     'sidebar_width': '300px',
-#     'page_width': '1200px'
-# }
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 # html_theme_path = []
