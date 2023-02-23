@@ -175,7 +175,7 @@ def make_dezrann_label(
     )
 
 def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
-                                      origin: Union[str, Tuple[str]] = "DCML") -> List[DezrannDict]:
+                                      origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
     label_list = []
     for e in values_dict:
         label_list.append(
