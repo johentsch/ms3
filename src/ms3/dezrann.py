@@ -175,6 +175,11 @@ def make_dezrann_label(
     )
 
 def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
+                                      cadences: bool,
+                                      harmony_line: int,
+                                      keys_line: int,
+                                      phrases_line: int,
+                                      raw_line: int,
                                       origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
     label_list = []
     for e in values_dict:
@@ -186,7 +191,14 @@ def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
                 origin=origin
             )
         )
-    return DezrannDict(labels=label_list, meta={"layout": []})
+    layout = []
+    if raw_line > 0:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": line}})
+    #if harmony_line > 0:
+    #    ...
+    #if keys_line > 0:
+    #    ...
+    return DezrannDict(labels=label_list, meta={"layout": layout})
     
 
 def generate_dez(path_measures: str,
@@ -256,14 +268,38 @@ def generate_all_dez(output_dir=OUTPUT_DIR):
 def main(input_dir: str,
          measures_dir: str,
          output_dir: str,
-         harmony_layer: int,
-         keys_layer:int,
-         phrases_layer: int,
-         cadences_layer: int,
-         raw_layer: int):
+         cadences: bool,
+         harmony_line: Optional[str], # will transform and pass in "bot.1", None otherwise
+         keys_line: Optional[str],
+         phrases_line: Optional[str],
+         raw_line: Optional[str]):
     pass
 
+LINE_VALUES = {
+    1: "top.1",
+    2: "top.2",
+    3: "top.3",
+    4: "bot.1",
+    5: "bot.2",
+    6: "bot.3"
+}
+
+def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
+    if line is None:
+        return
+    try:
+        line = int(line)
+        assert line in [1,2,3,4,5,6, -1, -2, -3]
+    except (TypeError, ValueError, AssertionError):
+        raise ValueError(f"{line} is not a valid argument, shoube within 1-6.")
+    if line < 0:
+        line = abs(line) + 3
+    return LINE_VALUES[line]
+    
+
 def process_arguments(args) -> dict:
+    kwargs = {}
+    line_args = ('harmonies', 'keys', 'phrases', 'raw')
     pass
 
 
@@ -289,32 +325,15 @@ def run():
     parser.add_argument("dir", metavar='DIR',
                         help='Folder that will be scanned for TSV files to convert. Defaults to current working directory.')
     parser.add_argument('-m', '--measures', metavar='DIR',
-                        help='Folder(s) that will be scanned for TSV files to convert. Defaults to current working directory.')
+                        help="Folder in which to look for the corrsponding measure maps. By default, the script will try "
+                             "to find a sibling to the source dir called 'measures'.")
     parser.add_argument('-o', '--out', metavar='OUT_DIR',
                         help='Output directory for .dez files. Defaults to the input directory.')
-    parser.add_argument('-C', 
-                        '--cadences', 
-                        action="store_true",
-                        )
-    parser.add_argument('-H', 
-                        '--harmonies', 
-                        metavar="{1-6}, default: 4",
-                        default=4,
-                        choices=[1, 2, 3, 4, 5, 6], 
-                        )
-    parser.add_argument('-K', 
-                        '--keys', 
-                        metavar="{1-6}, default: 5",
-                        default=5,
-                        choices=[1, 2, 3, 4, 5, 6])
-    parser.add_argument('-P', 
-                        '--phrases', 
-                        metavar="{1-6}, default: 6",
-                        default=6, 
-                        choices=[1, 2, 3, 4, 5, 6])
-    parser.add_argument('--raw', 
-                        metavar="{1-6}",
-                        choices=[1, 2, 3, 4, 5, 6])
+    parser.add_argument('-H', '--harmonies', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-K', '--keys', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-P', '--phrases', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-C', '--cadences', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('--raw', choices=[0, 1, 2, 3, 4, 5, 6])
     args = parser.parse_args()
     kwargs = process_arguments(args)
     main(**kwargs)
