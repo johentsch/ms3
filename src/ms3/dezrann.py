@@ -292,11 +292,29 @@ def run():
                         help='Folder(s) that will be scanned for TSV files to convert. Defaults to current working directory.')
     parser.add_argument('-o', '--out', metavar='OUT_DIR',
                         help='Output directory for .dez files. Defaults to the input directory.')
-    parser.add_argument('-H', '--harmonies', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-K', '--keys', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-P', '--phrases', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-C', '--cadences', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('--raw', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-C', 
+                        '--cadences', 
+                        action="store_true",
+                        )
+    parser.add_argument('-H', 
+                        '--harmonies', 
+                        metavar="{1-6}, default: 4",
+                        default=4,
+                        choices=[1, 2, 3, 4, 5, 6], 
+                        )
+    parser.add_argument('-K', 
+                        '--keys', 
+                        metavar="{1-6}, default: 5",
+                        default=5,
+                        choices=[1, 2, 3, 4, 5, 6])
+    parser.add_argument('-P', 
+                        '--phrases', 
+                        metavar="{1-6}, default: 6",
+                        default=6, 
+                        choices=[1, 2, 3, 4, 5, 6])
+    parser.add_argument('--raw', 
+                        metavar="{1-6}",
+                        choices=[1, 2, 3, 4, 5, 6])
     args = parser.parse_args()
     kwargs = process_arguments(args)
     main(**kwargs)
