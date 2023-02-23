@@ -101,7 +101,7 @@ Here is an example of Dezrann file structure:
 
 import json
 import os
-from typing import Dict, List, TypedDict, Any, Union
+from typing import Dict, List, TypedDict, Union, Tuple
 
 from fractions import Fraction
 import pandas as pd
@@ -123,6 +123,7 @@ class DezrannLabel(TypedDict):
     layers: List[str]
 
 class DezrannDict(TypedDict):
+    """Represents one .dez file."""
     labels: List[DezrannLabel]
     meta: Dict
 
@@ -159,17 +160,22 @@ def transform_df(labels: pd.DataFrame,
     return transformed_df.to_dict(orient='records')
     
 def make_dezrann_label(
-            quarterbeats: float, duration: float, label: str, origin: List[str]) -> DezrannLabel:
+            quarterbeats: float, duration: float, label: str, origin: Union[str, Tuple[str]]) -> DezrannLabel:
+    if isinstance(origin, str):
+        layers = [origin]
+    else:
+        layers = list(origin)
     return DezrannLabel(
         type="Harmony",
         start=quarterbeats,
         duration=duration,
         line="top.3",
         tag=label,
-        layers=origin
+        layers=layers
     )
 
-def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel], origin: List[str]) -> List[DezrannDict]:
+def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
+                                      origin: Union[str, Tuple[str]] = "DCML") -> List[DezrannDict]:
     label_list = []
     for e in values_dict:
         label_list.append(
@@ -183,7 +189,10 @@ def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel], origin: List
     return DezrannDict(labels=label_list, meta={"layout": []})
     
 
-def generate_dez(path_measures, path_labels, output_path="labels.dez", origin: List[str] = ["DCML"]):
+def generate_dez(path_measures: str,
+                 path_labels: str,
+                 output_path: str = "labels.dez",
+                 origin: Union[str, Tuple[str]] = "DCML"):
     """
     path_measures : :obj:`str`
         Path to a TSV file as output by format_data().
