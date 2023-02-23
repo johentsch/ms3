@@ -101,7 +101,7 @@ Here is an example of Dezrann file structure:
 import argparse
 import json
 import os
-from typing import Dict, List, TypedDict, Union, Tuple
+from typing import Dict, List, TypedDict, Union, Tuple, Optional
 
 from fractions import Fraction
 import pandas as pd
@@ -115,10 +115,11 @@ def safe_frac(s: str) -> Union[Fraction, str]:
         return s
 
 class DezrannLabel(TypedDict):
-    type: str #= "Harmony" # Default value ?
+    """Represents one label in a .dez file."""
+    type: str
     start: float
     duration: float
-    line: str #= "top.3" #Literal?
+    #line: str # Determined by the meta-layout
     tag: str
     layers: List[str]
 
@@ -128,13 +129,18 @@ class DezrannDict(TypedDict):
     meta: Dict
 
 class DcmlLabel(TypedDict):
+    """Represents one label from a TSV annotation file"""
     quarterbeats: float
     duration: float
     label: str
+    harmony: str
+    key: str
+    phrase: str
+    cadence: str
 
 
-def transform_df(labels: pd.DataFrame, 
-                measures: pd.DataFrame, 
+def transform_df(labels: pd.DataFrame,
+                measures: pd.DataFrame,
                 label_column: str = 'label') -> List[DcmlLabel]:
     """
 
@@ -166,20 +172,19 @@ def make_dezrann_label(
     else:
         layers = list(origin)
     return DezrannLabel(
-        type="Harmony",
+        type="Harmony", #TODO: adapt type to current label 
         start=quarterbeats,
         duration=duration,
-        line="top.3",
         tag=label,
         layers=layers
     )
 
 def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
-                                      cadences: bool,
-                                      harmony_line: int,
-                                      keys_line: int,
-                                      phrases_line: int,
-                                      raw_line: int,
+                                      cadences: bool = False,
+                                      harmony_line: Optional[str] = None,
+                                      keys_line: Optional[str] = None,
+                                      phrases_line: Optional[str] = None,
+                                      raw_line: Optional[str] = None,
                                       origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
     label_list = []
     for e in values_dict:
@@ -192,18 +197,28 @@ def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
             )
         )
     layout = []
-    if raw_line > 0:
-        layout.append({"filter": {"type": "Harmony"}, "style": {"line": line}})
-    #if harmony_line > 0:
-    #    ...
-    #if keys_line > 0:
-    #    ...
+    if cadences:
+        layout.append({"filter": {"type": "Cadence"}, "style": {"line": "all"}})
+    if harmony_line:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": harmony_line}})
+    if keys_line:
+        layout.append({"filter": {"type": "Localkey"}, "style": {"line": keys_line}})
+    if phrases_line:
+        layout.append({"filter": {"type": "Phrase"}, "style": {"line": phrases_line}})
+    if raw_line:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw_line}})
+
     return DezrannDict(labels=label_list, meta={"layout": layout})
     
 
 def generate_dez(path_measures: str,
                  path_labels: str,
                  output_path: str = "labels.dez",
+                 cadences: bool = False,
+                 harmonies: Optional[str] = None,
+                 keys: Optional[str] = None,
+                 phrases: Optional[str] = None,
+                 raw: Optional[str] = None,
                  origin: Union[str, Tuple[str]] = "DCML"):
     """
     path_measures : :obj:`str`
@@ -212,21 +227,33 @@ def generate_dez(path_measures: str,
         Path to a TSV file as output by format_data().
     output_labels : :obj:`str`
         Path to a TSV file as output by format_data().
-    origin : :obj:`list`
-        List of source(s) from which the labels originate. Defaults to ["DCML"].
+    origin : :obj:`tuple`
+        Tuple of source(s) from which the labels originate. Defaults to "DCML".
     """
-    harmonies = pd.read_csv(
+    harmonies_df = pd.read_csv(
         path_labels, sep='\t',
         usecols=['mc', 'mc_onset', 'duration_qb', 'label'], #'chord'
         converters={'mc_onset': safe_frac}
     )
-    measures = pd.read_csv(
-        path_measures, sep='\t',
-        usecols=['mc', 'quarterbeats_all_endings'],
-        converters={'quarterbeats_all_endings': safe_frac}
+    try:
+        measures_df = pd.read_csv(
+            path_measures, sep='\t',
+            usecols=['mc', 'quarterbeats_all_endings'],
+            converters={'quarterbeats_all_endings': safe_frac}
+        )
+    except ValueError as e:
+        raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
+
+    dcml_labels = transform_df(labels=harmonies_df, measures=measures_df)
+    dezrann_content = convert_dcml_list_to_dezrann_list(
+        dcml_labels,
+        cadences=cadences,
+        harmony_line=harmonies,
+        keys_line=keys,
+        phrases_line=phrases,
+        raw_line=raw,
+        origin=origin
     )
-    dcml_labels = transform_df(labels=harmonies, measures=measures)
-    dezrann_content = convert_dcml_list_to_dezrann_list(dcml_labels, origin=origin)
     
     # Manual post-processing  #TODO: improve these cases
     # 1) Avoid NaN values in "duration" (happens in second endings)
@@ -268,12 +295,45 @@ def generate_all_dez(output_dir=OUTPUT_DIR):
 def main(input_dir: str,
          measures_dir: str,
          output_dir: str,
-         cadences: bool,
-         harmony_line: Optional[str], # will transform and pass in "bot.1", None otherwise
-         keys_line: Optional[str],
-         phrases_line: Optional[str],
-         raw_line: Optional[str]):
-    pass
+         cadences: bool = False,
+         harmonies: Optional[str] = None,
+         keys: Optional[str] = None,
+         phrases: Optional[str] = None,
+         raw: Optional[str] = None):
+    if not cadences and all(arg is None for arg in (harmonies, keys, phrases, raw)):
+        print(f"Nothing to do because no features have been selected.")
+        return
+    input_files = [f for f in os.listdir(input_dir) if f.endswith('.tsv')]
+    # measures_files = glob.glob(f"{measures_dir}/*.tsv")
+    harmony_measure_matches = []
+    for tsv_name in input_files:
+        measures_file_path = os.path.join(measures_dir, tsv_name)
+        if os.path.isfile(measures_file_path):
+            harmonies_file_path = os.path.join(input_dir, tsv_name)
+            harmony_measure_matches.append((harmonies_file_path, measures_file_path))
+        else:
+            print(f"No measure map found for {tsv_name}. Skipping.")
+            continue
+    for input_file, measure_file in harmony_measure_matches:
+        if output_dir == input_dir:
+            output_file_path = measure_file.replace(".tsv", ".dez")
+        else:
+            dez_file = os.path.basename(measure_file).replace(".tsv", ".dez")
+            output_file_path = os.path.join(output_dir, dez_file)
+        try:
+            generate_dez(
+            path_labels=input_file,
+            path_measures=measure_file,
+            output_path=output_file_path,
+            cadences=cadences,
+            harmonies=harmonies,
+            keys=keys,
+            phrases=phrases,
+            raw=raw
+            )
+            print(f"{output_file_path} successfully written.")
+        except Exception as e:
+            print(f"Converting {input_file} failed with '{e}'")
 
 LINE_VALUES = {
     1: "top.1",
@@ -295,12 +355,51 @@ def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
     if line < 0:
         line = abs(line) + 3
     return LINE_VALUES[line]
+
+def resolve_dir(d):
+    """ Resolves '~' to HOME directory and turns ``d`` into an absolute path.
+    """
+    if d is None:
+        return None
+    d = str(d)
+    if '~' in d:
+        return os.path.expanduser(d)
+    return os.path.abspath(d)
     
 
 def process_arguments(args) -> dict:
-    kwargs = {}
+    input_dir = resolve_dir(args.dir)
+    assert os.path.isdir(input_dir), f"{args.dir} is not an existing directory."
+    if args.measures is None:
+        measures_dir = os.path.abspath(os.path.join(input_dir, '..', 'measures'))
+        if not os.path.isdir(measures_dir):
+            raise ValueError(f"No directory with measure maps was specified and the default path "
+            f"{measures_dir} does not exist.")
+    else:
+        measures_dir = resolve_dir(args.measures)
+        if not os.path.isdir(measures_dir):
+            raise ValueError(f"{measures_dir} is not an existing directory.")
+    if args.out is None:
+        output_dir = input_dir
+    else:
+        output_dir = resolve_dir(args.out)
+        if not os.path.isdir(output_dir):
+            raise ValueError(f"{output_dir} is not an existing directory.")
+    kwargs = dict(
+        input_dir=input_dir,
+        measures_dir=measures_dir,
+        output_dir=output_dir
+    )
     line_args = ('harmonies', 'keys', 'phrases', 'raw')
-    pass
+    for arg in line_args:
+        arg_val = getattr(args, arg)
+        if arg_val is None:
+            continue
+        kwargs[arg] = transform_line_argument(arg_val)
+    if args.cadences:
+        kwargs['cadences'] = True
+    print(kwargs)
+    return kwargs
 
 
 def run():
@@ -329,11 +428,29 @@ def run():
                              "to find a sibling to the source dir called 'measures'.")
     parser.add_argument('-o', '--out', metavar='OUT_DIR',
                         help='Output directory for .dez files. Defaults to the input directory.')
-    parser.add_argument('-H', '--harmonies', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-K', '--keys', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-P', '--phrases', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('-C', '--cadences', choices=[0, 1, 2, 3, 4, 5, 6])
-    parser.add_argument('--raw', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-C', 
+                        '--cadences', 
+                        action="store_true",
+                        )
+    parser.add_argument('-H', 
+                        '--harmonies', 
+                        metavar="{1-6}, default: 4",
+                        default="4",
+                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"], 
+                        )
+    parser.add_argument('-K', 
+                        '--keys', 
+                        metavar="{1-6}, default: 5",
+                        default="5",
+                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
+    parser.add_argument('-P', 
+                        '--phrases', 
+                        metavar="{1-6}, default: 6",
+                        default="6", 
+                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
+    parser.add_argument('--raw', 
+                        metavar="{1-6}",
+                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
     args = parser.parse_args()
     kwargs = process_arguments(args)
     main(**kwargs)
