@@ -101,7 +101,7 @@ Here is an example of Dezrann file structure:
 
 import json
 import os
-from typing import Dict, List, TypedDict, Any, Union
+from typing import Dict, List, TypedDict, Union, Tuple
 
 from fractions import Fraction
 import pandas as pd
@@ -120,8 +120,10 @@ class DezrannLabel(TypedDict):
     duration: float
     line: str #= "top.3" #Literal?
     tag: str
+    layers: List[str]
 
 class DezrannDict(TypedDict):
+    """Represents one .dez file."""
     labels: List[DezrannLabel]
     meta: Dict
 
@@ -157,23 +159,40 @@ def transform_df(labels: pd.DataFrame,
     transformed_df = pd.concat([quarterbeats.rename('quarterbeats'), labels.duration_qb.rename('duration'), labels[label_column].rename('label')], axis=1)
     return transformed_df.to_dict(orient='records')
     
-def make_dezrann_label(quarterbeats: float, duration: float, label: str) -> DezrannLabel:
-    return DezrannLabel(type="Harmony", start=quarterbeats, duration=duration, line="top.3", tag=label)
+def make_dezrann_label(
+            quarterbeats: float, duration: float, label: str, origin: Union[str, Tuple[str]]) -> DezrannLabel:
+    if isinstance(origin, str):
+        layers = [origin]
+    else:
+        layers = list(origin)
+    return DezrannLabel(
+        type="Harmony",
+        start=quarterbeats,
+        duration=duration,
+        line="top.3",
+        tag=label,
+        layers=layers
+    )
 
-def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel]) -> List[DezrannDict]:
+def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
+                                      origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
     label_list = []
     for e in values_dict:
         label_list.append(
             make_dezrann_label(
                 quarterbeats=e["quarterbeats"],
                 duration=e["duration"],
-                label=e["label"]
+                label=e["label"],
+                origin=origin
             )
         )
     return DezrannDict(labels=label_list, meta={"layout": []})
     
 
-def generate_dez(path_measures, path_labels, output_path="labels.dez"): # need paths for harmony.TSV + paths for measures.TSV
+def generate_dez(path_measures: str,
+                 path_labels: str,
+                 output_path: str = "labels.dez",
+                 origin: Union[str, Tuple[str]] = "DCML"):
     """
     path_measures : :obj:`str`
         Path to a TSV file as output by format_data().
@@ -181,6 +200,8 @@ def generate_dez(path_measures, path_labels, output_path="labels.dez"): # need p
         Path to a TSV file as output by format_data().
     output_labels : :obj:`str`
         Path to a TSV file as output by format_data().
+    origin : :obj:`list`
+        List of source(s) from which the labels originate. Defaults to ["DCML"].
     """
     harmonies = pd.read_csv(
         path_labels, sep='\t',
@@ -193,7 +214,7 @@ def generate_dez(path_measures, path_labels, output_path="labels.dez"): # need p
         converters={'quarterbeats_all_endings': safe_frac}
     )
     dcml_labels = transform_df(labels=harmonies, measures=measures)
-    dezrann_content = convert_dcml_list_to_dezrann_list(dcml_labels)
+    dezrann_content = convert_dcml_list_to_dezrann_list(dcml_labels, origin=origin)
     
     # Manual post-processing  #TODO: improve these cases
     # 1) Avoid NaN values in "duration" (happens in second endings)
