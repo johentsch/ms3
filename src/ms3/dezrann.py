@@ -98,7 +98,7 @@ Here is an example of Dezrann file structure:
 }
 '''
 """
-
+import argparse
 import json
 import os
 from typing import Dict, List, TypedDict, Union, Tuple
@@ -286,7 +286,7 @@ def run():
         Or, if you want to convert other harmony or chord labels from your MuseScore files, use -L for labels.
         ms3 extract -h will show you all options.
         ''')
-    parser.add_argument(metavar='DIR', default=os.getcwd(),
+    parser.add_argument("dir", metavar='DIR',
                         help='Folder that will be scanned for TSV files to convert. Defaults to current working directory.')
     parser.add_argument('-m', '--measures', metavar='DIR',
                         help='Folder(s) that will be scanned for TSV files to convert. Defaults to current working directory.')
@@ -311,5 +311,5 @@ if __name__ == "__main__":
     #transformed = transform_df(labels=harmonies, measures=measures)
     #print(transformed)
     
-    dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
+    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
     #generate_all_dez()
