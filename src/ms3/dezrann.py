@@ -253,12 +253,63 @@ def generate_all_dez(output_dir=OUTPUT_DIR):
     for i_piece, piece in enumerate(MOZART_SONATAS):
         generate_dez(MEASURE_PATHS[i_piece], HARMONY_PATHS[i_piece])
 
+def main(input_dir: str,
+         measures_dir: str,
+         output_dir: str,
+         harmony_layer: int,
+         keys_layer:int,
+         phrases_layer: int,
+         cadences_layer: int,
+         raw_layer: int):
+    pass
+
+def process_arguments(args) -> dict:
+    pass
+
+
+def run():
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
+                                     description='''\
+        -----------------------------
+        | DCML => Dezrann converter |
+        -----------------------------
+
+        This script converts DCML harmony annotations into the .dez JSON format used by the dezrann.net app. It is 
+        standalone and does not require ms3 to be installed. Its only requirement is pandas.
+
+        Apart from that, the script requires that you have previously extracted both harmonies and measures from the 
+        annotated scores or that you are converting a DCML corpus (https://github.com/DCMLab/dcml_corpora), 
+        where both facets are provided by default. In order to (re-) extract the labels, use the command:
+
+            ms3 extract -X -M
+
+        Or, if you want to convert other harmony or chord labels from your MuseScore files, use -L for labels.
+        ms3 extract -h will show you all options.
+        ''')
+    parser.add_argument(metavar='DIR', default=os.getcwd(),
+                        help='Folder that will be scanned for TSV files to convert. Defaults to current working directory.')
+    parser.add_argument('-m', '--measures', metavar='DIR',
+                        help='Folder(s) that will be scanned for TSV files to convert. Defaults to current working directory.')
+    parser.add_argument('-o', '--out', metavar='OUT_DIR',
+                        help='Output directory for .dez files. Defaults to the input directory.')
+    parser.add_argument('-H', '--harmonies', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-K', '--keys', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-P', '--phrases', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('-C', '--cadences', choices=[0, 1, 2, 3, 4, 5, 6])
+    parser.add_argument('--raw', choices=[0, 1, 2, 3, 4, 5, 6])
+    args = parser.parse_args()
+    kwargs = process_arguments(args)
+    main(**kwargs)
 
 if __name__ == "__main__":
+    run()
+
+
+
     #measures = ms3.load_tsv('src/ms3/K283-2_measures.tsv')
     #harmonies = ms3.load_tsv('src/ms3/K283-2_harmonies.tsv')
     #transformed = transform_df(labels=harmonies, measures=measures)
     #print(transformed)
     
-    dez = generate_dez('src/ms3/K283-2_measures.tsv', 'src/ms3/K283-2_harmonies.tsv')
+    dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
     #generate_all_dez()
