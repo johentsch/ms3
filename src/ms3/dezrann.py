@@ -357,17 +357,6 @@ def generate_dez(path_measures: str,
         raw=raw
     )
     dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
-    
-    # Manual post-processing  #TODO: improve these cases
-    # 1) Avoid NaN values in "duration" (happens in second endings)
-    # optional : in the transform_df : transformed_df = transformed_df.replace('NaN', 0) ?
-    for label in dezrann_content['labels']:
-        if pd.isnull(label['duration']):
-            print(f"WARNING: NaN duration detected in label {label}.")
-            label['duration'] = 0
-    # 2) Remove "start" value in the first label ?
-    if dezrann_content['labels'][0]['start'] == 0.:
-        del dezrann_content['labels'][0]['start']
 
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(dezrann_content, f, indent=2)
@@ -410,7 +399,7 @@ def main(input_dir: str,
     # measures_files = glob.glob(f"{measures_dir}/*.tsv")
     harmony_measure_matches = []
     for tsv_name in input_files:
-        measures_file_path = os.path.join(measures_dir, tsv_name).replace("harmonies", "measures")
+        measures_file_path = os.path.join(measures_dir, tsv_name)
         if not os.path.isfile(measures_file_path):
             # could be a directory
             continue
