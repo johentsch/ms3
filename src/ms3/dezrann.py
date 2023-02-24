@@ -140,7 +140,7 @@ class DcmlLabel(TypedDict):
 
 
 def transform_df(labels: pd.DataFrame,
-                measures: pd.DataFrame,
+                measures: Optional[pd.DataFrame],
                 label_column: str = 'label') -> List[DcmlLabel]:
     """
 
@@ -148,10 +148,18 @@ def transform_df(labels: pd.DataFrame,
     ----------
     labels:
         Dataframe as found in the 'harmonies'  folder of a DCML corpus. Needs to have columns with
-        the correct dtypes {'mc': int, 'mc_onset': fractions.Fraction} and no missing values.
+        the correct dtypes {'mc': int,
+                            'mc_onset': fractions.Fraction,
+                            'duration_qb': float,
+                            'quarterbeats': fraction.Fraction,
+                            'label': str,
+                            'chord': str,
+                            'cadence': str,
+                            'phraseend': str}
+        and no missing values.
     measures:
-        Dataframe as found in the 'measures' folder of a DCML corpus. Requires the columns
-        {'mc': int, 'quarterbeats_all_endings': fractions.Fraction}
+        (optional) Dataframe as found in the 'measures' folder of a DCML corpus for computing quarterbeats for pieces with
+        voltas. Requires the columns {'mc': int, 'quarterbeats_all_endings': fractions.Fraction} (ms3 >= 1.0.0).
     label_column: str, optional
         The column that is to be used as label string. Defaults to 'label'.
 
@@ -159,10 +167,16 @@ def transform_df(labels: pd.DataFrame,
     -------
         List of dictionaries where each represents one row of the input labels.
     """
-    offset_dict = measures.set_index("mc")["quarterbeats_all_endings"]
-    quarterbeats = labels['mc'].map(offset_dict)
-    quarterbeats = quarterbeats.astype('float') + (labels.mc_onset * 4.0)
-    transformed_df = pd.concat([quarterbeats.rename('quarterbeats'), labels.duration_qb.rename('duration'), labels[label_column].rename('label')], axis=1)
+
+    if measures is None or "quarterbeats_all_endings" not in measures.columns:
+        assert "quarterbeats" in labels.columns, f"Labels are lacking 'quarterbeats': {labels.columns}"
+        quarterbeats = labels["quarterbeats"]
+    else:
+        offset_dict = measures.set_index("mc")["quarterbeats_all_endings"]
+        quarterbeats = labels['mc'].map(offset_dict)
+        quarterbeats = quarterbeats.astype('float') + (labels.mc_onset * 4.0)
+        quarterbeats.rename('quarterbeats', inplace=True)
+    transformed_df = pd.concat([quarterbeats, labels.duration_qb.rename('duration'), labels[label_column].rename('label')], axis=1)
     return transformed_df.to_dict(orient='records')
     
 def make_dezrann_label(
@@ -232,7 +246,7 @@ def generate_dez(path_measures: str,
     """
     harmonies_df = pd.read_csv(
         path_labels, sep='\t',
-        usecols=['mc', 'mc_onset', 'duration_qb', 'label'], #'chord'
+        usecols=['mc', 'mc_onset', 'duration_qb', 'quarterbeats', 'label', 'chord', 'cadence', 'phraseend'],
         converters={'mc_onset': safe_frac}
     )
     try:
@@ -241,10 +255,13 @@ def generate_dez(path_measures: str,
             usecols=['mc', 'quarterbeats_all_endings'],
             converters={'quarterbeats_all_endings': safe_frac}
         )
-    except ValueError as e:
-        raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
-
-    dcml_labels = transform_df(labels=harmonies_df, measures=measures_df)
+    except (ValueError, AssertionError) as e:
+        measures_df = None
+        # raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
+    try:
+        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df)
+    except Exception as e:
+        raise ValueError(f"Converting {path_labels} failed with the exception '{e}'.")
     dezrann_content = convert_dcml_list_to_dezrann_list(
         dcml_labels,
         cadences=cadences,
@@ -317,9 +334,12 @@ def main(input_dir: str,
         else:
             print(f"No measure map found for {tsv_name}. Skipping.")
             continue
+    if len(harmony_measure_matches) == 0:
+        print(f"No matching measure maps found for any of these files: {input_files}")
+        return
     for input_file, measure_file in harmony_measure_matches:
         if output_dir == input_dir:
-            output_file_path = measure_file.replace(".tsv", ".dez")
+            output_file_path = input_file.replace(".tsv", ".dez")
         else:
             dez_file = os.path.basename(measure_file).replace(".tsv", ".dez")
             output_file_path = os.path.join(output_dir, dez_file)
@@ -398,6 +418,7 @@ def process_arguments(args: argparse.Namespace) -> dict:
         output_dir=output_dir
     )
     line_args = ('harmonies', 'keys', 'phrases', 'raw')
+    transformed_line_args = {}
     for arg in line_args:
         arg_val = getattr(args, arg)
         if arg_val is None:
@@ -405,10 +426,11 @@ def process_arguments(args: argparse.Namespace) -> dict:
         line_arg = transform_line_argument(arg_val)
         if line_arg is None:
             continue
-        kwargs[arg] = line_arg
-    if len(set(kwargs.values())) < len(kwargs.values()):
-        selected_args = {arg: f"'{getattr(args, arg)}' => {kwargs[arg]}" for arg in line_args if arg in kwargs}
+        transformed_line_args[arg] = line_arg
+    if len(set(transformed_line_args.values())) < len(transformed_line_args.values()):
+        selected_args = {arg: f"'{getattr(args, arg)}' => {arg_val}" for arg, arg_val in transformed_line_args.items()}
         raise ValueError(f"You selected the same annotation layer more than once: {selected_args}.")
+    kwargs.update(transformed_line_args)
     if args.cadences:
         kwargs['cadences'] = True
     print(kwargs)
@@ -484,11 +506,11 @@ if __name__ == "__main__":
     run()
 
 
+    # import ms3
+    # measures = ms3.load_tsv('K283-2_measures.tsv')
+    # harmonies = ms3.load_tsv('K283-2_harmonies.tsv')
+    # transformed = transform_df(labels=harmonies, measures=measures)
+    # print(transformed)
 
-    #measures = ms3.load_tsv('src/ms3/K283-2_measures.tsv')
-    #harmonies = ms3.load_tsv('src/ms3/K283-2_harmonies.tsv')
-    #transformed = transform_df(labels=harmonies, measures=measures)
-    #print(transformed)
-    
     #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
     #generate_all_dez()
