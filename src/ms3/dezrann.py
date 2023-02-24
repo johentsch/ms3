@@ -116,7 +116,7 @@ def safe_frac(s: str) -> Union[Fraction, str]:
 
 class DezrannLabel(TypedDict):
     """Represents one label in a .dez file."""
-    type: str
+    label_type: str
     start: float
     duration: float
     #line: str # Determined by the meta-layout
@@ -160,7 +160,6 @@ def get_volta_groups(mc2volta: pd.Series) -> List[List[int]]:
             first_mc = segment.index[0]
             current_groups_first_mcs.append(first_mc)
     return volta_groups
-
 
 def transform_df(labels: pd.DataFrame,
                  measures: pd.DataFrame,
@@ -241,13 +240,17 @@ def transform_df(labels: pd.DataFrame,
     return transformed_df.to_dict(orient='records')
 
 def make_dezrann_label(
-            quarterbeats: float, duration: float, label: str, origin: Union[str, Tuple[str]]) -> DezrannLabel:
+            label_type: str,
+            quarterbeats: float,
+            duration: float,
+            label: str,
+            origin: Union[str, Tuple[str]]) -> DezrannLabel:
     if isinstance(origin, str):
         layers = [origin]
     else:
         layers = list(origin)
     return DezrannLabel(
-        type="Harmony", #TODO: adapt type to current label 
+        label_type=label_type,
         start=quarterbeats,
         duration=duration,
         tag=label,
@@ -255,37 +258,46 @@ def make_dezrann_label(
     )
 
 def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
-                                      cadences: bool = False,
-                                      harmony_line: Optional[str] = None,
-                                      keys_line: Optional[str] = None,
-                                      phrases_line: Optional[str] = None,
-                                      raw_line: Optional[str] = None,
+                                      label_type: str,
                                       origin: Union[str, Tuple[str]] = "DCML") -> DezrannDict:
-    label_list = []
+    dezrann_label_list = []
     for e in values_dict:
-        label_list.append(
+        dezrann_label_list.append(
             make_dezrann_label(
+                label_type=label_type,
                 quarterbeats=e["quarterbeats"],
                 duration=e["duration"],
                 label=e["label"],
                 origin=origin
             )
         )
+
+    return dezrann_label_list
+    #return DezrannDict(labels=label_list, meta={"layout": layout})
+
+def make_layout(
+               cadences: bool = False,
+               harmonies: Optional[str] = None,
+               keys: Optional[str] = None,
+               phrases: Optional[str] = None,
+               raw: Optional[str] = None):
+    """
+    Compile the line positions for target labels into Dezrann layout parameter.
+    """
     layout = []
     if cadences:
         layout.append({"filter": {"type": "Cadence"}, "style": {"line": "all"}})
-    if harmony_line:
-        layout.append({"filter": {"type": "Harmony"}, "style": {"line": harmony_line}})
-    if keys_line:
-        layout.append({"filter": {"type": "Localkey"}, "style": {"line": keys_line}})
-    if phrases_line:
-        layout.append({"filter": {"type": "Phrase"}, "style": {"line": phrases_line}})
-    if raw_line:
-        layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw_line}})
+    if harmonies:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": harmonies}})
+    if keys:
+        layout.append({"filter": {"type": "Local Key"}, "style": {"line": keys}})
+    if phrases:
+        layout.append({"filter": {"type": "Phrase"}, "style": {"line": phrases}})
+    if raw:
+        layout.append({"filter": {"type": "Harmony"}, "style": {"line": raw}})
 
-    return DezrannDict(labels=label_list, meta={"layout": layout})
+    return layout
     
-
 def generate_dez(path_measures: str,
                  path_labels: str,
                  output_path: str = "labels.dez",
@@ -321,28 +333,31 @@ def generate_dez(path_measures: str,
         )
     except (ValueError, AssertionError) as e:
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
-    converted_labels = {}
+
+    dezrann_labels = []
     if cadences:
-        converted_labels['cadences'] = transform_df(labels=harmonies_df, measures=measures_df, label_column='cadence')
-    for arg, label_column in ((harmonies, "chord"),
-                              (keys, "localkey"),
-                              (phrases, "phraseend"),
-                              (raw, "label")):
+        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column='cadence')
+        dezrann_labels += convert_dcml_list_to_dezrann_list(dcml_labels, label_type="Cadence", origin=origin)
+    for arg, label_column, label_type in ((harmonies, "chord", "Harmony"), #Third argument
+                                          (keys, "localkey", "Local Key"),
+                                          (phrases, "phraseend", "Phrase"),
+                                          (raw, "label", "Harmony")):
         if arg is not None:
-            converted_labels[arg] = transform_df(labels=harmonies_df, measures=measures_df, label_column=label_column)
-    # from pprint import pprint
-    # for line, converted in converted_labels.items():
-    #     print(line)
-    #     pprint(converted)
-    dezrann_content = convert_dcml_list_to_dezrann_list(
-        dcml_labels,
+            dcml_labels = transform_df(labels=harmonies_df, measures=measures_df, label_column=label_column)
+            dezrann_labels += convert_dcml_list_to_dezrann_list(
+                dcml_labels,
+                label_type=label_type,
+                origin=origin
+            )
+    
+    layout = make_layout(
         cadences=cadences,
-        harmony_line=harmonies,
-        keys_line=keys,
-        phrases_line=phrases,
-        raw_line=raw,
-        origin=origin
+        harmonies=harmonies,
+        keys=keys,
+        phrases=phrases,
+        raw=raw
     )
+    dezrann_content = DezrannDict(labels=dezrann_labels, meta={"layout": layout})
     
     # Manual post-processing  #TODO: improve these cases
     # 1) Avoid NaN values in "duration" (happens in second endings)
