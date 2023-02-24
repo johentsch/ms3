@@ -308,6 +308,9 @@ def main(input_dir: str,
     harmony_measure_matches = []
     for tsv_name in input_files:
         measures_file_path = os.path.join(measures_dir, tsv_name)
+        if not os.path.isfile(measures_file_path):
+            # could be a directory
+            continue
         if os.path.isfile(measures_file_path):
             harmonies_file_path = os.path.join(input_dir, tsv_name)
             harmony_measure_matches.append((harmonies_file_path, measures_file_path))
@@ -345,13 +348,16 @@ LINE_VALUES = {
 }
 
 def transform_line_argument(line: Optional[Union[int, str]]) -> Optional[str]:
+    """Takes a number bet"""
     if line is None:
         return
     try:
         line = int(line)
-        assert line in [1,2,3,4,5,6, -1, -2, -3]
+        assert line in [1,2,3,4,5,6, 0 -1, -2, -3]
     except (TypeError, ValueError, AssertionError):
-        raise ValueError(f"{line} is not a valid argument, shoube within 1-6.")
+        raise ValueError(f"{line} is not a valid argument, should be within [0, 6].")
+    if line == 0:
+        return None
     if line < 0:
         line = abs(line) + 3
     return LINE_VALUES[line]
@@ -367,7 +373,8 @@ def resolve_dir(d):
     return os.path.abspath(d)
     
 
-def process_arguments(args) -> dict:
+def process_arguments(args: argparse.Namespace) -> dict:
+    """Transforms the user's input arguments into keyword arguments for :func:`main` or raises a ValueError."""
     input_dir = resolve_dir(args.dir)
     assert os.path.isdir(input_dir), f"{args.dir} is not an existing directory."
     if args.measures is None:
@@ -395,7 +402,13 @@ def process_arguments(args) -> dict:
         arg_val = getattr(args, arg)
         if arg_val is None:
             continue
-        kwargs[arg] = transform_line_argument(arg_val)
+        line_arg = transform_line_argument(arg_val)
+        if line_arg is None:
+            continue
+        kwargs[arg] = line_arg
+    if len(set(kwargs.values())) < len(kwargs.values()):
+        selected_args = {arg: f"'{getattr(args, arg)}' => {kwargs[arg]}" for arg in line_args if arg in kwargs}
+        raise ValueError(f"You selected the same annotation layer more than once: {selected_args}.")
     if args.cadences:
         kwargs['cadences'] = True
     print(kwargs)
@@ -405,25 +418,26 @@ def process_arguments(args) -> dict:
 def run():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description='''\
-        -----------------------------
-        | DCML => Dezrann converter |
-        -----------------------------
+-----------------------------
+| DCML => Dezrann converter |
+-----------------------------
 
-        This script converts DCML harmony annotations into the .dez JSON format used by the dezrann.net app. It is 
-        standalone and does not require ms3 to be installed. Its only requirement is pandas.
+This script converts DCML harmony annotations into the .dez JSON format used by the dezrann.net app. It is 
+standalone and does not require ms3 to be installed. Its only requirement is pandas.
 
-        Apart from that, the script requires that you have previously extracted both harmonies and measures from the 
-        annotated scores or that you are converting a DCML corpus (https://github.com/DCMLab/dcml_corpora), 
-        where both facets are provided by default. In order to (re-) extract the labels, use the command:
+Apart from that, the script requires that you have previously extracted both harmonies and measures from the 
+annotated scores or that you are converting a DCML corpus (https://github.com/DCMLab/dcml_corpora), 
+where both facets are provided by default. In order to (re-) extract the labels, use the command:
 
-            ms3 extract -X -M
+    ms3 extract -X -M
 
-        Or, if you want to convert other harmony or chord labels from your MuseScore files, use -L for labels.
-        ms3 extract -h will show you all options.
-        ''')
-    parser.add_argument("dir", metavar='DIR',
-                        help='Folder that will be scanned for TSV files to convert. Defaults to current working directory.')
-    parser.add_argument('-m', '--measures', metavar='DIR',
+Or, if you want to convert other harmony or chord labels from your MuseScore files, use -L for labels.
+ms3 extract -h will show you all options.
+''')
+    parser.add_argument("dir", metavar='IN_DIR',
+                        help='Folder that will be scanned for TSV files to convert. Defaults to current working directory. '
+                             'Sub-directories are not taken into account.')
+    parser.add_argument('-m', '--measures', metavar='MEASURES_DIR',
                         help="Folder in which to look for the corrsponding measure maps. By default, the script will try "
                              "to find a sibling to the source dir called 'measures'.")
     parser.add_argument('-o', '--out', metavar='OUT_DIR',
@@ -431,26 +445,37 @@ def run():
     parser.add_argument('-C', 
                         '--cadences', 
                         action="store_true",
+                        help="Pass this flag if you want to add time-point cadence labels to the .dez files."
                         )
-    parser.add_argument('-H', 
-                        '--harmonies', 
-                        metavar="{1-6}, default: 4",
+    possible_line_arguments = ("0", "1", "2", "3", "4", "5", "6", "-1", "-2", "-3")
+    parser.add_argument('-H',
+                        '--harmonies',
+                        metavar="{0-6}, default: 4",
                         default="4",
-                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"], 
+                        choices=possible_line_arguments,
+                        help="By default, harmony annotations will be set on the first line under the system (layer "
+                             "4 out of 6). Pick another layer or pass 0 to not add harmonies."
                         )
     parser.add_argument('-K', 
                         '--keys', 
-                        metavar="{1-6}, default: 5",
+                        metavar="{0-6}, default: 5",
                         default="5",
-                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
+                        choices=possible_line_arguments,
+                        help="By default, local key segments will be set on the second line under the system (layer "
+                             "5 out of 6). Pick another layer or pass 0 to not add key segments. Note, however, "
+                             "that harmonies are underdetermined without their local key.")
     parser.add_argument('-P', 
                         '--phrases', 
-                        metavar="{1-6}, default: 6",
+                        metavar="{0-6}, default: 6",
                         default="6", 
-                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
+                        choices=possible_line_arguments,
+                        help="By default, phrase annotations will be set on the third line under the system (layer "
+                             "6 out of 6). Pick another layer or pass 0 to not add phrases.")
     parser.add_argument('--raw', 
                         metavar="{1-6}",
-                        choices=["1", "2", "3", "4", "5", "6", "-1", "-2", "-3"])
+                        choices=possible_line_arguments,
+                        help="Pass this argument to add a layer with the 'raw' labels, i.e. including local key, "
+                             "cadence and phrase annotations.")
     args = parser.parse_args()
     kwargs = process_arguments(args)
     main(**kwargs)
