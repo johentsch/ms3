@@ -458,7 +458,7 @@ def get_arg_parser():
     # reusable argument sets
     parse_args = argparse.ArgumentParser(add_help=False)
     parse_args.add_argument('-d', '--dir', metavar='DIR', default=os.getcwd(), type=check_dir,
-                                help='Folder(s) that will be scanned for input files. Defaults to current working directory if no individual files are passed via -f.')
+                                help='Folder(s) that will be scanned for input files. Defaults to current working directory.')
     parse_args.add_argument('-o', '--out', metavar='OUT_DIR', type=check_and_create,
                                 help='Output directory.')
     parse_args.add_argument('-n', '--nonrecursive', action='store_true',
