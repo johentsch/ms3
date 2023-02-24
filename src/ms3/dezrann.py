@@ -116,7 +116,7 @@ def safe_frac(s: str) -> Union[Fraction, str]:
 
 class DezrannLabel(TypedDict):
     """Represents one label in a .dez file."""
-    label_type: str
+    type: str
     start: float
     duration: float
     #line: str # Determined by the meta-layout
@@ -250,7 +250,7 @@ def make_dezrann_label(
     else:
         layers = list(origin)
     return DezrannLabel(
-        label_type=label_type,
+        type=label_type,
         start=quarterbeats,
         duration=duration,
         tag=label,
@@ -273,7 +273,6 @@ def convert_dcml_list_to_dezrann_list(values_dict: List[DcmlLabel],
         )
 
     return dezrann_label_list
-    #return DezrannDict(labels=label_list, meta={"layout": layout})
 
 def make_layout(
                cadences: bool = False,
@@ -411,7 +410,7 @@ def main(input_dir: str,
     # measures_files = glob.glob(f"{measures_dir}/*.tsv")
     harmony_measure_matches = []
     for tsv_name in input_files:
-        measures_file_path = os.path.join(measures_dir, tsv_name)
+        measures_file_path = os.path.join(measures_dir, tsv_name).replace("harmonies", "measures")
         if not os.path.isfile(measures_file_path):
             # could be a directory
             continue
