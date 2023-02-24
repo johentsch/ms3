@@ -193,16 +193,16 @@ def transform_df(labels: pd.DataFrame,
         List of dictionaries where each represents one row of the input labels.
     """
     score_has_voltas = "quarterbeats_all_endings" in measures.columns
+    last_mc_row = measures.iloc[-1]
+    end_of_score = float(last_mc_row.act_dur) * 4.0
     if not score_has_voltas:
         assert "quarterbeats" in labels.columns, f"Labels are lacking 'quarterbeats' column: {labels.columns}"
         quarterbeats = labels["quarterbeats"]
-        last_mc = measures.iloc[-1]
-        end_of_score = last_mc.quarterbeats + last_mc.act_dur * 4.0
+        end_of_score += float(last_mc_row.quarterbeats)
     else:
         # the column 'quarterbeats_all_endings' is present, meaning the piece has first and second endings and the
         # quarterbeats, which normally leave out first endings, need to be recomputed
-        last_mc = measures.iloc[-1]
-        end_of_score = last_mc.quarterbeats_all_endings + last_mc.act_dur * 4.0
+        end_of_score += float(last_mc_row.quarterbeats_all_endings)
         M = measures.set_index("mc")
         offset_dict = M["quarterbeats_all_endings"]
         quarterbeats = labels['mc'].map(offset_dict)
@@ -316,14 +316,24 @@ def generate_dez(path_measures: str,
         measures_df = pd.read_csv(
             path_measures, sep='\t',
             dtype={'mc': int, 'volta': 'Int64'},
-            converters={'quarterbeats_all_endings': safe_frac}
+            converters={'quarterbeats_all_endings': safe_frac,
+                        'act_dur': safe_frac}
         )
     except (ValueError, AssertionError) as e:
         raise ValueError(f"{path_measures} could not be loaded as a measure map because of the following error:\n'{e}'")
-    try:
-        dcml_labels = transform_df(labels=harmonies_df, measures=measures_df)
-    except Exception as e:
-        raise ValueError(f"Converting {path_labels} failed with the exception '{e}'.")
+    converted_labels = {}
+    if cadences:
+        converted_labels['cadences'] = transform_df(labels=harmonies_df, measures=measures_df, label_column='cadence')
+    for arg, label_column in ((harmonies, "chord"),
+                              (keys, "localkey"),
+                              (phrases, "phraseend"),
+                              (raw, "label")):
+        if arg is not None:
+            converted_labels[arg] = transform_df(labels=harmonies_df, measures=measures_df, label_column=label_column)
+    # from pprint import pprint
+    # for line, converted in converted_labels.items():
+    #     print(line)
+    #     pprint(converted)
     dezrann_content = convert_dcml_list_to_dezrann_list(
         dcml_labels,
         cadences=cadences,
@@ -572,7 +582,6 @@ if __name__ == "__main__":
     # measures = ms3.load_tsv('K283-2_measures.tsv')
     # harmonies = ms3.load_tsv('K283-2_harmonies.tsv')
     # transformed = transform_df(labels=harmonies, measures=measures)
-    # print(transformed)
 
-    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv')
+    #dez = generate_dez('K283-2_measures.tsv', 'K283-2_harmonies.tsv', cadences=True, harmonies="bot.4", keys="bot.5", phrases="bot.6", raw="top.3")
     #generate_all_dez()
