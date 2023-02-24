@@ -3316,36 +3316,33 @@ def transform(df, func, param2col=None, column_wise=False, **kwargs):
 
 @function_logger
 def adjacency_groups(S: pd.Series,
-                     na_values: str = None,
+                     na_values: Optional[str] = 'group',
                      prevent_merge: bool = False) -> Tuple[pd.Series, Dict[int, Any]]:
-    """ Turns a Series into a Series of ascending integers starting from 0 that reflect groups of successive
+    """ Turns a Series into a Series of ascending integers starting from 1 that reflect groups of successive
     equal values. There are several options of how to deal with NA values.
 
-    Parameters
-    ----------
-    S : :obj:`pandas.Series`
-        Series in which to group identical adjacent values with each other.
-    na_values : :obj:`str`, optional
-        | How to treat (groups of) NA values. By default, NA values are being ignored.
-        | 'group' creates individual groups for NA values
-        | 'backfill' or 'bfill' groups NA values with the subsequent group
-        | 'pad', 'ffill' groups NA values with the preceding group
-        | Any other string works like 'group', with the difference that the groups will be named with this value.
-    prevent_merge : :obj:`bool`, optional
-        By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
+    Args:
+        S: Series in which to group identical adjacent values with each other.
+        na_values:
+            | 'group' creates individual groups for NA values (default).
+            | 'backfill' or 'bfill' groups NA values with the subsequent group
+            | 'pad', 'ffill' groups NA values with the preceding group
+            | Any other string works like 'group', with the difference that the groups will be named with this value.
+            | Passing None means NA values & ranges are being ignored, i.e. they will also be present in the output and the
+              subsequent value will be based on the preceding value.
+        prevent_merge:
+            By default, if you use the `na_values` argument to fill NA values, they might lead to two groups merging.
         Pass True to prevent this. For example, take the sequence ['a', NA, 'a'] with ``na_values='ffill'``: By default,
         it will be merged to one single group ``[1, 1, 1], {1: 'a'}``. However, passing ``prevent_merge=True`` will
         result in ``[1, 1, 2], {1: 'a', 2: 'a'}``.
 
-
-    Returns
-    -------
-    :obj:`pandas.Series`
+    Returns:
         A series with increasing integers that can be used for grouping.
-    :obj:`dict`
         A dictionary mapping the integers to the grouped values.
+
     """
     reindex_flag = False
+    # reindex is set to True in cases where NA values are being excluded from the operation and restored afterwards
     if prevent_merge:
         forced_beginnings = S.notna() & ~S.notna().shift().fillna(False)
     if na_values is None:
