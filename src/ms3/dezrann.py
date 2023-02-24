@@ -328,6 +328,7 @@ def generate_dez(path_measures: str,
             path_measures, sep='\t',
             dtype={'mc': int, 'volta': 'Int64'},
             converters={'quarterbeats_all_endings': safe_frac,
+                        'quarterbeats': safe_frac,
                         'act_dur': safe_frac}
         )
     except (ValueError, AssertionError) as e:
@@ -420,14 +421,14 @@ def main(input_dir: str,
             output_file_path = os.path.join(output_dir, dez_file)
         try:
             generate_dez(
-            path_labels=input_file,
-            path_measures=measure_file,
-            output_path=output_file_path,
-            cadences=cadences,
-            harmonies=harmonies,
-            keys=keys,
-            phrases=phrases,
-            raw=raw
+                path_labels=input_file,
+                path_measures=measure_file,
+                output_path=output_file_path,
+                cadences=cadences,
+                harmonies=harmonies,
+                keys=keys,
+                phrases=phrases,
+                raw=raw
             )
             print(f"{output_file_path} successfully written.")
         except Exception as e:
