@@ -24,7 +24,7 @@ def gather_extract_params(args):
         ('measures', 'notes', 'rests', 'labels', 'expanded', 'form_labels', 'events', 'chords'),
         (args.measures, args.notes, args.rests, args.labels, args.expanded, args.form_labels, args.events, args.chords))
               if arg]
-    if args.metadata:
+    if args.metadata is not None:
         params.append('metadata')
     return params
 
